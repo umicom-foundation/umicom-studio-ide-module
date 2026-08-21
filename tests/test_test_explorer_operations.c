@@ -23,10 +23,15 @@ int main(void)
     UmiStudioTestExplorerCentreSnapshot snapshot;
     assert(umi_studio_test_service_create(&tests) == UMI_STATUS_OK);
     (void)memset(&item, 0, sizeof(item));
+    item.struct_size = (uint32_t)sizeof(item);
+    item.api_version = UMI_TEST_PLATFORM_ITEM_API_VERSION;
     (void)strcpy(item.id, "studio.alpha");
     (void)strcpy(item.name, "Studio Alpha");
     (void)strcpy(item.kind, "test");
+    (void)strcpy(item.framework, "ctest");
+    (void)strcpy(item.suite_id, "studio");
     item.enabled = 1;
+    item.discovered = 1;
     assert(umi_test_platform_item_registry_upsert(
                umi_test_platform_service_item(
                    umi_studio_test_service_platform(tests)),
