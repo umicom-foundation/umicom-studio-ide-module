@@ -13,6 +13,7 @@
 #include "workbench_window.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "context_link_centre.h"
 #include "umicom/ui/gtk4.h"
@@ -71,6 +72,132 @@ static UmiStatus attach_context_strip(UmiStudioGtkWorkbench *workbench)
     return UMI_STATUS_OK;
 }
 
+
+static UmiStatus on_editor_location(
+    void *context,
+    const char *view_id,
+    const char *uri,
+    const char *language_id,
+    uint32_t line,
+    uint32_t column,
+    uint32_t selection_length,
+    uint64_t timestamp_ms)
+{
+    UmiStudioContextLinkCentre *centre =
+        (UmiStudioContextLinkCentre *)context;
+    (void)view_id;
+    (void)language_id;
+    return umi_studio_context_link_centre_publish_source_location(
+        centre,
+        uri,
+        "",
+        line,
+        column,
+        selection_length,
+        timestamp_ms);
+}
+
+static UmiStatus on_document_activated(
+    void *context,
+    const char *view_id,
+    const char *uri,
+    const char *language_id,
+    uint64_t timestamp_ms)
+{
+    UmiStudioContextLinkCentre *centre =
+        (UmiStudioContextLinkCentre *)context;
+    (void)view_id;
+    (void)language_id;
+    return umi_studio_context_link_centre_publish_selection(
+        centre,
+        "studio.editor.location",
+        "studio.editor",
+        uri,
+        "document-activated",
+        timestamp_ms);
+}
+
+static UmiStatus on_problem_selected(
+    void *context,
+    const char *row_text,
+    uint64_t timestamp_ms)
+{
+    return umi_studio_context_link_centre_publish_selection(
+        (UmiStudioContextLinkCentre *)context,
+        "studio.problems.selection",
+        "studio.problems",
+        row_text,
+        "problem-row",
+        timestamp_ms);
+}
+
+static UmiStatus on_source_control_selected(
+    void *context,
+    const char *view_kind,
+    const char *row_text,
+    uint64_t timestamp_ms)
+{
+    return umi_studio_context_link_centre_publish_selection(
+        (UmiStudioContextLinkCentre *)context,
+        "studio.source-control.selection",
+        "studio.source-control",
+        row_text,
+        view_kind != NULL ? view_kind : "source-control-row",
+        timestamp_ms);
+}
+
+static UmiStatus on_generic_selected(
+    void *context,
+    const char *source_role,
+    const char *subject_id,
+    const char *secondary_id,
+    uint64_t timestamp_ms)
+{
+    UmiStudioContextLinkCentre *centre =
+        (UmiStudioContextLinkCentre *)context;
+    const char *source_id =
+        source_role != NULL && source_role[0] != '\0'
+        ? source_role
+        : "studio.workbench.selection";
+    const char *subject =
+        subject_id != NULL ? subject_id : "";
+    const char *selection_type =
+        secondary_id != NULL && secondary_id[0] != '\0'
+        ? secondary_id
+        : "workbench-selection";
+
+    return umi_studio_context_link_centre_publish_selection(
+        centre,
+        source_id,
+        "studio.workbench.observer",
+        subject,
+        selection_type,
+        timestamp_ms);
+}
+
+static UmiStatus bind_context_interactions(
+    UmiStudioGtkWorkbench *workbench)
+{
+    UmiGtk4ContextInteractionSink sink;
+    if (workbench == NULL || workbench->adapter == NULL ||
+        workbench->context_links == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    (void)memset(&sink, 0, sizeof(sink));
+    sink.structure_size = (uint32_t)sizeof(sink);
+    sink.context = workbench->context_links;
+    sink.editor_location = on_editor_location;
+    sink.document_activated = on_document_activated;
+    sink.problem_selected = on_problem_selected;
+    sink.source_control_selected = on_source_control_selected;
+    sink.generic_selected = on_generic_selected;
+
+    return umi_gtk4_adapter_bind_context_interactions(
+        workbench->adapter,
+        &sink);
+}
+
 UmiStatus umi_studio_gtk_workbench_create(
     GtkApplication *application,
     UmiStudioUi *ui,
@@ -113,6 +240,9 @@ UmiStatus umi_studio_gtk_workbench_create(
             umi_studio_services_session(
                 umi_studio_ui_services(ui)),
             &workbench->context_links);
+    }
+    if (status == UMI_STATUS_OK) {
+        status = bind_context_interactions(workbench);
     }
     if (status == UMI_STATUS_OK) {
         status = umi_studio_context_link_centre_refresh(

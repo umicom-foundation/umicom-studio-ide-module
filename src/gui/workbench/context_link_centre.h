@@ -84,6 +84,14 @@ UmiStatus umi_studio_context_link_centre_publish_test(
     uint64_t source_line,
     uint64_t duration_ms,
     uint64_t now_ms);
+UmiStatus umi_studio_context_link_centre_publish_selection(
+    UmiStudioContextLinkCentre *centre,
+    const char *source_id,
+    const char *panel_id,
+    const char *subject_id,
+    const char *selection_type,
+    uint64_t now_ms);
+
 UmiStatus umi_studio_context_link_centre_publish_ai(
     UmiStudioContextLinkCentre *centre,
     const char *conversation_id,

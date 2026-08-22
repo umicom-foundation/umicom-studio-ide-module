@@ -218,7 +218,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_STUDIO_CONTEXT_ENDPOINT_TESTS,
         "studio.test-explorer",
         "Test Explorer",
-        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT,
+        UMI_STUDIO_CONTEXT_GROUP_TESTING,
         UMI_WORKBENCH_CONTEXT_HOST_PANEL_TEST_EXPLORER,
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         source | project | selection,
@@ -242,7 +242,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_STUDIO_CONTEXT_ENDPOINT_AI,
         "studio.ai",
         "AI Assistant",
-        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT,
+        UMI_STUDIO_CONTEXT_GROUP_AI,
         UMI_WORKBENCH_CONTEXT_HOST_PANEL_AI,
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         source | project | workspace | selection,
@@ -337,15 +337,23 @@ static UmiStatus submit_event(
     size_t processed = 0U;
     UmiStatus status;
 
-    if (centre == NULL || event == NULL || group_id == NULL) {
+    if (centre == NULL || event == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
-    status = umi_workbench_context_event_add_metadata(
-        event,
-        "group-id",
-        group_id);
-    if (status != UMI_STATUS_OK) return status;
+    /*
+     * A NULL/empty group means "follow the panel's current Context Host
+     * assignment". This is the normal path for real UI interactions and makes
+     * user reassignment of a panel effective immediately. An explicit group
+     * remains available for controlled programmatic publication.
+     */
+    if (group_id != NULL && group_id[0] != '\0') {
+        status = umi_workbench_context_event_add_metadata(
+            event,
+            "group-id",
+            group_id);
+        if (status != UMI_STATUS_OK) return status;
+    }
 
     status = umi_workbench_context_event_service_submit(
         centre->events,
@@ -505,22 +513,6 @@ UmiWorkbenchContextHost *umi_studio_context_link_centre_host(
     return centre != NULL ? centre->host : NULL;
 }
 
-static const char *group_for_panel(
-    const UmiStudioContextLinkCentre *centre,
-    const char *panel_id)
-{
-    const UmiWorkbenchContextHostEndpoint *endpoint;
-    if (centre == NULL || centre->host == NULL || panel_id == NULL) {
-        return NULL;
-    }
-    endpoint = umi_workbench_context_host_endpoint_registry_find_panel(
-        &centre->host->endpoints, panel_id);
-    if (endpoint == NULL || endpoint->group_id[0] == '\0') {
-        return NULL;
-    }
-    return endpoint->group_id;
-}
-
 static UmiStatus next_context_id(
     UmiStudioContextLinkCentre *centre,
     const char *prefix,
@@ -589,7 +581,7 @@ UmiStatus umi_studio_context_link_centre_publish_project(
     return submit_event(
         centre,
         &event,
-        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
+        NULL);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_source_location(
@@ -630,7 +622,7 @@ UmiStatus umi_studio_context_link_centre_publish_source_location(
     return submit_event(
         centre,
         &event,
-        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
+        NULL);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_diagnostic(
@@ -674,7 +666,7 @@ UmiStatus umi_studio_context_link_centre_publish_diagnostic(
     return submit_event(
         centre,
         &event,
-        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
+        NULL);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_source_control(
@@ -718,7 +710,7 @@ UmiStatus umi_studio_context_link_centre_publish_source_control(
     return submit_event(
         centre,
         &event,
-        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
+        NULL);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_test(
@@ -762,7 +754,7 @@ UmiStatus umi_studio_context_link_centre_publish_test(
     return submit_event(
         centre,
         &event,
-        UMI_STUDIO_CONTEXT_GROUP_TESTING);
+        NULL);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_ai(
@@ -804,7 +796,7 @@ UmiStatus umi_studio_context_link_centre_publish_ai(
     return submit_event(
         centre,
         &event,
-        UMI_STUDIO_CONTEXT_GROUP_AI);
+        NULL);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_debug_location(
@@ -847,5 +839,91 @@ UmiStatus umi_studio_context_link_centre_publish_debug_location(
     return submit_event(
         centre,
         &event,
-        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
+        NULL);
+}
+
+UmiStatus umi_studio_context_link_centre_publish_selection(
+    UmiStudioContextLinkCentre *centre,
+    const char *source_id,
+    const char *panel_id,
+    const char *subject_id,
+    const char *selection_type,
+    uint64_t now_ms)
+{
+    UmiWorkbenchContextEvent event;
+    char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
+    UmiStatus status;
+
+    if (centre == NULL || source_id == NULL || panel_id == NULL ||
+        subject_id == NULL || selection_type == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    status = next_context_id(
+        centre,
+        "studio-selection",
+        context_id,
+        sizeof(context_id));
+    if (status != UMI_STATUS_OK) return status;
+
+    umi_workbench_context_event_init(
+        &event,
+        UMI_WORKBENCH_CONTEXT_EVENT_GENERIC_SELECTION,
+        context_id);
+    event.context_kind = UMI_CONTEXT_KIND_SELECTION;
+    event.timestamp_ms = now_ms;
+
+    status = umi_workbench_context_event_copy_text(
+        event.source_id,
+        sizeof(event.source_id),
+        source_id);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_copy_text(
+        event.application_id,
+        sizeof(event.application_id),
+        "org.umicom.studio");
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_copy_text(
+        event.panel_id,
+        sizeof(event.panel_id),
+        panel_id);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_copy_text(
+        event.workspace_id,
+        sizeof(event.workspace_id),
+        centre->workspace_id);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_copy_text(
+        event.subject_id,
+        sizeof(event.subject_id),
+        subject_id);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_copy_text(
+        event.secondary_id,
+        sizeof(event.secondary_id),
+        subject_id);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_add_metadata(
+        &event,
+        "selection-type",
+        selection_type);
+    if (status != UMI_STATUS_OK) return status;
+
+    /*
+     * Do not force a colour group here.  The Framework Event Service resolves
+     * the panel's current Context Host assignment, so user reassignment of a
+     * panel immediately changes subsequent routing.
+     */
+    status = umi_workbench_context_event_service_submit(
+        centre->events,
+        &event);
+    if (status != UMI_STATUS_OK) return status;
+
+    {
+        size_t processed = 0U;
+        return umi_workbench_context_event_service_pump(
+            centre->events,
+            0U,
+            &processed);
+    }
 }
