@@ -22,6 +22,8 @@
 #include "umicom/workbench_context_host/source_location_publisher.h"
 #include "umicom/workbench_context_host/test_publisher.h"
 #include "umicom/workbench_context_host/session_service.h"
+#include "umicom/workbench_context_event/builders.h"
+#include "umicom/workbench_context_event/service.h"
 
 #define UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT "studio.context.development"
 #define UMI_STUDIO_CONTEXT_GROUP_TESTING "studio.context.testing"
@@ -44,6 +46,7 @@ struct UmiStudioContextLinkCentre {
     UmiWorkbenchContextLinkSlaveController link_controller;
     UmiWorkbenchContextHost *host;
     UmiWorkbenchContextHostSlaveController host_controller;
+    UmiWorkbenchContextEventService *events;
     UmiWorkbenchContextHostProfile *profile;
     char workspace_id[UMI_WORKBENCH_CONTEXT_HOST_ID_CAPACITY];
     uint64_t publication_sequence;
@@ -258,6 +261,103 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         selection);
 }
 
+
+static UmiStatus register_event_source(
+    UmiStudioContextLinkCentre *centre,
+    const char *source_id,
+    const char *label)
+{
+    UmiWorkbenchContextEventSourceDescriptor source;
+    UmiStatus status;
+
+    if (centre == NULL || centre->events == NULL ||
+        source_id == NULL || label == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    umi_workbench_context_event_source_descriptor_init(
+        &source,
+        source_id);
+    status = umi_workbench_context_event_source_descriptor_set_source(
+        &source,
+        source_id);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_source_descriptor_set_subject(
+        &source,
+        "org.umicom.studio");
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_source_descriptor_set_label(
+        &source,
+        label);
+    if (status != UMI_STATUS_OK) return status;
+    source.event_kind = UMI_WORKBENCH_CONTEXT_EVENT_GENERIC_SELECTION;
+    source.context_kind = UMI_CONTEXT_KIND_SELECTION;
+    source.state = UMI_WORKBENCH_CONTEXT_EVENT_ACCEPTED;
+    return umi_workbench_context_event_service_register_source(
+        centre->events,
+        &source);
+}
+
+static UmiStatus register_event_sources(
+    UmiStudioContextLinkCentre *centre)
+{
+    static const struct {
+        const char *source_id;
+        const char *label;
+    } sources[] = {
+        { "studio.project.selection", "Project Explorer selection" },
+        { "studio.editor.location", "Editor caret and selection" },
+        { "studio.problems.selection", "Problems selection" },
+        { "studio.source-control.selection", "Source Control selection" },
+        { "studio.test.selection", "Test Explorer selection" },
+        { "studio.ai.selection", "AI selection" },
+        { "studio.debug.location", "Debugger source location" },
+        { "studio.workbench.selection", "Workbench selection" }
+    };
+    size_t index;
+    UmiStatus status;
+
+    for (index = 0U;
+         index < sizeof(sources) / sizeof(sources[0]);
+         ++index) {
+        status = register_event_source(
+            centre,
+            sources[index].source_id,
+            sources[index].label);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    return UMI_STATUS_OK;
+}
+
+static UmiStatus submit_event(
+    UmiStudioContextLinkCentre *centre,
+    UmiWorkbenchContextEvent *event,
+    const char *group_id)
+{
+    size_t processed = 0U;
+    UmiStatus status;
+
+    if (centre == NULL || event == NULL || group_id == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    status = umi_workbench_context_event_add_metadata(
+        event,
+        "group-id",
+        group_id);
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_service_submit(
+        centre->events,
+        event);
+    if (status != UMI_STATUS_OK) return status;
+
+    return umi_workbench_context_event_service_pump(
+        centre->events,
+        0U,
+        &processed);
+}
+
 UmiStatus umi_studio_context_link_centre_create(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session,
@@ -334,6 +434,17 @@ UmiStatus umi_studio_context_link_centre_create(
         (void)restored;
     }
 
+    status = umi_workbench_context_event_service_create(
+        centre->host,
+        &centre->events);
+    if (status == UMI_STATUS_OK) {
+        status = register_event_sources(centre);
+    }
+    if (status != UMI_STATUS_OK) {
+        umi_studio_context_link_centre_destroy(centre);
+        return status;
+    }
+
     umi_workbench_context_host_slave_controller_init(
         &centre->host_controller, centre->host);
     status = umi_workbench_context_host_slave_controller_start(
@@ -361,6 +472,9 @@ void umi_studio_context_link_centre_destroy(
         (void)umi_workbench_context_host_slave_controller_stop(
             &centre->host_controller);
     }
+    umi_workbench_context_event_service_destroy(centre->events);
+    centre->events = NULL;
+
     umi_workbench_context_host_destroy(centre->host);
     centre->host = NULL;
     (void)umi_workbench_context_link_slave_controller_stop(
@@ -438,24 +552,44 @@ UmiStatus umi_studio_context_link_centre_publish_project(
     const char *language_id,
     uint64_t now_ms)
 {
-    char context_id[UMI_WORKBENCH_CONTEXT_HOST_ID_CAPACITY];
+    UmiWorkbenchContextEvent event;
+    char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
+
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
-        centre, "studio-project", context_id, sizeof(context_id));
-    if (status != UMI_STATUS_OK) return status;
-    return umi_workbench_context_host_publish_project(
-        centre->host,
-        group_for_panel(centre, "studio.project-explorer"),
-        "studio.project-explorer",
+        centre,
+        "studio-project",
         context_id,
+        sizeof(context_id));
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_build_project(
+        &event,
+        context_id,
+        "studio.project.selection",
+        "org.umicom.studio",
+        "studio.project-explorer",
+        centre->workspace_id,
         project_id,
-        repository_id,
         root_path,
-        target_id,
-        configuration_id,
+        repository_id,
         language_id,
         now_ms);
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_add_metadata(
+        &event, "target-id", target_id != NULL ? target_id : "");
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_workbench_context_event_add_metadata(
+        &event, "configuration-id",
+        configuration_id != NULL ? configuration_id : "");
+    if (status != UMI_STATUS_OK) return status;
+
+    return submit_event(
+        centre,
+        &event,
+        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_source_location(
@@ -467,17 +601,23 @@ UmiStatus umi_studio_context_link_centre_publish_source_location(
     uint32_t selection_length,
     uint64_t now_ms)
 {
-    char context_id[UMI_WORKBENCH_CONTEXT_HOST_ID_CAPACITY];
+    UmiWorkbenchContextEvent event;
+    char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
-        centre, "studio-source", context_id, sizeof(context_id));
-    if (status != UMI_STATUS_OK) return status;
-    return umi_workbench_context_host_publish_source_location(
-        centre->host,
-        group_for_panel(centre, "studio.editor"),
-        "studio.editor",
+        centre,
+        "studio-source",
         context_id,
+        sizeof(context_id));
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_build_editor_location(
+        &event,
+        context_id,
+        "studio.editor.location",
+        "org.umicom.studio",
+        "studio.editor",
         centre->workspace_id,
         file_path,
         symbol != NULL ? symbol : "",
@@ -485,6 +625,12 @@ UmiStatus umi_studio_context_link_centre_publish_source_location(
         column,
         selection_length,
         now_ms);
+    if (status != UMI_STATUS_OK) return status;
+
+    return submit_event(
+        centre,
+        &event,
+        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_diagnostic(
@@ -497,17 +643,24 @@ UmiStatus umi_studio_context_link_centre_publish_diagnostic(
     const char *message,
     uint64_t now_ms)
 {
-    char context_id[UMI_WORKBENCH_CONTEXT_HOST_ID_CAPACITY];
+    UmiWorkbenchContextEvent event;
+    char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
+
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
-        centre, "studio-diagnostic", context_id, sizeof(context_id));
-    if (status != UMI_STATUS_OK) return status;
-    return umi_workbench_context_host_publish_diagnostic(
-        centre->host,
-        group_for_panel(centre, "studio.problems"),
-        "studio.problems",
+        centre,
+        "studio-diagnostic",
         context_id,
+        sizeof(context_id));
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_build_diagnostic(
+        &event,
+        context_id,
+        "studio.problems.selection",
+        "org.umicom.studio",
+        "studio.problems",
         centre->workspace_id,
         file_path,
         line,
@@ -516,6 +669,56 @@ UmiStatus umi_studio_context_link_centre_publish_diagnostic(
         diagnostic_code,
         message,
         now_ms);
+    if (status != UMI_STATUS_OK) return status;
+
+    return submit_event(
+        centre,
+        &event,
+        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
+}
+
+UmiStatus umi_studio_context_link_centre_publish_source_control(
+    UmiStudioContextLinkCentre *centre,
+    const char *project_id,
+    const char *root_path,
+    const char *repository_id,
+    const char *branch,
+    const char *path,
+    const char *change_kind,
+    uint64_t now_ms)
+{
+    UmiWorkbenchContextEvent event;
+    char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
+    UmiStatus status;
+
+    if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = next_context_id(
+        centre,
+        "studio-vcs",
+        context_id,
+        sizeof(context_id));
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_build_source_control(
+        &event,
+        context_id,
+        "studio.source-control.selection",
+        "org.umicom.studio",
+        "studio.source-control",
+        centre->workspace_id,
+        project_id,
+        root_path,
+        repository_id,
+        branch,
+        path,
+        change_kind,
+        now_ms);
+    if (status != UMI_STATUS_OK) return status;
+
+    return submit_event(
+        centre,
+        &event,
+        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_test(
@@ -528,17 +731,25 @@ UmiStatus umi_studio_context_link_centre_publish_test(
     uint64_t duration_ms,
     uint64_t now_ms)
 {
-    char context_id[UMI_WORKBENCH_CONTEXT_HOST_ID_CAPACITY];
+    UmiWorkbenchContextEvent event;
+    char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
+
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
-        centre, "studio-test", context_id, sizeof(context_id));
-    if (status != UMI_STATUS_OK) return status;
-    return umi_workbench_context_host_publish_test(
-        centre->host,
-        group_for_panel(centre, "studio.test-explorer"),
-        "studio.test-explorer",
+        centre,
+        "studio-test",
         context_id,
+        sizeof(context_id));
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_build_test(
+        &event,
+        context_id,
+        "studio.test.selection",
+        "org.umicom.studio",
+        "studio.test-explorer",
+        centre->workspace_id,
         test_id,
         suite_id,
         outcome,
@@ -546,6 +757,12 @@ UmiStatus umi_studio_context_link_centre_publish_test(
         source_line,
         duration_ms,
         now_ms);
+    if (status != UMI_STATUS_OK) return status;
+
+    return submit_event(
+        centre,
+        &event,
+        UMI_STUDIO_CONTEXT_GROUP_TESTING);
 }
 
 UmiStatus umi_studio_context_link_centre_publish_ai(
@@ -557,21 +774,78 @@ UmiStatus umi_studio_context_link_centre_publish_ai(
     const char *evidence_id,
     uint64_t now_ms)
 {
-    char context_id[UMI_WORKBENCH_CONTEXT_HOST_ID_CAPACITY];
+    UmiWorkbenchContextEvent event;
+    char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
+
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
-        centre, "studio-ai", context_id, sizeof(context_id));
-    if (status != UMI_STATUS_OK) return status;
-    return umi_workbench_context_host_publish_ai(
-        centre->host,
-        group_for_panel(centre, "studio.ai"),
-        "studio.ai",
+        centre,
+        "studio-ai",
         context_id,
-        conversation_id,
+        sizeof(context_id));
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_build_ai(
+        &event,
+        context_id,
+        "studio.ai.selection",
+        "org.umicom.studio",
+        "studio.ai",
+        centre->workspace_id,
         message_id,
+        conversation_id,
         provider_id,
         model_id,
         evidence_id,
         now_ms);
+    if (status != UMI_STATUS_OK) return status;
+
+    return submit_event(
+        centre,
+        &event,
+        UMI_STUDIO_CONTEXT_GROUP_AI);
+}
+
+UmiStatus umi_studio_context_link_centre_publish_debug_location(
+    UmiStudioContextLinkCentre *centre,
+    const char *file_path,
+    const char *symbol,
+    uint32_t line,
+    uint32_t column,
+    uint64_t now_ms)
+{
+    UmiWorkbenchContextEvent event;
+    char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
+    UmiStatus status;
+
+    if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = next_context_id(
+        centre,
+        "studio-debug",
+        context_id,
+        sizeof(context_id));
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_workbench_context_event_build_editor_location(
+        &event,
+        context_id,
+        "studio.debug.location",
+        "org.umicom.studio",
+        "studio.debug",
+        centre->workspace_id,
+        file_path,
+        symbol != NULL ? symbol : "",
+        line,
+        column,
+        0U,
+        now_ms);
+    if (status != UMI_STATUS_OK) return status;
+    event.kind = UMI_WORKBENCH_CONTEXT_EVENT_DEBUG_LOCATION;
+    (void)umi_workbench_context_event_refresh_hash(&event);
+
+    return submit_event(
+        centre,
+        &event,
+        UMI_STUDIO_CONTEXT_GROUP_DEVELOPMENT);
 }

@@ -59,6 +59,22 @@ UmiStatus umi_studio_context_link_centre_publish_diagnostic(
     const char *diagnostic_code,
     const char *message,
     uint64_t now_ms);
+UmiStatus umi_studio_context_link_centre_publish_source_control(
+    UmiStudioContextLinkCentre *centre,
+    const char *project_id,
+    const char *root_path,
+    const char *repository_id,
+    const char *branch,
+    const char *path,
+    const char *change_kind,
+    uint64_t now_ms);
+UmiStatus umi_studio_context_link_centre_publish_debug_location(
+    UmiStudioContextLinkCentre *centre,
+    const char *file_path,
+    const char *symbol,
+    uint32_t line,
+    uint32_t column,
+    uint64_t now_ms);
 UmiStatus umi_studio_context_link_centre_publish_test(
     UmiStudioContextLinkCentre *centre,
     const char *test_id,
