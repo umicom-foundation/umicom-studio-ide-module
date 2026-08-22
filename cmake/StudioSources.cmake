@@ -1,5 +1,16 @@
-# Generated from the supplied current Studio product source tree.
-# Keep explicit until each bounded module receives its own target.
+#-----------------------------------------------------------------------------
+# Umicom Studio IDE
+# File: cmake/StudioSources.cmake
+#
+# PURPOSE:
+#   Maintain the explicit product-source inventory while integrating the
+#   Framework-owned linked-context workbench composition centre.
+#
+# Created by: Sammy Hegab
+# Organisation: Umicom Foundation
+# Licence: MIT
+#-----------------------------------------------------------------------------
+
 set(UMICOM_STUDIO_PRODUCT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/build/build_queue.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/build/build_runner.c"
@@ -39,6 +50,7 @@ set(UMICOM_STUDIO_PRODUCT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/prefs/prefs.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/prefs/prefs_ui.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/theme/theme.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/context_link_centre.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/llm_core.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/llm_http.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/llm/privacy.c"
