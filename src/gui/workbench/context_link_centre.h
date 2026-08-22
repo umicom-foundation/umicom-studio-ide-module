@@ -15,7 +15,8 @@
 
 #include <stdint.h>
 
-#include "umicom/studio/ui.h"
+#include "umicom/base/status.h"
+#include "umicom/ui/workbench.h"
 #include "umicom/platform/session_store.h"
 #include "umicom/workbench_context_host/workbench_context_host.h"
 
