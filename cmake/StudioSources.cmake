@@ -3,8 +3,9 @@
 # File: cmake/StudioSources.cmake
 #
 # PURPOSE:
-#   Maintain the explicit product-source inventory while integrating the
-#   Framework-owned linked-context workbench composition centre.
+#   Maintain the explicit product-source inventory and provide the Studio
+#   workbench-context composition as one reusable target for every GTK workbench
+#   executable that needs it.
 #
 # Created by: Sammy Hegab
 # Organisation: Umicom Foundation
@@ -91,4 +92,45 @@ set(UMICOM_STUDIO_PRODUCT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/util/watchers/path_watcher.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/util/watchers/watcher_integration.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/util/watchers/watcher_recursive.c"
+)
+
+# -----------------------------------------------------------------------------
+# Shared Studio workbench-context composition
+# -----------------------------------------------------------------------------
+# context_link_centre.c was previously hidden inside StudioProduct. The small
+# workbench demo uses the same workbench_window.c but does not link StudioProduct,
+# so its context-link symbols were unresolved. Giving the composition its own
+# target fixes the dependency at its architectural boundary without compiling
+# the same C file twice into the full IDE.
+add_library(umicom_studio_workbench_context STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/context_link_centre.c"
+)
+add_library(
+    Umicom::StudioWorkbenchContext
+    ALIAS umicom_studio_workbench_context
+)
+
+target_include_directories(
+    umicom_studio_workbench_context
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench"
+)
+
+target_link_libraries(
+    umicom_studio_workbench_context
+    PUBLIC
+        Umicom::Framework
+)
+
+umicom_apply_warnings(umicom_studio_workbench_context)
+umicom_apply_sanitizers(umicom_studio_workbench_context)
+
+# StudioCore is the common dependency of both the workbench demo and the full
+# IDE. Publishing this tiny composition dependency from StudioCore therefore
+# closes both final link lines without dragging the complete StudioProduct
+# implementation into the lightweight workbench demo.
+target_link_libraries(
+    umicom_studio_core
+    PUBLIC
+        Umicom::StudioWorkbenchContext
 )

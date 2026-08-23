@@ -13,8 +13,6 @@
 
 #include "project_explorer_view.h"
 
-#include <stdio.h>
-
 GtkWidget *umi_studio_project_explorer_view_new(UmiStudioUi *ui)
 {
     GtkWidget *box;
@@ -22,19 +20,46 @@ GtkWidget *umi_studio_project_explorer_view_new(UmiStudioUi *ui)
     GtkWidget *summary;
     UmiWorkspaceGraphSnapshot workspace = {0};
     UmiFileIndexStats files;
-    char text[768];
     UmiStudioServices *services;
-    if (ui == NULL) return NULL;
+    const char *root_text;
+    gchar *summary_text;
+
+    if (ui == NULL) {
+        return NULL;
+    }
+
     services = umi_studio_ui_services(ui);
-    files = umi_file_index_stats(umi_studio_services_file_index(services));
-    (void)umi_workspace_graph_snapshot(umi_studio_services_workspace(services), &workspace);
+    files = umi_file_index_stats(
+        umi_studio_services_file_index(services));
+    (void)umi_workspace_graph_snapshot(
+        umi_studio_services_workspace(services),
+        &workspace);
+
     box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     title = gtk_label_new("Project Explorer");
     gtk_widget_add_css_class(title, "title-3");
-    (void)snprintf(text, sizeof(text), "Root: %s\nProjects: %zu\nFiles: %zu\nTrusted: %s",
-                   workspace.root[0] != '\0' ? workspace.root : "No workspace",
-                   workspace.project_count, files.files, workspace.trusted ? "yes" : "no");
-    summary = gtk_label_new(text);
+
+    /*
+     * Workspace roots are deliberately larger than the old fixed presentation
+     * buffer. Let GLib allocate the exact display string instead of silently
+     * truncating a valid path or relying on compiler-warning suppression.
+     */
+    root_text = workspace.root[0] != '\0'
+        ? workspace.root
+        : "No workspace";
+    summary_text = g_strdup_printf(
+        "Root: %s\nProjects: %zu\nFiles: %zu\nTrusted: %s",
+        root_text,
+        workspace.project_count,
+        files.files,
+        workspace.trusted ? "yes" : "no");
+
+    summary = gtk_label_new(
+        summary_text != NULL
+            ? summary_text
+            : "Project summary unavailable");
+    g_free(summary_text);
+
     gtk_label_set_xalign(GTK_LABEL(summary), 0.0F);
     gtk_label_set_wrap(GTK_LABEL(summary), TRUE);
     gtk_box_append(GTK_BOX(box), title);
