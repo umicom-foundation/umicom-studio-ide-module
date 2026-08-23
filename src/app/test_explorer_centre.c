@@ -28,8 +28,10 @@ struct UmiStudioTestExplorerCentre {
 static void copy_text(char *destination, size_t capacity, const char *source)
 {
     size_t length;
+
     if (destination == NULL || capacity == 0U) return;
     if (source == NULL) source = "";
+
     length = strlen(source);
     if (length >= capacity) length = capacity - 1U;
     if (length > 0U) (void)memcpy(destination, source, length);
@@ -127,23 +129,29 @@ UmiStatus umi_studio_test_explorer_centre_create(
 {
     UmiStudioTestExplorerCentre *centre;
     UmiStatus status;
+
     if (out_centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_centre = NULL;
+
     centre = (UmiStudioTestExplorerCentre *)calloc(1U, sizeof(*centre));
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+
     status = umi_test_platform_service_create(&centre->service);
     if (status == UMI_STATUS_OK) {
         centre->owns_service = 1;
         status = umi_test_workspace_create(centre->service, &centre->workspace);
     }
+
     if (status == UMI_STATUS_OK) {
         centre->owns_workspace = 1;
         status = create_experience(centre);
     }
+
     if (status != UMI_STATUS_OK) {
         umi_studio_test_explorer_centre_destroy(centre);
         return status;
     }
+
     centre->revision = 1U;
     *out_centre = centre;
     return UMI_STATUS_OK;
@@ -155,24 +163,31 @@ UmiStatus umi_studio_test_explorer_centre_create_bound(
 {
     UmiStudioTestExplorerCentre *centre;
     UmiStatus status;
+
     if (test_service == NULL || out_centre == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+
     *out_centre = NULL;
+
     centre = (UmiStudioTestExplorerCentre *)calloc(1U, sizeof(*centre));
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+
     centre->test_service = test_service;
     centre->service = umi_studio_test_service_platform(test_service);
     centre->workspace = umi_studio_test_service_workspace(test_service);
+
     if (centre->service == NULL || centre->workspace == NULL) {
         free(centre);
         return UMI_STATUS_INVALID_STATE;
     }
+
     status = create_experience(centre);
     if (status != UMI_STATUS_OK) {
         free(centre);
         return status;
     }
+
     centre->revision = 1U;
     *out_centre = centre;
     return UMI_STATUS_OK;
@@ -182,9 +197,17 @@ void umi_studio_test_explorer_centre_destroy(
     UmiStudioTestExplorerCentre *centre)
 {
     if (centre == NULL) return;
+
     umi_test_explorer_session_destroy(centre->experience);
-    if (centre->owns_workspace) umi_test_workspace_destroy(centre->workspace);
-    if (centre->owns_service) umi_test_platform_service_destroy(centre->service);
+
+    if (centre->owns_workspace) {
+        umi_test_workspace_destroy(centre->workspace);
+    }
+
+    if (centre->owns_service) {
+        umi_test_platform_service_destroy(centre->service);
+    }
+
     free(centre);
 }
 
@@ -193,58 +216,103 @@ UmiStatus umi_studio_test_explorer_centre_snapshot(
     UmiStudioTestExplorerCentreSnapshot *out_snapshot)
 {
     UmiStatus status;
+
     if (centre == NULL || out_snapshot == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+
     (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     out_snapshot->struct_size = (uint32_t)sizeof(*out_snapshot);
-    out_snapshot->api_version = UMI_STUDIO_TEST_EXPLORER_CENTRE_API_VERSION;
-    copy_text(out_snapshot->area_id, sizeof(out_snapshot->area_id),
+    out_snapshot->api_version =
+        UMI_STUDIO_TEST_EXPLORER_CENTRE_API_VERSION;
+
+    copy_text(out_snapshot->area_id,
+              sizeof(out_snapshot->area_id),
               "studio.test-explorer-centre");
-    copy_text(out_snapshot->title, sizeof(out_snapshot->title),
+    copy_text(out_snapshot->title,
+              sizeof(out_snapshot->title),
               "Test Explorer Centre");
-    copy_text(out_snapshot->summary, sizeof(out_snapshot->summary),
-              "Framework-owned discovery, filtering, execution, reruns, "
-              "coverage gates, benchmark analysis and retained test history.");
-    status = umi_test_platform_service_snapshot(centre->service,
-                                                 &out_snapshot->service);
+    copy_text(
+        out_snapshot->summary,
+        sizeof(out_snapshot->summary),
+        "Framework-owned discovery, filtering, execution, reruns, "
+        "coverage gates, benchmark analysis and retained test history.");
+
+    status = umi_test_platform_service_snapshot(
+        centre->service,
+        &out_snapshot->service);
+
     if (status == UMI_STATUS_OK) {
-        status = umi_test_workspace_snapshot(centre->workspace,
-                                             &out_snapshot->workspace);
+        status = umi_test_workspace_snapshot(
+            centre->workspace,
+            &out_snapshot->workspace);
     }
+
     if (status == UMI_STATUS_OK) {
-        status = umi_test_explorer_session_refresh(centre->experience, NULL);
+        status = umi_test_explorer_session_refresh(
+            centre->experience,
+            NULL);
     }
+
     if (status == UMI_STATUS_OK) {
-        status = umi_test_explorer_session_snapshot(centre->experience,
-                                                    &out_snapshot->experience);
+        status = umi_test_explorer_session_snapshot(
+            centre->experience,
+            &out_snapshot->experience);
     }
-    if (status != UMI_STATUS_OK) return status;
+
+    if (status != UMI_STATUS_OK) {
+        return status;
+    }
 
     if (centre->test_service != NULL) {
         UmiTestPlatformHierarchyNode *nodes =
             (UmiTestPlatformHierarchyNode *)calloc(
-                UMI_TEST_PLATFORM_SELECTION_CAPACITY, sizeof(*nodes));
-        if (nodes == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+                UMI_TEST_PLATFORM_SELECTION_CAPACITY,
+                sizeof(*nodes));
+
+        if (nodes == NULL) {
+            return UMI_STATUS_OUT_OF_MEMORY;
+        }
+
         status = umi_studio_test_service_explorer_state(
-            centre->test_service, &out_snapshot->explorer);
+            centre->test_service,
+            &out_snapshot->explorer);
+
         if (status == UMI_STATUS_OK) {
             status = umi_studio_test_service_hierarchy(
-                centre->test_service, nodes,
+                centre->test_service,
+                nodes,
                 UMI_TEST_PLATFORM_SELECTION_CAPACITY,
                 &out_snapshot->hierarchy_count);
         }
+
         free(nodes);
-        if (status != UMI_STATUS_OK) return status;
+
+        if (status != UMI_STATUS_OK) {
+            return status;
+        }
     }
-    out_snapshot->selected_count = out_snapshot->experience.explorer.selected_count;
+
+    /*
+     * The Framework service owns OPERATION selection. The Explorer model owns
+     * interactive ROW selection. A run-all operation can therefore have one or
+     * more planned items even when no row was manually clicked.
+     *
+     * Using the service snapshot here keeps Studio thin and fixes the previous
+     * duplicate-state bug exposed by studio.test_explorer_operations.
+     */
+    out_snapshot->selected_count = out_snapshot->service.selected_count;
+
     out_snapshot->command_contribution_count =
         umi_studio_test_explorer_command_contribution_count();
     out_snapshot->view_contribution_count =
         umi_studio_test_explorer_view_contribution_count();
-    out_snapshot->operation_running = out_snapshot->service.operation_running;
-    out_snapshot->revision = centre->revision > out_snapshot->experience.revision
-        ? centre->revision : out_snapshot->experience.revision;
+    out_snapshot->operation_running =
+        out_snapshot->service.operation_running;
+    out_snapshot->revision =
+        centre->revision > out_snapshot->experience.revision
+            ? centre->revision
+            : out_snapshot->experience.revision;
     out_snapshot->available = 1;
     return UMI_STATUS_OK;
 }
@@ -274,11 +342,17 @@ UmiStatus umi_studio_test_explorer_centre_set_workspace(
     uint64_t workspace_revision)
 {
     UmiStatus status;
+
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
+
     status = umi_studio_test_service_set_workspace(
-        centre->test_service, workspace_root, project_id, workspace_revision);
+        centre->test_service,
+        workspace_root,
+        project_id,
+        workspace_revision);
+
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
@@ -292,19 +366,31 @@ UmiStatus umi_studio_test_explorer_centre_set_filter(
 {
     UmiStatus status;
     UmiTestPlatformFilter filter;
+
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+
     if (centre->test_service != NULL) {
         status = umi_studio_test_service_set_filter(
-            centre->test_service, search_text, label, outcome, include_disabled);
+            centre->test_service,
+            search_text,
+            label,
+            outcome,
+            include_disabled);
         if (status != UMI_STATUS_OK) return status;
     }
+
     umi_test_platform_filter_init(&filter);
     copy_text(filter.text, sizeof(filter.text), search_text);
     copy_text(filter.label, sizeof(filter.label), label);
     filter.outcome = outcome;
     filter.include_disabled = include_disabled;
-    filter.failed_only = outcome == UMI_TEST_PLATFORM_OUTCOME_FAILED;
-    status = umi_test_explorer_session_set_filter(centre->experience, &filter);
+    filter.failed_only =
+        outcome == UMI_TEST_PLATFORM_OUTCOME_FAILED;
+
+    status = umi_test_explorer_session_set_filter(
+        centre->experience,
+        &filter);
+
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
@@ -318,8 +404,12 @@ UmiStatus umi_studio_test_explorer_centre_hierarchy(
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
+
     return umi_studio_test_service_hierarchy(
-        centre->test_service, nodes, capacity, out_count);
+        centre->test_service,
+        nodes,
+        capacity,
+        out_count);
 }
 
 UmiStatus umi_studio_test_explorer_centre_plan_all(
@@ -329,11 +419,17 @@ UmiStatus umi_studio_test_explorer_centre_plan_all(
     UmiTestPlatformOperationPlan *out_plan)
 {
     UmiStatus status;
+
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
+
     status = umi_studio_test_service_plan_all(
-        centre->test_service, repeat_count, stop_on_failure, out_plan);
+        centre->test_service,
+        repeat_count,
+        stop_on_failure,
+        out_plan);
+
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
@@ -343,10 +439,15 @@ UmiStatus umi_studio_test_explorer_centre_plan_failed(
     UmiTestPlatformOperationPlan *out_plan)
 {
     UmiStatus status;
+
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
-    status = umi_studio_test_service_plan_failed(centre->test_service, out_plan);
+
+    status = umi_studio_test_service_plan_failed(
+        centre->test_service,
+        out_plan);
+
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
@@ -356,10 +457,15 @@ UmiStatus umi_studio_test_explorer_centre_begin(
     const UmiTestPlatformOperationPlan *plan)
 {
     UmiStatus status;
+
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
-    status = umi_studio_test_service_begin(centre->test_service, plan);
+
+    status = umi_studio_test_service_begin(
+        centre->test_service,
+        plan);
+
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
@@ -368,10 +474,14 @@ UmiStatus umi_studio_test_explorer_centre_stop(
     UmiStudioTestExplorerCentre *centre)
 {
     UmiStatus status;
+
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
-    status = umi_studio_test_service_stop(centre->test_service);
+
+    status = umi_studio_test_service_stop(
+        centre->test_service);
+
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
@@ -380,6 +490,7 @@ void umi_studio_test_explorer_centre_finish(
     UmiStudioTestExplorerCentre *centre)
 {
     if (centre == NULL || centre->test_service == NULL) return;
+
     umi_studio_test_service_finish(centre->test_service);
     ++centre->revision;
 }
@@ -392,8 +503,10 @@ size_t umi_studio_test_explorer_command_contribution_count(void)
 const UmiStudioTestExplorerCommandContribution *
 umi_studio_test_explorer_command_contribution_at(size_t position)
 {
-    return position < umi_studio_test_explorer_command_contribution_count()
-        ? &COMMANDS[position] : NULL;
+    return position <
+            umi_studio_test_explorer_command_contribution_count()
+        ? &COMMANDS[position]
+        : NULL;
 }
 
 const UmiStudioTestExplorerCommandContribution *
@@ -401,13 +514,18 @@ umi_studio_test_explorer_command_contribution_find(
     const char *framework_command_id)
 {
     size_t index;
+
     if (framework_command_id == NULL) return NULL;
+
     for (index = 0U;
          index < umi_studio_test_explorer_command_contribution_count();
          ++index) {
         if (strcmp(COMMANDS[index].framework_command_id,
-                   framework_command_id) == 0) return &COMMANDS[index];
+                   framework_command_id) == 0) {
+            return &COMMANDS[index];
+        }
     }
+
     return NULL;
 }
 
@@ -419,18 +537,26 @@ size_t umi_studio_test_explorer_view_contribution_count(void)
 const UmiStudioTestExplorerViewContribution *
 umi_studio_test_explorer_view_contribution_at(size_t position)
 {
-    return position < umi_studio_test_explorer_view_contribution_count()
-        ? &VIEWS[position] : NULL;
+    return position <
+            umi_studio_test_explorer_view_contribution_count()
+        ? &VIEWS[position]
+        : NULL;
 }
 
 const UmiStudioTestExplorerViewContribution *
 umi_studio_test_explorer_view_contribution_find(const char *view_id)
 {
     size_t index;
+
     if (view_id == NULL) return NULL;
-    for (index = 0U; index < umi_studio_test_explorer_view_contribution_count();
+
+    for (index = 0U;
+         index < umi_studio_test_explorer_view_contribution_count();
          ++index) {
-        if (strcmp(VIEWS[index].view_id, view_id) == 0) return &VIEWS[index];
+        if (strcmp(VIEWS[index].view_id, view_id) == 0) {
+            return &VIEWS[index];
+        }
     }
+
     return NULL;
 }

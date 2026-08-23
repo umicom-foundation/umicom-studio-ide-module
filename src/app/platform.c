@@ -3,9 +3,9 @@
  * File: applications/studio/src/app/platform.c
  *
  * PURPOSE:
- *   Adapt the reusable Framework toolchain and environment services to Studio.
- *   The implementation deliberately delegates discovery, probing, dependency
- *   checks, and child environment construction to Umicom Framework.
+ *   Adapt reusable Framework toolchain and environment services to Studio.
+ *   Studio deliberately delegates discovery, probing, dependency checks and
+ *   child environment construction to Umicom Framework.
  *
  * Created by: Sammy Hegab
  * Organisation: Umicom Foundation
@@ -27,8 +27,16 @@ UmiStatus umi_studio_platform_check(
     if (services == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+
     (void)memset(out_report, 0, sizeof(*out_report));
-    (void)memset(&request, 0, sizeof(request));
+
+    /*
+     * Use the Framework-owned discovery policy rather than a private
+     * zero-initialised Studio policy. On Windows this selects the canonical
+     * UCRT64/GCC baseline used by the project presets while leaving explicit
+     * Clang/MSVC profiles available to callers that request them.
+     */
+    umi_toolchain_discovery_request_init(&request);
     request.require_gtk = require_gtk;
     request.require_github_cli = require_github_cli;
     request.diagnostic_sink = umi_studio_services_diagnostic_sink();
@@ -39,14 +47,15 @@ UmiStatus umi_studio_platform_check(
     if (status != UMI_STATUS_OK) {
         return status;
     }
+
     umi_environment_plan_init(&out_report->environment);
     status = umi_environment_plan_from_toolchain(
         &out_report->discovery.profile,
-        &out_report->environment
-    );
+        &out_report->environment);
     if (status != UMI_STATUS_OK) {
         return status;
     }
+
     out_report->framework_capability_count =
         umi_framework_capability_catalogue_count();
     out_report->environment_ready = 1;
@@ -67,5 +76,6 @@ UmiStatus umi_studio_platform_write_environment(
     if (report == NULL || path == NULL || !report->environment_ready) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+
     return umi_environment_plan_write(&report->environment, path);
 }
