@@ -60,10 +60,14 @@ static void runtime_status_override_legacy_services(
     }
 
     if (runtime->status_labels[UMI_STUDIO_STATUS_BRANCH] != NULL) {
+        /*
+         * Bound presentation only. The complete branch name remains in the
+         * authoritative Framework/VCS snapshot and is not modified here.
+         */
         (void)snprintf(
             text,
             sizeof(text),
-            "Branch %s  %zu change%s",
+            "Branch %.120s  %zu change%s",
             runtime->source_control_snapshot.branch[0] != '\0'
                 ? runtime->source_control_snapshot.branch
                 : "no branch",
@@ -94,7 +98,7 @@ static void runtime_status_override_legacy_services(
         (void)snprintf(
             text,
             sizeof(text),
-            "AI %s",
+            "AI %.160s",
             ai != NULL
                 ? runtime_safe(umi_studio_ai_platform_default_provider(ai))
                 : "unavailable");
@@ -107,7 +111,7 @@ static void runtime_status_override_legacy_services(
         (void)snprintf(
             text,
             sizeof(text),
-            "Debug %s",
+            "Debug %.155s",
             runtime->debugger_snapshot.controller_state[0] != '\0'
                 ? runtime->debugger_snapshot.controller_state
                 : "idle");
