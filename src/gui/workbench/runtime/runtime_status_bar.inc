@@ -7,6 +7,12 @@
  *   strip. Existing Studio source-control/test/debug snapshots supplement the
  *   IDE-integration fields where those older adapters use different contracts.
  *
+ * PRESENTATION POLICY:
+ *   Authoritative Framework counters remain size_t. The GTK presentation layer
+ *   deliberately narrows only display badges through runtime_bounded_badge(),
+ *   keeping data/model precision intact while making the fixed status buffer's
+ *   formatting bounds explicit to the compiler.
+ *
  * Created by: Sammy Hegab
  * Organisation: Umicom Foundation
  * Licence: MIT
@@ -52,8 +58,9 @@ static void runtime_status_override_legacy_services(
         (void)snprintf(
             text,
             sizeof(text),
-            "Problems %zu",
-            runtime->view_model_snapshot.retained_diagnostics);
+            "Problems %u",
+            (unsigned)runtime_bounded_badge(
+                runtime->view_model_snapshot.retained_diagnostics));
         gtk_label_set_text(
             GTK_LABEL(runtime->status_labels[UMI_STUDIO_STATUS_PROBLEMS]),
             text);
@@ -61,17 +68,18 @@ static void runtime_status_override_legacy_services(
 
     if (runtime->status_labels[UMI_STUDIO_STATUS_BRANCH] != NULL) {
         /*
-         * Bound presentation only. The complete branch name remains in the
-         * authoritative Framework/VCS snapshot and is not modified here.
+         * Bound presentation only. The complete branch name and exact change
+         * count remain in the authoritative Framework/VCS snapshot.
          */
         (void)snprintf(
             text,
             sizeof(text),
-            "Branch %.120s  %zu change%s",
+            "Branch %.120s  %u change%s",
             runtime->source_control_snapshot.branch[0] != '\0'
                 ? runtime->source_control_snapshot.branch
                 : "no branch",
-            runtime->source_control_snapshot.changes,
+            (unsigned)runtime_bounded_badge(
+                runtime->source_control_snapshot.changes),
             runtime->source_control_snapshot.changes == 1U ? "" : "s");
         gtk_label_set_text(
             GTK_LABEL(runtime->status_labels[UMI_STUDIO_STATUS_BRANCH]),
@@ -82,9 +90,9 @@ static void runtime_status_override_legacy_services(
         (void)snprintf(
             text,
             sizeof(text),
-            "Tests %zu/%zu%s",
-            runtime->test_snapshot.passed,
-            runtime->test_snapshot.failed,
+            "Tests %u/%u%s",
+            (unsigned)runtime_bounded_badge(runtime->test_snapshot.passed),
+            (unsigned)runtime_bounded_badge(runtime->test_snapshot.failed),
             runtime->test_snapshot.operation_running ? " running" : "");
         gtk_label_set_text(
             GTK_LABEL(runtime->status_labels[UMI_STUDIO_STATUS_TESTS]),
