@@ -52,10 +52,7 @@ static GtkWidget *runtime_label(const char *text, float xalign)
 static GtkWidget *runtime_section_title(const char *title)
 {
     GtkWidget *label = runtime_label(title, 0.0F);
-
-    if (label != NULL) {
-        gtk_widget_add_css_class(label, "umicom-runtime-section-title");
-    }
+    if (label != NULL) gtk_widget_add_css_class(label, "umicom-runtime-section-title");
     return label;
 }
 
@@ -64,9 +61,7 @@ static GtkWidget *runtime_card_new(const char *title, const char *body)
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     GtkWidget *heading = runtime_section_title(title);
     GtkWidget *detail = runtime_label(body, 0.0F);
-
     if (box == NULL || heading == NULL || detail == NULL) return box;
-
     gtk_widget_add_css_class(box, "umicom-runtime-card");
     gtk_box_append(GTK_BOX(box), heading);
     gtk_box_append(GTK_BOX(box), detail);
@@ -76,21 +71,15 @@ static GtkWidget *runtime_card_new(const char *title, const char *body)
 static GtkWidget *runtime_scroll(GtkWidget *child)
 {
     GtkWidget *scroll = gtk_scrolled_window_new();
-
     if (scroll == NULL) return NULL;
-
-    gtk_scrolled_window_set_policy(
-        GTK_SCROLLED_WINDOW(scroll),
-        GTK_POLICY_AUTOMATIC,
-        GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), child);
     gtk_widget_set_hexpand(scroll, TRUE);
     gtk_widget_set_vexpand(scroll, TRUE);
     return scroll;
 }
 
-static const char *runtime_mapped_studio_command(
-    const char *command_id)
+static const char *runtime_mapped_studio_command(const char *command_id)
 {
     if (command_id == NULL) return NULL;
 

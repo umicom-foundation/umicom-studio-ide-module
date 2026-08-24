@@ -261,14 +261,14 @@ static void runtime_show_selected_diff(
     (void)snprintf(
         summary,
         sizeof(summary),
-        "%s — %zu lines, +%zu / -%zu, %zu hunk%s%s",
+        "%.160s - %zu lines, +%zu / -%zu, %zu hunk%s%s",
         snapshot.path,
         snapshot.lines,
         snapshot.additions,
         snapshot.deletions,
         snapshot.hunks,
         snapshot.hunks == 1U ? "" : "s",
-        snapshot.staged ? " — staged" : "");
+        snapshot.staged ? " - staged" : "");
 
     gtk_label_set_text(
         GTK_LABEL(runtime->diff_summary_label),
@@ -476,7 +476,7 @@ static void runtime_source_control_refresh_list(
     (void)snprintf(
         summary,
         sizeof(summary),
-        "%s — %zu change%s, %zu staged, ahead %d / behind %d",
+        "%.128s - %zu change%s, %zu staged, ahead %d / behind %d",
         runtime->source_control_snapshot.branch[0] != '\0'
             ? runtime->source_control_snapshot.branch
             : "No repository",

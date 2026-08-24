@@ -155,9 +155,9 @@ static void runtime_debug_details_refresh(
             (void)snprintf(
                 text,
                 sizeof(text),
-                "%s%s%s — %s",
-                thread.current ? "▶ " : "",
-                thread.stopped ? "■ " : "",
+                "%.4s%.4s%.250s - %.350s",
+                thread.current ? "> " : "",
+                thread.stopped ? "# " : "",
                 thread.name,
                 thread.detail);
 
@@ -274,7 +274,7 @@ static void runtime_debug_details_refresh(
             (void)snprintf(
                 text,
                 sizeof(text),
-                "%s = %s  [%s]%s",
+                "%.400s = %.900s  [%.300s]%s",
                 watch.expression,
                 watch.value,
                 watch.type,

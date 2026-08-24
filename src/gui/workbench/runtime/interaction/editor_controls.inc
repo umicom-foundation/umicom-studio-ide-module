@@ -212,11 +212,16 @@ static void runtime_on_editor_goto(
     if (line_text == NULL || line_text[0] == '\0') return;
 
     line = strtoul(line_text, &end, 10);
-    if (end == line_text || *end != '\0' ||
-        line == 0UL || line > SIZE_MAX) {
+    if (end == line_text || *end != '\0' || line == 0UL) {
         runtime_show_notification(runtime, "Enter a valid one-based line number.");
         return;
     }
+#if SIZE_MAX < ULONG_MAX
+    if (line > (unsigned long)SIZE_MAX) {
+        runtime_show_notification(runtime, "Line number exceeds this platform's addressable range.");
+        return;
+    }
+#endif
 
     status = umi_document_coordinator_go_to_line(
         runtime_documents(runtime),
