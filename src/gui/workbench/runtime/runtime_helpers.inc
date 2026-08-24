@@ -89,11 +89,69 @@ static GtkWidget *runtime_scroll(GtkWidget *child)
     return scroll;
 }
 
+static const char *runtime_mapped_studio_command(
+    const char *command_id)
+{
+    if (command_id == NULL) return NULL;
+
+    if (strcmp(command_id, "file.save-all") == 0) {
+        return UMI_STUDIO_COMMAND_DOCUMENTS_SAVE_ALL;
+    }
+    if (strcmp(command_id, "build.configure") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_CONFIGURE;
+    }
+    if (strcmp(command_id, "build.build") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_COMPILE;
+    }
+    if (strcmp(command_id, "build.clean") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_CLEAN;
+    }
+    if (strcmp(command_id, "build.install") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_INSTALL;
+    }
+    if (strcmp(command_id, "run.start") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_RUN;
+    }
+    if (strcmp(command_id, "test.run-all") == 0) {
+        return UMI_STUDIO_COMMAND_TESTS_RUN_ALL;
+    }
+    if (strcmp(command_id, "test.rerun-failed") == 0) {
+        return UMI_STUDIO_COMMAND_TESTS_RERUN_FAILED;
+    }
+    if (strcmp(command_id, "test.stop") == 0) {
+        return UMI_STUDIO_COMMAND_TESTS_STOP;
+    }
+    if (strcmp(command_id, "debug.start") == 0) {
+        return UMI_STUDIO_COMMAND_DEBUG_START;
+    }
+    if (strcmp(command_id, "source-control.refresh") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_REFRESH;
+    }
+    if (strcmp(command_id, "source-control.stage-all") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_STAGE_ALL;
+    }
+    if (strcmp(command_id, "source-control.commit") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_COMMIT;
+    }
+    if (strcmp(command_id, "source-control.pull") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_PULL;
+    }
+    if (strcmp(command_id, "source-control.push") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_PUSH;
+    }
+    if (strcmp(command_id, "source-control.diff") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_DIFF;
+    }
+
+    return NULL;
+}
+
 static int runtime_command_enabled(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id)
 {
     UmiStudioRuntimeBindings *bindings;
+    const char *mapped;
 
     if (runtime == NULL ||
         runtime->runtime_bootstrap == NULL ||
@@ -107,8 +165,56 @@ static int runtime_command_enabled(
         runtime->runtime_bootstrap->platform);
     if (bindings == NULL || bindings->commands == NULL) return 0;
 
-    return umi_command_registry_contains(bindings->commands, command_id) &&
-        umi_command_registry_is_enabled(bindings->commands, command_id, NULL);
+    if (umi_command_registry_contains(bindings->commands, command_id)) {
+        return umi_command_registry_is_enabled(
+            bindings->commands,
+            command_id,
+            NULL);
+    }
+
+    /*
+     * File and workspace pickers are operational GTK entry points whose path
+     * selection happens before the Framework document/workspace service call.
+     */
+    if (strcmp(command_id, "file.open") == 0 ||
+        strcmp(command_id, "workspace.open-folder") == 0 ||
+        strcmp(command_id, "application.exit") == 0 ||
+        strcmp(command_id, "studio.command.search") == 0 ||
+        strcmp(command_id, "studio.layout.manager") == 0) {
+        return 1;
+    }
+
+    if (strcmp(command_id, "file.save") == 0 ||
+        strcmp(command_id, "file.close") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return runtime->owner != NULL &&
+            runtime->owner->ui != NULL &&
+            umi_document_coordinator_active_snapshot(
+                umi_studio_ui_documents(runtime->owner->ui),
+                &active) == UMI_STATUS_OK;
+    }
+
+    mapped = runtime_mapped_studio_command(command_id);
+    if (mapped != NULL &&
+        umi_command_registry_contains(bindings->commands, mapped)) {
+        /*
+         * Argument-requiring mapped commands such as Commit and Diff are
+         * operational even when their enabled predicate cannot be evaluated
+         * until GTK has collected the actual message/path.
+         */
+        if (strcmp(command_id, "source-control.commit") == 0) {
+            return 1;
+        }
+        if (strcmp(command_id, "source-control.diff") == 0) {
+            return runtime->selected_vcs_path[0] != '\0';
+        }
+        return umi_command_registry_is_enabled(
+            bindings->commands,
+            mapped,
+            NULL);
+    }
+
+    return 0;
 }
 
 static const char *runtime_safe(const char *text)

@@ -14,6 +14,31 @@ static void runtime_command_palette_refresh(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *query);
 
+
+static void runtime_on_operation_palette_result(
+    GtkButton *button,
+    gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+    const char *command_id =
+        (const char *)g_object_get_data(
+            G_OBJECT(button),
+            "umicom-operation-command");
+    const UmiStudioGtkOperationProfile *profile;
+
+    if (runtime == NULL || command_id == NULL) return;
+
+    profile = runtime_operation_profile(command_id);
+    if (profile == NULL) {
+        runtime_show_notification(runtime, "Operation profile was not found.");
+        return;
+    }
+
+    gtk_widget_set_visible(runtime->command_window, FALSE);
+    (void)runtime_execute_operation_profile(runtime, profile);
+}
+
 static void runtime_on_palette_result(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime =
@@ -90,11 +115,102 @@ static void runtime_command_palette_refresh(
             "clicked",
             G_CALLBACK(runtime_on_palette_result),
             runtime);
-        gtk_widget_set_sensitive(button, item->enabled);
+        gtk_widget_set_sensitive(
+            button,
+            item->enabled ||
+            runtime_command_enabled(runtime, item->command_id));
 
         gtk_list_box_append(
             GTK_LIST_BOX(runtime->command_list),
             button);
+    }
+
+    /*
+     * Search Everywhere also exposes canonical Studio service commands that do
+     * not have a one-to-one generic Application Shell contribution. A profile
+     * is shown only when its exact command is present in UmiCommandRegistry.
+     */
+    {
+        UmiCommandRegistry *commands = runtime_registered_commands(runtime);
+        const size_t operation_count = runtime_operation_profile_count();
+
+        for (index = 0U; index < operation_count; ++index) {
+            const UmiStudioGtkOperationProfile *profile =
+                &RUNTIME_OPERATION_PROFILES[index];
+            GtkWidget *button;
+            GtkWidget *box;
+            GtkWidget *title;
+            GtkWidget *detail;
+            char detail_text[768];
+            int enabled;
+
+            if (commands == NULL ||
+                !umi_command_registry_contains(
+                    commands,
+                    profile->command_id) ||
+                !runtime_operation_matches_query(profile, query)) {
+                continue;
+            }
+
+            button = gtk_button_new();
+            box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+            title = runtime_label(profile->title, 0.0F);
+
+            (void)snprintf(
+                detail_text,
+                sizeof(detail_text),
+                "%s — %s — %s",
+                profile->category,
+                profile->command_id,
+                profile->description);
+            detail = runtime_label(detail_text, 0.0F);
+
+            if (button == NULL || box == NULL ||
+                title == NULL || detail == NULL) {
+                continue;
+            }
+
+            gtk_widget_add_css_class(
+                button,
+                "umicom-runtime-command-row");
+            gtk_widget_add_css_class(
+                detail,
+                "umicom-runtime-muted");
+            gtk_box_append(GTK_BOX(box), title);
+            gtk_box_append(GTK_BOX(box), detail);
+            gtk_button_set_child(GTK_BUTTON(button), box);
+
+            g_object_set_data_full(
+                G_OBJECT(button),
+                "umicom-operation-command",
+                g_strdup(profile->command_id),
+                g_free);
+            g_signal_connect(
+                button,
+                "clicked",
+                G_CALLBACK(runtime_on_operation_palette_result),
+                runtime);
+
+            /*
+             * Commands with no argument can be evaluated immediately.
+             * Argument-requiring commands become actionable when they are
+             * registered; final enablement is re-evaluated after GTK collects
+             * the actual path/text/thread/test argument.
+             */
+            enabled =
+                profile->argument_kind ==
+                    UMI_STUDIO_GTK_OPERATION_ARGUMENT_NONE
+                ? umi_command_registry_is_enabled(
+                    commands,
+                    profile->command_id,
+                    NULL)
+                : 1;
+            gtk_widget_set_sensitive(button, enabled);
+
+            gtk_list_box_append(
+                GTK_LIST_BOX(runtime->command_list),
+                button);
+        }
     }
 }
 

@@ -15,7 +15,15 @@ static void runtime_show_notification(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *message);
 
-static UmiStatus runtime_execute_command(
+/*
+ * Phase 1 compatibility path:
+ * Keep the original direct Framework Studio Runtime dispatch intact as the
+ * fallback for every command that does not require GTK-side argument capture.
+ * Phase 2 routes only the commands that need native file/folder/text input or
+ * a canonical Studio service alias; everything else still follows this exact
+ * established execution path.
+ */
+static UmiStatus runtime_execute_phase1_host_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
     const char *argument)
@@ -47,6 +55,14 @@ static UmiStatus runtime_execute_command(
     }
 
     return runtime_refresh_services(runtime);
+}
+
+static UmiStatus runtime_execute_command(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *command_id,
+    const char *argument)
+{
+    return runtime_route_command(runtime, command_id, argument);
 }
 
 static void runtime_on_command_button(

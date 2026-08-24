@@ -59,6 +59,147 @@ typedef struct UmiStudioGtkKeyProfile {
     const char *label;
 } UmiStudioGtkKeyProfile;
 
+typedef enum UmiStudioGtkOperationArgumentKind {
+    UMI_STUDIO_GTK_OPERATION_ARGUMENT_NONE = 0,
+    UMI_STUDIO_GTK_OPERATION_ARGUMENT_OPTIONAL = 1,
+    UMI_STUDIO_GTK_OPERATION_ARGUMENT_TEXT = 2,
+    UMI_STUDIO_GTK_OPERATION_ARGUMENT_PATH = 3,
+    UMI_STUDIO_GTK_OPERATION_ARGUMENT_THREAD = 4,
+    UMI_STUDIO_GTK_OPERATION_ARGUMENT_TEST = 5
+} UmiStudioGtkOperationArgumentKind;
+
+typedef struct UmiStudioGtkOperationProfile {
+    const char *profile_id;
+    const char *command_id;
+    const char *title;
+    const char *category;
+    const char *description;
+    UmiStudioGtkOperationArgumentKind argument_kind;
+} UmiStudioGtkOperationProfile;
+
+
+#define UMI_STUDIO_GTK_OPERATION_PROFILE(id_, command_, title_, category_, description_, argument_) \
+    {id_, command_, title_, category_, description_, argument_},
+static const UmiStudioGtkOperationProfile RUNTIME_OPERATION_PROFILES[] = {
+#include "profiles/operations/session_save.inc"
+#include "profiles/operations/documents_save_all.inc"
+#include "profiles/operations/tasks_wait_idle.inc"
+#include "profiles/operations/tasks_report.inc"
+#include "profiles/operations/recovery_purge.inc"
+#include "profiles/operations/workspace_refresh.inc"
+#include "profiles/operations/workspace_close.inc"
+#include "profiles/operations/watcher_scan.inc"
+#include "profiles/operations/data_integrity.inc"
+#include "profiles/operations/messages_flush.inc"
+#include "profiles/operations/messages_replay.inc"
+#include "profiles/operations/security_report.inc"
+#include "profiles/operations/plugins_report.inc"
+#include "profiles/operations/observability_report.inc"
+#include "profiles/operations/resilience_report.inc"
+#include "profiles/operations/developer_report.inc"
+#include "profiles/operations/build_configure.inc"
+#include "profiles/operations/build_compile.inc"
+#include "profiles/operations/build_test.inc"
+#include "profiles/operations/build_clean.inc"
+#include "profiles/operations/build_run.inc"
+#include "profiles/operations/build_install.inc"
+#include "profiles/operations/build_retry.inc"
+#include "profiles/operations/build_cancel.inc"
+#include "profiles/operations/build_filter.inc"
+#include "profiles/operations/build_select_node.inc"
+#include "profiles/operations/build_select_operation.inc"
+#include "profiles/operations/build_select_artifact.inc"
+#include "profiles/operations/build_run_next.inc"
+#include "profiles/operations/build_run_all.inc"
+#include "profiles/operations/build_invalidate.inc"
+#include "profiles/operations/build_refresh.inc"
+#include "profiles/operations/build_clear_history.inc"
+#include "profiles/operations/tests_discover.inc"
+#include "profiles/operations/tests_filter.inc"
+#include "profiles/operations/tests_select.inc"
+#include "profiles/operations/tests_run_all.inc"
+#include "profiles/operations/tests_run_selected.inc"
+#include "profiles/operations/tests_debug_selected.inc"
+#include "profiles/operations/tests_run_coverage.inc"
+#include "profiles/operations/tests_rerun_failed.inc"
+#include "profiles/operations/tests_repeat_selected.inc"
+#include "profiles/operations/tests_stop.inc"
+#include "profiles/operations/tests_clear_results.inc"
+#include "profiles/operations/tests_clear_output.inc"
+#include "profiles/operations/tests_clear_coverage.inc"
+#include "profiles/operations/terminal_execute.inc"
+#include "profiles/operations/terminal_clear.inc"
+#include "profiles/operations/terminal_new.inc"
+#include "profiles/operations/terminal_close.inc"
+#include "profiles/operations/terminal_next.inc"
+#include "profiles/operations/terminal_previous.inc"
+#include "profiles/operations/terminal_split_horizontal.inc"
+#include "profiles/operations/terminal_split_vertical.inc"
+#include "profiles/operations/terminal_history_clear.inc"
+#include "profiles/operations/terminal_search.inc"
+#include "profiles/operations/process_report.inc"
+#include "profiles/operations/process_cancel.inc"
+#include "profiles/operations/diagnostics_clear.inc"
+#include "profiles/operations/output_clear.inc"
+#include "profiles/operations/language_initialize.inc"
+#include "profiles/operations/language_workspace_symbols.inc"
+#include "profiles/operations/debug_initialize.inc"
+#include "profiles/operations/debug_start.inc"
+#include "profiles/operations/debug_continue.inc"
+#include "profiles/operations/debug_pause.inc"
+#include "profiles/operations/debug_next.inc"
+#include "profiles/operations/debug_step_in.inc"
+#include "profiles/operations/debug_step_out.inc"
+#include "profiles/operations/debug_stop.inc"
+#include "profiles/operations/debug_add_breakpoint.inc"
+#include "profiles/operations/debug_set_breakpoint_enabled.inc"
+#include "profiles/operations/debug_remove_breakpoint.inc"
+#include "profiles/operations/debug_add_watch.inc"
+#include "profiles/operations/debug_remove_watch.inc"
+#include "profiles/operations/debug_select_thread.inc"
+#include "profiles/operations/debug_select_frame.inc"
+#include "profiles/operations/debug_select_scope.inc"
+#include "profiles/operations/debug_clear_console.inc"
+#include "profiles/operations/vcs_refresh.inc"
+#include "profiles/operations/vcs_stage.inc"
+#include "profiles/operations/vcs_unstage.inc"
+#include "profiles/operations/vcs_stage_all.inc"
+#include "profiles/operations/vcs_unstage_all.inc"
+#include "profiles/operations/vcs_discard.inc"
+#include "profiles/operations/vcs_commit.inc"
+#include "profiles/operations/vcs_fetch.inc"
+#include "profiles/operations/vcs_pull.inc"
+#include "profiles/operations/vcs_push.inc"
+#include "profiles/operations/vcs_branch_create.inc"
+#include "profiles/operations/vcs_branch_checkout.inc"
+#include "profiles/operations/vcs_branch_delete.inc"
+#include "profiles/operations/vcs_diff.inc"
+#include "profiles/operations/vcs_filter.inc"
+#include "profiles/operations/vcs_select_change.inc"
+#include "profiles/operations/vcs_select_commit.inc"
+#include "profiles/operations/vcs_select_branch.inc"
+#include "profiles/operations/vcs_select_remote.inc"
+#include "profiles/operations/vcs_set_commit_message.inc"
+#include "profiles/operations/vcs_stage_selected.inc"
+#include "profiles/operations/vcs_unstage_selected.inc"
+#include "profiles/operations/vcs_discard_selected.inc"
+#include "profiles/operations/vcs_commit_composed.inc"
+#include "profiles/operations/vcs_diff_selected.inc"
+#include "profiles/operations/vcs_diff_selected_staged.inc"
+#include "profiles/operations/ai_refresh_health.inc"
+#include "profiles/operations/ai_new_session.inc"
+#include "profiles/operations/ai_save_session.inc"
+#include "profiles/operations/ai_code_chat.inc"
+#include "profiles/operations/ai_complete_code.inc"
+#include "profiles/operations/ai_explain_code.inc"
+#include "profiles/operations/ai_refactor_code.inc"
+#include "profiles/operations/ai_generate_tests.inc"
+#include "profiles/operations/ai_patch_approve.inc"
+#include "profiles/operations/ai_patch_apply.inc"
+#include "profiles/operations/ai_patch_revert.inc"
+};
+#undef UMI_STUDIO_GTK_OPERATION_PROFILE
+
 #define UMI_STUDIO_GTK_SURFACE_PROFILE(kind_, name_, title_, icon_, command_, region_, visible_) \
     {kind_, name_, title_, icon_, command_, region_, visible_},
 static const UmiStudioGtkSurfaceProfile RUNTIME_SURFACE_PROFILES[] = {
@@ -194,4 +335,31 @@ static const UmiStudioGtkCommandProfile *runtime_command_profile(
         }
     }
     return NULL;
+}
+
+
+static const UmiStudioGtkOperationProfile *runtime_operation_profile(
+    const char *command_id)
+{
+    size_t index;
+
+    if (command_id == NULL) return NULL;
+
+    for (index = 0U;
+         index < sizeof(RUNTIME_OPERATION_PROFILES) /
+                 sizeof(RUNTIME_OPERATION_PROFILES[0]);
+         ++index) {
+        if (strcmp(
+                RUNTIME_OPERATION_PROFILES[index].command_id,
+                command_id) == 0) {
+            return &RUNTIME_OPERATION_PROFILES[index];
+        }
+    }
+    return NULL;
+}
+
+static size_t runtime_operation_profile_count(void)
+{
+    return sizeof(RUNTIME_OPERATION_PROFILES) /
+           sizeof(RUNTIME_OPERATION_PROFILES[0]);
 }

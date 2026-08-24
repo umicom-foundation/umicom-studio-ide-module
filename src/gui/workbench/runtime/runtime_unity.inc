@@ -3,13 +3,13 @@
  * File: applications/studio/src/gui/workbench/runtime/runtime_unity.inc
  *
  * PURPOSE:
- *   Private GTK4 unity include for the visible Studio Runtime composition.
+ *   Private GTK4 unity include for the functional Studio Runtime composition.
  *
  * BUILD NOTE:
- *   workbench_window.c is already an established source in the Studio GTK4
- *   executable target. Keeping these private implementation fragments in the
- *   same translation unit adds the new composition without restructuring the
- *   long-lived CMake target or removing any existing source registration.
+ *   workbench_window.c remains the established GTK4 executable translation
+ *   unit. Phase 2 extends its presentation additively and does not restructure
+ *   CMake, remove the historical adapter, or duplicate Framework business
+ *   services.
  *
  * Created by: Sammy Hegab
  * Organisation: Umicom Foundation
@@ -20,9 +20,27 @@
 #include "runtime_profile_catalogues.inc"
 #include "runtime_theme.inc"
 #include "runtime_notifications.inc"
+
+#include "interaction/selection.inc"
+#include "interaction/registered_command.inc"
+#include "interaction/prompt_dialog.inc"
+#include "interaction/confirm_dialog.inc"
+#include "interaction/file_dialog.inc"
+#include "interaction/documents.inc"
+#include "interaction/explorer.inc"
+#include "interaction/problems.inc"
+#include "interaction/tests.inc"
+#include "interaction/terminal.inc"
+#include "interaction/debug.inc"
+#include "interaction/ai.inc"
+#include "interaction/source_control.inc"
+#include "interaction/operation_catalogue.inc"
+#include "interaction/command_router.inc"
+
 #include "runtime_actions.inc"
 #include "runtime_service_snapshots.inc"
 #include "runtime_panel_helpers.inc"
+
 #include "surfaces/explorer.inc"
 #include "surfaces/editor.inc"
 #include "surfaces/outline.inc"
@@ -39,6 +57,7 @@
 #include "surfaces/ai_approvals.inc"
 #include "surfaces/ai_tools.inc"
 #include "surfaces/ai_validation.inc"
+
 #include "runtime_surface_registry.inc"
 #include "runtime_command_palette.inc"
 #include "runtime_layout_browser.inc"
@@ -54,5 +73,6 @@
 #include "runtime_close_guard.inc"
 #include "runtime_framework.inc"
 #include "runtime_shell.inc"
+#include "interaction/refresh.inc"
 #include "runtime_refresh.inc"
 #include "runtime_attach.inc"

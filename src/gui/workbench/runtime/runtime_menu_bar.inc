@@ -26,31 +26,52 @@ static void runtime_on_menu_item_clicked(
         (const char *)g_object_get_data(
             G_OBJECT(button),
             "umicom-contribution-id");
-    UmiStatus status;
+    UmiStudioRuntimeBindings *bindings;
+    size_t index;
 
     if (runtime == NULL || contribution_id == NULL ||
         runtime->runtime_bootstrap == NULL) {
         return;
     }
 
-    status = umi_studio_host_controller_execute_contribution(
-        &runtime->host_controller,
-        contribution_id,
-        NULL);
+    bindings = umi_studio_runtime_platform_bindings(
+        runtime->runtime_bootstrap->platform);
+    if (bindings == NULL || bindings->shell_registry == NULL) return;
 
-    if (status != UMI_STATUS_OK) {
-        char message[384];
-        (void)snprintf(
-            message,
-            sizeof(message),
-            "%s: %s",
-            contribution_id,
-            umi_status_text(status));
-        runtime_show_notification(runtime, message);
+    /*
+     * Resolve the contribution back to its command identifier and route that
+     * command through the same operational path used by toolbar, keyboard and
+     * command-palette actions. This is what lets Open Folder, Commit and other
+     * argument-requiring menu items collect native GTK input before execution.
+     */
+    for (index = 0U;
+         index < umi_application_shell_registry_count(
+             bindings->shell_registry);
+         ++index) {
+        UmiApplicationShellContribution contribution;
+
+        if (umi_application_shell_registry_at(
+                bindings->shell_registry,
+                index,
+                &contribution) != UMI_STATUS_OK) {
+            continue;
+        }
+
+        if (strcmp(
+                contribution.contribution_id,
+                contribution_id) != 0) {
+            continue;
+        }
+
+        if (contribution.command_id[0] == '\0') return;
+        (void)runtime_route_command(
+            runtime,
+            contribution.command_id,
+            NULL);
         return;
     }
 
-    (void)runtime_refresh_services(runtime);
+    runtime_show_notification(runtime, "Menu contribution was not found.");
 }
 
 static int runtime_contribution_has_prefix(
@@ -135,7 +156,8 @@ static GtkWidget *runtime_build_single_menu(
         gtk_widget_set_tooltip_text(button, contribution.description);
         gtk_widget_set_sensitive(
             button,
-            (contribution.flags & UMI_APPLICATION_SHELL_ENABLED) != 0U);
+            ((contribution.flags & UMI_APPLICATION_SHELL_ENABLED) != 0U) ||
+            runtime_command_enabled(runtime, contribution.command_id));
 
         g_object_set_data_full(
             G_OBJECT(button),

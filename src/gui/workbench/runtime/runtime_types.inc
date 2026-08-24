@@ -3,9 +3,14 @@
  * File: applications/studio/src/gui/workbench/runtime/runtime_types.inc
  *
  * PURPOSE:
- *   Private GTK4 composition state for the first visible Studio-runtime phase.
- *   All reusable IDE behaviour remains in Umicom Framework; this structure owns
- *   only GTK widgets and non-owning references to the existing Studio services.
+ *   Private GTK4 composition state for the functional Studio workbench. All
+ *   reusable developer behavior remains in Umicom Framework or the established
+ *   Studio service facades; this structure owns only GTK presentation state,
+ *   user selections and non-owning service references.
+ *
+ * PRESERVATION:
+ *   Phase 2 extends the Phase 1 structure. Existing fields and behaviors remain
+ *   available; no feature is removed to make room for the interactive panels.
  *
  * Created by: Sammy Hegab
  * Organisation: Umicom Foundation
@@ -16,21 +21,34 @@
 
 #include "umicom/application_shell/persona.h"
 #include "umicom/ide_integration/ide_integration.h"
+#include "umicom/diagnostics/store.h"
+#include "umicom/platform/file_index.h"
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/build.h"
+#include "umicom/studio/coding_assistant.h"
+#include "umicom/studio/commands.h"
 #include "umicom/studio/debugger.h"
 #include "umicom/studio/language.h"
+#include "umicom/studio/new_project.h"
 #include "umicom/studio/source_control.h"
 #include "umicom/studio/terminal.h"
 #include "umicom/studio/tests.h"
 #include "umicom/studio/view_models.h"
 #include "umicom/studio_runtime/studio_runtime.h"
+#include "umicom/terminal/transcript.h"
+#include "umicom/test_platform/item.h"
+#include "umicom/vcs/diff_document.h"
+#include "umicom/vcs/workspace.h"
 
 #define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 16U
 #define UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT 10U
 #define UMI_STUDIO_GTK_RUNTIME_REFRESH_MS 750U
-#define UMI_STUDIO_GTK_RUNTIME_TOOL_WIDTH 310
-#define UMI_STUDIO_GTK_RUNTIME_BOTTOM_HEIGHT 220
+#define UMI_STUDIO_GTK_RUNTIME_TOOL_WIDTH 330
+#define UMI_STUDIO_GTK_RUNTIME_BOTTOM_HEIGHT 250
+#define UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT 600U
+#define UMI_STUDIO_GTK_TEST_ROW_LIMIT 800U
+#define UMI_STUDIO_GTK_VCS_ROW_LIMIT 800U
+#define UMI_STUDIO_GTK_TRANSCRIPT_ROW_LIMIT 500U
 
 typedef struct UmiStudioGtkRuntimeChrome {
     UmiStudioGtkWorkbench *owner;
@@ -71,15 +89,55 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *layout_window;
     GtkWidget *layout_list;
 
+    /* Phase 2 operational presentation widgets. */
+    GtkWidget *explorer_search_entry;
+    GtkWidget *explorer_list;
+    GtkWidget *explorer_summary_label;
+
+    GtkWidget *problems_list;
+    GtkWidget *problems_summary_label;
+
+    GtkWidget *test_search_entry;
+    GtkWidget *test_list;
+    GtkWidget *test_summary_label;
+
+    GtkWidget *source_control_list;
+    GtkWidget *source_control_commit_entry;
+    GtkWidget *source_control_summary_label;
+
+    GtkWidget *diff_window;
+    GtkWidget *diff_text_view;
+    GtkWidget *diff_summary_label;
+
+    GtkWidget *terminal_text_view;
+    GtkWidget *terminal_entry;
+    GtkWidget *terminal_summary_label;
+
+    GtkWidget *ai_prompt_view;
+    GtkWidget *ai_result_view;
+    GtkWidget *ai_summary_label;
+
+    GtkWidget *debug_thread_entry;
+    GtkWidget *debug_summary_label;
+
     GtkCssProvider *css_provider;
     guint refresh_source;
     uint32_t panel_refresh_tick;
     int force_close;
     int runtime_ready;
+    int interaction_busy;
 
     char workspace_root[UMI_STUDIO_RUNTIME_PATH_CAPACITY];
     char workspace_name[256];
     char session_path[UMI_STUDIO_RUNTIME_PATH_CAPACITY];
+
+    char explorer_query[256];
+    char selected_file_path[UMI_PATH_CAPACITY];
+    char selected_test_id[128];
+    char selected_vcs_path[UMI_VCS_PATH_CAPACITY];
+    char last_ai_result[2048];
+    char last_terminal_command[1024];
+    char pending_operation_command[UMI_COMMAND_ID_CAPACITY];
 
     UmiStudioViewModelSnapshot view_model_snapshot;
     UmiStudioTestSnapshot test_snapshot;
@@ -91,3 +149,14 @@ typedef struct UmiStudioGtkRuntimeChrome {
 
 static void runtime_show_command_palette(UmiStudioGtkRuntimeChrome *runtime);
 static void runtime_show_layout_browser(UmiStudioGtkRuntimeChrome *runtime);
+
+
+static UmiStatus runtime_refresh_services(UmiStudioGtkRuntimeChrome *runtime);
+static gboolean runtime_on_palette_close(
+    GtkWindow *window,
+    gpointer user_data);
+
+static UmiStatus runtime_execute_phase1_host_command(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *command_id,
+    const char *argument);

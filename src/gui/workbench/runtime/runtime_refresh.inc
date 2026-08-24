@@ -4,7 +4,12 @@
  *
  * PURPOSE:
  *   Keep GTK presentation synchronized with the existing Studio UI adapter and
- *   the final Framework Studio Runtime.
+ *   the final Framework Studio Runtime while preserving live user input.
+ *
+ * PHASE 2:
+ *   Operational widgets are created once and refreshed in place. This replaces
+ *   the Phase 1 periodic panel reconstruction that was acceptable for snapshot
+ *   cards but would destroy typed text in an interactive IDE.
  *
  * Created by: Sammy Hegab
  * Organisation: Umicom Foundation
@@ -36,19 +41,18 @@ static UmiStatus runtime_refresh_services(
         if (status != UMI_STATUS_OK) return status;
     }
 
-    runtime->panel_refresh_tick += 1U;
-    if (runtime->panel_refresh_tick >= 4U) {
-        runtime->panel_refresh_tick = 0U;
-        status = runtime_rebuild_surface_panels(runtime);
-        if (status != UMI_STATUS_OK) return status;
-    }
-
     if (runtime->runtime_bootstrap != NULL &&
         runtime->runtime_bootstrap->platform != NULL) {
         status = umi_studio_host_sync(
             runtime->runtime_bootstrap->platform,
             &runtime->host_adapter);
         if (status != UMI_STATUS_OK) return status;
+    }
+
+    runtime->panel_refresh_tick += 1U;
+    if (runtime->panel_refresh_tick >= 4U) {
+        runtime->panel_refresh_tick = 0U;
+        runtime_refresh_interactive_panels(runtime);
     }
 
     runtime_status_override_legacy_services(runtime);
