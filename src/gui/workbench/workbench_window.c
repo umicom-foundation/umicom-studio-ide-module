@@ -19,6 +19,8 @@
 #include "umicom/ui/gtk4.h"
 #include "umicom/workbench_context_host/gtk4.h"
 
+typedef struct UmiStudioGtkRuntimeChrome UmiStudioGtkRuntimeChrome;
+
 struct UmiStudioGtkWorkbench {
     UmiStudioUi *ui;
     UmiGtk4Adapter *adapter;
@@ -26,6 +28,7 @@ struct UmiStudioGtkWorkbench {
     UmiStudioContextLinkCentre *context_links;
     GtkWidget *context_strip;
     GtkWidget *content_root;
+    UmiStudioGtkRuntimeChrome *runtime_chrome;
 };
 
 static UmiStatus attach_context_strip(UmiStudioGtkWorkbench *workbench)
@@ -198,6 +201,14 @@ static UmiStatus bind_context_interactions(
         &sink);
 }
 
+/*
+ * The established GTK4 workbench source remains the executable's registered
+ * translation unit. The private Studio Runtime fragments below extend this host
+ * additively so the existing CMake target, adapter lifecycle and context-link
+ * behavior are preserved verbatim.
+ */
+#include "runtime/runtime_unity.inc"
+
 UmiStatus umi_studio_gtk_workbench_create(
     GtkApplication *application,
     UmiStudioUi *ui,
@@ -252,6 +263,9 @@ UmiStatus umi_studio_gtk_workbench_create(
     if (status == UMI_STATUS_OK) {
         status = attach_context_strip(workbench);
     }
+    if (status == UMI_STATUS_OK) {
+        status = runtime_attach(workbench);
+    }
 
     if (status != UMI_STATUS_OK) {
         umi_studio_gtk_workbench_destroy(workbench);
@@ -266,6 +280,8 @@ void umi_studio_gtk_workbench_destroy(
     UmiStudioGtkWorkbench *workbench)
 {
     if (workbench == NULL) return;
+
+    runtime_detach(workbench);
 
     /*
      * Destroy GTK first so signal closures carrying the borrowed host pointer

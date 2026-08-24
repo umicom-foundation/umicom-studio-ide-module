@@ -1,0 +1,58 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: applications/studio/src/gui/workbench/runtime/runtime_unity.inc
+ *
+ * PURPOSE:
+ *   Private GTK4 unity include for the visible Studio Runtime composition.
+ *
+ * BUILD NOTE:
+ *   workbench_window.c is already an established source in the Studio GTK4
+ *   executable target. Keeping these private implementation fragments in the
+ *   same translation unit adds the new composition without restructuring the
+ *   long-lived CMake target or removing any existing source registration.
+ *
+ * Created by: Sammy Hegab
+ * Organisation: Umicom Foundation
+ * Licence: MIT
+ *---------------------------------------------------------------------------*/
+#include "runtime_types.inc"
+#include "runtime_helpers.inc"
+#include "runtime_profile_catalogues.inc"
+#include "runtime_theme.inc"
+#include "runtime_notifications.inc"
+#include "runtime_actions.inc"
+#include "runtime_service_snapshots.inc"
+#include "runtime_panel_helpers.inc"
+#include "surfaces/explorer.inc"
+#include "surfaces/editor.inc"
+#include "surfaces/outline.inc"
+#include "surfaces/search.inc"
+#include "surfaces/problems.inc"
+#include "surfaces/output.inc"
+#include "surfaces/terminal.inc"
+#include "surfaces/source_control.inc"
+#include "surfaces/test_explorer.inc"
+#include "surfaces/debug.inc"
+#include "surfaces/build.inc"
+#include "surfaces/ai_chat.inc"
+#include "surfaces/ai_review.inc"
+#include "surfaces/ai_approvals.inc"
+#include "surfaces/ai_tools.inc"
+#include "surfaces/ai_validation.inc"
+#include "runtime_surface_registry.inc"
+#include "runtime_command_palette.inc"
+#include "runtime_layout_browser.inc"
+#include "runtime_keyboard.inc"
+#include "runtime_menu_bar.inc"
+#include "runtime_application_bar.inc"
+#include "runtime_toolbar.inc"
+#include "runtime_activity_bar.inc"
+#include "runtime_document_tabs.inc"
+#include "runtime_layout_tabs.inc"
+#include "runtime_status_bar.inc"
+#include "runtime_host_adapter.inc"
+#include "runtime_close_guard.inc"
+#include "runtime_framework.inc"
+#include "runtime_shell.inc"
+#include "runtime_refresh.inc"
+#include "runtime_attach.inc"
