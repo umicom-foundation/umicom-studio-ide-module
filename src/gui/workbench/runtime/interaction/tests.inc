@@ -110,6 +110,10 @@ static void runtime_on_test_source(
     const char *uri = (const char *)g_object_get_data(
         G_OBJECT(button),
         "umicom-source-uri");
+    const guint source_line = GPOINTER_TO_UINT(
+        g_object_get_data(
+            G_OBJECT(button),
+            "umicom-source-line"));
     GFile *file;
     char *path;
 
@@ -126,6 +130,15 @@ static void runtime_on_test_source(
 
     if (path != NULL) {
         runtime_explorer_open_path(runtime, path);
+
+        if (source_line > 0U) {
+            size_t offset = 0U;
+            (void)umi_document_coordinator_go_to_line(
+                umi_studio_ui_documents(runtime->owner->ui),
+                (size_t)source_line,
+                &offset);
+        }
+
         g_free(path);
     }
 }
@@ -253,6 +266,10 @@ static void runtime_tests_refresh_list(
             "umicom-source-uri",
             g_strdup(item.source_uri),
             g_free);
+        g_object_set_data(
+            G_OBJECT(source),
+            "umicom-source-line",
+            GUINT_TO_POINTER(item.source_line));
         g_signal_connect(
             source,
             "clicked",

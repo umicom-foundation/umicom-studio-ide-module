@@ -138,6 +138,8 @@ static GtkWidget *runtime_build_surface_explorer(
             "DocumentCoordinator owns file loading. This GTK surface only "
             "renders and dispatches those services."));
 
+    runtime_append_context_actions(runtime, panel, "workspace");
+
     runtime_explorer_refresh_list(runtime);
     return panel;
 }

@@ -83,6 +83,8 @@ static GtkWidget *runtime_build_surface_problems(
             "navigation commands so a navigable diagnostic can focus its "
             "source document without GTK owning navigation state."));
 
+    runtime_append_context_actions(runtime, panel, "problems");
+
     runtime_problems_refresh_list(runtime);
     return panel;
 }

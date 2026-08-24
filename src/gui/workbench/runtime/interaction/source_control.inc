@@ -27,28 +27,39 @@ static void runtime_diff_window_ensure(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *root;
-    GtkWidget *scroll;
+    GtkWidget *notebook;
+    GtkWidget *paned;
+    GtkWidget *left_scroll;
+    GtkWidget *right_scroll;
+    GtkWidget *unified_scroll;
 
     if (runtime == NULL || runtime->diff_window != NULL) return;
 
     runtime->diff_window = GTK_WIDGET(gtk_window_new());
     runtime->diff_summary_label = gtk_label_new("");
     runtime->diff_text_view = gtk_text_view_new();
+    runtime->diff_left_view = gtk_text_view_new();
+    runtime->diff_right_view = gtk_text_view_new();
     root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    notebook = gtk_notebook_new();
+    paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 
     if (runtime->diff_window == NULL || root == NULL ||
+        notebook == NULL || paned == NULL ||
         runtime->diff_text_view == NULL ||
+        runtime->diff_left_view == NULL ||
+        runtime->diff_right_view == NULL ||
         runtime->diff_summary_label == NULL) {
         return;
     }
 
     gtk_window_set_title(
         GTK_WINDOW(runtime->diff_window),
-        "Source Control Diff");
+        "Source Control Compare");
     gtk_window_set_default_size(
         GTK_WINDOW(runtime->diff_window),
-        980,
-        700);
+        1180,
+        760);
     gtk_window_set_transient_for(
         GTK_WINDOW(runtime->diff_window),
         runtime->owner->window);
@@ -56,11 +67,31 @@ static void runtime_diff_window_ensure(
     gtk_text_view_set_editable(
         GTK_TEXT_VIEW(runtime->diff_text_view),
         FALSE);
+    gtk_text_view_set_editable(
+        GTK_TEXT_VIEW(runtime->diff_left_view),
+        FALSE);
+    gtk_text_view_set_editable(
+        GTK_TEXT_VIEW(runtime->diff_right_view),
+        FALSE);
+
     gtk_text_view_set_monospace(
         GTK_TEXT_VIEW(runtime->diff_text_view),
         TRUE);
+    gtk_text_view_set_monospace(
+        GTK_TEXT_VIEW(runtime->diff_left_view),
+        TRUE);
+    gtk_text_view_set_monospace(
+        GTK_TEXT_VIEW(runtime->diff_right_view),
+        TRUE);
+
     gtk_text_view_set_wrap_mode(
         GTK_TEXT_VIEW(runtime->diff_text_view),
+        GTK_WRAP_NONE);
+    gtk_text_view_set_wrap_mode(
+        GTK_TEXT_VIEW(runtime->diff_left_view),
+        GTK_WRAP_NONE);
+    gtk_text_view_set_wrap_mode(
+        GTK_TEXT_VIEW(runtime->diff_right_view),
         GTK_WRAP_NONE);
 
     gtk_widget_set_margin_top(root, 8);
@@ -72,11 +103,31 @@ static void runtime_diff_window_ensure(
         runtime->diff_summary_label,
         "umicom-runtime-muted");
 
-    scroll = runtime_scroll(runtime->diff_text_view);
+    left_scroll = runtime_scroll(runtime->diff_left_view);
+    right_scroll = runtime_scroll(runtime->diff_right_view);
+    unified_scroll = runtime_scroll(runtime->diff_text_view);
+
+    gtk_paned_set_start_child(
+        GTK_PANED(paned),
+        left_scroll);
+    gtk_paned_set_end_child(
+        GTK_PANED(paned),
+        right_scroll);
+    gtk_paned_set_position(GTK_PANED(paned), 560);
+
+    gtk_notebook_append_page(
+        GTK_NOTEBOOK(notebook),
+        paned,
+        gtk_label_new("Side by Side"));
+    gtk_notebook_append_page(
+        GTK_NOTEBOOK(notebook),
+        unified_scroll,
+        gtk_label_new("Unified"));
+
     gtk_box_append(
         GTK_BOX(root),
         runtime->diff_summary_label);
-    gtk_box_append(GTK_BOX(root), scroll);
+    gtk_box_append(GTK_BOX(root), notebook);
     gtk_window_set_child(
         GTK_WINDOW(runtime->diff_window),
         root);
@@ -97,6 +148,8 @@ static void runtime_show_selected_diff(
     UmiVcsDiffDocumentSnapshot snapshot;
     GtkTextBuffer *buffer;
     GString *text;
+    GString *left;
+    GString *right;
     size_t index;
     char summary[256];
 
@@ -120,12 +173,21 @@ static void runtime_show_selected_diff(
 
     runtime_diff_window_ensure(runtime);
     if (runtime->diff_window == NULL ||
-        runtime->diff_text_view == NULL) {
+        runtime->diff_text_view == NULL ||
+        runtime->diff_left_view == NULL ||
+        runtime->diff_right_view == NULL) {
         return;
     }
 
     text = g_string_sized_new(4096U);
-    if (text == NULL) return;
+    left = g_string_sized_new(4096U);
+    right = g_string_sized_new(4096U);
+    if (text == NULL || left == NULL || right == NULL) {
+        if (text != NULL) g_string_free(text, TRUE);
+        if (left != NULL) g_string_free(left, TRUE);
+        if (right != NULL) g_string_free(right, TRUE);
+        return;
+    }
 
     for (index = 0U;
          index < umi_vcs_diff_document_line_count(document);
@@ -137,13 +199,43 @@ static void runtime_show_selected_diff(
         if (line == NULL) continue;
 
         switch (line->kind) {
-            case UMI_VCS_DIFF_ADDITION: prefix = "+"; break;
-            case UMI_VCS_DIFF_DELETION: prefix = "-"; break;
-            case UMI_VCS_DIFF_HEADER: prefix = ""; break;
-            case UMI_VCS_DIFF_HUNK: prefix = ""; break;
-            case UMI_VCS_DIFF_NOTICE: prefix = ""; break;
+            case UMI_VCS_DIFF_ADDITION:
+                prefix = "+";
+                g_string_append(right, "+ ");
+                g_string_append(right, line->text);
+                g_string_append_c(right, '\n');
+                g_string_append(left, "  \n");
+                break;
+
+            case UMI_VCS_DIFF_DELETION:
+                prefix = "-";
+                g_string_append(left, "- ");
+                g_string_append(left, line->text);
+                g_string_append_c(left, '\n');
+                g_string_append(right, "  \n");
+                break;
+
             case UMI_VCS_DIFF_CONTEXT:
-            default: prefix = " "; break;
+                g_string_append(left, "  ");
+                g_string_append(left, line->text);
+                g_string_append_c(left, '\n');
+                g_string_append(right, "  ");
+                g_string_append(right, line->text);
+                g_string_append_c(right, '\n');
+                break;
+
+            case UMI_VCS_DIFF_HEADER:
+            case UMI_VCS_DIFF_HUNK:
+            case UMI_VCS_DIFF_NOTICE:
+                prefix = "";
+                g_string_append(left, line->text);
+                g_string_append_c(left, '\n');
+                g_string_append(right, line->text);
+                g_string_append_c(right, '\n');
+                break;
+
+            default:
+                break;
         }
 
         g_string_append(text, prefix);
@@ -157,6 +249,14 @@ static void runtime_show_selected_diff(
     buffer = gtk_text_view_get_buffer(
         GTK_TEXT_VIEW(runtime->diff_text_view));
     gtk_text_buffer_set_text(buffer, text->str, -1);
+
+    buffer = gtk_text_view_get_buffer(
+        GTK_TEXT_VIEW(runtime->diff_left_view));
+    gtk_text_buffer_set_text(buffer, left->str, -1);
+
+    buffer = gtk_text_view_get_buffer(
+        GTK_TEXT_VIEW(runtime->diff_right_view));
+    gtk_text_buffer_set_text(buffer, right->str, -1);
 
     (void)snprintf(
         summary,
@@ -174,7 +274,10 @@ static void runtime_show_selected_diff(
         GTK_LABEL(runtime->diff_summary_label),
         summary);
     gtk_window_present(GTK_WINDOW(runtime->diff_window));
+
     g_string_free(text, TRUE);
+    g_string_free(left, TRUE);
+    g_string_free(right, TRUE);
 }
 
 static void runtime_on_vcs_stage_clicked(

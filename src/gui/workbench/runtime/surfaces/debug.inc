@@ -114,6 +114,16 @@ static GtkWidget *runtime_build_surface_debug(
             "owned by the existing Framework/Studio DAP services. Phase 2 "
             "adds direct operator controls without creating a second debugger."));
 
+    {
+        GtkWidget *details = runtime_debug_details_notebook(runtime);
+        if (details != NULL) {
+            gtk_box_append(GTK_BOX(panel), details);
+        }
+    }
+
+    runtime_append_context_actions(runtime, panel, "debug");
+
     runtime_debug_update_summary(runtime);
+    runtime_debug_details_refresh(runtime);
     return runtime_scroll(panel);
 }

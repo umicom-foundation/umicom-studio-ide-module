@@ -89,6 +89,67 @@ static GtkWidget *runtime_build_surface_terminal(
         gtk_box_append(GTK_BOX(panel), command_row);
     }
 
+    {
+        GtkWidget *sessions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+        GtkWidget *previous = gtk_button_new_with_label("Previous");
+        GtkWidget *next = gtk_button_new_with_label("Next");
+        GtkWidget *split_h = gtk_button_new_with_label("Split H");
+        GtkWidget *split_v = gtk_button_new_with_label("Split V");
+        GtkWidget *close = gtk_button_new_with_label("Close");
+
+        if (sessions != NULL && previous != NULL && next != NULL &&
+            split_h != NULL && split_v != NULL && close != NULL) {
+            g_object_set_data_full(
+                G_OBJECT(previous),
+                "umicom-context-command",
+                g_strdup(UMI_STUDIO_COMMAND_TERMINAL_PREVIOUS),
+                g_free);
+            g_object_set_data_full(
+                G_OBJECT(next),
+                "umicom-context-command",
+                g_strdup(UMI_STUDIO_COMMAND_TERMINAL_NEXT),
+                g_free);
+            g_object_set_data_full(
+                G_OBJECT(split_h),
+                "umicom-context-command",
+                g_strdup(UMI_STUDIO_COMMAND_TERMINAL_SPLIT_HORIZONTAL),
+                g_free);
+            g_object_set_data_full(
+                G_OBJECT(split_v),
+                "umicom-context-command",
+                g_strdup(UMI_STUDIO_COMMAND_TERMINAL_SPLIT_VERTICAL),
+                g_free);
+            g_object_set_data_full(
+                G_OBJECT(close),
+                "umicom-context-command",
+                g_strdup(UMI_STUDIO_COMMAND_TERMINAL_CLOSE),
+                g_free);
+
+            g_signal_connect(
+                previous, "clicked",
+                G_CALLBACK(runtime_on_context_action), runtime);
+            g_signal_connect(
+                next, "clicked",
+                G_CALLBACK(runtime_on_context_action), runtime);
+            g_signal_connect(
+                split_h, "clicked",
+                G_CALLBACK(runtime_on_context_action), runtime);
+            g_signal_connect(
+                split_v, "clicked",
+                G_CALLBACK(runtime_on_context_action), runtime);
+            g_signal_connect(
+                close, "clicked",
+                G_CALLBACK(runtime_on_context_action), runtime);
+
+            gtk_box_append(GTK_BOX(sessions), previous);
+            gtk_box_append(GTK_BOX(sessions), next);
+            gtk_box_append(GTK_BOX(sessions), split_h);
+            gtk_box_append(GTK_BOX(sessions), split_v);
+            gtk_box_append(GTK_BOX(sessions), close);
+            gtk_box_append(GTK_BOX(panel), sessions);
+        }
+    }
+
     gtk_box_append(
         GTK_BOX(panel),
         runtime_card_new(
@@ -96,6 +157,8 @@ static GtkWidget *runtime_build_surface_terminal(
             "Terminal sessions, supervised process execution and transcripts "
             "remain Framework-owned; Studio supplies the interactive workbench "
             "presentation and command entry."));
+
+    runtime_append_context_actions(runtime, panel, "terminal");
 
     runtime_terminal_refresh_transcript(runtime);
     return panel;

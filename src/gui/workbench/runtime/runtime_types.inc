@@ -22,6 +22,10 @@
 #include "umicom/application_shell/persona.h"
 #include "umicom/ide_integration/ide_integration.h"
 #include "umicom/diagnostics/store.h"
+#include "umicom/debug/workspace.h"
+#include "umicom/test_platform/result.h"
+#include "umicom/test_platform/coverage.h"
+#include "umicom/test_platform/output.h"
 #include "umicom/platform/file_index.h"
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/build.h"
@@ -90,6 +94,12 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *layout_list;
 
     /* Phase 2 operational presentation widgets. */
+    GtkWidget *editor_command_bar;
+    GtkWidget *editor_find_entry;
+    GtkWidget *editor_replace_entry;
+    GtkWidget *editor_goto_entry;
+    GtkWidget *editor_info_label;
+
     GtkWidget *explorer_search_entry;
     GtkWidget *explorer_list;
     GtkWidget *explorer_summary_label;
@@ -100,13 +110,20 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *test_search_entry;
     GtkWidget *test_list;
     GtkWidget *test_summary_label;
+    GtkWidget *test_results_view;
+    GtkWidget *test_coverage_view;
+    GtkWidget *test_output_view;
 
     GtkWidget *source_control_list;
+    GtkWidget *source_control_history_list;
+    GtkWidget *source_control_branches_list;
     GtkWidget *source_control_commit_entry;
     GtkWidget *source_control_summary_label;
 
     GtkWidget *diff_window;
     GtkWidget *diff_text_view;
+    GtkWidget *diff_left_view;
+    GtkWidget *diff_right_view;
     GtkWidget *diff_summary_label;
 
     GtkWidget *terminal_text_view;
@@ -119,6 +136,11 @@ typedef struct UmiStudioGtkRuntimeChrome {
 
     GtkWidget *debug_thread_entry;
     GtkWidget *debug_summary_label;
+    GtkWidget *debug_threads_list;
+    GtkWidget *debug_frames_list;
+    GtkWidget *debug_variables_list;
+    GtkWidget *debug_watches_list;
+    GtkWidget *debug_breakpoints_list;
 
     GtkCssProvider *css_provider;
     guint refresh_source;

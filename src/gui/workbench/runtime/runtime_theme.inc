@@ -29,7 +29,12 @@ static const char *RUNTIME_CSS =
     ".umicom-runtime-accent { font-weight: 700; }"
     ".umicom-runtime-badge-blocked { font-weight: 700; }"
     ".umicom-runtime-command-row { padding: 6px; }"
-    ".umicom-runtime-command-row:hover { background: alpha(@theme_selected_bg_color,0.18); }";
+    ".umicom-runtime-command-row:hover { background: alpha(@theme_selected_bg_color,0.18); }"
+    ".umicom-runtime-editor-command-bar { padding: 3px 6px; border-bottom: 1px solid alpha(@theme_fg_color,0.10); }"
+    ".umicom-runtime-editor-command-bar entry { min-height: 26px; }"
+    ".umicom-runtime-editor-command-bar button { min-height: 26px; padding: 2px 7px; }"
+    ".umicom-runtime-detail-notebook { background: alpha(@theme_fg_color,0.025); }"
+    ".umicom-runtime-diff-pane { font-family: monospace; }";
 
 static UmiStatus runtime_apply_theme(UmiStudioGtkRuntimeChrome *runtime)
 {

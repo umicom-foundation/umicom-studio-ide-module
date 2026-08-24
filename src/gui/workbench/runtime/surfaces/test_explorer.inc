@@ -137,6 +137,16 @@ static GtkWidget *runtime_build_surface_test_explorer(
             runtime_scroll(runtime->test_list));
     }
 
+    {
+        GtkWidget *details = runtime_test_details_notebook(runtime);
+        if (details != NULL) {
+            gtk_box_append(GTK_BOX(panel), details);
+        }
+    }
+
+    runtime_append_context_actions(runtime, panel, "tests");
+
     runtime_tests_refresh_list(runtime);
+    runtime_test_details_refresh(runtime);
     return panel;
 }

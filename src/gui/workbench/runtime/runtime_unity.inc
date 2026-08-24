@@ -34,8 +34,13 @@
 #include "interaction/debug.inc"
 #include "interaction/ai.inc"
 #include "interaction/source_control.inc"
+#include "interaction/source_control_details.inc"
 #include "interaction/operation_catalogue.inc"
+#include "interaction/context_actions.inc"
 #include "interaction/command_router.inc"
+#include "interaction/editor_controls.inc"
+#include "interaction/test_details.inc"
+#include "interaction/debug_details.inc"
 
 #include "runtime_actions.inc"
 #include "runtime_service_snapshots.inc"

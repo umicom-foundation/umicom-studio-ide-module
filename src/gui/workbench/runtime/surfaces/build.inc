@@ -48,6 +48,8 @@ static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime
         runtime_panel_add_commands(runtime, panel, labels, commands, 3U);
     }
 
+    runtime_append_context_actions(runtime, panel, "build");
+
     return runtime_scroll(panel);
 }
 

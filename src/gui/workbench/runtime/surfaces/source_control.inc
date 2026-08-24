@@ -65,7 +65,7 @@ static GtkWidget *runtime_build_surface_source_control(
     GtkWidget *push;
     GtkWidget *commit_row;
     GtkWidget *commit;
-    GtkWidget *scroll;
+    GtkWidget *notebook;
 
     if (panel == NULL || runtime == NULL) return panel;
 
@@ -143,10 +143,15 @@ static GtkWidget *runtime_build_surface_source_control(
         gtk_list_box_set_selection_mode(
             GTK_LIST_BOX(runtime->source_control_list),
             GTK_SELECTION_NONE);
-        scroll = runtime_scroll(runtime->source_control_list);
-        if (scroll != NULL) gtk_box_append(GTK_BOX(panel), scroll);
+        notebook = runtime_source_control_notebook(runtime);
+        if (notebook != NULL) {
+            gtk_box_append(GTK_BOX(panel), notebook);
+        }
     }
 
+    runtime_append_context_actions(runtime, panel, "source_control");
+
     runtime_source_control_refresh_list(runtime);
+    runtime_source_control_refresh_details(runtime);
     return panel;
 }

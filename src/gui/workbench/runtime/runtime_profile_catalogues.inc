@@ -68,6 +68,13 @@ typedef enum UmiStudioGtkOperationArgumentKind {
     UMI_STUDIO_GTK_OPERATION_ARGUMENT_TEST = 5
 } UmiStudioGtkOperationArgumentKind;
 
+
+typedef struct UmiStudioGtkContextActionProfile {
+    const char *panel_id;
+    const char *command_id;
+    uint32_t priority;
+} UmiStudioGtkContextActionProfile;
+
 typedef struct UmiStudioGtkOperationProfile {
     const char *profile_id;
     const char *command_id;
@@ -77,6 +84,129 @@ typedef struct UmiStudioGtkOperationProfile {
     UmiStudioGtkOperationArgumentKind argument_kind;
 } UmiStudioGtkOperationProfile;
 
+
+
+#define UMI_STUDIO_GTK_CONTEXT_ACTION(panel_, command_, priority_) \
+    {panel_, command_, priority_},
+static const UmiStudioGtkContextActionProfile RUNTIME_CONTEXT_ACTION_PROFILES[] = {
+#include "profiles/context_actions/ai_code_chat.inc"
+#include "profiles/context_actions/ai_patch_apply.inc"
+#include "profiles/context_actions/ai_patch_approve.inc"
+#include "profiles/context_actions/ai_complete_code.inc"
+#include "profiles/context_actions/ai_explain_code.inc"
+#include "profiles/context_actions/ai_generate_tests.inc"
+#include "profiles/context_actions/ai_new_session.inc"
+#include "profiles/context_actions/ai_refactor_code.inc"
+#include "profiles/context_actions/ai_refresh_health.inc"
+#include "profiles/context_actions/ai_patch_revert.inc"
+#include "profiles/context_actions/ai_save_session.inc"
+#include "profiles/context_actions/build_compile.inc"
+#include "profiles/context_actions/build_test.inc"
+#include "profiles/context_actions/build_cancel.inc"
+#include "profiles/context_actions/build_clean.inc"
+#include "profiles/context_actions/build_clear_history.inc"
+#include "profiles/context_actions/build_configure.inc"
+#include "profiles/context_actions/build_filter.inc"
+#include "profiles/context_actions/build_install.inc"
+#include "profiles/context_actions/build_invalidate.inc"
+#include "profiles/context_actions/build_refresh.inc"
+#include "profiles/context_actions/build_retry.inc"
+#include "profiles/context_actions/build_run.inc"
+#include "profiles/context_actions/build_run_all.inc"
+#include "profiles/context_actions/build_run_next.inc"
+#include "profiles/context_actions/build_select_artifact.inc"
+#include "profiles/context_actions/build_select_node.inc"
+#include "profiles/context_actions/build_select_operation.inc"
+#include "profiles/context_actions/data_integrity.inc"
+#include "profiles/context_actions/debug_add_breakpoint.inc"
+#include "profiles/context_actions/debug_add_watch.inc"
+#include "profiles/context_actions/debug_clear_console.inc"
+#include "profiles/context_actions/debug_continue.inc"
+#include "profiles/context_actions/debug_set_breakpoint_enabled.inc"
+#include "profiles/context_actions/debug_initialize.inc"
+#include "profiles/context_actions/debug_pause.inc"
+#include "profiles/context_actions/debug_remove_breakpoint.inc"
+#include "profiles/context_actions/debug_remove_watch.inc"
+#include "profiles/context_actions/debug_select_scope.inc"
+#include "profiles/context_actions/debug_select_frame.inc"
+#include "profiles/context_actions/debug_select_thread.inc"
+#include "profiles/context_actions/debug_start.inc"
+#include "profiles/context_actions/debug_step_in.inc"
+#include "profiles/context_actions/debug_step_out.inc"
+#include "profiles/context_actions/debug_next.inc"
+#include "profiles/context_actions/debug_stop.inc"
+#include "profiles/context_actions/developer_report.inc"
+#include "profiles/context_actions/plugins_report.inc"
+#include "profiles/context_actions/documents_save_all.inc"
+#include "profiles/context_actions/language_initialize.inc"
+#include "profiles/context_actions/language_workspace_symbols.inc"
+#include "profiles/context_actions/messages_flush.inc"
+#include "profiles/context_actions/messages_replay.inc"
+#include "profiles/context_actions/observability_report.inc"
+#include "profiles/context_actions/resilience_report.inc"
+#include "profiles/context_actions/output_clear.inc"
+#include "profiles/context_actions/diagnostics_clear.inc"
+#include "profiles/context_actions/process_cancel.inc"
+#include "profiles/context_actions/process_report.inc"
+#include "profiles/context_actions/recovery_purge.inc"
+#include "profiles/context_actions/security_report.inc"
+#include "profiles/context_actions/session_save.inc"
+#include "profiles/context_actions/vcs_branch_checkout.inc"
+#include "profiles/context_actions/vcs_commit.inc"
+#include "profiles/context_actions/vcs_commit_composed.inc"
+#include "profiles/context_actions/vcs_branch_create.inc"
+#include "profiles/context_actions/vcs_branch_delete.inc"
+#include "profiles/context_actions/vcs_diff_selected.inc"
+#include "profiles/context_actions/vcs_diff_selected_staged.inc"
+#include "profiles/context_actions/vcs_discard.inc"
+#include "profiles/context_actions/vcs_discard_selected.inc"
+#include "profiles/context_actions/vcs_fetch.inc"
+#include "profiles/context_actions/vcs_filter.inc"
+#include "profiles/context_actions/vcs_diff.inc"
+#include "profiles/context_actions/vcs_pull.inc"
+#include "profiles/context_actions/vcs_push.inc"
+#include "profiles/context_actions/vcs_refresh.inc"
+#include "profiles/context_actions/vcs_select_branch.inc"
+#include "profiles/context_actions/vcs_select_change.inc"
+#include "profiles/context_actions/vcs_select_commit.inc"
+#include "profiles/context_actions/vcs_select_remote.inc"
+#include "profiles/context_actions/vcs_set_commit_message.inc"
+#include "profiles/context_actions/vcs_stage_all.inc"
+#include "profiles/context_actions/vcs_stage.inc"
+#include "profiles/context_actions/vcs_stage_selected.inc"
+#include "profiles/context_actions/vcs_unstage_all.inc"
+#include "profiles/context_actions/vcs_unstage.inc"
+#include "profiles/context_actions/vcs_unstage_selected.inc"
+#include "profiles/context_actions/tasks_report.inc"
+#include "profiles/context_actions/tasks_wait_idle.inc"
+#include "profiles/context_actions/terminal_clear.inc"
+#include "profiles/context_actions/terminal_history_clear.inc"
+#include "profiles/context_actions/terminal_close.inc"
+#include "profiles/context_actions/terminal_execute.inc"
+#include "profiles/context_actions/terminal_new.inc"
+#include "profiles/context_actions/terminal_next.inc"
+#include "profiles/context_actions/terminal_previous.inc"
+#include "profiles/context_actions/terminal_search.inc"
+#include "profiles/context_actions/terminal_split_horizontal.inc"
+#include "profiles/context_actions/terminal_split_vertical.inc"
+#include "profiles/context_actions/tests_clear_coverage.inc"
+#include "profiles/context_actions/tests_clear_output.inc"
+#include "profiles/context_actions/tests_clear_results.inc"
+#include "profiles/context_actions/tests_debug_selected.inc"
+#include "profiles/context_actions/tests_discover.inc"
+#include "profiles/context_actions/tests_filter.inc"
+#include "profiles/context_actions/tests_repeat_selected.inc"
+#include "profiles/context_actions/tests_rerun_failed.inc"
+#include "profiles/context_actions/tests_run_all.inc"
+#include "profiles/context_actions/tests_run_selected.inc"
+#include "profiles/context_actions/tests_run_coverage.inc"
+#include "profiles/context_actions/tests_select.inc"
+#include "profiles/context_actions/tests_stop.inc"
+#include "profiles/context_actions/workspace_close.inc"
+#include "profiles/context_actions/workspace_refresh.inc"
+#include "profiles/context_actions/watcher_scan.inc"
+};
+#undef UMI_STUDIO_GTK_CONTEXT_ACTION
 
 #define UMI_STUDIO_GTK_OPERATION_PROFILE(id_, command_, title_, category_, description_, argument_) \
     {id_, command_, title_, category_, description_, argument_},
@@ -363,3 +493,11 @@ static size_t runtime_operation_profile_count(void)
     return sizeof(RUNTIME_OPERATION_PROFILES) /
            sizeof(RUNTIME_OPERATION_PROFILES[0]);
 }
+
+
+static size_t runtime_context_action_profile_count(void)
+{
+    return sizeof(RUNTIME_CONTEXT_ACTION_PROFILES) /
+           sizeof(RUNTIME_CONTEXT_ACTION_PROFILES[0]);
+}
+

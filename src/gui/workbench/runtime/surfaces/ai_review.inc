@@ -36,7 +36,6 @@ static GtkWidget *runtime_build_surface_ai_review(
         };
         static const char *const commands[] = {
             "ide.ai.open-review",
-            "ai.developer.patch-apply",
             "ai.developer.patch-reject"
         };
         runtime_panel_add_commands(
@@ -69,6 +68,8 @@ static GtkWidget *runtime_build_surface_ai_review(
         gtk_box_append(GTK_BOX(actions), revert);
         gtk_box_append(GTK_BOX(panel), actions);
     }
+
+    runtime_append_context_actions(runtime, panel, "ai");
 
     return runtime_scroll(panel);
 }

@@ -25,7 +25,9 @@ static GtkWidget *runtime_build_surface_ai_chat(
     char summary[256];
 
     if (panel == NULL || runtime == NULL || runtime->owner == NULL) {
-        return panel;
+        runtime_append_context_actions(runtime, panel, "ai");
+
+    return panel;
     }
 
     ai = umi_studio_services_ai_platform(

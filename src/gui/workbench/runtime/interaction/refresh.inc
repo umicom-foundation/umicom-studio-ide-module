@@ -37,6 +37,7 @@ static void runtime_refresh_interactive_panels(
         (runtime->source_control_commit_entry == NULL ||
          !gtk_widget_has_focus(runtime->source_control_commit_entry))) {
         runtime_source_control_refresh_list(runtime);
+        runtime_source_control_refresh_details(runtime);
     }
 
     if (runtime->terminal_text_view != NULL &&
@@ -45,5 +46,8 @@ static void runtime_refresh_interactive_panels(
         runtime_terminal_refresh_transcript(runtime);
     }
 
+    runtime_editor_update_info(runtime);
+    runtime_test_details_refresh(runtime);
     runtime_debug_update_summary(runtime);
+    runtime_debug_details_refresh(runtime);
 }

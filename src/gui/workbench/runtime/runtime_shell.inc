@@ -135,6 +135,16 @@ static UmiStatus runtime_build_shell(
     gtk_widget_set_vexpand(existing, TRUE);
 
     /*
+     * Phase 3 adds a compact command bar above the established Framework GTK4
+     * editor. It calls DocumentCoordinator operations and never owns document
+     * text, undo state or persistence itself.
+     */
+    runtime->editor_command_bar = runtime_build_editor_command_bar(runtime);
+    if (runtime->editor_command_bar != NULL) {
+        gtk_box_append(GTK_BOX(centre), runtime->editor_command_bar);
+    }
+
+    /*
      * The embedded Framework GTK4 adapter continues to render the authoritative
      * document notebook and editor groups, so no second visible tab strip is
      * added here.  runtime->document_tabs remains a presentation snapshot for
