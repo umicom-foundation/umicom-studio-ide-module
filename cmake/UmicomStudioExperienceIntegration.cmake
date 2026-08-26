@@ -18,6 +18,9 @@ endif()
 target_sources(umicom_studio_core PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/../src/app/experience_centre.c"
     "${CMAKE_CURRENT_LIST_DIR}/../src/app/experience_projection.c"
+    "${CMAKE_CURRENT_LIST_DIR}/../src/app/application_runtime_centre.c"
+    "${CMAKE_CURRENT_LIST_DIR}/../src/app/application_panel_centre.c"
+    "${CMAKE_CURRENT_LIST_DIR}/../src/app/application_feature_centre.c"
 )
 
 if(BUILD_TESTING)
@@ -38,4 +41,32 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-experience-projection-test)
     add_test(NAME studio.experience_projection
              COMMAND umicom-studio-experience-projection-test)
+
+    add_executable(umicom-studio-application-runtime-centre-test
+        "${CMAKE_CURRENT_LIST_DIR}/../tests/test_application_runtime_centre.c")
+    target_link_libraries(umicom-studio-application-runtime-centre-test PRIVATE
+        Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-application-runtime-centre-test)
+    umicom_apply_sanitizers(umicom-studio-application-runtime-centre-test)
+    add_test(NAME studio.application_runtime_centre
+             COMMAND umicom-studio-application-runtime-centre-test)
+
+    add_executable(umicom-studio-application-panel-centre-test
+        "${CMAKE_CURRENT_LIST_DIR}/../tests/test_application_panel_centre.c")
+    target_link_libraries(umicom-studio-application-panel-centre-test PRIVATE
+        Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-application-panel-centre-test)
+    umicom_apply_sanitizers(umicom-studio-application-panel-centre-test)
+    add_test(NAME studio.application_panel_centre
+             COMMAND umicom-studio-application-panel-centre-test)
+
+    add_executable(umicom-studio-application-feature-centre-test
+        "${CMAKE_CURRENT_LIST_DIR}/../tests/test_application_feature_centre.c")
+    target_link_libraries(umicom-studio-application-feature-centre-test PRIVATE
+        Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-application-feature-centre-test)
+    umicom_apply_sanitizers(umicom-studio-application-feature-centre-test)
+    add_test(NAME studio.application_feature_centre
+             COMMAND umicom-studio-application-feature-centre-test)
+
 endif()
