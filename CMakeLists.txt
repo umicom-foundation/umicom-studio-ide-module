@@ -1204,6 +1204,10 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-web-api-workbench-contribution-test)
     add_test(NAME studio.web_api_workbench_contribution
         COMMAND umicom-studio-web-api-workbench-contribution-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(
+            umicom-studio-web-api-workbench-contribution-test)
+    endif()
 
     add_executable(umicom-studio-developer-ecosystem-contribution-test
         tests/test_developer_ecosystem_contribution.c)
@@ -1213,6 +1217,10 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-developer-ecosystem-contribution-test)
     add_test(NAME studio.developer_ecosystem_contribution
         COMMAND umicom-studio-developer-ecosystem-contribution-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(
+            umicom-studio-developer-ecosystem-contribution-test)
+    endif()
 
     add_executable(umicom-studio-editor-assistance-contribution-test tests/test_editor_assistance_contribution.c)
     target_link_libraries(umicom-studio-editor-assistance-contribution-test PRIVATE Umicom::StudioCore)
