@@ -32,6 +32,9 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-experience-centre-test)
     add_test(NAME studio.experience_centre
              COMMAND umicom-studio-experience-centre-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-experience-centre-test)
+    endif()
 
     add_executable(umicom-studio-experience-projection-test
         "${CMAKE_CURRENT_LIST_DIR}/../tests/test_experience_projection.c")
@@ -41,6 +44,9 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-experience-projection-test)
     add_test(NAME studio.experience_projection
              COMMAND umicom-studio-experience-projection-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-experience-projection-test)
+    endif()
 
     add_executable(umicom-studio-application-runtime-centre-test
         "${CMAKE_CURRENT_LIST_DIR}/../tests/test_application_runtime_centre.c")
@@ -50,6 +56,10 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-application-runtime-centre-test)
     add_test(NAME studio.application_runtime_centre
              COMMAND umicom-studio-application-runtime-centre-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(
+            umicom-studio-application-runtime-centre-test)
+    endif()
 
     add_executable(umicom-studio-application-panel-centre-test
         "${CMAKE_CURRENT_LIST_DIR}/../tests/test_application_panel_centre.c")
@@ -59,6 +69,10 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-application-panel-centre-test)
     add_test(NAME studio.application_panel_centre
              COMMAND umicom-studio-application-panel-centre-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(
+            umicom-studio-application-panel-centre-test)
+    endif()
 
     add_executable(umicom-studio-application-feature-centre-test
         "${CMAKE_CURRENT_LIST_DIR}/../tests/test_application_feature_centre.c")
@@ -68,5 +82,9 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-application-feature-centre-test)
     add_test(NAME studio.application_feature_centre
              COMMAND umicom-studio-application-feature-centre-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(
+            umicom-studio-application-feature-centre-test)
+    endif()
 
 endif()
