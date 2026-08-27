@@ -13,8 +13,44 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/workspace_layouts.h"
 
+#include <string.h>
+
 #include "umicom/application/experience_catalogue.h"
 #include "umicom/desktop/desktop.h"
+#include "umicom/studio/contributions.h"
+
+static const char *studio_pane_resolver(
+    const UmiExperiencePanelDefinition *panel,
+    void *user_data)
+{
+    (void)user_data;
+    if (panel == NULL || panel->panel_id == NULL) return NULL;
+    if (strcmp(panel->panel_id, "resource-explorer") == 0)
+        return UMI_STUDIO_PANE_EXPLORER;
+    if (strcmp(panel->panel_id, "editor") == 0)
+        return UMI_STUDIO_PANE_EDITOR;
+    if (strcmp(panel->panel_id, "problems") == 0)
+        return UMI_STUDIO_PANE_PROBLEMS;
+    if (strcmp(panel->panel_id, "output") == 0)
+        return UMI_STUDIO_PANE_OUTPUT;
+    if (strcmp(panel->panel_id, "terminal") == 0)
+        return UMI_STUDIO_PANE_TERMINAL;
+    if (strcmp(panel->panel_id, "source-control") == 0)
+        return UMI_STUDIO_PANE_SOURCE_CONTROL;
+    if (strcmp(panel->panel_id, "test-explorer") == 0)
+        return UMI_STUDIO_PANE_TESTING;
+    if (strcmp(panel->panel_id, "debug") == 0)
+        return UMI_STUDIO_PANE_RUN_DEBUG;
+    if (strcmp(panel->panel_id, "ai-assistant") == 0)
+        return UMI_STUDIO_PANE_AI;
+    if (strcmp(panel->panel_id, "knowledge") == 0)
+        return UMI_STUDIO_PANE_KNOWLEDGE;
+    if (strcmp(panel->panel_id, "context-inspector") == 0)
+        return UMI_STUDIO_PANE_AI_CONTEXT;
+    if (strcmp(panel->panel_id, "quality") == 0)
+        return UMI_STUDIO_PANE_ARCHITECTURE;
+    return NULL;
+}
 
 UmiStatus umi_studio_workspace_layout_default(
     UmiUiWorkspaceLayout *out_layout)
@@ -33,6 +69,22 @@ UmiStatus umi_studio_workspace_layout_select(
     experience = umi_application_experience_catalogue_find("org.umicom.studio");
     if (experience == NULL) return UMI_STATUS_NOT_FOUND;
     return umi_application_suite_layout_project(experience, layout_id, out_layout);
+}
+
+UmiStatus umi_studio_workspace_layout_register_workbench(
+    UmiUiWorkbench *workbench,
+    int activate_default)
+{
+    const UmiApplicationExperienceDefinition *experience;
+    if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    experience = umi_application_experience_catalogue_find("org.umicom.studio");
+    if (experience == NULL) return UMI_STATUS_NOT_FOUND;
+    return umi_application_suite_layout_register_workbench_profiles_resolved(
+        experience,
+        workbench,
+        activate_default,
+        studio_pane_resolver,
+        NULL);
 }
 
 UmiStatus umi_studio_workspace_layouts_seed(

@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "umicom/studio/contributions.h"
+#include "umicom/studio/workspace_layouts.h"
 
 static int is_debug_workspace_pane(const char *pane_id)
 {
@@ -127,25 +128,31 @@ static UmiStatus register_profile(UmiUiWorkbench *workbench,
         UmiUiWorkspacePanePlacement *saved;
         UmiStatus status = umi_ui_pane_model_at(
             umi_ui_workbench_panes(workbench), pane_index, &pane);
+        int debug_pane;
+        int source_control_pane;
+        int testing_pane;
+        int build_pane;
+        int trading_pane;
+        int profile_pane;
         if (status != UMI_STATUS_OK) return status;
-        int debug_pane = strcmp(profile_id,
-                                UMI_STUDIO_WORKSPACE_PROFILE_DEBUG) == 0 &&
-                         is_debug_workspace_pane(pane.pane_id);
-        int source_control_pane =
+        debug_pane = strcmp(profile_id,
+                            UMI_STUDIO_WORKSPACE_PROFILE_DEBUG) == 0 &&
+                     is_debug_workspace_pane(pane.pane_id);
+        source_control_pane =
             strcmp(profile_id,
                    UMI_STUDIO_WORKSPACE_PROFILE_SOURCE_CONTROL) == 0 &&
             is_source_control_workspace_pane(pane.pane_id);
-        int testing_pane =
+        testing_pane =
             strcmp(profile_id, UMI_STUDIO_WORKSPACE_PROFILE_TESTING) == 0 &&
             is_testing_workspace_pane(pane.pane_id);
-        int build_pane =
+        build_pane =
             strcmp(profile_id, UMI_STUDIO_WORKSPACE_PROFILE_BUILD) == 0 &&
             is_build_workspace_pane(pane.pane_id);
-        int trading_pane =
+        trading_pane =
             strcmp(profile_id, UMI_STUDIO_WORKSPACE_PROFILE_TRADING) == 0 &&
             is_trading_workspace_pane(pane.pane_id);
-        int profile_pane = debug_pane || source_control_pane || testing_pane ||
-                           build_pane || trading_pane;
+        profile_pane = debug_pane || source_control_pane || testing_pane ||
+                       build_pane || trading_pane;
         if ((!pane.visible && !profile_pane) ||
             pane.placement == UMI_UI_PLACEMENT_CENTRE ||
             pane.placement == UMI_UI_PLACEMENT_FLOATING) {
@@ -215,6 +222,12 @@ UmiStatus umi_studio_workspace_profiles_register(UmiUiWorkbench *workbench)
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_TRADING, "Trading",
         "TWS-inspired market, chart, order, risk and activity workspace",
         "view-statistics-symbolic", 1, 1, 1, 260, 390, 300, 70);
+    if (status != UMI_STATUS_OK) return status;
+
+    /* Add the three canonical Application Suite profiles to the same live
+     * workbench.  The resolver maps Framework experience panel IDs to Studio's
+     * existing pane identities; no new Studio layout engine is introduced. */
+    status = umi_studio_workspace_layout_register_workbench(workbench, 0);
     if (status != UMI_STATUS_OK) return status;
 
     return umi_ui_workbench_activate_workspace_profile(

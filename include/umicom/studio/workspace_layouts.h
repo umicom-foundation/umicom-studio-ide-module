@@ -3,7 +3,8 @@
  * File: applications/studio/include/umicom/studio/workspace_layouts.h
  *
  * PURPOSE:
- *   Expose Studio layout seeding plus canonical Framework suite-layout selection.
+ *   Expose Studio layout seeding plus canonical Framework suite-layout
+ *   selection and live-workbench profile registration.
  *
  * Created by: Sammy Hegab
  * Organisation: Umicom Foundation
@@ -22,5 +23,8 @@ UmiStatus umi_studio_workspace_layout_default(
 UmiStatus umi_studio_workspace_layout_select(
     const char *layout_id,
     UmiUiWorkspaceLayout *out_layout);
+UmiStatus umi_studio_workspace_layout_register_workbench(
+    UmiUiWorkbench *workbench,
+    int activate_default);
 
 #endif

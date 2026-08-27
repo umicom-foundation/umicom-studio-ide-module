@@ -3,7 +3,8 @@
  * File: applications/studio/include/umicom/studio/workspace_profiles.h
  *
  * PURPOSE:
- *   Declare Studio's named profiles for the live Framework workbench.
+ *   Declare Studio's named profiles for the live Framework workbench and the
+ *   canonical Application Suite profiles projected into that same model.
  *
  * Created by: Sammy Hegab
  * Organisation: Umicom Foundation
@@ -28,7 +29,12 @@ extern "C" {
 #define UMI_STUDIO_WORKSPACE_PROFILE_REVIEW "review"
 #define UMI_STUDIO_WORKSPACE_PROFILE_OPERATIONS "operations"
 #define UMI_STUDIO_WORKSPACE_PROFILE_TRADING "trading"
-#define UMI_STUDIO_WORKSPACE_PROFILE_COUNT 9U
+
+#define UMI_STUDIO_BUILTIN_WORKSPACE_PROFILE_COUNT 9U
+#define UMI_STUDIO_CANONICAL_WORKSPACE_PROFILE_COUNT 3U
+#define UMI_STUDIO_WORKSPACE_PROFILE_COUNT \
+    (UMI_STUDIO_BUILTIN_WORKSPACE_PROFILE_COUNT + \
+     UMI_STUDIO_CANONICAL_WORKSPACE_PROFILE_COUNT)
 
 UmiStatus umi_studio_workspace_profiles_register(UmiUiWorkbench *workbench);
 
