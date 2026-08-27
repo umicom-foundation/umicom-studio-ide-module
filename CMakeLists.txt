@@ -261,6 +261,10 @@ add_library(umicom_studio_core STATIC
     src/app/visual_builder_views.c
     src/app/visual_builder_commands.c
     src/app/visual_builder_settings.c
+    src/app/production_profile.c
+    src/app/production_panels.c
+    src/app/production_commands.c
+    src/app/production_readiness.c
 )
 add_library(Umicom::StudioCore ALIAS umicom_studio_core)
 
@@ -1838,6 +1842,38 @@ umicom_add_application_productisation_contribution(
     TARGET "umicom_studio_productisation"
     SOURCE "src/productisation_contribution.c"
     TEST_SOURCE "tests/test_productisation_contribution.c")
+target_link_libraries(umicom_studio_core PUBLIC
+    umicom_studio_productisation)
+
+if(BUILD_TESTING)
+    foreach(UMICOM_STUDIO_PRODUCTION_TEST
+            production_profile
+            production_panels
+            production_commands
+            production_readiness)
+        string(REPLACE "_" "-"
+            UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX
+            "${UMICOM_STUDIO_PRODUCTION_TEST}")
+        add_executable(
+            "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test"
+            "tests/test_${UMICOM_STUDIO_PRODUCTION_TEST}.c")
+        target_link_libraries(
+            "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test"
+            PRIVATE Umicom::StudioCore)
+        umicom_apply_warnings(
+            "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test")
+        umicom_apply_sanitizers(
+            "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test")
+        add_test(
+            NAME "studio.${UMICOM_STUDIO_PRODUCTION_TEST}"
+            COMMAND
+                "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test")
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(
+                "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test")
+        endif()
+    endforeach()
+endif()
 
 if(BUILD_TESTING)
 foreach(UMICOM_STUDIO_SECURITY_TEST
