@@ -15,6 +15,7 @@
 #include "umicom/studio/diagnostics.h"
 #include "umicom/studio/platform.h"
 #include "umicom/studio/workspace.h"
+#include "umicom/studio/workspace_layouts.h"
 #include "umicom/studio/messages.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio/version.h"
@@ -28,6 +29,7 @@ int main(void)
     UmiDiagnosticStoreSummary summary;
     UmiSettings *settings;
     UmiStudioServices *services;
+    UmiUiWorkspaceLayout layout;
     char theme[UMI_SETTING_VALUE_CAPACITY];
     UmiStatus status = umi_studio_bootstrap_create(&bootstrap);
 
@@ -52,6 +54,12 @@ int main(void)
     (void)printf("Framework capabilities: %zu\n",
                  umi_framework_capability_catalogue_count());
     (void)printf("Native command: umicom\n");
+
+    status = umi_studio_workspace_layout_default(&layout);
+    if (status == UMI_STATUS_OK) {
+        (void)printf("Studio layout: %s\n", layout.name);
+        (void)printf("Studio layout windows: %zu\n", layout.window_count);
+    }
 
     services = umi_studio_bootstrap_services(bootstrap);
     settings = umi_studio_services_settings(services);
