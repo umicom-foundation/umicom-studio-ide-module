@@ -1831,6 +1831,14 @@ foreach(UMICOM_STUDIO_QUALITY_TEST
 endforeach()
 endif()
 
+include(
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/cmake/UmicomApplicationProductisationContribution.cmake")
+umicom_add_application_productisation_contribution(
+    NAME "studio"
+    TARGET "umicom_studio_productisation"
+    SOURCE "src/productisation_contribution.c"
+    TEST_SOURCE "tests/test_productisation_contribution.c")
+
 if(BUILD_TESTING)
 foreach(UMICOM_STUDIO_SECURITY_TEST
         security_centre
