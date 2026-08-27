@@ -19,7 +19,6 @@ int main(void)
 {
     size_t index;
     size_t comparison;
-
     assert(umi_studio_debug_command_contribution_count() ==
            umi_debug_command_count());
     for (index = 0U; index < umi_studio_debug_command_contribution_count();
