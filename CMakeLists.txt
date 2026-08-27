@@ -265,6 +265,7 @@ add_library(umicom_studio_core STATIC
     src/app/production_panels.c
     src/app/production_commands.c
     src/app/production_readiness.c
+    src/experience_acceptance.c
 )
 add_library(Umicom::StudioCore ALIAS umicom_studio_core)
 
@@ -1851,6 +1852,8 @@ if(BUILD_TESTING)
             production_panels
             production_commands
             production_readiness)
+        # Experience acceptance is registered separately because it consumes
+        # executable journey evidence rather than the production profile.
         string(REPLACE "_" "-"
             UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX
             "${UMICOM_STUDIO_PRODUCTION_TEST}")
@@ -1873,6 +1876,19 @@ if(BUILD_TESTING)
                 "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test")
         endif()
     endforeach()
+
+    add_executable(umicom-studio-experience-acceptance-test
+        tests/test_experience_acceptance.c)
+    target_link_libraries(umicom-studio-experience-acceptance-test
+        PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-experience-acceptance-test)
+    umicom_apply_sanitizers(umicom-studio-experience-acceptance-test)
+    add_test(NAME studio.experience_acceptance
+        COMMAND umicom-studio-experience-acceptance-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(
+            umicom-studio-experience-acceptance-test)
+    endif()
 endif()
 
 if(BUILD_TESTING)
