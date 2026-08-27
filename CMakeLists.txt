@@ -96,6 +96,7 @@ add_library(umicom_studio_core STATIC
     src/app/editor_intelligence_workbench_contribution.c
     src/app/vcs_workbench_contribution.c
     src/app/data_workbench_contribution.c
+    src/app/web_api_workbench_contribution.c
     src/app/editor_assistance_contribution.c
     src/app/editor_productivity_contribution.c
     src/app/editor_refactoring_contribution.c
@@ -1193,6 +1194,15 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-data-workbench-contribution-test)
     add_test(NAME studio.data_workbench_contribution
         COMMAND umicom-studio-data-workbench-contribution-test)
+
+    add_executable(umicom-studio-web-api-workbench-contribution-test
+        tests/test_web_api_workbench_contribution.c)
+    target_link_libraries(umicom-studio-web-api-workbench-contribution-test
+        PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-web-api-workbench-contribution-test)
+    umicom_apply_sanitizers(umicom-studio-web-api-workbench-contribution-test)
+    add_test(NAME studio.web_api_workbench_contribution
+        COMMAND umicom-studio-web-api-workbench-contribution-test)
 
     add_executable(umicom-studio-editor-assistance-contribution-test tests/test_editor_assistance_contribution.c)
     target_link_libraries(umicom-studio-editor-assistance-contribution-test PRIVATE Umicom::StudioCore)
