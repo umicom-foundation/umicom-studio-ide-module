@@ -18,7 +18,7 @@ static const UmiProductApplicationAdoption ADOPTION = {
     "org.umicom.studio",
     "Umicom Studio IDE",
     "umicom-studio-ide",
-    UMI_PRODUCT_FRONTEND_CONSOLE | UMI_PRODUCT_FRONTEND_GTK4,
+    UMI_PRODUCT_FRONTEND_FLAG_CONSOLE | UMI_PRODUCT_FRONTEND_FLAG_GTK4,
     1,
     1,
     1,
