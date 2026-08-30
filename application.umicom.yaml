@@ -33,6 +33,8 @@ capabilities:
   - toolchain-discovery
   - repository-scaffolding
   - suite-composition
+  - application-presentation-surface
+  - workspace-recipes
 
 source_layout:
   product_root: src
@@ -44,4 +46,4 @@ migration:
   stage: native-platform-foundation-integrated
   product_source_root: src
   completed_vertical_slice: native-platform-and-repository-foundation
-  next_vertical_slice: workbench-and-framework-service-adoption
+  next_vertical_slice: native-frontend-surface-host-adoption

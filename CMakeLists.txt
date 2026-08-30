@@ -82,6 +82,9 @@ add_library(umicom_studio_core STATIC
     src/app/observability.c
     src/app/resilience.c
     src/app/ui.c
+    src/app/application_surface.c
+    src/app/application_surface_controllers.c
+    src/app/application_surface_commands.c
     src/app/workbench.c
     src/app/professional_workspace.c
     src/app/workspace_catalogue.c
@@ -835,6 +838,32 @@ if(UMICOM_STUDIO_BUILD_GTK)
         "${CMAKE_SOURCE_DIR}/win/umicom-logo.png"
         "${CMAKE_SOURCE_DIR}/win/umicom.ico"
         DESTINATION bin/branding)
+endif()
+
+# Studio adopts the Framework application-surface runtime as an additive
+# product layer. These focused tests do not require a graphical display.
+if(BUILD_TESTING)
+    foreach(UMICOM_STUDIO_APPLICATION_SURFACE_TEST
+            application_surface
+            application_surface_commands
+            application_surface_controllers)
+        string(REPLACE "_" "-" UMICOM_STUDIO_APPLICATION_SURFACE_TARGET
+            "${UMICOM_STUDIO_APPLICATION_SURFACE_TEST}")
+        add_executable(
+            "umicom-studio-${UMICOM_STUDIO_APPLICATION_SURFACE_TARGET}-test"
+            "tests/test_${UMICOM_STUDIO_APPLICATION_SURFACE_TEST}.c")
+        target_link_libraries(
+            "umicom-studio-${UMICOM_STUDIO_APPLICATION_SURFACE_TARGET}-test"
+            PRIVATE Umicom::StudioCore)
+        umicom_apply_warnings(
+            "umicom-studio-${UMICOM_STUDIO_APPLICATION_SURFACE_TARGET}-test")
+        umicom_apply_sanitizers(
+            "umicom-studio-${UMICOM_STUDIO_APPLICATION_SURFACE_TARGET}-test")
+        add_test(
+            NAME "studio.${UMICOM_STUDIO_APPLICATION_SURFACE_TEST}"
+            COMMAND
+                "umicom-studio-${UMICOM_STUDIO_APPLICATION_SURFACE_TARGET}-test")
+    endforeach()
 endif()
 
 # -----------------------------------------------------------------------------

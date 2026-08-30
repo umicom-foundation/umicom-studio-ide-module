@@ -1,7 +1,7 @@
 # Umicom Studio IDE application
 
-Umicom Studio IDE 0.14.0 is an independent GTK4 and console application built on
-Umicom Framework 0.5.0.
+Umicom Studio IDE 0.23.0 is an independent GTK4 and console application built on
+Umicom Framework 0.9.0.
 
 ## Source ownership
 
@@ -27,3 +27,8 @@ and future repository wizard must use the same Framework services as the native
 Studio remains independently runnable while sharing the same Framework contracts
 that can compose Studio, Designer, Trader, TMS, and future applications into a
 suite.
+
+Studio also starts the Framework-owned standard presentation recipe as a live
+application surface. It contributes IDE guidance and commands for ten reusable
+panels while Framework owns their lifecycle, focus, state and portable layout.
+See [the Studio application surface guide](docs/APPLICATION_SURFACE_GUIDE.md).

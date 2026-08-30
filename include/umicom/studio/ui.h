@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 #include "umicom/umicom.h"
+#include "umicom/studio/application_surface.h"
 #include "umicom/studio/services.h"
 
 #ifdef __cplusplus
@@ -37,10 +38,16 @@ typedef struct UmiStudioUiSnapshot {
     size_t status_items;
     size_t contributions;
     size_t notifications;
+    size_t application_panels;
+    size_t visible_application_panels;
+    size_t ready_application_panels;
+    size_t application_panels_needing_attention;
     uint64_t workbench_revision;
     uint64_t render_revision;
+    uint64_t application_surface_revision;
     char active_perspective[UMI_UI_ID_CAPACITY];
     char active_document[UMI_UI_ID_CAPACITY];
+    char active_application_component[UMI_UI_ID_CAPACITY];
 } UmiStudioUiSnapshot;
 
 UmiStatus umi_studio_ui_create(UmiStudioServices *services,
@@ -61,6 +68,7 @@ UmiUiWorkbench *umi_studio_ui_workbench(UmiStudioUi *ui);
 UmiUiHeadlessAdapter *umi_studio_ui_headless(UmiStudioUi *ui);
 UmiStudioViewModels *umi_studio_ui_view_models(UmiStudioUi *ui);
 UmiDocumentCoordinator *umi_studio_ui_documents(UmiStudioUi *ui);
+UmiStudioApplicationSurface *umi_studio_ui_application_surface(UmiStudioUi *ui);
 
 #ifdef __cplusplus
 }

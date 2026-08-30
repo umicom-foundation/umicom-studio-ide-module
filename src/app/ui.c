@@ -30,12 +30,15 @@ struct UmiStudioUi {
     UmiUiHeadlessAdapter *headless;
     UmiStudioViewModels *view_models;
     UmiDocumentCoordinator *document_coordinator;
+    UmiStudioApplicationSurface *application_surface;
     int published;
 };
 
 static void destroy_partial(UmiStudioUi *ui)
 {
     if (ui == NULL) return;
+    umi_studio_application_surface_destroy(ui->application_surface);
+    ui->application_surface = NULL;
     umi_document_coordinator_destroy(ui->document_coordinator);
     ui->document_coordinator = NULL;
     umi_ui_headless_adapter_destroy(ui->headless);
@@ -77,6 +80,8 @@ UmiStatus umi_studio_ui_create(UmiStudioServices *services,
     if (status == UMI_STATUS_OK) status = umi_ui_application_shell_set_visible(ui->shell, 1);
     if (status == UMI_STATUS_OK) status = umi_ui_headless_adapter_create(&ui->headless);
     if (status == UMI_STATUS_OK) status = umi_ui_headless_adapter_present(ui->headless, ui->shell);
+    if (status == UMI_STATUS_OK) status = umi_studio_application_surface_create(
+        &ui->application_surface);
     if (status == UMI_STATUS_OK) status = umi_studio_workbench_restore_session(
         ui->workbench, umi_studio_services_session(services));
     if (status != UMI_STATUS_OK) {
@@ -103,9 +108,10 @@ UmiStatus umi_studio_ui_publish(UmiStudioUi *ui, UmiServiceRegistry *registry)
         "umicom.ui.application-shell",
         "umicom.ui.adapter.headless",
         "umicom.studio.ui.view-models",
-        "umicom.document.coordinator"
+        "umicom.document.coordinator",
+        "umicom.studio.application-surface"
     };
-    void *instances[6];
+    void *instances[7];
     size_t index;
     UmiServiceDescriptor descriptor;
     UmiStatus status;
@@ -117,7 +123,8 @@ UmiStatus umi_studio_ui_publish(UmiStudioUi *ui, UmiServiceRegistry *registry)
     instances[3] = ui->headless;
     instances[4] = ui->view_models;
     instances[5] = ui->document_coordinator;
-    for (index = 0U; index < 6U; ++index) {
+    instances[6] = ui->application_surface;
+    for (index = 0U; index < 7U; ++index) {
         (void)memset(&descriptor, 0, sizeof(descriptor));
         descriptor.structure_size = (uint32_t)sizeof(descriptor);
         descriptor.service_id = IDS[index];
@@ -138,6 +145,8 @@ UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui)
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_studio_view_models_refresh(ui->view_models);
     if (status != UMI_STATUS_OK) return status;
+    status = umi_studio_application_surface_refresh(ui->application_surface);
+    if (status != UMI_STATUS_OK) return status;
     return umi_ui_headless_adapter_refresh(ui->headless);
 }
 
@@ -146,11 +155,15 @@ UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
 {
     UmiUiWorkbenchSnapshot workbench;
     UmiUiHeadlessSnapshot render;
+    UmiApplicationPresentationSurfaceSnapshot surface;
     UmiStatus status;
     if (ui == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_ui_workbench_snapshot(ui->workbench, &workbench);
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_headless_adapter_snapshot(ui->headless, &render);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_studio_application_surface_snapshot(
+        ui->application_surface, &surface);
     if (status != UMI_STATUS_OK) return status;
     out_snapshot->perspectives = workbench.perspective_count;
     out_snapshot->panes = workbench.pane_count;
@@ -161,10 +174,20 @@ UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
     out_snapshot->status_items = umi_ui_status_model_count(umi_ui_workbench_status(ui->workbench));
     out_snapshot->contributions = umi_ui_contribution_model_count(umi_ui_workbench_contributions(ui->workbench));
     out_snapshot->notifications = workbench.notification_count;
+    out_snapshot->application_panels = surface.panel_count;
+    out_snapshot->visible_application_panels = surface.visible_count;
+    out_snapshot->ready_application_panels = surface.ready_count;
+    out_snapshot->application_panels_needing_attention = surface.attention_count;
     out_snapshot->workbench_revision = workbench.revision;
     out_snapshot->render_revision = render.render_revision;
+    out_snapshot->application_surface_revision = surface.revision;
     (void)snprintf(out_snapshot->active_perspective, sizeof(out_snapshot->active_perspective), "%s", workbench.active_perspective);
     (void)snprintf(out_snapshot->active_document, sizeof(out_snapshot->active_document), "%s", workbench.active_document_view);
+    (void)snprintf(out_snapshot->active_application_component,
+                   sizeof(out_snapshot->active_application_component), "%s",
+                   surface.focused_component_id != NULL
+                       ? surface.focused_component_id
+                       : "");
     return UMI_STATUS_OK;
 }
 
@@ -184,3 +207,4 @@ UmiUiWorkbench *umi_studio_ui_workbench(UmiStudioUi *ui) { return ui != NULL ? u
 UmiUiHeadlessAdapter *umi_studio_ui_headless(UmiStudioUi *ui) { return ui != NULL ? ui->headless : NULL; }
 UmiStudioViewModels *umi_studio_ui_view_models(UmiStudioUi *ui) { return ui != NULL ? ui->view_models : NULL; }
 UmiDocumentCoordinator *umi_studio_ui_documents(UmiStudioUi *ui) { return ui != NULL ? ui->document_coordinator : NULL; }
+UmiStudioApplicationSurface *umi_studio_ui_application_surface(UmiStudioUi *ui) { return ui != NULL ? ui->application_surface : NULL; }
