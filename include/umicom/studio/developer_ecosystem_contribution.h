@@ -6,9 +6,12 @@
  *   Declare Studio-only placement for the Framework package, SDK, extension
  *   and component workbench. Operational behaviour remains in Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DEVELOPER_ECOSYSTEM_CONTRIBUTION_H
 #define UMICOM_STUDIO_DEVELOPER_ECOSYSTEM_CONTRIBUTION_H

@@ -15,7 +15,7 @@
 
 #include <string.h>
 
-#include "umicom/application/experience_catalogue.h"
+#include "umicom/application/experience_portfolio.h"
 #include "umicom/desktop/desktop.h"
 #include "umicom/studio/contributions.h"
 

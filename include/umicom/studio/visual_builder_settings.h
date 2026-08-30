@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Visual Builder v2 validated settings adapter
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/visual_builder_settings.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public visual builder settings contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Typed settings produce one reusable frontend-independent builder configuration. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_SETTINGS_H

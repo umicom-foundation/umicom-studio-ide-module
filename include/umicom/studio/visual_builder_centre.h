@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/visual_builder_centre.h
  * PURPOSE: Own Studio's Framework-backed Visual Application Builder v2 centre.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Studio owns product composition; reusable authoring state lives in Framework. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_CENTRE_H

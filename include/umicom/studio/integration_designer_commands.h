@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Integration Designer commands | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/integration_designer_commands.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public integration designer commands contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_INTEGRATION_DESIGNER_COMMANDS_H
 #define UMICOM_STUDIO_INTEGRATION_DESIGNER_COMMANDS_H
 #include "umicom/studio/integration_designer_execution.h"

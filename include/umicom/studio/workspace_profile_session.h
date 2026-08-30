@@ -6,9 +6,12 @@
  *   Persist user-created Framework workspace profiles through Studio's
  *   existing Session Store without introducing another settings backend.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_WORKSPACE_PROFILE_SESSION_H

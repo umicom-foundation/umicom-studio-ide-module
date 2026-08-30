@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/knowledge_commands.h
  * PURPOSE: Register Knowledge Centre commands with the shared Studio registry.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: One registry makes these commands available to every frontend. */
 #ifndef UMICOM_STUDIO_KNOWLEDGE_COMMANDS_H

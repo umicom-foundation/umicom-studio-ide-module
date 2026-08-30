@@ -7,9 +7,12 @@
  *   resilience services without duplicating their implementations in the
  *   product layer.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_OPERATIONS_H
 #define UMICOM_STUDIO_OPERATIONS_H

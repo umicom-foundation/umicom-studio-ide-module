@@ -6,9 +6,12 @@
  *   Declare Studio's session identity at the Framework composition boundary.
  *   Framework owns recovery journals, layout history and monitor affinity.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_FEDERATED_WORKSPACE_SESSION_H
 #define UMICOM_STUDIO_FEDERATED_WORKSPACE_SESSION_H

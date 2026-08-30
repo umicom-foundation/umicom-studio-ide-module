@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Compose the Problems Centre over Framework workbench services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_PROBLEMS_CENTRE_H
 #define UMICOM_STUDIO_PROBLEMS_CENTRE_H

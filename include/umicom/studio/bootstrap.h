@@ -7,9 +7,12 @@
  *   frontends.  Studio services, commands and Slave Controllers are registered
  *   here, including access to retained diagnostics and runtime registries.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_BOOTSTRAP_H
 #define UMICOM_STUDIO_BOOTSTRAP_H

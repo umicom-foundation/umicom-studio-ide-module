@@ -6,9 +6,12 @@
  *   Own the toolkit-neutral Studio UI composition built from Umicom Framework
  *   workbench, application-shell, headless-adapter and command contracts.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_UI_H

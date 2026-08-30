@@ -7,9 +7,12 @@
  *   child environments, compilation databases and per-project compiler choices
  *   into one Studio-facing centre without duplicating reusable mechanisms.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_TOOLCHAIN_CENTRE_H
 #define UMICOM_STUDIO_TOOLCHAIN_CENTRE_H

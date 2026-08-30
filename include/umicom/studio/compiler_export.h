@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Compiler export v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/compiler_export.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public compiler export contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_COMPILER_EXPORT_H
 #define UMICOM_STUDIO_COMPILER_EXPORT_H
 #include "umicom/compiler/compiler.h"

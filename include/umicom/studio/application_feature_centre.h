@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Expose the canonical incomplete product backlog and ownership evidence in Studio.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_APPLICATION_FEATURE_CENTRE_H

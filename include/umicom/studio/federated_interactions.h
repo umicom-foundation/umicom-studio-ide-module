@@ -6,9 +6,12 @@
  *   Register Studio's declarative linked-context interests with the
  *   Framework-owned desktop context synchronizer.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_FEDERATED_INTERACTIONS_H
 #define UMICOM_STUDIO_FEDERATED_INTERACTIONS_H

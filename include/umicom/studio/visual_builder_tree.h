@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Visual Builder v2 component hierarchy adapter
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/visual_builder_tree.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public visual builder tree contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: The displayed tree is rebuilt from the Framework semantic document. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_TREE_H

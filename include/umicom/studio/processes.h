@@ -7,9 +7,12 @@
  *   Execution is restricted to trusted workspaces and defaults to the active
  *   workspace root when no working directory is supplied.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_PROCESSES_H
 #define UMICOM_STUDIO_PROCESSES_H

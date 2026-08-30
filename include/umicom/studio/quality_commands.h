@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Quality Centre commands v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/quality_commands.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public quality commands contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_QUALITY_COMMANDS_H
 #define UMICOM_STUDIO_QUALITY_COMMANDS_H
 #include "umicom/studio/quality_gates.h"

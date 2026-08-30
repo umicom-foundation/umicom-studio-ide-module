@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Visual Builder v2 layout command adapter
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/visual_builder_layout.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public visual builder layout contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Layout commands are atomic and operate on the current semantic selection. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_LAYOUT_H

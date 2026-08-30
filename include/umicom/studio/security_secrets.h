@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Security secret inventory v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/security_secrets.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public security secrets contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SECURITY_SECRETS_H
 #define UMICOM_STUDIO_SECURITY_SECRETS_H
 #include "umicom/studio/security_centre.h"

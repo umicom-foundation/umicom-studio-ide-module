@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Security Centre commands v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/security_commands.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public security commands contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SECURITY_COMMANDS_H
 #define UMICOM_STUDIO_SECURITY_COMMANDS_H
 #include "umicom/studio/security_roles.h"

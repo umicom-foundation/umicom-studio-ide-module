@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Declare Studio Integration Fabric bootstrap schemas, topics and health verification shared by product frontends, controllers and native inspection tools.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_FABRIC_H
 #define UMICOM_STUDIO_FABRIC_H

@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Quality source navigation | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/quality_navigation.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public quality navigation contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_QUALITY_NAVIGATION_H
 #define UMICOM_STUDIO_QUALITY_NAVIGATION_H
 #include "umicom/studio/quality_centre.h"

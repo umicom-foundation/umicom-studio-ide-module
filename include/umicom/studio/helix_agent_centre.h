@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/helix_agent_centre.h
  * PURPOSE: Own Studio's Framework-backed Helix Agent Runtime v2 composition.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: The centre owns product policy and adapters.  All operation,
  * approval, retry and evidence rules stay in reusable Framework services. */

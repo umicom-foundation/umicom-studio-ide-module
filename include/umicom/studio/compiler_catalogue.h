@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Compiler catalogue v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/compiler_catalogue.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public compiler catalogue contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_COMPILER_CATALOGUE_H
 #define UMICOM_STUDIO_COMPILER_CATALOGUE_H
 #include "umicom/compiler/compiler.h"

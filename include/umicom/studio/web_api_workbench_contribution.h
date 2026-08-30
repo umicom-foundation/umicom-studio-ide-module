@@ -6,9 +6,12 @@
  *   Declare Studio-only command and view placement for the Framework-owned
  *   HTTP/API/Web/Cloud workbench. Operational behaviour remains in Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_WEB_API_WORKBENCH_CONTRIBUTION_H
 #define UMICOM_STUDIO_WEB_API_WORKBENCH_CONTRIBUTION_H

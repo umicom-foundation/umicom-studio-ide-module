@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Polyglot workspace v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/polyglot_workspace.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public polyglot workspace contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_POLYGLOT_WORKSPACE_H
 #define UMICOM_STUDIO_POLYGLOT_WORKSPACE_H
 #include "umicom/compiler/compiler.h"

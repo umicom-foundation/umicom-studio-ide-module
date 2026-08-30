@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/database_explorer_transfer.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public database explorer transfer contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DATABASE_EXPLORER_TRANSFER_H
 #define UMICOM_STUDIO_DATABASE_EXPLORER_TRANSFER_H
 #include "umicom/studio/database_explorer_centre.h"

@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Visual Builder v2 property-binding editor
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/visual_builder_bindings.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public visual builder bindings contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Studio edits stable Framework binding records, not hidden widget state. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_BINDINGS_H

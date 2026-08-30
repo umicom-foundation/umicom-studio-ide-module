@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Provide a toolkit-neutral Studio language service over JSON-RPC and Language Server Protocol contracts.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_LANGUAGE_H

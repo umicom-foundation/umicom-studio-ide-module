@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Compose build, testing, terminal, language, debugging and source-control services for Studio.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_DEVELOPER_PLATFORM_H

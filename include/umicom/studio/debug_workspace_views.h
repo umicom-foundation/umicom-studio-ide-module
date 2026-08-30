@@ -6,9 +6,12 @@
  *   Compose professional Studio Debug panes from the reusable Framework
  *   debugger-workspace model without introducing frontend toolkit ownership.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_DEBUG_WORKSPACE_VIEWS_H

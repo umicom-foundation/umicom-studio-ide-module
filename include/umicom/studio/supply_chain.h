@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Track Studio checksums, signatures, licences, SBOM and provenance gates.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SUPPLY_CHAIN_H
 #define UMICOM_STUDIO_SUPPLY_CHAIN_H

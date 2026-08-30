@@ -6,9 +6,12 @@
  *   Control Studio's shared Framework watcher and expose watcher statistics to
  *   headless tools, tests and future GTK4 workbench surfaces.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_WATCHER_H
 #define UMICOM_STUDIO_WATCHER_H

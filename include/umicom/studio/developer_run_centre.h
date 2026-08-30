@@ -6,9 +6,12 @@
  *   Present project launch profiles and submit run/debug operations through the
  *   shared Framework developer runtime.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DEVELOPER_RUN_CENTRE_H
 #define UMICOM_STUDIO_DEVELOPER_RUN_CENTRE_H

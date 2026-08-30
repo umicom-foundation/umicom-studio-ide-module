@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Visual Builder v2 signal/action/event/command editor
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/visual_builder_interactions.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public visual builder interactions contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Named commands keep generated interactions inspectable and portable. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_INTERACTIONS_H

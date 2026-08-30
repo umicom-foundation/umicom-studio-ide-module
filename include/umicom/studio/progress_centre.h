@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Compose the Progress Centre over Framework workbench services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_PROGRESS_CENTRE_H
 #define UMICOM_STUDIO_PROGRESS_CENTRE_H

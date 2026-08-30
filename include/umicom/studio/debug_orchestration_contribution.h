@@ -6,9 +6,12 @@
  *   Define Studio placement for Framework-owned professional debugger commands
  *   and views without duplicating configuration, query or session logic.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DEBUG_ORCHESTRATION_CONTRIBUTION_H
 #define UMICOM_STUDIO_DEBUG_ORCHESTRATION_CONTRIBUTION_H

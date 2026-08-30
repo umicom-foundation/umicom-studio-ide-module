@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Web, Browser and Frontend Studio centre
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/frontend_studio_centre.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public frontend studio centre contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_FRONTEND_STUDIO_CENTRE_H
 #define UMICOM_STUDIO_FRONTEND_STUDIO_CENTRE_H

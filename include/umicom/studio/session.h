@@ -6,9 +6,12 @@
  *   Define Studio-specific session keys and narrow helpers over the Framework
  *   session and recovery services without making GTK widgets authoritative.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SESSION_H
 #define UMICOM_STUDIO_SESSION_H

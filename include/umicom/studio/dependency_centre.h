@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Classify runtime files that a Studio portable bundle must include.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DEPENDENCY_CENTRE_H
 #define UMICOM_STUDIO_DEPENDENCY_CENTRE_H

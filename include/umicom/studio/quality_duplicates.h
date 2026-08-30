@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Duplicate review evidence | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/quality_duplicates.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public quality duplicates contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_QUALITY_DUPLICATES_H
 #define UMICOM_STUDIO_QUALITY_DUPLICATES_H
 #include "umicom/studio/quality_centre.h"

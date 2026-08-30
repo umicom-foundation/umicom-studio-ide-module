@@ -6,9 +6,12 @@
  *   Define Studio's branded appearance composition over the reusable Umicom
  *   Framework appearance catalogue.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_APPEARANCE_CENTRE_H

@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/frontend_studio_preview.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public frontend studio preview contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_FRONTEND_STUDIO_PREVIEW_H
 #define UMICOM_STUDIO_FRONTEND_STUDIO_PREVIEW_H
 #include "umicom/studio/web_platform.h"

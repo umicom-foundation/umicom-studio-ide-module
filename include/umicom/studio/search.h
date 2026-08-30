@@ -6,9 +6,12 @@
  *   Expose Studio file-name and text-search use cases through the shared
  *   Framework workspace index without depending on a graphical search pane.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SEARCH_H
 #define UMICOM_STUDIO_SEARCH_H

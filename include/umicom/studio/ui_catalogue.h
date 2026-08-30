@@ -6,9 +6,12 @@
  *   Expose an inspectable catalogue of Studio UI contracts, contributions and
  *   frontend-neutral workbench state for tests, tooling and architecture views.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_UI_CATALOGUE_H

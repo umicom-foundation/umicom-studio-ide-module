@@ -6,9 +6,12 @@
  *   Expose Studio security reports, workspace-trust decisions and permission
  *   checks through the shared Framework security context.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SECURITY_H
 #define UMICOM_STUDIO_SECURITY_H

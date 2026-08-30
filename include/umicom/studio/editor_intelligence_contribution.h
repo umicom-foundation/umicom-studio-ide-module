@@ -7,9 +7,12 @@
  *   search, completion, inline suggestions and professional diagnostics without
  *   duplicating reusable implementation in the application.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_EDITOR_INTELLIGENCE_CONTRIBUTION_H
 #define UMICOM_STUDIO_EDITOR_INTELLIGENCE_CONTRIBUTION_H

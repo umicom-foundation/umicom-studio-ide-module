@@ -6,9 +6,12 @@
  *   Declare Studio workbench identity, default layout composition and reset
  *   operations without exposing GTK4 widget types.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_WORKBENCH_H

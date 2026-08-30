@@ -6,9 +6,12 @@
  *   Define Studio menu placement for Framework-owned editing commands without
  *   copying their labels, keybindings or execution logic into the product.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_EDITOR_COMMAND_CONTRIBUTION_H
 #define UMICOM_STUDIO_EDITOR_COMMAND_CONTRIBUTION_H

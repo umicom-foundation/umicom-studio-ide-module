@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Package signing trust v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/security_packages.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public security packages contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SECURITY_PACKAGES_H
 #define UMICOM_STUDIO_SECURITY_PACKAGES_H
 #include "umicom/studio/security_centre.h"

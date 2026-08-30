@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Declare Studio's product-specific composition of Framework Activity Bar, view-container, context, keybinding, Explorer and breadcrumb services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

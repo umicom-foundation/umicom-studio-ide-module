@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/helix_agent_adapters.h
  * PURPOSE: Adapt approved Helix v2 actions to Studio-owned product boundaries.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: These flags are product policy.  Framework verifies approval;
  * Studio separately decides which side-effect categories are available. */

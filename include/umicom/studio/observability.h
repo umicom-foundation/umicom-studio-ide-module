@@ -6,9 +6,12 @@
  *   Expose Studio operational evidence through Framework metrics, traces,
  *   audit, profiling, readiness and event-log services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_OBSERVABILITY_H
 #define UMICOM_STUDIO_OBSERVABILITY_H

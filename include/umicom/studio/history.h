@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Declare persistent Studio operational-history records stored through the Framework message store for build, diagnostic, task and application events.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_HISTORY_H
 #define UMICOM_STUDIO_HISTORY_H

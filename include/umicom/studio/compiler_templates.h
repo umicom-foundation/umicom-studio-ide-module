@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Compiler project templates v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/compiler_templates.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public compiler templates contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_COMPILER_TEMPLATES_H
 #define UMICOM_STUDIO_COMPILER_TEMPLATES_H
 #include "umicom/compiler/compiler.h"

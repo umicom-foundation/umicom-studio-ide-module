@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Visual Builder v2 clipboard coordinator
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/visual_builder_clipboard.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public visual builder clipboard contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Copy and paste retain complete semantic component subtrees. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_CLIPBOARD_H

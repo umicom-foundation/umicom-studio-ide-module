@@ -6,9 +6,12 @@
  *   Expose the reusable Framework developer pipeline as a Studio workbench
  *   centre with CMake planning and operation execution entry points.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

@@ -6,9 +6,12 @@
  *   Place Framework-owned compare, merge, partial-staging and review commands
  *   and views in the Studio IDE without copying operational VCS logic.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_VCS_WORKBENCH_CONTRIBUTION_H
 #define UMICOM_STUDIO_VCS_WORKBENCH_CONTRIBUTION_H

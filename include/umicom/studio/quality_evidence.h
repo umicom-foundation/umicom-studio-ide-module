@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Quality evidence composition | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/quality_evidence.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public quality evidence contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_QUALITY_EVIDENCE_H
 #define UMICOM_STUDIO_QUALITY_EVIDENCE_H
 #include "umicom/studio/quality_centre.h"

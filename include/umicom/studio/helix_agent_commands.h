@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/helix_agent_commands.h
  * PURPOSE: Expose controlled Helix v2 plan, approval, run and rollback commands.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Command handlers stay thin and call the same centre used by
  * native tools and future graphical workbench actions. */

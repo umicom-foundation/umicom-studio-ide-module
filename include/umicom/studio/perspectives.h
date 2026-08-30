@@ -6,9 +6,12 @@
  *   Declare the canonical Studio perspectives shared by headless, GTK4 and
  *   future Umicom frontend adapters.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_PERSPECTIVES_H

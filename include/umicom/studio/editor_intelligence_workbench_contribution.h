@@ -11,9 +11,12 @@
  *   semantics. It selects Studio view regions and creates the public Framework
  *   runtime with Studio capacity policy.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_EDITOR_INTELLIGENCE_WORKBENCH_CONTRIBUTION_H
 #define UMICOM_STUDIO_EDITOR_INTELLIGENCE_WORKBENCH_CONTRIBUTION_H

@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Compiler Centre commands v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/compiler_commands.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public compiler commands contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_COMPILER_COMMANDS_H
 #define UMICOM_STUDIO_COMPILER_COMMANDS_H
 #include <stddef.h>

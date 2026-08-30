@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Database Explorer composition centre
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/database_explorer_centre.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public database explorer centre contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DATABASE_EXPLORER_CENTRE_H
 #define UMICOM_STUDIO_DATABASE_EXPLORER_CENTRE_H

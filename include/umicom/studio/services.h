@@ -9,9 +9,12 @@
  *   index, watcher, process-supervision, Data Server, Integration Fabric and
  *   clock service.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SERVICES_H
 #define UMICOM_STUDIO_SERVICES_H

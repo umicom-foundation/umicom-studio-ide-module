@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Operations views v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/operations_views.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public operations views contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_OPERATIONS_VIEWS_H
 #define UMICOM_STUDIO_OPERATIONS_VIEWS_H
 #include "umicom/studio/operations_centre.h"

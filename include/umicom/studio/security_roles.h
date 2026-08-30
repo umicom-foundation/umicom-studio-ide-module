@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Security role and permission administration v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/security_roles.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public security roles contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SECURITY_ROLES_H
 #define UMICOM_STUDIO_SECURITY_ROLES_H
 #include "umicom/studio/security_centre.h"

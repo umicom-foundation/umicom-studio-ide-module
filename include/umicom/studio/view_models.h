@@ -6,9 +6,12 @@
  *   Define the Studio-owned toolkit-neutral view-model set that projects
  *   Framework workspace, document, diagnostic, search and task state.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_VIEW_MODELS_H

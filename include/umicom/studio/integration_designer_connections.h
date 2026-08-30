@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Integration Designer connections | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/integration_designer_connections.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public integration designer connections contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_INTEGRATION_DESIGNER_CONNECTIONS_H
 #define UMICOM_STUDIO_INTEGRATION_DESIGNER_CONNECTIONS_H
 #include "umicom/studio/integration_designer_centre.h"

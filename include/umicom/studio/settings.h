@@ -8,9 +8,12 @@
  *   UI code and feature modules consume this contract rather than parsing JSON
  *   or environment variables directly.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SETTINGS_H
 #define UMICOM_STUDIO_SETTINGS_H

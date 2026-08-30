@@ -6,9 +6,12 @@
  *   Declare Studio's named profiles for the live Framework workbench and the
  *   canonical Application Suite profiles projected into that same model.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_WORKSPACE_PROFILES_H

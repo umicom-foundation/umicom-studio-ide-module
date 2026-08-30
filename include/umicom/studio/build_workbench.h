@@ -6,9 +6,12 @@
  *   Project Framework build results into Studio Problems and named Output
  *   channels without placing UI knowledge inside the reusable build engine.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_BUILD_WORKBENCH_H
 #define UMICOM_STUDIO_BUILD_WORKBENCH_H

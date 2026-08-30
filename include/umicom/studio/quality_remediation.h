@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Quality remediation guidance | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/quality_remediation.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public quality remediation contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_QUALITY_REMEDIATION_H
 #define UMICOM_STUDIO_QUALITY_REMEDIATION_H
 #include "umicom/studio/quality_centre.h"

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Provide a toolkit-neutral Studio debugger service over Debug Adapter Protocol contracts.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_DEBUGGER_H

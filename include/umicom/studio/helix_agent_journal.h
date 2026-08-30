@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/helix_agent_journal.h
  * PURPOSE: Inspect Helix v2 plan, action and evidence records in Studio.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: The reporting helper formats copies of journal entries; it
  * never provides a mutation path into Framework's append-only record. */

@@ -11,9 +11,12 @@
  *   replacement or transaction logic. Those capabilities remain authoritative
  *   in Umicom Framework and are reusable by every future application.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_WORKSPACE_SEARCH_CONTRIBUTION_H
 #define UMICOM_STUDIO_WORKSPACE_SEARCH_CONTRIBUTION_H

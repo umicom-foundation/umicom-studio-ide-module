@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Workspace designer commands v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/workspace_commands.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public workspace commands contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_WORKSPACE_COMMANDS_H
 #define UMICOM_STUDIO_WORKSPACE_COMMANDS_H
 #include "umicom/studio/workspace_themes.h"

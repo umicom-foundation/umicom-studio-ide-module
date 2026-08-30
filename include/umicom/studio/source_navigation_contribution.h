@@ -6,9 +6,12 @@
  *   Define Studio menu placement for Framework-owned navigation commands
  *   without copying their identities, labels, keybindings or behaviour.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SOURCE_NAVIGATION_CONTRIBUTION_H
 #define UMICOM_STUDIO_SOURCE_NAVIGATION_CONTRIBUTION_H

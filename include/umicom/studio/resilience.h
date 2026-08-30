@@ -6,9 +6,12 @@
  *   Expose Studio supervision, circuit-breaker and rate-limit state through
  *   shared Framework resilience services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_RESILIENCE_H
 #define UMICOM_STUDIO_RESILIENCE_H

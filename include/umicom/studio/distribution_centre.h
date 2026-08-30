@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Compose the complete Studio package, installer and release workflow.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DISTRIBUTION_CENTRE_H
 #define UMICOM_STUDIO_DISTRIBUTION_CENTRE_H

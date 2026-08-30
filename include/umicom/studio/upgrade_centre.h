@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Prepare, approve and explain Studio upgrades and rollback points.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_UPGRADE_CENTRE_H
 #define UMICOM_STUDIO_UPGRADE_CENTRE_H

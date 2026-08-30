@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Define commands and enablement for packaging, publishing and rollback.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DISTRIBUTION_COMMANDS_H
 #define UMICOM_STUDIO_DISTRIBUTION_COMMANDS_H

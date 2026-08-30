@@ -6,9 +6,12 @@
  *   Place Framework-owned Database, SQL and modelling workbench contracts in
  *   Studio without duplicating data services or database policy.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DATA_WORKBENCH_CONTRIBUTION_H
 #define UMICOM_STUDIO_DATA_WORKBENCH_CONTRIBUTION_H

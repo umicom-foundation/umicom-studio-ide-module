@@ -7,9 +7,12 @@
  *   items, Activity Bar destinations and extension-point metadata on the
  *   Framework workbench.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:
@@ -38,7 +41,7 @@ extern "C" {
 #define UMI_STUDIO_PANE_CHAT "studio.pane.chat"
 #define UMI_STUDIO_PANE_ARCHITECTURE "studio.pane.architecture"
 
-/* Batch 23 primary-sidebar views. */
+/* Primary-sidebar views shared by the Studio workbench. */
 #define UMI_STUDIO_PANE_SOURCE_CONTROL "studio.pane.source-control"
 #define UMI_STUDIO_PANE_VCS_COMMIT "studio.pane.vcs-commit"
 #define UMI_STUDIO_PANE_VCS_HISTORY "studio.pane.vcs-history"

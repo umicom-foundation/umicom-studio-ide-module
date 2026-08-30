@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/knowledge_views.h
  * PURPOSE: Expose Studio view factories over Framework Knowledge Centre views.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Studio supplies view IDs while Framework supplies view data. */
 #ifndef UMICOM_STUDIO_KNOWLEDGE_VIEWS_H

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Compose Studio package files and runtime dependencies into a portable bundle.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_BUNDLE_DESIGNER_H
 #define UMICOM_STUDIO_BUNDLE_DESIGNER_H

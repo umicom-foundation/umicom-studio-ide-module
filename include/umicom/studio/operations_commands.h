@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Operations commands v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/operations_commands.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public operations commands contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_OPERATIONS_COMMANDS_H
 #define UMICOM_STUDIO_OPERATIONS_COMMANDS_H
 #include "umicom/studio/operations_centre.h"

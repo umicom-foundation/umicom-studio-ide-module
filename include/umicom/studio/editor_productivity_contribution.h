@@ -6,9 +6,12 @@
  *   Define Studio placement for Framework-owned formatting, import, snippet
  *   and linked-editing commands and views without duplicating their logic.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_EDITOR_PRODUCTIVITY_CONTRIBUTION_H
 #define UMICOM_STUDIO_EDITOR_PRODUCTIVITY_CONTRIBUTION_H

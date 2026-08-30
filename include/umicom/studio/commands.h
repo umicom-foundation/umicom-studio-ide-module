@@ -6,9 +6,12 @@
  *   Declare the canonical Studio command identifiers and register product use
  *   cases with the Framework command registry for every frontend and tool.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_COMMANDS_H
 #define UMICOM_STUDIO_COMMANDS_H

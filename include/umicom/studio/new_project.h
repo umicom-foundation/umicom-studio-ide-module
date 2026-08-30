@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Generate starter .umiapp source for new Umicom applications before repository or toolkit-specific files are created.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

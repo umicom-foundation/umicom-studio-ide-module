@@ -6,9 +6,12 @@
  *   Compose Framework AI coding assistance into Studio task, patch and
  *   workspace-file workflows without taking over AuthorEngine orchestration.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

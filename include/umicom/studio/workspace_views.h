@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Workspace designer views v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/workspace_views.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public workspace views contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_WORKSPACE_VIEWS_H
 #define UMICOM_STUDIO_WORKSPACE_VIEWS_H
 #include "umicom/studio/professional_workspace.h"

@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Visual Builder v2 live-preview adapter
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/visual_builder_preview.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public visual builder preview contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Preview health exposes current, stale and invalid states honestly. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_PREVIEW_H

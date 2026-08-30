@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/knowledge_settings.h
  * PURPOSE: Apply validated Knowledge Centre settings to Studio AI composition.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Typed settings are validated before the service allocates its index. */
 #ifndef UMICOM_STUDIO_KNOWLEDGE_SETTINGS_H

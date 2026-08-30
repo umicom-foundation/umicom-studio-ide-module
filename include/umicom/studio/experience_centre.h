@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Expose Studio's product-readiness view over the canonical Framework application experience catalogue.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_EXPERIENCE_CENTRE_H

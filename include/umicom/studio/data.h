@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Declare Studio use cases over the authoritative Framework Data Server, including key/value state, transactions, integrity reporting and schema migration planning.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DATA_H
 #define UMICOM_STUDIO_DATA_H

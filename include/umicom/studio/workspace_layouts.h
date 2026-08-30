@@ -6,9 +6,12 @@
  *   Expose Studio layout seeding plus canonical Framework suite-layout
  *   selection and live-workbench profile registration.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_WORKSPACE_LAYOUTS_H

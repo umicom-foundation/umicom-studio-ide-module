@@ -7,9 +7,12 @@
  *   Framework, enforce workspace trust for mutations and keep the shared index
  *   current after successful changes.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_FILES_H
 #define UMICOM_STUDIO_FILES_H

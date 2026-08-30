@@ -7,9 +7,12 @@
  *   clearing retained Framework diagnostics without exposing the diagnostic
  *   hub implementation to every Studio feature.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DIAGNOSTICS_H
 #define UMICOM_STUDIO_DIAGNOSTICS_H

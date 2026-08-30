@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Polyglot interoperability view v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/compiler_interop.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public compiler interop contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_COMPILER_INTEROP_H
 #define UMICOM_STUDIO_COMPILER_INTEROP_H
 #include "umicom/compiler/compiler.h"

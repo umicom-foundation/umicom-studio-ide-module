@@ -6,9 +6,12 @@
  *   Define Studio document use cases over the Framework document and recovery
  *   services so console, GTK4 and future frontends share identical behaviour.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DOCUMENTS_H
 #define UMICOM_STUDIO_DOCUMENTS_H

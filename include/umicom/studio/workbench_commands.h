@@ -6,9 +6,12 @@
  *   Declare canonical Studio workbench commands so headless, GTK4, menus,
  *   toolbars, keybindings, command palette and automation invoke one implementation.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_WORKBENCH_COMMANDS_H

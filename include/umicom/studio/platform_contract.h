@@ -8,9 +8,12 @@
  *   designer commands from breaking tests that should validate required Studio
  *   behaviour rather than a fragile magic total.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_PLATFORM_CONTRACT_H
 #define UMICOM_STUDIO_PLATFORM_CONTRACT_H

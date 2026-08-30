@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Project Framework product-readiness metadata into deterministic Studio-facing text rows.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_EXPERIENCE_PROJECTION_H

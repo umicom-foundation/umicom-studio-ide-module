@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Studio IDE - Visual Builder v2 drag/drop coordinator
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * Umicom Studio IDE
+ * File: include/umicom/studio/visual_builder_drag_drop.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public visual builder drag drop contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: Frontends report a completed semantic drop; Framework owns the edit. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_DRAG_DROP_H

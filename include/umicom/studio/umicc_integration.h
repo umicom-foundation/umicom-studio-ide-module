@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Umicc integration v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/umicc_integration.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public umicc integration contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_UMICC_INTEGRATION_H
 #define UMICOM_STUDIO_UMICC_INTEGRATION_H
 #include "umicom/compiler/compiler.h"

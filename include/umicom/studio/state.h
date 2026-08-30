@@ -6,9 +6,12 @@
  *   Define an immutable operational snapshot of Studio's Framework modules,
  *   services, commands, health, tasks, documents and session state.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_STATE_H
 #define UMICOM_STUDIO_STATE_H

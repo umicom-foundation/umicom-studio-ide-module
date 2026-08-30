@@ -6,9 +6,12 @@
  *   Contribute Studio view factories and declarative bindings to the
  *   Framework-owned federated window content runtime.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_FEDERATED_CONTENT_H
 #define UMICOM_STUDIO_FEDERATED_CONTENT_H

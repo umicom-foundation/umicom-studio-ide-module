@@ -6,9 +6,12 @@
  *   Provide Studio plug-in discovery and reporting as a thin product adapter
  *   over the Framework plug-in host.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_PLUGINS_H
 #define UMICOM_STUDIO_PLUGINS_H

@@ -6,9 +6,12 @@
  *   Project the Framework-owned application production control plane into this
  *   thin product without duplicating layout, readiness or acceptance logic.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_PRODUCTION_COMMANDS_H
 #define UMICOM_STUDIO_PRODUCTION_COMMANDS_H

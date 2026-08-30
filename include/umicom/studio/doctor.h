@@ -1,6 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
- * File: applications/studio/include/umicom/studio/doctor.h
+ * File: include/umicom/studio/doctor.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public doctor contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DOCTOR_H
 #define UMICOM_STUDIO_DOCTOR_H

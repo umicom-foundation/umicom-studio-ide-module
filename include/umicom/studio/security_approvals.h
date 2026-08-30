@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Security approval administration v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/security_approvals.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public security approvals contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_SECURITY_APPROVALS_H
 #define UMICOM_STUDIO_SECURITY_APPROVALS_H
 #include "umicom/studio/security_centre.h"

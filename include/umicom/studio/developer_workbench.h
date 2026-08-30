@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/include/umicom/studio/developer_workbench.h
  * PURPOSE: Aggregate the complete Studio developer platform over Framework services.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_DEVELOPER_WORKBENCH_H
 #define UMICOM_STUDIO_DEVELOPER_WORKBENCH_H

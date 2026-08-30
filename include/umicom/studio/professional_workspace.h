@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Professional workspace v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/professional_workspace.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public professional workspace contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_PROFESSIONAL_WORKSPACE_H
 #define UMICOM_STUDIO_PROFESSIONAL_WORKSPACE_H
 #include "umicom/studio/services.h"

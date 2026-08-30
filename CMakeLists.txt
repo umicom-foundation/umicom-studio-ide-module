@@ -844,6 +844,12 @@ endif()
 # Studio adopts the Framework application-surface runtime as an additive
 # product layer. These focused tests do not require a graphical display.
 if(BUILD_TESTING)
+    if(COMMAND umicom_register_header_governance_test)
+        umicom_register_header_governance_test(
+            studio.sdk.public_headers
+            "${CMAKE_CURRENT_SOURCE_DIR}/include"
+            "Umicom Studio IDE")
+    endif()
     foreach(UMICOM_STUDIO_APPLICATION_SURFACE_TEST
             application_surface
             application_surface_commands

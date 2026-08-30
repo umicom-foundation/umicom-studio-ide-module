@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Integration Designer views | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/integration_designer_views.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public integration designer views contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_INTEGRATION_DESIGNER_VIEWS_H
 #define UMICOM_STUDIO_INTEGRATION_DESIGNER_VIEWS_H
 #include "umicom/studio/integration_designer_centre.h"

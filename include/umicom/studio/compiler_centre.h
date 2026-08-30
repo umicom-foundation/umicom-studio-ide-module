@@ -1,4 +1,17 @@
-/* Umicom Studio IDE | Compiler and Polyglot Centre v2 | Sammy Hegab | Umicom Foundation | MIT */
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: include/umicom/studio/compiler_centre.h
+ *
+ * PURPOSE:
+ *   Publish Studio's public compiler centre contract over reusable Framework services.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_COMPILER_CENTRE_H
 #define UMICOM_STUDIO_COMPILER_CENTRE_H
 #include "umicom/studio/compiler_settings.h"
