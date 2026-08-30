@@ -150,6 +150,39 @@ UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui)
     return umi_ui_headless_adapter_refresh(ui->headless);
 }
 
+UmiStatus umi_studio_ui_advance(UmiStudioUi *ui, uint32_t elapsed_seconds)
+{
+    if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_studio_application_surface_policy_advance(
+        ui->application_surface, elapsed_seconds);
+}
+
+UmiStatus umi_studio_ui_set_background(UmiStudioUi *ui, int background)
+{
+    if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_studio_application_surface_policy_set_background(
+        ui->application_surface, background);
+}
+
+UmiStatus umi_studio_ui_context_changed(UmiStudioUi *ui,
+                                        const char *component_id,
+                                        const char *context_value)
+{
+    if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_studio_application_surface_policy_context_changed(
+        ui->application_surface, component_id, context_value);
+}
+
+int umi_studio_ui_checkpoint_due(const UmiStudioUi *ui,
+                                 uint32_t elapsed_seconds,
+                                 int changed)
+{
+    return ui != NULL
+        ? umi_studio_application_surface_policy_checkpoint_due(
+              ui->application_surface, elapsed_seconds, changed)
+        : 0;
+}
+
 UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
                                  UmiStudioUiSnapshot *out_snapshot)
 {
@@ -158,6 +191,7 @@ UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
     UmiApplicationPresentationSurfaceSnapshot surface;
     UmiStatus status;
     if (ui == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     status = umi_ui_workbench_snapshot(ui->workbench, &workbench);
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_headless_adapter_snapshot(ui->headless, &render);
@@ -178,6 +212,15 @@ UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
     out_snapshot->visible_application_panels = surface.visible_count;
     out_snapshot->ready_application_panels = surface.ready_count;
     out_snapshot->application_panels_needing_attention = surface.attention_count;
+    out_snapshot->scheduled_application_panels = surface.scheduled_refresh_count;
+    out_snapshot->streaming_application_panels = surface.streaming_count;
+    out_snapshot->guarded_application_panels = surface.guarded_command_count;
+    out_snapshot->context_enabled_application_panels =
+        surface.context_enabled_count;
+    out_snapshot->checkpoint_interval_seconds =
+        surface.workspace_policy != NULL
+        ? surface.workspace_policy->checkpoint_interval_seconds
+        : 0U;
     out_snapshot->workbench_revision = workbench.revision;
     out_snapshot->render_revision = render.render_revision;
     out_snapshot->application_surface_revision = surface.revision;

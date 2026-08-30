@@ -32,3 +32,6 @@ Studio also starts the Framework-owned standard presentation recipe as a live
 application surface. It contributes IDE guidance and commands for ten reusable
 panels while Framework owns their lifecycle, focus, state and portable layout.
 See [the Studio application surface guide](docs/APPLICATION_SURFACE_GUIDE.md).
+The [Studio runtime behavior guide](docs/RUNTIME_BEHAVIOR_ADOPTION.md) explains
+how Studio uses shared refresh, background, context and checkpoint rules and
+how a developer should connect them to a graphical event loop.

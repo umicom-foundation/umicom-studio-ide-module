@@ -112,3 +112,10 @@ umi_studio_application_surface_runtime(UmiStudioApplicationSurface *surface)
 {
     return surface != NULL ? &surface->runtime : NULL;
 }
+
+const UmiApplicationPresentationSurfaceRuntime *
+umi_studio_application_surface_runtime_const(
+    const UmiStudioApplicationSurface *surface)
+{
+    return surface != NULL ? &surface->runtime : NULL;
+}

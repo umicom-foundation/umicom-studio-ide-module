@@ -85,6 +85,7 @@ add_library(umicom_studio_core STATIC
     src/app/application_surface.c
     src/app/application_surface_controllers.c
     src/app/application_surface_commands.c
+    src/app/application_surface_policy.c
     src/app/workbench.c
     src/app/professional_workspace.c
     src/app/workspace_catalogue.c
@@ -846,7 +847,8 @@ if(BUILD_TESTING)
     foreach(UMICOM_STUDIO_APPLICATION_SURFACE_TEST
             application_surface
             application_surface_commands
-            application_surface_controllers)
+            application_surface_controllers
+            application_surface_policy)
         string(REPLACE "_" "-" UMICOM_STUDIO_APPLICATION_SURFACE_TARGET
             "${UMICOM_STUDIO_APPLICATION_SURFACE_TEST}")
         add_executable(

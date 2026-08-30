@@ -19,6 +19,7 @@
 
 #include "umicom/umicom.h"
 #include "umicom/studio/application_surface.h"
+#include "umicom/studio/application_surface_policy.h"
 #include "umicom/studio/services.h"
 
 #ifdef __cplusplus
@@ -42,6 +43,11 @@ typedef struct UmiStudioUiSnapshot {
     size_t visible_application_panels;
     size_t ready_application_panels;
     size_t application_panels_needing_attention;
+    size_t scheduled_application_panels;
+    size_t streaming_application_panels;
+    size_t guarded_application_panels;
+    size_t context_enabled_application_panels;
+    uint32_t checkpoint_interval_seconds;
     uint64_t workbench_revision;
     uint64_t render_revision;
     uint64_t application_surface_revision;
@@ -57,6 +63,14 @@ void umi_studio_ui_destroy(UmiStudioUi *ui);
 UmiStatus umi_studio_ui_publish(UmiStudioUi *ui,
                                 UmiServiceRegistry *registry);
 UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui);
+UmiStatus umi_studio_ui_advance(UmiStudioUi *ui, uint32_t elapsed_seconds);
+UmiStatus umi_studio_ui_set_background(UmiStudioUi *ui, int background);
+UmiStatus umi_studio_ui_context_changed(UmiStudioUi *ui,
+                                        const char *component_id,
+                                        const char *context_value);
+int umi_studio_ui_checkpoint_due(const UmiStudioUi *ui,
+                                 uint32_t elapsed_seconds,
+                                 int changed);
 UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
                                  UmiStudioUiSnapshot *out_snapshot);
 UmiStatus umi_studio_ui_render_headless(UmiStudioUi *ui,

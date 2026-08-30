@@ -44,6 +44,9 @@ UmiStatus umi_studio_application_surface_snapshot(
     UmiApplicationPresentationSurfaceSnapshot *out_snapshot);
 UmiApplicationPresentationSurfaceRuntime *
 umi_studio_application_surface_runtime(UmiStudioApplicationSurface *surface);
+const UmiApplicationPresentationSurfaceRuntime *
+umi_studio_application_surface_runtime_const(
+    const UmiStudioApplicationSurface *surface);
 
 #ifdef __cplusplus
 }
