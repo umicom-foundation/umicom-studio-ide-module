@@ -202,6 +202,8 @@ UmiStatus umi_studio_services_create(
     int ai_coding_allow_create = 0;
     int ai_coding_allow_delete = 0;
     int ai_coding_require_approval = 0;
+    int ai_rag_enabled = 0;
+    int ai_stream_responses = 0;
     char current_directory[UMI_PATH_CAPACITY];
     UmiFileIndexConfig file_index_config;
     UmiWatcherConfig watcher_config;
@@ -554,6 +556,30 @@ UmiStatus umi_studio_services_create(
         if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
             services->settings, UMI_STUDIO_SETTING_AI_CODING_REQUIRE_APPROVAL,
             &ai_coding_require_approval);
+        if (status == UMI_STATUS_OK) status = umi_settings_get_text(
+            services->settings, UMI_STUDIO_SETTING_AI_PREFERRED_RUNTIME,
+            ai_config.preferred_runtime_id,
+            sizeof(ai_config.preferred_runtime_id));
+        if (status == UMI_STATUS_OK) status = umi_settings_get_text(
+            services->settings, UMI_STUDIO_SETTING_AI_REMOTE_PROVIDER,
+            ai_config.remote_provider_id,
+            sizeof(ai_config.remote_provider_id));
+        if (status == UMI_STATUS_OK) status = umi_settings_get_text(
+            services->settings, UMI_STUDIO_SETTING_AI_REMOTE_ENDPOINT,
+            ai_config.remote_endpoint, sizeof(ai_config.remote_endpoint));
+        if (status == UMI_STATUS_OK) status = umi_settings_get_text(
+            services->settings, UMI_STUDIO_SETTING_AI_REMOTE_MODEL,
+            ai_config.remote_model_id, sizeof(ai_config.remote_model_id));
+        if (status == UMI_STATUS_OK) status = umi_settings_get_text(
+            services->settings, UMI_STUDIO_SETTING_AI_REMOTE_SECRET_REFERENCE,
+            ai_config.remote_secret_reference,
+            sizeof(ai_config.remote_secret_reference));
+        if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
+            services->settings, UMI_STUDIO_SETTING_AI_RAG_ENABLED,
+            &ai_rag_enabled);
+        if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
+            services->settings, UMI_STUDIO_SETTING_AI_STREAM_RESPONSES,
+            &ai_stream_responses);
         if (status == UMI_STATUS_OK) {
             status = umi_studio_knowledge_settings_apply(
                 services->settings, &ai_config);
@@ -582,6 +608,8 @@ UmiStatus umi_studio_services_create(
             ai_config.allow_patch_create = ai_coding_allow_create;
             ai_config.allow_patch_delete = ai_coding_allow_delete;
             ai_config.require_patch_approval = ai_coding_require_approval;
+            ai_config.rag_enabled = ai_rag_enabled;
+            ai_config.stream_responses = ai_stream_responses;
             status = umi_studio_ai_platform_create_configured(
                 &ai_config, &services->ai_platform);
         }

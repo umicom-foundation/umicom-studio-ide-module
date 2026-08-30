@@ -35,6 +35,7 @@ struct UmiStudioAiPlatform {
     size_t knowledge_result_limit;
     char knowledge_archive_path[UMI_KNOWLEDGE_URI_CAPACITY];
     char default_provider[UMI_AI_ID_CAPACITY];
+    UmiStudioAiWorkbenchProfile workbench_profile;
 };
 
 static int copy_text(char *destination, size_t capacity, const char *source)
@@ -111,6 +112,17 @@ UmiStudioAiPlatformConfig umi_studio_ai_platform_config_default(void)
     config.allow_patch_create = 1;
     config.allow_patch_delete = 0;
     config.require_patch_approval = 1;
+    (void)copy_text(config.preferred_runtime_id,
+                    sizeof(config.preferred_runtime_id),
+                    "studio.local.reference");
+    (void)copy_text(config.remote_provider_id,
+                    sizeof(config.remote_provider_id),
+                    "openai-compatible");
+    config.remote_endpoint[0] = '\0';
+    config.remote_model_id[0] = '\0';
+    config.remote_secret_reference[0] = '\0';
+    config.rag_enabled = 1;
+    config.stream_responses = 1;
     (void)copy_text(config.knowledge_archive_path,
                     sizeof(config.knowledge_archive_path),
                     ".umicom/knowledge-centre.bin");
@@ -304,6 +316,10 @@ UmiStatus umi_studio_ai_platform_create_configured(
     UmiAiPrivacyPolicy privacy_policy;
     UmiAiProvider provider;
     UmiStatus status;
+    int remote_requested;
+
+    remote_requested = config != NULL && config->allow_remote &&
+        config->remote_endpoint[0] != '\0';
 
     if (config == NULL || out_platform == NULL ||
         config->authorengine_executable[0] == '\0' ||
@@ -313,6 +329,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
         config->maximum_patch_lines == 0U ||
         config->maximum_patch_files == 0U ||
         config->maximum_patch_files > UMI_AI_CODING_PATCH_FILE_MAX ||
+        config->preferred_runtime_id[0] == '\0' ||
         config->knowledge_archive_path[0] == '\0' ||
         config->knowledge_source_capacity == 0U ||
         config->knowledge_vector_capacity == 0U ||
@@ -323,7 +340,12 @@ UmiStatus umi_studio_ai_platform_create_configured(
         config->knowledge_result_limit > UMI_KNOWLEDGE_QUERY_RESULT_MAX ||
         config->helix_maximum_attempts == 0U ||
         config->helix_minimum_fitness < 0.0 ||
-        config->helix_minimum_fitness > 1.0) {
+        config->helix_minimum_fitness > 1.0 ||
+        (remote_requested &&
+         (config->remote_provider_id[0] == '\0' ||
+          config->remote_model_id[0] == '\0' ||
+          config->remote_secret_reference[0] == '\0' ||
+          strstr(config->remote_secret_reference, "://") == NULL))) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     *out_platform = NULL;
@@ -337,6 +359,37 @@ UmiStatus umi_studio_ai_platform_create_configured(
         free(platform);
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
+    platform->workbench_profile.struct_size =
+        (uint32_t)sizeof(platform->workbench_profile);
+    platform->workbench_profile.api_version = 1U;
+    if (!copy_text(platform->workbench_profile.preferred_runtime_id,
+                   sizeof(platform->workbench_profile.preferred_runtime_id),
+                   config->preferred_runtime_id) ||
+        !copy_text(platform->workbench_profile.remote_provider_id,
+                   sizeof(platform->workbench_profile.remote_provider_id),
+                   config->remote_provider_id) ||
+        !copy_text(platform->workbench_profile.remote_endpoint,
+                   sizeof(platform->workbench_profile.remote_endpoint),
+                   config->remote_endpoint) ||
+        !copy_text(platform->workbench_profile.remote_model_id,
+                   sizeof(platform->workbench_profile.remote_model_id),
+                   config->remote_model_id) ||
+        !copy_text(platform->workbench_profile.remote_secret_reference,
+                   sizeof(platform->workbench_profile.remote_secret_reference),
+                   config->remote_secret_reference)) {
+        free(platform);
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    }
+    platform->workbench_profile.remote_configured =
+        config->allow_remote && config->remote_endpoint[0] != '\0' &&
+        config->remote_provider_id[0] != '\0' &&
+        config->remote_model_id[0] != '\0' &&
+        config->remote_secret_reference[0] != '\0';
+    platform->workbench_profile.rag_enabled = config->rag_enabled != 0;
+    platform->workbench_profile.stream_responses =
+        config->stream_responses != 0;
+    platform->workbench_profile.require_patch_approval =
+        config->require_patch_approval != 0;
 
     umi_ai_runtime_init(&platform->ai);
     platform->ai.policy.allow_tools = 1;
@@ -413,6 +466,16 @@ UmiStatus umi_studio_ai_platform_create_configured(
             config->reserved_output_tokens, config->allow_remote != 0, 0, 0,
             config->allow_remote ? "Remote health probe pending"
                                  : "Remote providers disabled by policy");
+    }
+    if (status == UMI_STATUS_OK &&
+        platform->workbench_profile.remote_configured) {
+        status = register_catalogue_runtime(
+            platform, config->preferred_runtime_id,
+            config->remote_provider_id, "Configured Remote Coding Provider",
+            config->remote_model_id, config->remote_endpoint,
+            UMI_AI_PROVIDER_REMOTE, UMI_AI_RUNTIME_HTTP,
+            config->context_tokens, config->reserved_output_tokens,
+            1, 0, 0, "Remote provider health probe pending");
     }
     if (status == UMI_STATUS_OK) {
         status = register_context(
@@ -550,6 +613,17 @@ const char *umi_studio_ai_platform_default_provider(
     const UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->default_provider : NULL;
+}
+
+UmiStatus umi_studio_ai_platform_workbench_profile(
+    const UmiStudioAiPlatform *platform,
+    UmiStudioAiWorkbenchProfile *out_profile)
+{
+    if (platform == NULL || out_profile == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    *out_profile = platform->workbench_profile;
+    return UMI_STATUS_OK;
 }
 
 UmiStatus umi_studio_ai_platform_refresh_health(

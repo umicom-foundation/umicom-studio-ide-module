@@ -55,6 +55,18 @@ int main(void)
                                     UMI_STUDIO_SETTING_AI_ENABLED,
                                     &boolean_value) == UMI_STATUS_OK);
     assert(boolean_value == 1);
+    assert(umi_settings_get_text(
+        settings, UMI_STUDIO_SETTING_AI_PREFERRED_RUNTIME,
+        text, sizeof(text)) == UMI_STATUS_OK);
+    assert(strcmp(text, "studio.local.reference") == 0);
+    assert(umi_settings_get_text(
+        settings, UMI_STUDIO_SETTING_AI_REMOTE_SECRET_REFERENCE,
+        text, sizeof(text)) == UMI_STATUS_OK);
+    assert(text[0] == '\0');
+    assert(umi_settings_get_boolean(
+        settings, UMI_STUDIO_SETTING_AI_RAG_ENABLED,
+        &boolean_value) == UMI_STATUS_OK);
+    assert(boolean_value == 1);
     assert(umi_settings_set_boolean(settings,
                                     UMI_STUDIO_SETTING_AI_ENABLED,
                                     0) == UMI_STATUS_OK);

@@ -153,6 +153,7 @@ add_library(umicom_studio_core STATIC
     src/app/application_centre.c
     src/app/settings_centre.c
     src/app/welcome_centre.c
+    src/app/learning_centre.c
     src/app/developer_dashboard.c
     src/app/editor_workspace.c
     src/app/chart_workspace.c
@@ -204,6 +205,7 @@ add_library(umicom_studio_core STATIC
     src/app/ai_evaluation.c
     src/app/ai_platform.c
     src/app/coding_assistant.c
+    src/app/vibe_coding.c
     src/app/knowledge_centre.c
     src/app/knowledge_settings.c
     src/app/knowledge_views.c
@@ -1446,6 +1448,7 @@ if(BUILD_TESTING)
 
     foreach(UMICOM_STUDIO_UI_TEST
             ui
+            learning_centre
             workbench
             perspectives
             contributions
@@ -1579,6 +1582,7 @@ if(BUILD_TESTING)
             authorengine_views
             ai_workspace
             coding_assistant
+            vibe_coding
             ai_coding_views
             knowledge_centre
             knowledge_settings
@@ -1646,6 +1650,7 @@ if(BUILD_TESTING)
         studio.observability
         studio.resilience
         studio.ui
+        studio.learning_centre
         studio.workbench
         studio.perspectives
         studio.contributions
@@ -1684,6 +1689,7 @@ if(BUILD_TESTING)
         studio.authorengine_views
         studio.ai_workspace
         studio.coding_assistant
+        studio.vibe_coding
         studio.ai_coding_views
         studio.knowledge_centre
         studio.knowledge_settings

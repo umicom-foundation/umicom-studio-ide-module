@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 #define UMI_STUDIO_SETTINGS_DEFAULT_PATH "config/studio.settings"
-#define UMI_STUDIO_SETTING_COUNT 38U
+#define UMI_STUDIO_SETTING_COUNT 45U
 
 #define UMI_STUDIO_SETTING_UI_THEME "studio.ui.theme"
 #define UMI_STUDIO_SETTING_EDITOR_TAB_WIDTH "studio.editor.tab_width"
@@ -60,6 +60,20 @@ extern "C" {
     "studio.ai.coding.allow_file_deletion"
 #define UMI_STUDIO_SETTING_AI_CODING_REQUIRE_APPROVAL \
     "studio.ai.coding.require_patch_approval"
+#define UMI_STUDIO_SETTING_AI_PREFERRED_RUNTIME \
+    "studio.ai.coding.preferred_runtime"
+#define UMI_STUDIO_SETTING_AI_REMOTE_PROVIDER \
+    "studio.ai.remote.provider"
+#define UMI_STUDIO_SETTING_AI_REMOTE_ENDPOINT \
+    "studio.ai.remote.endpoint"
+#define UMI_STUDIO_SETTING_AI_REMOTE_MODEL \
+    "studio.ai.remote.model"
+#define UMI_STUDIO_SETTING_AI_REMOTE_SECRET_REFERENCE \
+    "studio.ai.remote.secret_reference"
+#define UMI_STUDIO_SETTING_AI_RAG_ENABLED \
+    "studio.ai.coding.rag_enabled"
+#define UMI_STUDIO_SETTING_AI_STREAM_RESPONSES \
+    "studio.ai.coding.stream_responses"
 #define UMI_STUDIO_SETTING_KNOWLEDGE_ARCHIVE_PATH \
     "studio.knowledge.archive_path"
 #define UMI_STUDIO_SETTING_KNOWLEDGE_SOURCE_CAPACITY \

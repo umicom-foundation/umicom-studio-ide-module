@@ -42,6 +42,13 @@ typedef struct UmiStudioAiPlatformConfig {
     int allow_patch_create;
     int allow_patch_delete;
     int require_patch_approval;
+    char preferred_runtime_id[UMI_AI_ID_CAPACITY];
+    char remote_provider_id[UMI_AI_ID_CAPACITY];
+    char remote_endpoint[UMI_AI_TEXT_CAPACITY];
+    char remote_model_id[UMI_AI_ID_CAPACITY];
+    char remote_secret_reference[UMI_AI_TEXT_CAPACITY];
+    int rag_enabled;
+    int stream_responses;
     char knowledge_archive_path[UMI_KNOWLEDGE_URI_CAPACITY];
     size_t knowledge_source_capacity;
     size_t knowledge_vector_capacity;
@@ -58,6 +65,20 @@ typedef struct UmiStudioAiPlatformConfig {
     int helix_allow_review;
     int helix_allow_source_control;
 } UmiStudioAiPlatformConfig;
+
+typedef struct UmiStudioAiWorkbenchProfile {
+    uint32_t struct_size;
+    uint32_t api_version;
+    char preferred_runtime_id[UMI_AI_ID_CAPACITY];
+    char remote_provider_id[UMI_AI_ID_CAPACITY];
+    char remote_endpoint[UMI_AI_TEXT_CAPACITY];
+    char remote_model_id[UMI_AI_ID_CAPACITY];
+    char remote_secret_reference[UMI_AI_TEXT_CAPACITY];
+    int remote_configured;
+    int rag_enabled;
+    int stream_responses;
+    int require_patch_approval;
+} UmiStudioAiWorkbenchProfile;
 
 UmiStudioAiPlatformConfig umi_studio_ai_platform_config_default(void);
 UmiStatus umi_studio_ai_platform_create(UmiStudioAiPlatform **out_platform);
@@ -83,6 +104,9 @@ uint32_t umi_studio_ai_platform_coding_context_tokens(
     const UmiStudioAiPlatform *platform);
 const char *umi_studio_ai_platform_default_provider(
     const UmiStudioAiPlatform *platform);
+UmiStatus umi_studio_ai_platform_workbench_profile(
+    const UmiStudioAiPlatform *platform,
+    UmiStudioAiWorkbenchProfile *out_profile);
 UmiStatus umi_studio_ai_platform_refresh_health(
     UmiStudioAiPlatform *platform,
     uint64_t timestamp_ns,

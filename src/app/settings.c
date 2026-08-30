@@ -174,6 +174,55 @@ static const UmiSettingDefinition STUDIO_SETTINGS_SCHEMA[] = {
         0, 0, 0.0, 0.0, 0, 0
     },
     {
+        UMI_STUDIO_SETTING_AI_PREFERRED_RUNTIME,
+        UMI_SETTING_STRING,
+        "studio.local.reference",
+        "Runtime used by the AI Assistant and Vibe Coding workbench.",
+        0, 0, 0.0, 0.0, 0, 0
+    },
+    {
+        UMI_STUDIO_SETTING_AI_REMOTE_PROVIDER,
+        UMI_SETTING_STRING,
+        "openai-compatible",
+        "Provider name for an optional remote or local HTTP model gateway.",
+        0, 0, 0.0, 0.0, 0, 0
+    },
+    {
+        UMI_STUDIO_SETTING_AI_REMOTE_ENDPOINT,
+        UMI_SETTING_STRING,
+        "",
+        "Optional model endpoint. Leave empty to keep the coding assistant local.",
+        0, 0, 0.0, 0.0, 0, 0
+    },
+    {
+        UMI_STUDIO_SETTING_AI_REMOTE_MODEL,
+        UMI_SETTING_STRING,
+        "",
+        "Model identifier sent to the configured model endpoint.",
+        0, 0, 0.0, 0.0, 0, 0
+    },
+    {
+        UMI_STUDIO_SETTING_AI_REMOTE_SECRET_REFERENCE,
+        UMI_SETTING_STRING,
+        "",
+        "Opaque operating-system vault reference; an API key is never stored here.",
+        0, 0, 0.0, 0.0, 0, 0
+    },
+    {
+        UMI_STUDIO_SETTING_AI_RAG_ENABLED,
+        UMI_SETTING_BOOLEAN,
+        "true",
+        "Ground coding requests with cited local repository and document context.",
+        0, 0, 0.0, 0.0, 0, 0
+    },
+    {
+        UMI_STUDIO_SETTING_AI_STREAM_RESPONSES,
+        UMI_SETTING_BOOLEAN,
+        "true",
+        "Show AI progress and response events as they arrive in the workbench.",
+        0, 0, 0.0, 0.0, 0, 0
+    },
+    {
         UMI_STUDIO_SETTING_KNOWLEDGE_ARCHIVE_PATH,
         UMI_SETTING_STRING,
         ".umicom/knowledge-centre.bin",
