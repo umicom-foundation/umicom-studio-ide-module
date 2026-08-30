@@ -40,3 +40,11 @@ UmiStatus umi_studio_productisation_snapshot(
     return umi_product_application_adoption_snapshot(
         &ADOPTION, out_snapshot);
 }
+
+/* Start this product through the Framework-owned session command plane. */
+UmiStatus umi_studio_product_session_init(
+    UmiProductApplicationSession *out_session)
+{
+    return umi_product_application_session_init(
+        &ADOPTION, out_session);
+}

@@ -25,6 +25,97 @@ static void runtime_stack_add(
     gtk_stack_add_named(GTK_STACK(stack), child, name);
 }
 
+static const char *runtime_region_text(UmiStudioGtkRuntimeRegion region)
+{
+    switch (region) {
+        case UMI_STUDIO_GTK_REGION_PRIMARY: return "Left";
+        case UMI_STUDIO_GTK_REGION_SECONDARY: return "Right";
+        case UMI_STUDIO_GTK_REGION_BOTTOM: return "Bottom";
+        case UMI_STUDIO_GTK_REGION_EDITOR: return "Editor";
+        default: return "Not placed";
+    }
+}
+
+static GtkWidget *runtime_region_stack(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioGtkRuntimeRegion region)
+{
+    if (runtime == NULL) return NULL;
+    switch (region) {
+        case UMI_STUDIO_GTK_REGION_PRIMARY: return runtime->primary_stack;
+        case UMI_STUDIO_GTK_REGION_SECONDARY: return runtime->secondary_stack;
+        case UMI_STUDIO_GTK_REGION_BOTTOM: return runtime->bottom_stack;
+        default: return NULL;
+    }
+}
+
+static GtkWidget *runtime_region_revealer(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioGtkRuntimeRegion region)
+{
+    if (runtime == NULL) return NULL;
+    switch (region) {
+        case UMI_STUDIO_GTK_REGION_PRIMARY: return runtime->primary_revealer;
+        case UMI_STUDIO_GTK_REGION_SECONDARY: return runtime->secondary_revealer;
+        case UMI_STUDIO_GTK_REGION_BOTTOM: return runtime->bottom_revealer;
+        default: return NULL;
+    }
+}
+
+static void runtime_region_visibility_refresh(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioGtkRuntimeRegion region)
+{
+    GtkWidget *revealer = runtime_region_revealer(runtime, region);
+    GtkWidget *stack = runtime_region_stack(runtime, region);
+    GtkWidget *first_visible = NULL;
+    int kind;
+    int has_visible_surface = 0;
+    if (runtime == NULL || revealer == NULL) return;
+    for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
+         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         ++kind) {
+        if (runtime->surface_state_initialised[kind] &&
+            runtime->surface_regions[kind] == (int)region &&
+            runtime->surface_visible[kind]) {
+            has_visible_surface = 1;
+            if (first_visible == NULL) {
+                first_visible = runtime->surface_panels[kind];
+            }
+        }
+    }
+    if (has_visible_surface && stack != NULL) {
+        GtkWidget *current = gtk_stack_get_visible_child(GTK_STACK(stack));
+        if (current == NULL || !gtk_widget_get_visible(current)) {
+            gtk_stack_set_visible_child(GTK_STACK(stack), first_visible);
+        }
+    }
+    gtk_revealer_set_reveal_child(
+        GTK_REVEALER(revealer), has_visible_surface != 0);
+}
+
+static void runtime_surface_location_refresh(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind)
+{
+    GtkWidget *label;
+    char text[96];
+    if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
+        kind > UMI_STUDIO_SURFACE_AI_VALIDATION) {
+        return;
+    }
+    label = runtime->surface_location_labels[kind];
+    if (label == NULL) return;
+    (void)snprintf(
+        text,
+        sizeof(text),
+        "%s · %s",
+        runtime_region_text(
+            (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]),
+        runtime->surface_visible[kind] ? "open" : "hidden");
+    gtk_label_set_text(GTK_LABEL(label), text);
+}
+
 static GtkWidget *runtime_build_surface_for_kind(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind)
@@ -111,53 +202,23 @@ static void runtime_show_surface(
     UmiStudioRuntimeSurfaceKind kind)
 {
     const char *name = umi_studio_runtime_surface_kind_text(kind);
+    UmiStudioGtkRuntimeRegion region;
+    GtkWidget *stack;
+    GtkWidget *revealer;
 
     if (runtime == NULL || name == NULL) return;
-
-    switch (kind) {
-        case UMI_STUDIO_SURFACE_EXPLORER:
-        case UMI_STUDIO_SURFACE_SEARCH:
-        case UMI_STUDIO_SURFACE_SOURCE_CONTROL:
-        case UMI_STUDIO_SURFACE_TEST_EXPLORER:
-        case UMI_STUDIO_SURFACE_DEBUG:
-            gtk_stack_set_visible_child_name(
-                GTK_STACK(runtime->primary_stack),
-                name);
-            gtk_revealer_set_reveal_child(
-                GTK_REVEALER(runtime->primary_revealer),
-                TRUE);
-            break;
-
-        case UMI_STUDIO_SURFACE_OUTLINE:
-        case UMI_STUDIO_SURFACE_AI_CHAT:
-        case UMI_STUDIO_SURFACE_AI_REVIEW:
-        case UMI_STUDIO_SURFACE_AI_APPROVALS:
-            gtk_stack_set_visible_child_name(
-                GTK_STACK(runtime->secondary_stack),
-                name);
-            gtk_revealer_set_reveal_child(
-                GTK_REVEALER(runtime->secondary_revealer),
-                TRUE);
-            break;
-
-        case UMI_STUDIO_SURFACE_PROBLEMS:
-        case UMI_STUDIO_SURFACE_OUTPUT:
-        case UMI_STUDIO_SURFACE_TERMINAL:
-        case UMI_STUDIO_SURFACE_BUILD:
-        case UMI_STUDIO_SURFACE_AI_TOOLS:
-        case UMI_STUDIO_SURFACE_AI_VALIDATION:
-            gtk_stack_set_visible_child_name(
-                GTK_STACK(runtime->bottom_stack),
-                name);
-            gtk_revealer_set_reveal_child(
-                GTK_REVEALER(runtime->bottom_revealer),
-                TRUE);
-            break;
-
-        case UMI_STUDIO_SURFACE_EDITOR:
-        default:
-            break;
+    if (kind == UMI_STUDIO_SURFACE_EDITOR) return;
+    region = (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind];
+    stack = runtime_region_stack(runtime, region);
+    revealer = runtime_region_revealer(runtime, region);
+    if (stack == NULL || revealer == NULL) return;
+    runtime->surface_visible[kind] = 1;
+    if (runtime->surface_panels[kind] != NULL) {
+        gtk_widget_set_visible(runtime->surface_panels[kind], TRUE);
     }
+    gtk_stack_set_visible_child_name(GTK_STACK(stack), name);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(revealer), TRUE);
+    runtime_surface_location_refresh(runtime, kind);
 }
 
 static UmiStatus runtime_rebuild_surface_panels(
@@ -177,6 +238,8 @@ static UmiStatus runtime_rebuild_surface_panels(
         const char *name =
             umi_studio_runtime_surface_kind_text(
                 (UmiStudioRuntimeSurfaceKind)kind);
+        const UmiStudioGtkSurfaceProfile *profile =
+            runtime_surface_profile((UmiStudioRuntimeSurfaceKind)kind);
 
         if (old_panel != NULL) {
             GtkWidget *parent = gtk_widget_get_parent(old_panel);
@@ -191,34 +254,20 @@ static UmiStatus runtime_rebuild_surface_panels(
             continue;
         }
 
-        switch ((UmiStudioRuntimeSurfaceKind)kind) {
-            case UMI_STUDIO_SURFACE_EXPLORER:
-            case UMI_STUDIO_SURFACE_SEARCH:
-            case UMI_STUDIO_SURFACE_SOURCE_CONTROL:
-            case UMI_STUDIO_SURFACE_TEST_EXPLORER:
-            case UMI_STUDIO_SURFACE_DEBUG:
-                runtime_stack_add(runtime->primary_stack, panel, name);
-                break;
-
-            case UMI_STUDIO_SURFACE_OUTLINE:
-            case UMI_STUDIO_SURFACE_AI_CHAT:
-            case UMI_STUDIO_SURFACE_AI_REVIEW:
-            case UMI_STUDIO_SURFACE_AI_APPROVALS:
-                runtime_stack_add(runtime->secondary_stack, panel, name);
-                break;
-
-            case UMI_STUDIO_SURFACE_PROBLEMS:
-            case UMI_STUDIO_SURFACE_OUTPUT:
-            case UMI_STUDIO_SURFACE_TERMINAL:
-            case UMI_STUDIO_SURFACE_BUILD:
-            case UMI_STUDIO_SURFACE_AI_TOOLS:
-            case UMI_STUDIO_SURFACE_AI_VALIDATION:
-                runtime_stack_add(runtime->bottom_stack, panel, name);
-                break;
-
-            default:
-                break;
+        if (!runtime->surface_state_initialised[kind] && profile != NULL) {
+            runtime->surface_regions[kind] = (int)profile->region;
+            runtime->surface_visible[kind] = profile->default_visible;
+            runtime->surface_state_initialised[kind] = 1;
         }
+        runtime_stack_add(
+            runtime_region_stack(
+                runtime,
+                (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]),
+            panel,
+            name);
+        gtk_widget_set_visible(panel, runtime->surface_visible[kind] != 0);
+        runtime_surface_location_refresh(
+            runtime, (UmiStudioRuntimeSurfaceKind)kind);
     }
 
     return UMI_STATUS_OK;

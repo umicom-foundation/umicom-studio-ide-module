@@ -34,7 +34,7 @@
  *
  *   3) Show it (optionally with a parent GtkWindow*; NULL is fine too):
  *
- *        umi_splash_show(s, / parent = / NULL);
+ *        umi_splash_show(s, NULL);
  *
  *   4) Update progress during initialization (fraction: 0.0..1.0):
  *
@@ -118,7 +118,7 @@ typedef struct UmiSplash UmiSplash;
  *   is a small top-level window that shows:
  *     - A bold title (e.g., "Umicom Studio IDE")
  *     - A secondary subtitle/status under it (e.g., "Loading …")
- *     - A progress bar and a spinner (spinner shows activity even at 0%)
+ *     - A progress bar with a short, plain-language status message
  *
  * PARAMETERS:
  *   title         : const char*  – Main heading on the splash (UTF-8 expected).
@@ -132,7 +132,7 @@ typedef struct UmiSplash UmiSplash;
  *
  * NOTES:
  *   - This does *not* present the window yet. Call umi_splash_show() next.
- *   - Strings are copied internally; you can free your originals if needed.
+ *   - The title and subtitle are copied into GTK labels during creation.
  *---------------------------------------------------------------------------*/
 UmiSplash* umi_splash_new(const char *title,
                           const char *subtitle,
@@ -164,8 +164,7 @@ void umi_splash_show(UmiSplash *splash, GtkWindow *parent);
  *
  * PURPOSE:
  *   Update the progress bar (0.0 to 1.0) and the message line beneath it.
- *   The function also nudges the spinner to reassure users that the app is
- *   alive, even if the progress fraction doesn't change (e.g., network wait).
+ *   Frequent, meaningful messages reassure users that startup is progressing.
  *
  * PARAMETERS:
  *   splash   : UmiSplash*  – valid controller
@@ -182,6 +181,9 @@ void umi_splash_show(UmiSplash *splash, GtkWindow *parent);
 void umi_splash_set_progress(UmiSplash *splash,
                              double fraction,
                              const char *message);
+
+/* Replace the embedded fallback with a packaged SVG or PNG brand image. */
+void umi_splash_set_brand_image(UmiSplash *splash, const char *image_path);
 
 /*-----------------------------------------------------------------------------
  * umi_splash_close

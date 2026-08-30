@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "app.h"
+#include "splash.h"
 #include "workbench_window.h"
 #include "umicom/studio/appearance_centre.h"
 #include "umicom/studio/bootstrap.h"
@@ -131,6 +132,7 @@ static int run_test_window_app(int argc, char **argv)
 typedef struct UmiStudioFrameworkWorkbenchRun {
     UmiStudioBootstrap *bootstrap;
     UmiStudioGtkWorkbench *workbench;
+    UmiSplash *splash;
     int create_failed;
 } UmiStudioFrameworkWorkbenchRun;
 
@@ -142,6 +144,8 @@ static void on_framework_workbench_activate(GtkApplication *application,
     UmiStatus status;
 
     if (run == NULL || run->bootstrap == NULL || run->workbench != NULL) return;
+    umi_splash_set_progress(
+        run->splash, 0.82, "Composing the professional workbench…");
     status = umi_studio_gtk_workbench_create(
         application,
         umi_studio_bootstrap_ui(run->bootstrap),
@@ -153,10 +157,17 @@ static void on_framework_workbench_activate(GtkApplication *application,
                       umi_status_text(status));
         run->create_failed = 1;
         g_application_quit(G_APPLICATION(application));
+        return;
     }
+
+    umi_splash_set_progress(run->splash, 1.0, "Studio is ready");
+    umi_splash_close(run->splash);
+    umi_splash_free(run->splash);
+    run->splash = NULL;
 }
 
 static int run_framework_workbench(UmiStudioBootstrap *bootstrap,
+                                   UmiSplash *splash,
                                    int argc,
                                    char **argv)
 {
@@ -165,16 +176,21 @@ static int run_framework_workbench(UmiStudioBootstrap *bootstrap,
     int result;
 
     run.bootstrap = bootstrap;
+    run.splash = splash;
     application = gtk_application_new(
         "org.umicom.studio.framework-workbench",
         G_APPLICATION_NON_UNIQUE);
-    if (application == NULL) return 1;
+    if (application == NULL) {
+        umi_splash_free(splash);
+        return 1;
+    }
 
     g_signal_connect(application,
                      "activate",
                      G_CALLBACK(on_framework_workbench_activate),
                      &run);
     result = g_application_run(G_APPLICATION(application), argc, argv);
+    umi_splash_free(run.splash);
     umi_studio_gtk_workbench_destroy(run.workbench);
     g_object_unref(application);
     return run.create_failed ? 1 : result;
@@ -206,7 +222,11 @@ static int filter_dev_flags(int argc, char **argv, char ***out_argv)
     return count;
 }
 
-static int run_studio(UmiStudioBootstrap *bootstrap, int argc, char **argv)
+static int run_studio(
+    UmiStudioBootstrap *bootstrap,
+    UmiSplash *splash,
+    int argc,
+    char **argv)
 {
     char **filtered_argv = NULL;
     int filtered_argc;
@@ -215,18 +235,28 @@ static int run_studio(UmiStudioBootstrap *bootstrap, int argc, char **argv)
     int result;
 
     for (index = 0; index < argc; ++index) {
-        if (str_eq(argv[index], "--bare-gtk")) return run_bare_gtk();
+        if (str_eq(argv[index], "--bare-gtk")) {
+            umi_splash_free(splash);
+            return run_bare_gtk();
+        }
         if (str_eq(argv[index], "--test-window")) {
+            umi_splash_free(splash);
             return run_test_window_app(argc, argv);
         }
         if (str_eq(argv[index], "--legacy-ui")) {
             filtered_argc = filter_dev_flags(argc, argv, &filtered_argv);
-            if (filtered_argv == NULL) return 1;
+            if (filtered_argv == NULL) {
+                umi_splash_free(splash);
+                return 1;
+            }
             application = umi_app_new();
             if (application == NULL) {
                 free(filtered_argv);
+                umi_splash_free(splash);
                 return 1;
             }
+            umi_splash_close(splash);
+            umi_splash_free(splash);
             result = g_application_run(G_APPLICATION(application),
                                        filtered_argc,
                                        filtered_argv);
@@ -237,35 +267,96 @@ static int run_studio(UmiStudioBootstrap *bootstrap, int argc, char **argv)
     }
 
     filtered_argc = filter_dev_flags(argc, argv, &filtered_argv);
-    if (filtered_argv == NULL) return 1;
+    if (filtered_argv == NULL) {
+        umi_splash_free(splash);
+        return 1;
+    }
 
     result = run_framework_workbench(bootstrap,
+                                     splash,
                                      filtered_argc,
                                      filtered_argv);
     free(filtered_argv);
     return result;
 }
 
+static void flush_startup_presentation(void)
+{
+    while (g_main_context_pending(NULL)) {
+        (void)g_main_context_iteration(NULL, FALSE);
+    }
+}
+
+static UmiSplash *show_startup_splash(const char *program_path)
+{
+    UmiSplash *splash;
+    char *absolute_program;
+    char *program_directory;
+    char *logo_path;
+
+    gtk_init();
+    splash = umi_splash_new(
+        "Umicom Studio IDE",
+        "Starting Umicom Framework…",
+        0U);
+    if (splash == NULL) return NULL;
+
+    absolute_program = g_canonicalize_filename(
+        program_path != NULL ? program_path : "umicom-studio-ide", NULL);
+    if (absolute_program == NULL) {
+        umi_splash_show(splash, NULL);
+        flush_startup_presentation();
+        return splash;
+    }
+    program_directory = g_path_get_dirname(absolute_program);
+    logo_path = program_directory != NULL
+        ? g_build_filename(
+              program_directory, "branding", "umicom-logo.png", NULL)
+        : NULL;
+    if (logo_path != NULL &&
+        g_file_test(logo_path, G_FILE_TEST_IS_REGULAR)) {
+        umi_splash_set_brand_image(splash, logo_path);
+    }
+    g_free(logo_path);
+    g_free(program_directory);
+    g_free(absolute_program);
+
+    umi_splash_show(splash, NULL);
+    flush_startup_presentation();
+    return splash;
+}
+
 int main(int argc, char **argv)
 {
     UmiStudioBootstrap *bootstrap = NULL;
+    UmiSplash *splash;
     UmiStatus status;
     int result;
+
+    splash = show_startup_splash(argc > 0 ? argv[0] : NULL);
+    umi_splash_set_progress(
+        splash, 0.20, "Creating Framework services…");
+    flush_startup_presentation();
 
     status = umi_studio_bootstrap_create(&bootstrap);
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "[USIDE] Framework create failed: %s\n",
                       umi_status_text(status));
+        umi_splash_free(splash);
         return 1;
     }
 
+    umi_splash_set_progress(
+        splash, 0.48, "Starting developer and project services…");
+    flush_startup_presentation();
     status = umi_studio_bootstrap_start(bootstrap);
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "[USIDE] Framework start failed: %s\n",
                       umi_status_text(status));
         umi_studio_bootstrap_destroy(bootstrap);
+        umi_splash_free(splash);
         return 1;
     }
 
@@ -273,8 +364,11 @@ int main(int argc, char **argv)
      * build tree and installed packages without compiling a developer's
      * private absolute folder structure into the public binary. */
     configure_runtime_branding(bootstrap, argc > 0 ? argv[0] : NULL);
+    umi_splash_set_progress(
+        splash, 0.68, "Restoring your workspace and layouts…");
+    flush_startup_presentation();
 
-    result = run_studio(bootstrap, argc, argv);
+    result = run_studio(bootstrap, splash, argc, argv);
     umi_studio_bootstrap_destroy(bootstrap);
     return result;
 }

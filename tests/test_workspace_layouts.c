@@ -13,7 +13,6 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* Umicom Studio IDE Tests | Workspace layouts v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include <string.h>
 #include "operations_workspace_fixture.h"
@@ -21,6 +20,7 @@ int main(void)
 {
     UmiStudioProfessionalWorkspace *workspace = umi_test_seeded_professional_workspace();
     UmiUiWorkspaceCustomisation *model = umi_studio_professional_workspace_model(workspace);
+    UmiUiWorkspaceCustomisationSnapshot customisation_snapshot;
     UmiUiWorkspaceLayout *active;
     assert(model->layout_count == 16U && model->library.count == 16U);
     assert(umi_ui_layout_library_find(&model->library,"studio-focus") != NULL);
@@ -47,7 +47,11 @@ int main(void)
     assert(active->window_count == 4U && active->locked);
     assert(umi_studio_workspace_execute(workspace,UMI_STUDIO_WORKSPACE_COMMAND_UNLOCK) == UMI_STATUS_OK);
     assert(!active->locked);
+    umi_ui_workspace_customisation_snapshot(model, &customisation_snapshot);
+    assert(customisation_snapshot.editing);
     assert(umi_studio_workspace_execute(workspace,UMI_STUDIO_WORKSPACE_COMMAND_LOCK) == UMI_STATUS_OK);
+    umi_ui_workspace_customisation_snapshot(model, &customisation_snapshot);
+    assert(active->locked && !customisation_snapshot.editing);
     umi_studio_professional_workspace_destroy(workspace);
     return 0;
 }

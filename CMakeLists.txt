@@ -773,6 +773,8 @@ if(UMICOM_STUDIO_BUILD_GTK)
     add_executable(umicom-studio-ide
         src/gtk/main.c
         src/gui/workbench/workbench_window.c
+        src/ui/icon.c
+        src/ui/splash.c
     )
 
     set(UMICOM_STUDIO_WINDOWS_RESOURCE

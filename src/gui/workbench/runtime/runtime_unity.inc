@@ -67,6 +67,7 @@
 #include "surfaces/ai_validation.inc"
 
 #include "runtime_surface_registry.inc"
+#include "runtime_window_catalogue.inc"
 #include "runtime_command_palette.inc"
 #include "runtime_layout_browser.inc"
 #include "runtime_keyboard.inc"
@@ -75,6 +76,8 @@
 #include "runtime_toolbar.inc"
 #include "runtime_activity_bar.inc"
 #include "runtime_document_tabs.inc"
+#include "runtime_welcome.inc"
+#include "runtime_workspace_geometry.inc"
 #include "runtime_layout_tabs.inc"
 #include "runtime_status_bar.inc"
 #include "runtime_host_adapter.inc"

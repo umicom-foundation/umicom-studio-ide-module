@@ -53,6 +53,9 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
     status = runtime_build_layout_browser(runtime);
     if (status != UMI_STATUS_OK) goto fail;
 
+    status = runtime_build_window_catalogue(runtime);
+    if (status != UMI_STATUS_OK) goto fail;
+
     status = runtime_install_keyboard(runtime);
     if (status != UMI_STATUS_OK) goto fail;
 

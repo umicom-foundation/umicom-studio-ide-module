@@ -40,6 +40,7 @@ static GtkWidget *runtime_build_surface_explorer(
     GtkWidget *save;
     GtkWidget *refresh;
     GtkWidget *scroll;
+    GtkWidget *about;
     char value[64];
 
     if (panel == NULL || runtime == NULL) return panel;
@@ -61,24 +62,24 @@ static GtkWidget *runtime_build_surface_explorer(
     runtime_panel_add_stat(panel, "Dirty documents", value);
     runtime->explorer_list = gtk_list_box_new();
 
-    actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
-    new_file = gtk_button_new_with_label("New File");
-    open_file = runtime_make_command_button(
+    actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+    new_file = gtk_button_new_from_icon_name("document-new-symbolic");
+    open_file = runtime_make_icon_command_button(
         runtime,
-        "Open",
+        "document-open-symbolic",
         "file.open",
         "Open a file into the Framework DocumentCoordinator");
-    open_folder = runtime_make_command_button(
+    open_folder = runtime_make_icon_command_button(
         runtime,
-        "Open Folder",
+        "folder-open-symbolic",
         "workspace.open-folder",
         "Open and index a workspace folder");
-    save = runtime_make_command_button(
+    save = runtime_make_icon_command_button(
         runtime,
-        "Save",
+        "document-save-symbolic",
         "file.save",
         "Save the active Framework document");
-    refresh = gtk_button_new_with_label("Refresh");
+    refresh = gtk_button_new_from_icon_name("view-refresh-symbolic");
 
     if (runtime->explorer_summary_label != NULL) {
         gtk_widget_add_css_class(
@@ -97,6 +98,9 @@ static GtkWidget *runtime_build_surface_explorer(
             "clicked",
             G_CALLBACK(runtime_on_explorer_new_file),
             runtime);
+        gtk_widget_set_tooltip_text(new_file, "Create a new source file");
+        gtk_widget_set_tooltip_text(refresh, "Refresh the workspace index");
+        gtk_widget_add_css_class(actions, "umicom-runtime-panel-actions");
         g_signal_connect(
             refresh,
             "clicked",
@@ -133,13 +137,17 @@ static GtkWidget *runtime_build_surface_explorer(
         }
     }
 
-    gtk_box_append(
-        GTK_BOX(panel),
-        runtime_card_new(
-            "Framework Explorer",
-            "The Framework File Index owns workspace discovery and the "
-            "DocumentCoordinator owns file loading. This GTK surface only "
-            "renders and dispatches those services."));
+    about = gtk_expander_new("About Explorer");
+    if (about != NULL) {
+        gtk_expander_set_child(
+            GTK_EXPANDER(about),
+            runtime_card_new(
+                "Framework Explorer",
+                "Framework File Index discovers files and DocumentCoordinator "
+                "loads them. Studio only presents those reusable services."));
+        gtk_expander_set_expanded(GTK_EXPANDER(about), FALSE);
+        gtk_box_append(GTK_BOX(panel), about);
+    }
 
     runtime_append_context_actions(runtime, panel, "workspace");
 

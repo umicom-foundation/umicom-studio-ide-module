@@ -30,6 +30,7 @@
 #include "umicom/test_platform/coverage.h"
 #include "umicom/test_platform/output.h"
 #include "umicom/platform/file_index.h"
+#include "umicom/ui/workbench.h"
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/coding_assistant.h"
@@ -41,6 +42,7 @@
 #include "umicom/studio/terminal.h"
 #include "umicom/studio/tests.h"
 #include "umicom/studio/view_models.h"
+#include "umicom/studio/welcome_centre.h"
 #include "umicom/studio_runtime/studio_runtime.h"
 #include "umicom/terminal/transcript.h"
 #include "umicom/test_platform/item.h"
@@ -50,8 +52,11 @@
 #define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 16U
 #define UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT 10U
 #define UMI_STUDIO_GTK_RUNTIME_REFRESH_MS 750U
-#define UMI_STUDIO_GTK_RUNTIME_TOOL_WIDTH 330
-#define UMI_STUDIO_GTK_RUNTIME_BOTTOM_HEIGHT 250
+#define UMI_STUDIO_GTK_RUNTIME_TOOL_WIDTH 300
+#define UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH 200
+#define UMI_STUDIO_GTK_RUNTIME_BOTTOM_HEIGHT 220
+#define UMI_STUDIO_GTK_RUNTIME_BOTTOM_MIN_HEIGHT 150
+#define UMI_STUDIO_GTK_RUNTIME_ACTIVITY_WIDTH 44
 #define UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT 600U
 #define UMI_STUDIO_GTK_TEST_ROW_LIMIT 800U
 #define UMI_STUDIO_GTK_VCS_ROW_LIMIT 800U
@@ -73,6 +78,13 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *menu_bar;
     GtkWidget *toolbar;
     GtkWidget *body;
+    GtkWidget *workspace_paned;
+    GtkWidget *primary_paned;
+    GtkWidget *secondary_paned;
+    GtkWidget *primary_cluster;
+    GtkWidget *centre_stack;
+    GtkWidget *welcome_surface;
+    GtkWidget *workbench_surface;
     GtkWidget *activity_bar;
     GtkWidget *primary_revealer;
     GtkWidget *primary_stack;
@@ -82,6 +94,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *bottom_stack;
     GtkWidget *document_tabs;
     GtkWidget *layout_tabs;
+    GtkWidget *layout_lock_button;
     GtkWidget *status_bar;
     GtkWidget *workflow_badge;
     GtkWidget *notification_label;
@@ -95,6 +108,11 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *command_list;
     GtkWidget *layout_window;
     GtkWidget *layout_list;
+    GtkWidget *window_catalogue_window;
+    GtkWidget *window_catalogue_search;
+    GtkWidget *window_catalogue_list;
+    GtkWidget *layout_cancel_button;
+    GtkWidget *surface_location_labels[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
 
     /* Phase 2 operational presentation widgets. */
     GtkWidget *editor_command_bar;
@@ -151,6 +169,16 @@ typedef struct UmiStudioGtkRuntimeChrome {
     int force_close;
     int runtime_ready;
     int interaction_busy;
+    int applying_workspace_geometry;
+    int layout_locked;
+    int layout_baseline_valid;
+    int surface_regions[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+    int surface_visible[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+    int surface_state_initialised[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+    int layout_surface_region_baseline[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+    int layout_surface_visible_baseline[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+
+    UmiUiWorkbenchState layout_edit_baseline;
 
     char workspace_root[UMI_STUDIO_RUNTIME_PATH_CAPACITY];
     char workspace_name[256];
@@ -174,6 +202,11 @@ typedef struct UmiStudioGtkRuntimeChrome {
 
 static void runtime_show_command_palette(UmiStudioGtkRuntimeChrome *runtime);
 static void runtime_show_layout_browser(UmiStudioGtkRuntimeChrome *runtime);
+static void runtime_show_window_catalogue(UmiStudioGtkRuntimeChrome *runtime);
+static void runtime_workspace_apply_geometry(
+    UmiStudioGtkRuntimeChrome *runtime);
+static void runtime_welcome_update_mode(
+    UmiStudioGtkRuntimeChrome *runtime);
 
 
 static UmiStatus runtime_refresh_services(UmiStudioGtkRuntimeChrome *runtime);

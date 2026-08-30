@@ -78,6 +78,7 @@ static UmiStatus runtime_host_present_surface(
 
     runtime_show_surface(runtime, active);
     runtime_update_activity_selection(runtime, active);
+    runtime_workspace_apply_geometry(runtime);
     return UMI_STATUS_OK;
 }
 

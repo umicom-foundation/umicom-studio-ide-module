@@ -251,6 +251,10 @@ static void runtime_destroy_framework(
         gtk_window_destroy(GTK_WINDOW(runtime->layout_window));
         runtime->layout_window = NULL;
     }
+    if (runtime->window_catalogue_window != NULL) {
+        gtk_window_destroy(GTK_WINDOW(runtime->window_catalogue_window));
+        runtime->window_catalogue_window = NULL;
+    }
 
     umi_studio_runtime_bootstrap_destroy(
         runtime->runtime_bootstrap);
