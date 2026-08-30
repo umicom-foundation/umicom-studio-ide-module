@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/tools/frontend_studio_main.c
+ *
+ * PURPOSE:
+ *   Provide the frontend studio main development utility for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Sammy Hegab | Umicom Foundation | MIT */
 #include <stdio.h>
 #include "umicom/studio/frontend_studio_commands.h"

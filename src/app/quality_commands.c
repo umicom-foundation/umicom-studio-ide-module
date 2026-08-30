@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/quality_commands.c
+ *
+ * PURPOSE:
+ *   Implement the quality commands behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Quality Centre commands v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/quality_commands.h"
 #include "umicom/studio/quality_compatibility.h"

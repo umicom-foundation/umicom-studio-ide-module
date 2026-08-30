@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/session.c
+ *
+ * PURPOSE:
+ *   Implement the session behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/session.c
  * PURPOSE: JSON-backed session persistence
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

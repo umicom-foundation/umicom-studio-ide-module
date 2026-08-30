@@ -7,9 +7,12 @@
  *   Framework diagnostic hub and bounded diagnostic store owned by
  *   UmiStudioServices.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/diagnostics.h"
 

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Declare a GTK4 status strip rendered from Framework status-model items.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_GTK_STATUS_STRIP_H

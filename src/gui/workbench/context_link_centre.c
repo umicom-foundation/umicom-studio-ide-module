@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Create Studio's development, testing, AI and data context groups while delegating routing, history, pinning and delivery to Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "context_link_centre.h"

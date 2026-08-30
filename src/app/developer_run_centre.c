@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement Studio launch-profile browsing and run/debug submission.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/developer_run_centre.h"
 

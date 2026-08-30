@@ -7,9 +7,12 @@
  *   a healthy Framework-based Studio source tree with no missing required
  *   files and no active legacy migration paths or CMake identifiers.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/doctor.h"
 

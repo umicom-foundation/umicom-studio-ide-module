@@ -6,9 +6,12 @@
  *   Verify that Studio registers and applies every professional workspace
  *   profile through the live Framework workbench.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/workspace_profiles.h"

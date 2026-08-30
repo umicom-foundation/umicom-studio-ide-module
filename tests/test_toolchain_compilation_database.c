@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/tests/test_toolchain_compilation_database.c
  * PURPOSE: Verify centre-level compile_commands.json import and reporting.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdlib.h>
 

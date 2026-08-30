@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Build Windows and Linux package manifests for the Studio product.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/package_project.h"
 #include <string.h>

@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_workspace_persistence.c
+ *
+ * PURPOSE:
+ *   Verify the test workspace persistence behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE Tests | Workspace persistence v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include <string.h>

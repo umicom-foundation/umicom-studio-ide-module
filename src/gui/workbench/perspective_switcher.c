@@ -6,9 +6,12 @@
  *   Render the Framework perspective model as GTK4 buttons that activate the
  *   shared Studio workbench state.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "perspective_switcher.h"

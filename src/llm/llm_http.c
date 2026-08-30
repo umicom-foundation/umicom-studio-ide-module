@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/llm/llm_http.c
+ *
+ * PURPOSE:
+ *   Implement the llm http behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/llm/llm_http.c
  * PURPOSE: HTTP helpers (libcurl) + SSE-ish streaming with privacy guard
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-11 | MIT
  *---------------------------------------------------------------------------*/

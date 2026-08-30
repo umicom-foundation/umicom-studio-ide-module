@@ -1,4 +1,19 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/build/build_tasks.c
+ *
+ * PURPOSE:
+ *   Implement the build tasks behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE : OpenSource IDE for developers and Content Creators
  * Repository: https://github.com/umicom-foundation/umicom-studio-ide
  * File: src/build/build_tasks.c

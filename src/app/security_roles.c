@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/security_roles.c
+ *
+ * PURPOSE:
+ *   Implement the security roles behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Security role and permission administration v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/security_roles.h"
 static UmiStatus revised(UmiStudioSecurityCentre *centre,UmiStatus status)

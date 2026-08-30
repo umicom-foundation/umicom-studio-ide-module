@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement the Language Intelligence Centre composition.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/language_intelligence_centre.h"
 #include <stdlib.h>

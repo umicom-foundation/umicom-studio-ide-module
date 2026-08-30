@@ -7,9 +7,12 @@
  *   settings repository.  Defaults and ranges are declared once here so the
  *   console, GTK4 frontend, tests and future plug-ins share one definition.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/settings.h"
 

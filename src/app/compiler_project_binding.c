@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/compiler_project_binding.c
+ *
+ * PURPOSE:
+ *   Implement the compiler project binding behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Compiler project bindings v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_project_binding.h"
 #include <stdio.h>

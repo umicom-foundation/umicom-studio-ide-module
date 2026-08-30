@@ -6,9 +6,12 @@
  *   Surface command/runtime outcomes without introducing a second notification
  *   service. Framework operations remain authoritative; this is presentation.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static gboolean runtime_clear_notification(gpointer user_data)

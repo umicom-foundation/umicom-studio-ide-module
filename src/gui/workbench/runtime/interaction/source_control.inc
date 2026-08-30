@@ -6,9 +6,12 @@
  *   Render and operate the existing provider-neutral Framework VCS change list,
  *   including stage/unstage, commit, pull/push and unified-diff inspection.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStudioSourceControlService *runtime_source_control_service(

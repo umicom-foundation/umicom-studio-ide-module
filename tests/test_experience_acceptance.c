@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Verify the thin product consumes Framework journey readiness unchanged.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include "umicom/studio/experience_acceptance.h"

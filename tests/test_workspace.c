@@ -6,9 +6,12 @@
  *   Verify Studio workspace opening, project discovery, indexing, trust and
  *   watcher lifecycle through shared Framework services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/workspace.h"
 #include "umicom/studio/watcher.h"

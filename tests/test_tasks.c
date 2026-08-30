@@ -6,9 +6,12 @@
  *   Verify that Studio submits background work through the shared Framework
  *   task queue and retains clear task ownership and completion semantics.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/tasks.h"
 

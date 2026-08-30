@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Bridge Studio designer state to Framework preview and starter-code generation without embedding generator logic in the GUI.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

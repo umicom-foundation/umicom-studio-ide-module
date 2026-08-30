@@ -6,9 +6,12 @@
  *   GTK presentation metadata for the real Framework command file.open.
  *   Enablement and execution are resolved from UmiCommandRegistry.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 UMI_STUDIO_GTK_COMMAND_PROFILE(
     "open",

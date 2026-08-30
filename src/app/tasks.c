@@ -6,9 +6,12 @@
  *   Implement Studio task creation, queue submission, completion waiting and
  *   ownership cleanup through the shared Framework task service.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/tasks.h"
 

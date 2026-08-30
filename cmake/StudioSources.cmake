@@ -7,9 +7,12 @@
 #   workbench-context composition as one reusable target for every GTK workbench
 #   executable that needs it.
 #
-# Created by: Sammy Hegab
-# Organisation: Umicom Foundation
-# Licence: MIT
+# AUTHOR AND ORGANISATION:
+#   Sammy Hegab
+#   Umicom Foundation
+#
+# LICENCE:
+#   MIT
 #-----------------------------------------------------------------------------
 
 set(UMICOM_STUDIO_PRODUCT_SOURCES

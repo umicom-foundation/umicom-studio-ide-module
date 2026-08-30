@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement Studio build profiles, execution, diagnostic capture and retained history.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/build.h"

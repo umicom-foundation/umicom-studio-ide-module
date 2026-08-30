@@ -11,9 +11,12 @@
  *   CMake, remove the historical adapter, or duplicate Framework business
  *   services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "runtime_types.inc"
 #include "runtime_helpers.inc"

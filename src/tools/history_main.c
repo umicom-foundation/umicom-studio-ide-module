@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Provide a native Studio command for appending and inspecting persistent operational history records.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/history.h"

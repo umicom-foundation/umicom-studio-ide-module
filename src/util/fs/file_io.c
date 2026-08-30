@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/util/fs/file_io.c
+ *
+ * PURPOSE:
+ *   Implement the file io behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/fs/file_io.c
  * PURPOSE: Implementation of atomic save helpers
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
  *---------------------------------------------------------------------------*/

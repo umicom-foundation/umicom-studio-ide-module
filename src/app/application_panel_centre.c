@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Resolve product panels and layouts through Framework-owned experience projections.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/application_panel_centre.h"

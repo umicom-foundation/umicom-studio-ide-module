@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Catalogue the views shown by Studio's SDK and Distribution Centre.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/distribution_views.h"
 #include <string.h>

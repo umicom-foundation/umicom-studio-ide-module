@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/workspace_persistence.c
+ *
+ * PURPOSE:
+ *   Implement the workspace persistence behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Workspace persistence v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/workspace_persistence.h"
 #include <string.h>

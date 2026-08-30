@@ -3,6 +3,21 @@
  * File: src/llm/privacy.c
  *
  * PURPOSE:
+ *   Implement the privacy behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/llm/privacy.c
+ *
+ * PURPOSE:
  *   Implementation of the privacy/URL-allowlist checks declared in
  *   src/llm/includes/privacy.h. This protects users from accidental or
  *   malicious requests to local machine / private networks / unsafe schemes.

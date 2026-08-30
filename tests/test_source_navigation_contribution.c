@@ -1,4 +1,19 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_source_navigation_contribution.c
+ *
+ * PURPOSE:
+ *   Verify the test source navigation contribution behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio thin Framework source navigation contribution tests.
  * Created by Sammy Hegab, Umicom Foundation. Licence: MIT.
  *---------------------------------------------------------------------------*/

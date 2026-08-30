@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Build the operational Framework Test Platform explorer surface.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_on_tests_discover_button(

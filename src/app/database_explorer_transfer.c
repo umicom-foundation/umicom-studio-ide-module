@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/database_explorer_transfer.c
+ *
+ * PURPOSE:
+ *   Implement the database explorer transfer behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/database_explorer_transfer.h"
 UmiStatus umi_studio_database_transfer_add(UmiStudioDatabaseExplorerCentre *c,const UmiDatabaseTransferPlan *p){UmiStatus s;if(c==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_database_explorer_add_transfer(c->explorer,p);if(s==UMI_STATUS_OK)c->revision+=1U;return s;}

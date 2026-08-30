@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/security_commands.c
+ *
+ * PURPOSE:
+ *   Implement the security commands behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Security Centre commands v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/security_commands.h"
 #include "umicom/studio/security_approvals.h"

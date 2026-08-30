@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/gui/dialogs/open_folder.c
+ *
+ * PURPOSE:
+ *   Implement the open folder behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/gui/dialog/open_folder.c
  *
  * PURPOSE:

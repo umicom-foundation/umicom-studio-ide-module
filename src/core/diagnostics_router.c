@@ -3,6 +3,21 @@
  * File: src/core/diagnostics_router.c
  *
  * PURPOSE:
+ *   Implement the diagnostics router behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/diagnostics_router.c
+ *
+ * PURPOSE:
  *   Implementation of the diagnostics router. Maintains a single parser
  *   instance between begin() and end() so repeated feed() calls are fast.
  *

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Present the Studio Framework workbench through GTK4 and attach the Framework-owned linked-context control strip.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "workbench_window.h"

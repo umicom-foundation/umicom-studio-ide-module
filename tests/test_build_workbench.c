@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/tests/test_build_workbench.c
  * PURPOSE: Verify build results populate Problems and Output registries.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include <string.h>

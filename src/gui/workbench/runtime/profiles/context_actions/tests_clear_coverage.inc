@@ -7,9 +7,12 @@
  *   advanced-action section. The command behavior remains registered in the
  *   authoritative Framework command registry.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 UMI_STUDIO_GTK_CONTEXT_ACTION(
     "tests",

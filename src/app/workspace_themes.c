@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/workspace_themes.c
+ *
+ * PURPOSE:
+ *   Implement the workspace themes behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Workspace themes v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/workspace_themes.h"
 UmiStatus umi_studio_workspace_theme_apply(UmiStudioProfessionalWorkspace *workspace,UmiStudioWorkspaceTheme theme,UmiUiDensity density,double font_scale)

@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/helix_agent_candidates.c
  * PURPOSE: Implement Studio candidate comparison over Framework Helix v2.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/helix_agent_candidates.h"
 

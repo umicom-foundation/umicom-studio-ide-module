@@ -6,9 +6,12 @@
  *   Verify Studio exposes the Framework developer pipeline and can create a
  *   dependency-aware CMake plan without duplicating pipeline state.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include <assert.h>

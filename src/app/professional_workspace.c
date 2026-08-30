@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/professional_workspace.c
+ *
+ * PURPOSE:
+ *   Implement the professional workspace behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Professional workspace v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/professional_workspace.h"
 #include <stdio.h>

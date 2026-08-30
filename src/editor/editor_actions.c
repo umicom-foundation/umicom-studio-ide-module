@@ -3,6 +3,21 @@
  * File: src/editor/editor_actions.c
  *
  * PURPOSE:
+ *   Implement the editor actions behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/editor/editor_actions.c
+ *
+ * PURPOSE:
  *   Minimal editor operations (open/save/new) implemented with GLib/GTK only
  *   and no extra UI plumbing yet. These functions are safe, bounded, and
  *   return errors via GError** as per GLib conventions.

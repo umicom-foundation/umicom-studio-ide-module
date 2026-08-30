@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Compose Studio-specific group and endpoint definitions over the reusable Framework context-host runtime.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_CONTEXT_LINK_CENTRE_H

@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/core/run_config.c
+ *
+ * PURPOSE:
+ *   Implement the run config behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/run_config.c
  * PURPOSE:
  *   Implementation for the minimal run configuration used by the pipeline.
  *

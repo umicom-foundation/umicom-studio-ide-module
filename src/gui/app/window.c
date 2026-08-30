@@ -3,6 +3,21 @@
  * File: src/gui/app/window.c
  *
  * PURPOSE:
+ *   Implement the window behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/app/window.c
+ *
+ * PURPOSE:
  *   Build the main application window in *pure C* with GTK4 primitives.
  *   The layout is opinionated for an IDE:
  *     [ File Tree ] | [ Editor (top) over [ Output | Problems ] (bottom) ] | [ Chat ]

@@ -3,6 +3,21 @@
  * File: src/util/sys/ansi_color.c
  *
  * PURPOSE:
+ *   Implement the ansi color behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/sys/ansi_color.c
+ *
+ * PURPOSE:
  *   Utilities to parse/strip/translate ANSI SGR color sequences and apply
  *   minimal styling into GtkTextBuffer spans. Kept tiny for our output console.
  *

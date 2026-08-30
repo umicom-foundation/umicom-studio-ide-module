@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: tests/test_test_readiness_contribution.c
  * PURPOSE: Verify Studio remains a thin Framework test-readiness placement.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include <string.h>

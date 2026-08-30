@@ -2,9 +2,12 @@
  * Umicom Studio IDE Tests
  * File: applications/studio/tests/test_knowledge_archive.c
  * PURPOSE: Verify Studio saves and restores its offline knowledge archive.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include <stdio.h>

@@ -1,6 +1,26 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/visual_builder_layout.c
+ *
+ * PURPOSE:
+ *   Implement the visual builder layout behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE - Visual Builder v2 layout command adapter
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/visual_builder_layout.h"
 UmiStatus umi_studio_visual_builder_align(UmiStudioVisualBuilderCentre *centre,UmiDesignerAlignment alignment){UmiDesignerBuilderSession *session=umi_studio_visual_builder_centre_session(centre);if(session==NULL)return UMI_STATUS_INVALID_ARGUMENT;return umi_designer_layout_align(umi_designer_builder_session_document(session),umi_designer_builder_session_transactions(session),umi_designer_builder_session_selection(session),alignment);}

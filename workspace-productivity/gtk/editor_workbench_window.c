@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Build a GTK4 source-editor productivity workbench with open editors, quick-open, find/replace and status UI.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

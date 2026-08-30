@@ -3,6 +3,21 @@
  * File: src/build/build_runner.c
  *
  * PURPOSE:
+ *   Implement the build runner behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/build/build_runner.c
+ *
+ * PURPOSE:
  *   Minimal GLib/GIO-based process runner that streams stdout/stderr lines
  *   to a decoupled UmiOutputSink. Used by build systems and search tools.
  *

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Verify the Framework workbench state codec preserves Studio chrome choices.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/umicom.h"
 #include <assert.h>

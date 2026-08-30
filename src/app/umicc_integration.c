@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/umicc_integration.c
+ *
+ * PURPOSE:
+ *   Implement the umicc integration behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Umicc integration v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/umicc_integration.h"
 #include <stdio.h>

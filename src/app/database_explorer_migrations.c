@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/database_explorer_migrations.c
+ *
+ * PURPOSE:
+ *   Implement the database explorer migrations behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/database_explorer_migrations.h"
 #include <string.h>

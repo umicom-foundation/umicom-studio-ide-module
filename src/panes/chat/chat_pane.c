@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/panes/chat/chat_pane.c
+ *
+ * PURPOSE:
+ *   Implement the chat pane behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/panes/chat_pane.c
  * PURPOSE: Simple chat pane UI (GTK4) + async HTTP using libsoup-3.0
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-08 | MIT

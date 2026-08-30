@@ -1,6 +1,26 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/visual_builder_tree.c
+ *
+ * PURPOSE:
+ *   Implement the visual builder tree behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE - Visual Builder v2 component hierarchy adapter
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/visual_builder_tree.h"
 UmiStatus umi_studio_visual_builder_tree_refresh(UmiStudioVisualBuilderCentre *centre,UmiDesignerComponentTree *out_tree){UmiDesignerBuilderSession *session=umi_studio_visual_builder_centre_session(centre);return session!=NULL?umi_designer_builder_session_tree(session,out_tree):UMI_STATUS_INVALID_ARGUMENT;}

@@ -6,9 +6,12 @@
  *   Place Framework HTTP/API/Web/Cloud commands and views in Studio. This file
  *   intentionally contains no request, authentication, cloud or deployment logic.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/web_api_workbench_contribution.h"
 

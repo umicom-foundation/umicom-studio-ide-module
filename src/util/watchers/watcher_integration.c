@@ -3,6 +3,21 @@
  * File: src/util/watchers/watcher_integration.c
  *
  * PURPOSE:
+ *   Implement the watcher integration behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/watchers/watcher_integration.c
+ *
+ * PURPOSE:
  *   Integration layer: owns a recursive watcher and routes its callback to
  *   refresh UI components (FileTree), optionally touching Workspace state.
  *

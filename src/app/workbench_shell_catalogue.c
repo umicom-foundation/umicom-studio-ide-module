@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Compose Studio's Activity Bar, view containers, context keys, keybindings, breadcrumb and Explorer seed from reusable Framework contracts.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

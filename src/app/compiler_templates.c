@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/compiler_templates.c
+ *
+ * PURPOSE:
+ *   Implement the compiler templates behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Compiler project templates v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_templates.h"
 #include <string.h>

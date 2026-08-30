@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/build/task_runner.c
+ *
+ * PURPOSE:
+ *   Implement the task runner behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/build/task_runner.c
  * PURPOSE:
  *   Implementation of a tiny, GLib-based task runner. The runner owns a
  *   GThreadPool and lets callers queue background jobs (function + user_data)

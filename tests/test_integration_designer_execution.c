@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_integration_designer_execution.c
+ *
+ * PURPOSE:
+ *   Verify the test integration designer execution behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE Tests | Deterministic execution | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include <string.h>

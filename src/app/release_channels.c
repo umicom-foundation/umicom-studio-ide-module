@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Own the Studio development, beta and stable update channel catalogue.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/release_channels.h"
 #include <string.h>

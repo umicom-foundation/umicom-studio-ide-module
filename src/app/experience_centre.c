@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Provide Studio with a thin product-readiness centre over Framework-owned application experience definitions.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/experience_centre.h"

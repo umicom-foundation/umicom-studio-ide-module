@@ -2,9 +2,12 @@
  * Umicom Studio IDE Tests
  * File: applications/studio/tests/test_knowledge_centre.c
  * PURPOSE: Verify Studio composes ingestion and cited retrieval over Framework.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include <string.h>

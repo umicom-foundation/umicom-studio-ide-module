@@ -6,9 +6,12 @@
  *   Store ordered editor-group metadata as bounded Session Store entries so
  *   each workspace can restore its own tab arrangement safely.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Inspect Studio identities, roles, sessions, trust and security-event evidence.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/security.h"

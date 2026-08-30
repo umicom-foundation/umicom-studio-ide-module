@@ -6,9 +6,12 @@
  *   Implement workspace-confined file operations, trust checks and index
  *   maintenance on top of the portable Framework filesystem contracts.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/files.h"
 

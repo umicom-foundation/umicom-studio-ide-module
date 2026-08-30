@@ -6,9 +6,12 @@
  *   Place Framework source insight surfaces in Studio's workbench while all
  *   reusable state and operations remain owned by Umicom Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/navigation_view_contribution.h"
 

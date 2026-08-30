@@ -11,9 +11,12 @@
  *   the Phase 1 periodic panel reconstruction that was acceptable for snapshot
  *   cards but would destroy typed text in an interactive IDE.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStatus runtime_refresh_services(

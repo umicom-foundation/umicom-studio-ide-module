@@ -6,9 +6,12 @@
  *   Adapt Studio file-name and workspace text searches to the shared Framework
  *   index and cancellable search implementation.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/search.h"
 

@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/compiler_commands.c
+ *
+ * PURPOSE:
+ *   Implement the compiler commands behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Compiler Centre commands v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_commands.h"
 #include <string.h>

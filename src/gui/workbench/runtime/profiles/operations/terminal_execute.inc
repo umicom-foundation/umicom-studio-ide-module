@@ -8,9 +8,12 @@
  *   all business behavior remain owned by the Framework command registry and
  *   the established Studio service facade.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 UMI_STUDIO_GTK_OPERATION_PROFILE(
     "terminal_execute",

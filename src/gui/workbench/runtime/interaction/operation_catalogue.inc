@@ -8,9 +8,12 @@
  *   UmiCommandRegistry. Required arguments are collected by GTK and handed
  *   directly to that registered command.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static const char *runtime_operation_argument_message(

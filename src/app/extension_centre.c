@@ -6,9 +6,12 @@
  *   Implement Studio Extension Centre composition over Framework Extension SDK
  *   manager, catalogue, permissions, audit and toolkit-neutral views.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_compiler_catalogue.c
+ *
+ * PURPOSE:
+ *   Verify the test compiler catalogue behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Batch 58 test | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_catalogue.h"
 #include <assert.h>

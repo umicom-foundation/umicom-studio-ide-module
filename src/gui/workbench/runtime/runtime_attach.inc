@@ -6,9 +6,12 @@
  *   Attach/detach the first visible Framework Studio Runtime GTK4 composition
  *   around the established Framework GTK4 adapter.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)

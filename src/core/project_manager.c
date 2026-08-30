@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/core/project_manager.c
+ *
+ * PURPOSE:
+ *   Implement the project manager behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/project_manager.c
  * PURPOSE: Minimal project manager matching the current public header
  *          (project_manager.h): create/free/open/refresh with no UI/status
  *          dependency and no assumptions about Workspace/Index APIs.

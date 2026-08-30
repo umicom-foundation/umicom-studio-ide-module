@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/compiler_interop.c
+ *
+ * PURPOSE:
+ *   Implement the compiler interop behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Polyglot interoperability view v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_interop.h"
 #include <stdio.h>

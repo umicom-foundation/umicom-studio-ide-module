@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/security_approvals.c
+ *
+ * PURPOSE:
+ *   Implement the security approvals behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Security approval administration v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/security_approvals.h"
 UmiStatus umi_studio_security_approval_request(UmiStudioSecurityCentre *centre,const UmiSecurityApproval *approval)

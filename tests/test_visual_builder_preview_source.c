@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_visual_builder_preview_source.c
+ *
+ * PURPOSE:
+ *   Verify the test visual builder preview source behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 preview/source test. Sammy Hegab, Umicom Foundation, MIT. */
 /* BEGINNER NOTE: Preview and visible source share the semantic document revision. */
 #include "umicom/studio/visual_builder_preview.h"

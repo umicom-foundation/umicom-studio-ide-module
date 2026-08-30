@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/integration_designer_api.c
+ *
+ * PURPOSE:
+ *   Implement the integration designer api behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Integration Designer API explorer | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/integration_designer_api.h"
 #include <string.h>

@@ -6,9 +6,12 @@
  *   Present the Framework terminal transcript and execute entered commands via
  *   the canonical Studio command registry.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStudioTerminalService *runtime_terminal_service(

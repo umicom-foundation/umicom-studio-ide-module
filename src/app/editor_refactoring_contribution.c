@@ -6,9 +6,12 @@
  *   Place Framework quick-fix, source-action and refactoring commands and
  *   views in Studio while all operational logic remains Framework-owned.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/editor_refactoring_contribution.h"
 

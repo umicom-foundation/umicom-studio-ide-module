@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/tools/compiler_centre_main.c
+ *
+ * PURPOSE:
+ *   Provide the compiler centre main development utility for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Compiler Centre command | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_catalogue.h"
 #include "umicom/studio/compiler_centre.h"

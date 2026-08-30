@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Verify Studio can persist and restore the shared developer context.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/developer_workbench.h"
 #include "umicom/platform/filesystem.h"

@@ -3,6 +3,21 @@
  * File: src/util/fs/file_index.c
  *
  * PURPOSE:
+ *   Implement the file index behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/fs/file_index.c
+ *
+ * PURPOSE:
  *   Maintain a simple in-memory index of files under a root directory.
  *   - Build the index from disk (recursive scan via fs_walk)
  *   - Refresh it (clear + rescan)

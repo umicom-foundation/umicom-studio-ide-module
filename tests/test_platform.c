@@ -6,9 +6,12 @@
  *   Verify that Studio consumes the Framework toolchain and environment
  *   services without owning a duplicate discovery implementation.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/platform.h"
 

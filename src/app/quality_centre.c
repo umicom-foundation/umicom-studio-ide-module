@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/quality_centre.c
+ *
+ * PURPOSE:
+ *   Implement the quality centre behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Quality Centre v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/quality_centre.h"
 #include <stdlib.h>

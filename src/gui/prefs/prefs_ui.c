@@ -3,6 +3,21 @@
  * File: src/gui/prefs/prefs_ui.c
  *
  * PURPOSE:
+ *   Implement the prefs ui behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/prefs/prefs_ui.c
+ *
+ * PURPOSE:
  *   Modern GTK4 Preferences window (GtkWindow with HeaderBar) that loads/
  *   saves two basic settings (theme + font size) using a simple JSON store
  *   and broadcasts live changes via the settings bus.

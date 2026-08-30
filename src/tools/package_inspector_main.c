@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Provide a native command for inspecting Studio package manifests.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include "umicom/studio/package_project.h"

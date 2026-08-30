@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Render Framework command/menu search as a GTK4 command palette.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_command_palette_refresh(

@@ -6,9 +6,12 @@
  *   Verify that Studio registers real Framework view factories for the unified
  *   workbench and that the Explorer view can be materialised as a presentation.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include <assert.h>

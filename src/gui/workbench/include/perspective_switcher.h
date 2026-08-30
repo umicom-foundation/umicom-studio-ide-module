@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Declare a GTK4 perspective selector backed by the Framework perspective model.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_GTK_PERSPECTIVE_SWITCHER_H

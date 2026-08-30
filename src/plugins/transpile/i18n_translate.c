@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/plugins/transpile/i18n_translate.c
+ *
+ * PURPOSE:
+ *   Implement the i18n translate behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/plugins/transpile/i18n_translate.c
  * PURPOSE:
  *   Build a minimal prompt and call umi_llm_chat_simple(...) to translate text.
  *

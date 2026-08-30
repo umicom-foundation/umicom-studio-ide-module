@@ -3,6 +3,21 @@
  * File: src/gui/theme/theme.c
  *
  * PURPOSE:
+ *   Implement the theme behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/theme/theme.c
+ *
+ * PURPOSE:
  *   Minimal theme application stubs wired to GTK4. Provides the public
  *   functions declared in core/include/theme.h so core code can request a
  *   theme change without depending on GUI internals.

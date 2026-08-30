@@ -7,9 +7,12 @@
  *   working-tree change list. Checkout remains a canonical registered Studio
  *   VCS command and the Framework workspace remains authoritative.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_on_vcs_branch_checkout(

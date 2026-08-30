@@ -6,9 +6,12 @@
  *   Build a command-registry-backed professional developer toolbar. Buttons are
  *   sensitive only when their real Framework command exists and is enabled.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static GtkWidget *runtime_build_toolbar(UmiStudioGtkRuntimeChrome *runtime)

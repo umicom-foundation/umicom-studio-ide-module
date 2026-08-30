@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/util/git/git_integration.c
+ *
+ * PURPOSE:
+ *   Implement the git integration behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/util/platform/win_launcher.c
  * PURPOSE: Implementation of Windows GUI entry/thunk and MSYS-aware spawn
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

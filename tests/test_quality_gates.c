@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_quality_gates.c
+ *
+ * PURPOSE:
+ *   Verify the test quality gates behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE Tests | Combined quality gates v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include "quality_centre_fixture.h"

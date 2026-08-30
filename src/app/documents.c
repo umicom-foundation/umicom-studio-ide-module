@@ -6,9 +6,12 @@
  *   Implement Studio document creation, opening, atomic saving, session
  *   tracking and crash-recovery checkpoints through Framework services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/documents.h"
 

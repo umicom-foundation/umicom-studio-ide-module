@@ -6,9 +6,12 @@
  *   Verify compile-time Studio version metadata, runtime Studio version data
  *   and Framework ABI contract metadata remain internally consistent.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/runtime/contract.h"
 #include "umicom/studio/version.h"

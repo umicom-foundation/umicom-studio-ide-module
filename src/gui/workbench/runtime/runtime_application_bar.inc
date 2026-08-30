@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Create a compact professional application bar with command/layout search.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_on_commands_clicked(GtkButton *button, gpointer user_data)

@@ -3,6 +3,21 @@
  * File: src/gui/app/window_chat_integration.c
  *
  * PURPOSE:
+ *   Implement the window chat integration behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/app/window_chat_integration.c
+ *
+ * PURPOSE:
  *   Wire the Chat pane into the main window and register an application
  *   action "app.toggle-chat" that shows/hides the right-side box.
  *   Pure C; no CSS or style classes.

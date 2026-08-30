@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_diagnostics_pipeline.c
+ *
+ * PURPOSE:
+ *   Verify the test diagnostics pipeline behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Verify Studio composes the Framework-owned diagnostics and output pipeline. */
 #include <assert.h>
 #include <string.h>

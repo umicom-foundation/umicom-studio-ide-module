@@ -6,9 +6,12 @@
  *   Verify that Studio owns one shared Framework container for diagnostics,
  *   settings, clock, tasks, documents, sessions and crash recovery.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/services.h"
 

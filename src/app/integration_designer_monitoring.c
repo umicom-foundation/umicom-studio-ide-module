@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/integration_designer_monitoring.c
+ *
+ * PURPOSE:
+ *   Implement the integration designer monitoring behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Integration Designer monitoring | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/integration_designer_monitoring.h"
 #include <string.h>

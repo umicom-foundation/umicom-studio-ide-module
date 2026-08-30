@@ -6,9 +6,12 @@
  *   Create a Visual Studio/VS Code/TWS-style activity rail backed by real
  *   Framework commands.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static GtkWidget *runtime_build_activity_bar(

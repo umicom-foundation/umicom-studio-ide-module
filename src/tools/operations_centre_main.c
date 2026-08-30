@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/tools/operations_centre_main.c
+ *
+ * PURPOSE:
+ *   Provide the operations centre main development utility for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Native Operations Centre v2 command | Sammy Hegab | Umicom Foundation | MIT */
 #include <stdio.h>
 #include "umicom/studio/bootstrap.h"

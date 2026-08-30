@@ -1,9 +1,27 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: tests/test_editor_refactoring_contribution.c
+ *
+ * PURPOSE:
+ *   Verify the test editor refactoring contribution behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: applications/studio/tests/test_editor_refactoring_contribution.c
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include <string.h>

@@ -7,9 +7,12 @@
  *   These catalogues contain only frontend metadata; commands, IDE behavior,
  *   semantic layouts and surface identity remain authoritative in Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 typedef enum UmiStudioGtkRuntimeRegion {

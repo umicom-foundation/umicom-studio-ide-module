@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/telemetry.c
+ *
+ * PURPOSE:
+ *   Implement the telemetry behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/telemetry.c
  * PURPOSE: In-memory counters with GHashTable (no persistence)
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

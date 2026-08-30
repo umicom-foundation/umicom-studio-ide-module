@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_visual_builder_centre.c
+ *
+ * PURPOSE:
+ *   Verify the test visual builder centre behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 centre test. Sammy Hegab, Umicom Foundation, MIT. */
 /* BEGINNER NOTE: The centre exposes one Framework-owned authoring session. */
 #include "umicom/studio/visual_builder_centre.h"

@@ -3,6 +3,21 @@
  * File: src/ui/resources/ustudio_resources.c
  *
  * PURPOSE:
+ *   Implement the ustudio resources behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/ui/resources/ustudio_resources.c
+ *
+ * PURPOSE:
  *   Pure-C resource loader (no glib-compile-resources). In "no-CSS" mode,
  *   the app uses only platform/native styling (no external stylesheets).
  *

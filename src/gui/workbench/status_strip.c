@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Render visible Framework status items as a GTK4 horizontal status strip.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "status_strip.h"

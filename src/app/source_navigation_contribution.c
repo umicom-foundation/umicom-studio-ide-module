@@ -6,9 +6,12 @@
  *   Place Framework source-navigation commands in Studio's Navigate and View
  *   menus while Framework remains the sole owner of command behaviour.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/source_navigation_contribution.h"
 

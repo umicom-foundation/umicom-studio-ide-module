@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/integration_designer_commands.c
+ *
+ * PURPOSE:
+ *   Implement the integration designer commands behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Integration Designer commands | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/integration_designer_commands.h"
 #include "umicom/studio/integration_designer_api.h"

@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/frontend_studio_inspector.c
+ *
+ * PURPOSE:
+ *   Implement the frontend studio inspector behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/frontend_studio_inspector.h"
 static UmiFrontendStudio *service(UmiStudioWebPlatform *p){return umi_studio_web_platform_frontend_studio(p);}

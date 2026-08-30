@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_universal_development.c
+ *
+ * PURPOSE:
+ *   Verify the test universal development behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio thin universal-development composition regression test.
  * All executable language, project and toolchain logic remains in Framework.
  * Created by Sammy Hegab, Umicom Foundation. Licence: MIT. */

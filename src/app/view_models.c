@@ -6,9 +6,12 @@
  *   Project authoritative Framework service state into bounded Studio view models
  *   without storing GTK4 widgets in application state.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/view_models.h"

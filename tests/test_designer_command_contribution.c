@@ -6,9 +6,12 @@
  *   Verify the two reusable Framework Designer commands that Studio publishes
  *   alongside its own core and workbench command sets.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/platform_contract.h"
 

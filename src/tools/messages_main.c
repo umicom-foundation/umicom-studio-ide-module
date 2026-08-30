@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Provide a native Studio Integration Fabric command for typed publication, subscriptions, delivery and operational reporting.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/messages.h"

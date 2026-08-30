@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/util/log/logging.c
+ *
+ * PURPOSE:
+ *   Implement the logging behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File:  src/util/log/logging.c
  * PURPOSE: UI-friendly logging helpers (pure C, GTK4) with idle dispatch
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-08 | MIT

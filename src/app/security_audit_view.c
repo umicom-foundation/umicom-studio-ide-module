@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/security_audit_view.c
+ *
+ * PURPOSE:
+ *   Implement the security audit view behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Security audit view v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/security_audit_view.h"
 

@@ -6,9 +6,12 @@
  *   Compose Studio's Test Explorer over the professional Framework session and
  *   contribute Framework commands and views to the Studio workbench.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/test_explorer_centre.h"
 

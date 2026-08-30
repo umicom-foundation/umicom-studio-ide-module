@@ -2,9 +2,12 @@
  * Umicom Studio IDE Tests
  * File: applications/studio/tests/test_helix_agent_views.c
  * PURPOSE: Verify Studio publishes Helix v2 operational pane models.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include <string.h>

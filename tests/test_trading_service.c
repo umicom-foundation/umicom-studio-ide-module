@@ -6,9 +6,12 @@
  *   Verify Studio owns a deterministic, simulation-first Framework trading
  *   workspace and never reports broker or live readiness by default.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include <assert.h>

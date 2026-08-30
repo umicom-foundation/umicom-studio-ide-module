@@ -81,24 +81,7 @@ UmiStatus umi_studio_application_surface_controllers_register(
     UmiApplicationPresentationSurfaceRuntime *runtime,
     void *context)
 {
-    static const char *const COMPONENTS[] = {
-        "umicom.development.editor",
-        "umicom.development.explorer",
-        "umicom.development.designer",
-        "umicom.development.build",
-        "umicom.development.debug",
-        "umicom.development.testing",
-        "umicom.development.source-control",
-        "umicom.development.terminal",
-        "umicom.ai.chat",
-        "umicom.shared.diagnostics"};
-    size_t index;
     if (runtime == NULL) return UMI_STATUS_INVALID_ARGUMENT;
-    for (index = 0U; index < sizeof(COMPONENTS) / sizeof(COMPONENTS[0]); ++index) {
-        UmiStatus status =
-            umi_application_presentation_surface_runtime_register_controller(
-                runtime, COMPONENTS[index], studio_controller, context);
-        if (status != UMI_STATUS_OK) return status;
-    }
-    return UMI_STATUS_OK;
+    return umi_application_presentation_surface_runtime_register_controller_for_all(
+        runtime, studio_controller, context);
 }

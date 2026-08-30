@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_visual_builder_drag_drop.c
+ *
+ * PURPOSE:
+ *   Verify the test visual builder drag drop behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 drag/drop test. Sammy Hegab, Umicom Foundation, MIT. */
 /* BEGINNER NOTE: Completed drops become undoable semantic edits. */
 #include "umicom/studio/visual_builder_drag_drop.h"

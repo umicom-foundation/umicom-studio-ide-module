@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Project the Framework runtime catalogue into Studio-facing application summary rows.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/application_runtime_centre.h"

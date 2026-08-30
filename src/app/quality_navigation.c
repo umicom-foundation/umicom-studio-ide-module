@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/quality_navigation.c
+ *
+ * PURPOSE:
+ *   Implement the quality navigation behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Quality source navigation | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/quality_navigation.h"
 #include "umicom/studio/quality_evidence.h"

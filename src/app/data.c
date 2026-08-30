@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement Studio persistence operations through Framework Data Server, transaction, integrity and migration contracts without exposing database handles to Studio panes or controllers.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/data.h"
 

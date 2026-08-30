@@ -6,9 +6,12 @@
  *   Publish structured compiler/test diagnostics and raw output to the
  *   toolkit-neutral Studio workbench registries.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/build_workbench.h"
 

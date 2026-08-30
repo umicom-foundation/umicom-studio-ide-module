@@ -6,9 +6,12 @@
  *   Prove that Studio contributes each Framework debugger command exactly once
  *   and exposes only thin workbench placement for Framework-owned models.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include <string.h>

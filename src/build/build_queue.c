@@ -1,4 +1,19 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/build/build_queue.c
+ *
+ * PURPOSE:
+ *   Implement the build queue behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE (USIDE)
  * File: src/build/build_queue.c
  * PURPOSE: Build queue callbacks

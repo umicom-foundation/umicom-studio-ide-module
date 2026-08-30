@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/core/umi_log.c
+ *
+ * PURPOSE:
+ *   Implement the umi log behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/umi_log.c
  * PURPOSE: Implementation for tiny logging shim (see umi_log.h)
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-08 | MIT
  *---------------------------------------------------------------------------*/

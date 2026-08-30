@@ -6,9 +6,12 @@
  *   Enforce Studio workspace trust and delegate asynchronous child-process
  *   lifecycle to the shared Framework process supervisor.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/processes.h"
 

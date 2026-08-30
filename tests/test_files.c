@@ -6,9 +6,12 @@
  *   Verify trusted workspace file creation, reading, appending, renaming,
  *   deletion, index maintenance and path-escape protection.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/files.h"
 #include "umicom/studio/workspace.h"

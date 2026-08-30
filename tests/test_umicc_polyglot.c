@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_umicc_polyglot.c
+ *
+ * PURPOSE:
+ *   Verify the test umicc polyglot behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Batch 58 test | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/polyglot_workspace.h"
 #include "umicom/studio/umicc_integration.h"

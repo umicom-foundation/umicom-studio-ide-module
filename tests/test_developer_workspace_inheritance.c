@@ -6,9 +6,12 @@
  *   Verify Project Centre composes Framework-owned group/project settings and
  *   variables without duplicating inheritance logic in the Studio product.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdint.h>
 #include <string.h>

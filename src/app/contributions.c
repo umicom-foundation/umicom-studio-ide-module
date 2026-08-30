@@ -7,9 +7,12 @@
  *   layout models using toolkit-neutral Framework records. Batch 23 also
  *   exposes one primary-sidebar pane for every unified Activity Bar area.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* BEGINNER NOTE:

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement Studio typed publication, schema-aware dispatch, journal persistence, transactional outbox delivery, dead-letter retention and metrics through Framework services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/messages.h"
 

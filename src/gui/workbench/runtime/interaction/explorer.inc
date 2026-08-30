@@ -6,9 +6,12 @@
  *   Turn the existing Framework UmiFileIndex into a clickable GTK Explorer.
  *   Indexing, path ownership and document loading remain Framework-owned.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_explorer_open_path(

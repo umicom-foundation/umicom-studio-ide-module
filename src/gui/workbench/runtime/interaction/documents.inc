@@ -6,9 +6,12 @@
  *   Provide operational New/Open/Save/Save As/Close behavior over the existing
  *   Framework DocumentCoordinator.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStatus runtime_document_new(

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Route GTK user intent into the authoritative Framework Studio runtime.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStatus runtime_refresh_services(UmiStudioGtkRuntimeChrome *runtime);

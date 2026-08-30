@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Configure Studio Windows and Linux installer-generation plans.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/installer_centre.h"
 #include <string.h>

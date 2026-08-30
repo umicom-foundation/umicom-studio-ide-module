@@ -7,9 +7,12 @@
  *   destroying/recreating interactive widgets on the timer so typed terminal,
  *   Git commit, Explorer search and AI prompt text cannot disappear.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_refresh_interactive_panels(

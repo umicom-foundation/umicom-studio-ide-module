@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/compiler_views.c
+ *
+ * PURPOSE:
+ *   Implement the compiler views behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Compiler Centre views v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_views.h"
 #include <string.h>

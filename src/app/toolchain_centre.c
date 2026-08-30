@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/toolchain_centre.c
  * PURPOSE: Implement Studio composition for Framework toolchain services.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/toolchain_centre.h"
 

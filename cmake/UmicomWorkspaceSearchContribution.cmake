@@ -6,9 +6,12 @@
 #   Add the thin Studio placement contribution for Framework-owned workspace
 #   search and replace capabilities, plus its architecture-boundary test.
 #
-# Created by: Sammy Hegab
-# Organisation: Umicom Foundation
-# Licence: MIT
+# AUTHOR AND ORGANISATION:
+#   Sammy Hegab
+#   Umicom Foundation
+#
+# LICENCE:
+#   MIT
 #-----------------------------------------------------------------------------
 
 if(NOT TARGET umicom_studio_core)

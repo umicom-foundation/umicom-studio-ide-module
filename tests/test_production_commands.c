@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_production_commands.c
+ *
+ * PURPOSE:
+ *   Verify the test production commands behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE production control-plane test | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include "umicom/studio/production_commands.h"

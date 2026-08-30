@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/editor/keymap.c
+ *
+ * PURPOSE:
+ *   Implement the keymap behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/editor/keymap.c
  * PURPOSE: Centralized keybinding table + callbacks (GTK4, action-based)
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-08 | MIT
  *---------------------------------------------------------------------------*/

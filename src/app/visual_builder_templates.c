@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Coordinate Studio visual-builder templates through the Framework API.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/visual_builder_templates.h"
 

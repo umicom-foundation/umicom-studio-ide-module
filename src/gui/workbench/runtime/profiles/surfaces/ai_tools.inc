@@ -6,9 +6,12 @@
  *   Declarative GTK presentation metadata for the Framework AI Tool Activity surface.
  *   The reusable surface identity and behaviour remain Framework-owned.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 UMI_STUDIO_GTK_SURFACE_PROFILE(
     UMI_STUDIO_SURFACE_AI_TOOLS,

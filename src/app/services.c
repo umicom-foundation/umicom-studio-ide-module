@@ -7,9 +7,12 @@
  *   Typed settings are created first so their validated values can configure
  *   later services, including the retained diagnostic-store capacity.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/services.h"
 

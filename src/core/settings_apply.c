@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/settings_apply.c
+ *
+ * PURPOSE:
+ *   Implement the settings apply behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/settings_apply.c
  * PURPOSE: Implementation of settings broadcast
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

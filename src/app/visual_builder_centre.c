@@ -1,6 +1,26 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/visual_builder_centre.c
+ *
+ * PURPOSE:
+ *   Implement the visual builder centre behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE - Visual Application Builder v2 composition centre
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/visual_builder_centre.h"
 #include <stdlib.h>

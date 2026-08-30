@@ -6,9 +6,12 @@
  *   Provide a native Studio platform report that calls the same Framework
  *   services used by the `umicom` command and future GTK4 environment page.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/platform.h"
 

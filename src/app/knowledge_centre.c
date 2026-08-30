@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/knowledge_centre.c
  * PURPOSE: Implement Studio collection, ingestion, search and archive adapters.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/knowledge_centre.h"
 

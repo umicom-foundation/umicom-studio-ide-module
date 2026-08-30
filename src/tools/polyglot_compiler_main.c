@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/tools/polyglot_compiler_main.c
+ *
+ * PURPOSE:
+ *   Provide the polyglot compiler main development utility for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Polyglot compiler command | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_centre.h"
 #include "umicom/studio/compiler_export.h"

@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_visual_builder_interactions.c
+ *
+ * PURPOSE:
+ *   Verify the test visual builder interactions behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 interaction test. Sammy Hegab, Umicom Foundation, MIT. */
 /* BEGINNER NOTE: Named command mappings are portable across frontends. */
 #include "umicom/studio/visual_builder_interactions.h"

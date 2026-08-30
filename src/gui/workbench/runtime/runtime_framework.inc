@@ -6,9 +6,12 @@
  *   Construct the Framework Studio Runtime over the already-authoritative Studio
  *   UI/services. No duplicate document, test or language service is created.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStatus runtime_prepare_session_path(

@@ -6,9 +6,12 @@
  *   Present GTK-only text prompts while routing accepted values back into the
  *   Framework command/service boundary. The prompt owns no developer behavior.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 typedef UmiStatus (*UmiStudioGtkPromptAccepted)(

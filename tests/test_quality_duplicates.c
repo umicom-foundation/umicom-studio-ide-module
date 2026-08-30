@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_quality_duplicates.c
+ *
+ * PURPOSE:
+ *   Verify the test quality duplicates behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE Tests | Duplicate review v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include "quality_centre_fixture.h"

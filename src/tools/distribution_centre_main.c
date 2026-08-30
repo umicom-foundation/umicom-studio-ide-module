@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Provide a native command for inspecting complete release readiness.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include "umicom/studio/distribution_centre.h"

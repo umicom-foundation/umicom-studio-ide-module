@@ -6,9 +6,12 @@
  *   Place the Framework editor-intelligence runtime in Studio workbench regions
  *   and supply bounded Studio search-index capacity policy.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/editor_intelligence_workbench_contribution.h"
 

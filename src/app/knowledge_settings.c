@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/knowledge_settings.c
  * PURPOSE: Read validated Knowledge Centre settings into AI platform config.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/knowledge_settings.h"
 

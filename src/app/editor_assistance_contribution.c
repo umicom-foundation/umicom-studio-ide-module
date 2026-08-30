@@ -6,9 +6,12 @@
  *   Place Framework editor-assistance commands and views in Studio while all
  *   models, validation, navigation and documentation logic stay Framework-owned.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/editor_assistance_contribution.h"
 

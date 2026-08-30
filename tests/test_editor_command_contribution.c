@@ -1,4 +1,19 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_editor_command_contribution.c
+ *
+ * PURPOSE:
+ *   Verify the test editor command contribution behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio thin Framework editor command contribution tests.
  * Created by Sammy Hegab, Umicom Foundation. Licence: MIT.
  *---------------------------------------------------------------------------*/

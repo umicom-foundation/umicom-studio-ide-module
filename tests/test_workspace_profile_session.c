@@ -6,9 +6,12 @@
  *   Verify that a protected custom layout survives Studio's normal session
  *   save/restore lifecycle and is available before its active ID is applied.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/umicom.h"

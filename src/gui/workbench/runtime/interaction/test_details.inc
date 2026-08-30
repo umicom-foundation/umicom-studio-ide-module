@@ -6,9 +6,12 @@
  *   Project detailed Framework Test Platform result, coverage and output
  *   registries into professional Test Explorer evidence panes.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_text_view_set(

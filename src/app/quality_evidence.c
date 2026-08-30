@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/quality_evidence.c
+ *
+ * PURPOSE:
+ *   Implement the quality evidence behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Quality evidence composition | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/quality_evidence.h"
 #include <string.h>

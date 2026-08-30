@@ -3,6 +3,21 @@
  * File: src/gui/chrome/status_bar.c
  *
  * PURPOSE:
+ *   Implement the status bar behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/chrome/status_bar.c
+ *
+ * PURPOSE:
  *   Minimal status bar (GTK4) with set() and flash(ms) helpers. No CSS used.
  *
  * DESIGN:

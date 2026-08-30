@@ -6,9 +6,12 @@
  *   Create Studio's simulation-first professional trading workspace and seed
  *   deterministic market evidence for immediate, offline-safe exploration.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/trading.h"

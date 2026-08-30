@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement Studio task browsing and task-to-pipeline submission.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/developer_task_centre.h"
 

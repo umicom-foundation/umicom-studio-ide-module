@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/compiler_export.c
+ *
+ * PURPOSE:
+ *   Implement the compiler export behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Compiler export v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_export.h"
 #include <stdio.h>

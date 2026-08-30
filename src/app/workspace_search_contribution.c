@@ -6,9 +6,12 @@
  *   Place Framework workspace-search commands and view contracts in the Studio
  *   product shell. All operational behaviour remains in Umicom Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/workspace_search_contribution.h"
 

@@ -6,9 +6,12 @@
  *   Verify Studio's Project Centre exposes non-destructive CMake discovery and
  *   preserves the last refresh plan in its product-facing snapshot.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdint.h>
 #include <string.h>

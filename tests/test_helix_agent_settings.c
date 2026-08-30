@@ -2,9 +2,12 @@
  * Umicom Studio IDE Tests
  * File: applications/studio/tests/test_helix_agent_settings.c
  * PURPOSE: Verify typed Helix v2 governance defaults configure Studio.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include "umicom/studio/helix_agent_settings.h"

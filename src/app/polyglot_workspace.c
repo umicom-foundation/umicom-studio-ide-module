@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/polyglot_workspace.c
+ *
+ * PURPOSE:
+ *   Implement the polyglot workspace behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Polyglot workspace v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/polyglot_workspace.h"
 #include <stdio.h>

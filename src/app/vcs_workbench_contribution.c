@@ -6,9 +6,12 @@
  *   Define Studio-only placement for the Framework VCS workbench. Runtime,
  *   comparison, merge, staging and review behaviour stays in Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/vcs_workbench_contribution.h"
 

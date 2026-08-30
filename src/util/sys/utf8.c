@@ -3,6 +3,21 @@
  * File: src/util/sys/utf8.c
  *
  * PURPOSE:
+ *   Implement the utf8 behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/sys/utf8.c
+ *
+ * PURPOSE:
  *   UTF-8 helpers (case-insensitive substring match) using GLib case folding.
  *
  * API:

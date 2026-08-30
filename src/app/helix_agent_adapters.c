@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/helix_agent_adapters.c
  * PURPOSE: Implement policy-aware Studio callbacks for Helix v2 actions.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/helix_agent_adapters.h"
 

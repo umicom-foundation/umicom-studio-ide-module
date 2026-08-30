@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/proj_templates.c
+ *
+ * PURPOSE:
+ *   Implement the proj templates behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/proj_templates.c
  * PURPOSE: Write tiny Hello World templates for C/C++/Python
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

@@ -6,9 +6,12 @@
  *   Verify that canonical Studio commands are registered once and execute
  *   through the Framework command registry without a graphical frontend.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/commands.h"
 #include "umicom/studio/bootstrap.h"

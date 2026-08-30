@@ -3,6 +3,21 @@
  * File: src/editor/editor.c
  *
  * PURPOSE:
+ *   Implement the editor behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/editor/editor.c
+ *
+ * PURPOSE:
  *   Build a composite editor UI consisting of:
  *     - a Notebook with “Output” and “Problems” tabs (top area),
  *     - a placeholder bottom area for the future code-editor view,

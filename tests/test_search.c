@@ -6,9 +6,12 @@
  *   Verify file-name and bounded text search through Studio's shared Framework
  *   workspace index.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/search.h"
 #include "umicom/studio/workspace.h"

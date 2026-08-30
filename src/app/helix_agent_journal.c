@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/helix_agent_journal.c
  * PURPOSE: Implement read-only Studio access to the Helix v2 journal.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/helix_agent_journal.h"
 

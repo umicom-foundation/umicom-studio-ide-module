@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/llm/studio_codestral_fim.c
+ *
+ * PURPOSE:
+ *   Implement the studio codestral fim behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/llm/studio_codestral_fim.c
  * PURPOSE: Utilities for "Fill-In-the-Middle" (FIM) prompt shaping used by
  *          code models (e.g., Codestral).  Provides helpers to:
  *            - split a buffer at caret/cursor

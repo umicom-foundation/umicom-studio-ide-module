@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Declare the private GTK4 host for the Framework-backed Studio workbench and its context-link integration.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_GTK_WORKBENCH_WINDOW_H

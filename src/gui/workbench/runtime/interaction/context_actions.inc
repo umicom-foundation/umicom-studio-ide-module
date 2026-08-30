@@ -7,9 +7,12 @@
  *   professional tool panels. Profiles only place commands; the real command
  *   registry remains authoritative for existence, enablement and execution.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_on_context_action(

@@ -6,9 +6,12 @@
  *   Provide a small GTK confirmation presenter for destructive UI decisions.
  *   The underlying close/discard behavior continues to live in Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 typedef UmiStatus (*UmiStudioGtkConfirmAccepted)(

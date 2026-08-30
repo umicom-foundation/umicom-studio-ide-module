@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Verify Studio Language Server Protocol initialisation, document sync and completion requests.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/language.h"
 

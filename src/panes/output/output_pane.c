@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/panes/output/output_pane.c
+ *
+ * PURPOSE:
+ *   Implement the output pane behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/output_pane.c
  * PURPOSE: Implements a scrollable text console for build/run output
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

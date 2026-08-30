@@ -1,4 +1,19 @@
-﻿/*-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/panes/output/output_pane_adapter.c
+ *
+ * PURPOSE:
+ *   Implement the output pane adapter behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/panes/output/output_pane_adapter.c
  * PURPOSE:

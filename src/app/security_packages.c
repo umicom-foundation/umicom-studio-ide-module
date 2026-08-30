@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/security_packages.c
+ *
+ * PURPOSE:
+ *   Implement the security packages behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Package signing trust v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/security_packages.h"
 

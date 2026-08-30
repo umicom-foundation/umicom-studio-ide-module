@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/integration_designer_centre.c
+ *
+ * PURPOSE:
+ *   Implement the integration designer centre behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Integration Designer centre | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/integration_designer_centre.h"
 #include <stdlib.h>

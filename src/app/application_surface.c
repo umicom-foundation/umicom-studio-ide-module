@@ -20,11 +20,18 @@
 #include "umicom/studio/application_surface_controllers.h"
 
 struct UmiStudioApplicationSurface {
-    UmiApplicationPresentationSurfaceRuntime runtime;
-    UmiApplicationPresentationHeadlessSurfaceHost headless;
+    UmiApplicationPresentationProductSurface product;
 };
 
 UmiStatus umi_studio_application_surface_create(
+    UmiStudioApplicationSurface **out_surface)
+{
+    return umi_studio_application_surface_create_for_audience(
+        UMI_APPLICATION_COMPONENT_RECIPE_AUDIENCE_STANDARD, out_surface);
+}
+
+UmiStatus umi_studio_application_surface_create_for_audience(
+    UmiApplicationComponentRecipeAudience audience,
     UmiStudioApplicationSurface **out_surface)
 {
     UmiStudioApplicationSurface *surface;
@@ -33,24 +40,12 @@ UmiStatus umi_studio_application_surface_create(
     *out_surface = NULL;
     surface = calloc(1U, sizeof(*surface));
     if (surface == NULL) return UMI_STATUS_OUT_OF_MEMORY;
-    status = umi_application_presentation_surface_runtime_init(
-        UMI_STUDIO_STANDARD_RECIPE_ID, &surface->runtime);
-    if (status == UMI_STATUS_OK) {
-        umi_application_presentation_headless_surface_host_init(
-            &surface->headless);
-        status = umi_application_presentation_surface_runtime_bind_host(
-            &surface->runtime,
-            umi_application_presentation_headless_surface_host_interface(
-                &surface->headless));
-    }
-    if (status == UMI_STATUS_OK) {
-        status = umi_studio_application_surface_controllers_register(
-            &surface->runtime, surface);
-    }
-    if (status == UMI_STATUS_OK) {
-        status = umi_application_presentation_surface_runtime_start(
-            &surface->runtime);
-    }
+    status = umi_application_presentation_product_surface_init_for_audience(
+        UMI_STUDIO_APPLICATION_ID,
+        audience,
+        umi_studio_application_surface_controllers_register,
+        surface,
+        &surface->product);
     if (status != UMI_STATUS_OK) {
         umi_studio_application_surface_destroy(surface);
         return status;
@@ -63,7 +58,7 @@ void umi_studio_application_surface_destroy(
     UmiStudioApplicationSurface *surface)
 {
     if (surface == NULL) return;
-    (void)umi_application_presentation_surface_runtime_stop(&surface->runtime);
+    umi_application_presentation_product_surface_dispose(&surface->product);
     free(surface);
 }
 
@@ -71,8 +66,28 @@ UmiStatus umi_studio_application_surface_refresh(
     UmiStudioApplicationSurface *surface)
 {
     return surface != NULL
-        ? umi_application_presentation_surface_runtime_refresh_all(
-              &surface->runtime)
+        ? umi_application_presentation_product_surface_refresh(
+              &surface->product)
+        : UMI_STATUS_INVALID_ARGUMENT;
+}
+
+UmiStatus umi_studio_application_surface_activate(
+    UmiStudioApplicationSurface *surface,
+    const char *component_id)
+{
+    return surface != NULL
+        ? umi_application_presentation_product_surface_activate(
+              &surface->product, component_id)
+        : UMI_STATUS_INVALID_ARGUMENT;
+}
+
+UmiStatus umi_studio_application_surface_deactivate(
+    UmiStudioApplicationSurface *surface,
+    const char *component_id)
+{
+    return surface != NULL
+        ? umi_application_presentation_product_surface_deactivate(
+              &surface->product, component_id)
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
@@ -81,8 +96,8 @@ UmiStatus umi_studio_application_surface_focus(
     const char *component_id)
 {
     return surface != NULL
-        ? umi_application_presentation_surface_runtime_focus(
-              &surface->runtime, component_id)
+        ? umi_application_presentation_product_surface_focus(
+              &surface->product, component_id)
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
@@ -92,8 +107,39 @@ UmiStatus umi_studio_application_surface_command(
     const char *command_id)
 {
     return surface != NULL
-        ? umi_application_presentation_surface_runtime_command(
-              &surface->runtime, component_id, command_id)
+        ? umi_application_presentation_product_surface_command(
+              &surface->product, component_id, command_id)
+        : UMI_STATUS_INVALID_ARGUMENT;
+}
+
+UmiStatus umi_studio_application_surface_context_changed(
+    UmiStudioApplicationSurface *surface,
+    const char *component_id,
+    const char *context_value)
+{
+    return surface != NULL
+        ? umi_application_presentation_product_surface_context_changed(
+              &surface->product, component_id, context_value)
+        : UMI_STATUS_INVALID_ARGUMENT;
+}
+
+UmiStatus umi_studio_application_surface_advance(
+    UmiStudioApplicationSurface *surface,
+    uint32_t elapsed_seconds)
+{
+    return surface != NULL
+        ? umi_application_presentation_product_surface_advance(
+              &surface->product, elapsed_seconds)
+        : UMI_STATUS_INVALID_ARGUMENT;
+}
+
+UmiStatus umi_studio_application_surface_set_background(
+    UmiStudioApplicationSurface *surface,
+    int background)
+{
+    return surface != NULL
+        ? umi_application_presentation_product_surface_set_background(
+              &surface->product, background)
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
@@ -102,20 +148,26 @@ UmiStatus umi_studio_application_surface_snapshot(
     UmiApplicationPresentationSurfaceSnapshot *out_snapshot)
 {
     return surface != NULL
-        ? umi_application_presentation_surface_runtime_snapshot(
-              &surface->runtime, out_snapshot)
+        ? umi_application_presentation_product_surface_snapshot(
+              &surface->product, out_snapshot)
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
 UmiApplicationPresentationSurfaceRuntime *
 umi_studio_application_surface_runtime(UmiStudioApplicationSurface *surface)
 {
-    return surface != NULL ? &surface->runtime : NULL;
+    return surface != NULL
+        ? umi_application_presentation_product_surface_runtime(
+              &surface->product)
+        : NULL;
 }
 
 const UmiApplicationPresentationSurfaceRuntime *
 umi_studio_application_surface_runtime_const(
     const UmiStudioApplicationSurface *surface)
 {
-    return surface != NULL ? &surface->runtime : NULL;
+    return surface != NULL
+        ? umi_application_presentation_product_surface_runtime_const(
+              &surface->product)
+        : NULL;
 }

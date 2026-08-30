@@ -3,6 +3,21 @@
  * File: src/util/sys/msys_env.c
  *
  * PURPOSE:
+ *   Implement the msys env behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/sys/msys_env.c
+ *
+ * PURPOSE:
  *   Discover MSYS/MinGW roots on Windows and build a PATH prefix hint for
  *   spawning tools that require those runtimes.
  *

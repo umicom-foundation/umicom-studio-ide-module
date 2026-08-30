@@ -6,9 +6,12 @@
  *   Provide TWS-inspired one-click workspace/layout tabs at the bottom of the
  *   Studio workbench.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static GtkWidget *runtime_build_layout_tabs(

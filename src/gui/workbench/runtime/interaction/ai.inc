@@ -7,9 +7,12 @@
  *   directly usable from the GTK4 workbench while retaining approval and patch
  *   policy inside Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static char *runtime_text_view_copy_all(GtkWidget *text_view)

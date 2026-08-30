@@ -1,6 +1,26 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/database_explorer_centre.c
+ *
+ * PURPOSE:
+ *   Implement the database explorer centre behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE - Database Explorer composition centre
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/database_explorer_centre.h"
 #include <stdlib.h>

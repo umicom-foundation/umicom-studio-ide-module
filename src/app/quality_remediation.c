@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/quality_remediation.c
+ *
+ * PURPOSE:
+ *   Implement the quality remediation behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Quality remediation guidance | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/quality_remediation.h"
 UmiStatus umi_studio_quality_remediation_refresh(UmiStudioQualityCentre *centre)

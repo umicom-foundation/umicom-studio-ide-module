@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement the Project Centre composition.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/project_centre.h"
 #include "umicom/platform/path.h"

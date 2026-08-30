@@ -6,9 +6,12 @@
  *   Render professional Threads, Call Stack, Variables, Watches and Breakpoints
  *   directly from the Framework UmiDebugWorkspace typed snapshot APIs.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiDebugWorkspace *runtime_debug_workspace(

@@ -3,6 +3,21 @@
  * File: src/gui/app/app.c
  *
  * PURPOSE:
+ *   Implement the app behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/app/app.c
+ *
+ * PURPOSE:
  *   Application shell: create/manage the GtkApplication and main window.
  *   This module handles:
  *     - Creating and initializing the GtkApplication

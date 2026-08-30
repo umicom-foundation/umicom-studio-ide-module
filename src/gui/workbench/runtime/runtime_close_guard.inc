@@ -6,9 +6,12 @@
  *   Present Framework close-safety evidence before Studio exits. The dialog is
  *   GTK-only; dirty-document and running-operation rules remain Framework-owned.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_close_confirmed(GtkButton *button, gpointer user_data)

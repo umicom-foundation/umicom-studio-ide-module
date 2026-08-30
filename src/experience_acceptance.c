@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Compose Framework journey audit and evidence into thin product readiness.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/experience_acceptance.h"
 #include <string.h>

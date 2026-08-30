@@ -6,9 +6,12 @@
  *   Compose Framework security, plug-in, observability and resilience services
  *   into one product-owned lifetime boundary used by Studio tools and frontends.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/operations.h"
 

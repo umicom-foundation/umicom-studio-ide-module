@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement Studio operational-history serialisation and ordered reads over the Framework durable message store.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/history.h"
 

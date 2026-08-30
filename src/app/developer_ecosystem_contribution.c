@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/developer_ecosystem_contribution.c
  * PURPOSE: Place Framework ecosystem commands and views in Studio.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/developer_ecosystem_contribution.h"
 

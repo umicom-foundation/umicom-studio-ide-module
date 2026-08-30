@@ -6,9 +6,12 @@
  *   Adapt Framework-owned desktop context links to Studio. All group policy,
  *   roles and membership remain reusable Umicom Framework definitions.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/workspace_groups.h"
 

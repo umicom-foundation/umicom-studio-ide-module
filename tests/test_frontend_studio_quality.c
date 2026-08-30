@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_frontend_studio_quality.c
+ *
+ * PURPOSE:
+ *   Verify the test frontend studio quality behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE Tests | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include "umicom/studio/frontend_studio_centre.h"

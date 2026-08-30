@@ -6,9 +6,12 @@
  *   Render workspace identity, trust and indexed-file counts from Framework
  *   services without performing filesystem operations in the widget.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "project_explorer_view.h"

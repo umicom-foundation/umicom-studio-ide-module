@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/tools/visual_builder_main.c
  * PURPOSE: Inspect the native Visual Application Builder v2 composition.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: This command exercises the same services used by graphical frontends. */
 #include "umicom/studio/visual_builder_centre.h"

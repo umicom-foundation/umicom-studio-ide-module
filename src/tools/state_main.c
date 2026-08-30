@@ -6,9 +6,12 @@
  *   Provide a native C23 operational-state command for inspecting Studio's
  *   Framework registries and executing canonical Studio commands without GTK4.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/state.h"
 

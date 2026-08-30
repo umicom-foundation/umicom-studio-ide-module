@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/workspace.c
+ *
+ * PURPOSE:
+ *   Implement the workspace behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/workspace.c
  * PURPOSE: Implementation of workspace root + persistence
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

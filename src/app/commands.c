@@ -7,9 +7,12 @@
  *   menus, shortcuts, command palettes, consoles and automation use the same
  *   typed command identifiers and handlers.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/commands.h"
 #include "umicom/studio/knowledge_commands.h"

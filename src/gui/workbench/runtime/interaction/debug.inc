@@ -6,9 +6,12 @@
  *   Present operational debugger controls over the existing Studio DAP service.
  *   Thread commands are routed through the canonical command registry.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static const char *runtime_debug_thread_argument(

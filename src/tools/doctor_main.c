@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/tools/doctor_main.c
+ *
+ * PURPOSE:
+ *   Provide the doctor main development utility for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: applications/studio/src/tools/doctor_main.c
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/doctor.h"

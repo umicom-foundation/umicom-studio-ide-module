@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/fs/file_tree.c
+ *
+ * PURPOSE:
+ *   Implement the file tree behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------- 
  * Umicom Studio IDE
  * File: src/util/fs/file_tree.c

@@ -6,9 +6,12 @@
  *   Render authoritative DocumentCoordinator working copies as a compact tab
  *   strip above the existing Framework GTK4 editor/workbench renderer.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_on_document_tab(GtkButton *button, gpointer user_data)

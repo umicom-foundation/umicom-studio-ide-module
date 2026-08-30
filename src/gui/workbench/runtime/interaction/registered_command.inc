@@ -7,9 +7,12 @@
  *   UmiCommandRegistry. GTK never calls developer business logic directly when
  *   a registered command already exists.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiCommandRegistry *runtime_registered_commands(

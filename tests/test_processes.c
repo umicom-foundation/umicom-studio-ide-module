@@ -6,9 +6,12 @@
  *   Verify trusted-workspace process submission, waiting, output capture and
  *   rejection when a workspace is untrusted.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/processes.h"
 #include "umicom/studio/workspace.h"

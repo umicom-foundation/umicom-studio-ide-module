@@ -6,9 +6,12 @@
  *   Verify Studio exposes the Framework execution contract and rejects an
  *   empty operation before attempting to invoke an external CTest process.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 

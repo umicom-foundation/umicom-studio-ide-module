@@ -6,9 +6,12 @@
  *   Verify Studio imports and activates a filesystem project through the
  *   shared Framework developer runtime without replacing existing centre tests.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdint.h>
 #include <string.h>

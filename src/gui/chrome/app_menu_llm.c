@@ -3,6 +3,21 @@
  * File: src/gui/chrome/app_menu_llm.c
  *
  * PURPOSE:
+ *   Implement the app menu llm behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/chrome/app_menu_llm.c
+ *
+ * PURPOSE:
  *   Lightweight LLM menu strip for the main window (pure C, no CSS).
  *
  * DESIGN:

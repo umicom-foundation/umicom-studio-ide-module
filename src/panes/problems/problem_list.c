@@ -3,6 +3,21 @@
  * File: src/panes/problems/problem_list.c
  *
  * PURPOSE:
+ *   Implement the problem list behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/panes/problems/problem_list.c
+ *
+ * PURPOSE:
  *   GTK4 list implementation backing the Problems pane. Accepts UmiDiag
  *   entries and renders them as rows with severity and message; rows carry
  *   jump metadata (file, line, col) for editor navigation.

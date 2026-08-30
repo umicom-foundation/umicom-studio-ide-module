@@ -3,6 +3,21 @@
  * File: src/util/fs/fs_walk.c
  *
  * PURPOSE:
+ *   Implement the fs walk behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/fs/fs_walk.c
+ *
+ * PURPOSE:
  *   Implementation of a deterministic, GLib-based recursive directory walker.
  *   The walker is intentionally tiny and avoids heavy allocations:
  *     - We use GDir to iterate entries.

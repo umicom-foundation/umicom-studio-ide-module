@@ -3,6 +3,21 @@
  * File: src/core/run_pipeline.c
  *
  * PURPOSE:
+ *   Implement the run pipeline behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/run_pipeline.c
+ *
+ * PURPOSE:
  *   Orchestrate the “run” action: use run_config to produce argv/envp/cwd,
  *   spawn the target via build_runner, and route all output lines through
  *   diagnostics -> Problems + Output.

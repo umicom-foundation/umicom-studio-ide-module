@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/tools/helix_agent_runtime_main.c
  * PURPOSE: Exercise the governed Helix Agent Runtime v2 composition natively.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 /* BEGINNER NOTE: This smoke command uses the same approval and adapter paths
  * that graphical workbench actions use. */

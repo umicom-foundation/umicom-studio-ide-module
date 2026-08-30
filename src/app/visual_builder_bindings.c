@@ -1,6 +1,26 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/visual_builder_bindings.c
+ *
+ * PURPOSE:
+ *   Implement the visual builder bindings behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE - Visual Builder v2 property-binding editor
- * Created by: Sammy Hegab | Organisation: Umicom Foundation | Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/visual_builder_bindings.h"
 UmiStatus umi_studio_visual_builder_binding_upsert(UmiStudioVisualBuilderCentre *centre,const UmiDesignerBinding *binding){UmiDesignerBuilderSession *session=umi_studio_visual_builder_centre_session(centre);if(session==NULL)return UMI_STATUS_INVALID_ARGUMENT;return umi_designer_binding_editor_upsert(umi_designer_builder_session_bindings(session),umi_designer_builder_session_document(session),umi_designer_builder_session_components(session),binding);}

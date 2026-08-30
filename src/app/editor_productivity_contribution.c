@@ -6,9 +6,12 @@
  *   Place Framework editing-productivity commands and views in Studio while
  *   all parsing, validation, session and transformation logic stays Framework-owned.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/editor_productivity_contribution.h"
 

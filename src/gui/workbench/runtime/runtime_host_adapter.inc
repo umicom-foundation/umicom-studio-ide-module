@@ -6,9 +6,12 @@
  *   Implement the thin GTK4 callbacks required by UmiStudioRuntimeHostAdapter.
  *   These callbacks contain presentation only; IDE behavior remains Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStatus runtime_host_set_window_title(

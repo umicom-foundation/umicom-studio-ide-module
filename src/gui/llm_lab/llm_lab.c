@@ -1,4 +1,19 @@
-﻿/*-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/llm_lab/llm_lab.c
+ *
+ * PURPOSE:
+ *   Implement the llm lab behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/gui/llm_lab/llm_lab.c
  *

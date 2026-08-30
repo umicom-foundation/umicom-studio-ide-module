@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_visual_builder_bindings.c
+ *
+ * PURPOSE:
+ *   Verify the test visual builder bindings behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 binding test. Sammy Hegab, Umicom Foundation, MIT. */
 /* BEGINNER NOTE: Bindings reference stable properties and state expressions. */
 #include "umicom/studio/visual_builder_bindings.h"

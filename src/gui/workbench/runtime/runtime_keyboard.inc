@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Provide familiar IDE keyboard entry points for command search and layouts.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static gboolean runtime_on_key_pressed(

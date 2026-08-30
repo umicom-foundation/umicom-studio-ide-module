@@ -3,6 +3,21 @@
  * File: src/util/watchers/watcher_recursive.c
  *
  * PURPOSE:
+ *   Implement the watcher recursive behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/watchers/watcher_recursive.c
+ *
+ * PURPOSE:
  *   Recursive watcher built on GFileMonitor (one monitor per directory).
  *   When any file in the tree changes, we invoke the user callback with a
  *   best-effort UTF-8 path. Pure C; no UI/cross-module headers.

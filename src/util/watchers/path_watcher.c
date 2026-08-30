@@ -3,6 +3,21 @@
  * File: src/util/watchers/path_watcher.c
  *
  * PURPOSE:
+ *   Implement the path watcher behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/watchers/path_watcher.c
+ *
+ * PURPOSE:
  *   Thin wrapper around GFileMonitor for simple, NON-RECURSIVE directory
  *   watches. Ideal for ad-hoc paths where a full recursive watcher is overkill.
  *

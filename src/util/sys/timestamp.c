@@ -3,6 +3,21 @@
  * File: src/util/sys/timestamp.c
  *
  * PURPOSE:
+ *   Implement the timestamp behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/sys/timestamp.c
+ *
+ * PURPOSE:
  *   Timestamp helpers (now, RFC3339 formatting) with clean ownership rules.
  *
  * API:

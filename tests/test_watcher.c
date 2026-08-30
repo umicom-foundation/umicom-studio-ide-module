@@ -6,9 +6,12 @@
  *   Verify that Studio watcher scans update operational statistics and the
  *   shared workspace file index.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/watcher.h"
 #include "umicom/studio/workspace.h"

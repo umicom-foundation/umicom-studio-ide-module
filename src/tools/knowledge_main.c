@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/tools/knowledge_main.c
  * PURPOSE: Provide a native smoke command for the offline Knowledge Centre.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <string.h>

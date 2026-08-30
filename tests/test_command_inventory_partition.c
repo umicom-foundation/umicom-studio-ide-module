@@ -6,9 +6,12 @@
  *   Verify declared core/workbench command counts and show that the extensible
  *   runtime registry may legitimately contain additional designer commands.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/commands.h"
 #include "umicom/studio/platform_contract.h"

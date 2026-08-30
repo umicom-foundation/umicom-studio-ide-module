@@ -2,6 +2,21 @@
  * Umicom Studio IDE
  * File: src/ui/splash.c
  *
+ * PURPOSE:
+ *   Implement the splash behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/ui/splash.c
+ *
  * PURPOSE (What does this file do?):
  *   This source file implements a tiny, brandable splash window for the
  *   Umicom Studio IDE. The splash window is a *separate, minimal* UI shown

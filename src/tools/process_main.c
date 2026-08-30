@@ -6,9 +6,12 @@
  *   Run one trusted-workspace child process through the Framework supervisor
  *   and print its final state, exit code, duration and captured output.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/processes.h"
 #include "umicom/studio/workspace.h"

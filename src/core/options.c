@@ -1,5 +1,20 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/options.c
+ *
+ * PURPOSE:
+ *   Implement the options behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/options.c
  * PURPOSE: Implementation of runtime options parsing
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

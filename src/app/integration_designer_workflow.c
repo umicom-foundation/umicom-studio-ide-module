@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/integration_designer_workflow.c
+ *
+ * PURPOSE:
+ *   Implement the integration designer workflow behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Integration Designer workflow canvas | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/integration_designer_workflow.h"
 

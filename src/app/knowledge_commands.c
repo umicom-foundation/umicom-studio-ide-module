@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/knowledge_commands.c
  * PURPOSE: Implement palette, console and frontend-neutral knowledge commands.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/knowledge_commands.h"
 

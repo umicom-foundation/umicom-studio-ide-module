@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Small bounded GTK/runtime helpers shared by the private Studio host.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_clear_box(GtkWidget *box)

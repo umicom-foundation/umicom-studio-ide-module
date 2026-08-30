@@ -6,9 +6,12 @@
  *   Coordinate workspace opening, project discovery, index refresh, trust and
  *   watcher lifecycle through the shared Framework service container.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/workspace.h"
 

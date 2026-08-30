@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/frontend_studio_preview.c
+ *
+ * PURPOSE:
+ *   Implement the frontend studio preview behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/frontend_studio_preview.h"
 static UmiFrontendStudio *service(UmiStudioWebPlatform *p){return umi_studio_web_platform_frontend_studio(p);}

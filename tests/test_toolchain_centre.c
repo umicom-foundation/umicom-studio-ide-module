@@ -8,9 +8,12 @@
  *   deliberately deterministic: it exercises centre behaviour without making
  *   the regression test depend on tools installed on the test host.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>

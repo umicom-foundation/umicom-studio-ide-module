@@ -11,9 +11,12 @@
  *   Clicking an item executes that contribution through the Framework Studio
  *   Runtime Host Controller and then synchronizes presentation state.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_on_menu_item_clicked(

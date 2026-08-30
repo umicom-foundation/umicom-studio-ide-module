@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/plugins/transpile/transpile.c
+ *
+ * PURPOSE:
+ *   Implement the transpile behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/plugins/transpile/transpile.c
  * PURPOSE:
  *   Minimal “Transpile” demo showcasing umi_translate_text(...).
  *

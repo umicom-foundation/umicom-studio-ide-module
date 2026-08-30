@@ -6,9 +6,12 @@
  *   Launch the Framework GTK4 reference adapter with the Studio workbench
  *   composition as an independent validation frontend.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include <gtk/gtk.h>

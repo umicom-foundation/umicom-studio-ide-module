@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/security_centre.c
+ *
+ * PURPOSE:
+ *   Implement the security centre behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Security Centre v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/security_centre.h"
 #include <stdio.h>

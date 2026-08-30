@@ -6,9 +6,12 @@
  *   Build the operational Problems surface over retained Framework diagnostics
  *   and existing next/previous problem navigation commands.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static GtkWidget *runtime_build_surface_problems(

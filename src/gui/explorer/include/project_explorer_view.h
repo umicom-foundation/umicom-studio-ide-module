@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Declare a GTK4 projection of the Framework workspace and file-index state.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_GTK_PROJECT_EXPLORER_VIEW_H

@@ -6,9 +6,12 @@
  *   Declare a GTK4 editor-host projection backed by the Framework document
  *   store and editor presentation model.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #ifndef UMICOM_STUDIO_GTK_EDITOR_HOST_VIEW_H

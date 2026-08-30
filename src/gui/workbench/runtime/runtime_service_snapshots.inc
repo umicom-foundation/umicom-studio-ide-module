@@ -7,9 +7,12 @@
  *   presentation. No service is recreated and no business state is cached here
  *   beyond the most recent presentation snapshot.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStatus runtime_refresh_service_snapshots(

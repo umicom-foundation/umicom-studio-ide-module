@@ -8,9 +8,12 @@
  *   save and external-change checks remain document-model operations rather
  *   than GTK text-buffer business logic.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiDocumentCoordinator *runtime_documents(

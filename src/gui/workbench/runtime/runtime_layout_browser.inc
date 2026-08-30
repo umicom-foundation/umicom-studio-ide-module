@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Present and switch the seven Framework semantic Studio layouts.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_on_layout_button(GtkButton *button, gpointer user_data)

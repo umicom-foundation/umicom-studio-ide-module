@@ -6,9 +6,12 @@
  *   Verify every required Studio command identity rather than assuming Studio
  *   owns every entry in the extensible Framework command registry.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/platform_contract.h"
 

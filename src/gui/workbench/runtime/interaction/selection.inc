@@ -6,9 +6,12 @@
  *   Keep transient GTK row selections bounded and presentation-only. Durable
  *   selection models continue to be owned by Framework services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_copy_selection(

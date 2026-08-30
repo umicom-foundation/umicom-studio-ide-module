@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_integration_designer_connections_api.c
+ *
+ * PURPOSE:
+ *   Verify the test integration designer connections api behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE Tests | Connections and API explorer | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include <string.h>

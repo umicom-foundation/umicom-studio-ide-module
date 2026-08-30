@@ -3,6 +3,21 @@
  * File: src/util/sys/env.c
  *
  * PURPOSE:
+ *   Implement the env behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/sys/env.c
+ *
+ * PURPOSE:
  *   Small helpers around environment variables (get/set with defaults).
  *
  * API:

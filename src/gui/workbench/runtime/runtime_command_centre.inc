@@ -7,9 +7,12 @@
  *   central Framework editor without moving reusable IDE behaviour into GTK.
  *   Buttons delegate to existing command, layout and service surfaces.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static void runtime_on_command_centre_commands(GtkButton *button, gpointer user_data)

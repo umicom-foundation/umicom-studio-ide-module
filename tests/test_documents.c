@@ -6,9 +6,12 @@
  *   Verify Studio document use cases, session tracking, atomic save and
  *   recovery checkpoint restoration through the Framework services.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/documents.h"
 

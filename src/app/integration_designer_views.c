@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/app/integration_designer_views.c
+ *
+ * PURPOSE:
+ *   Implement the integration designer views behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Integration Designer views | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/integration_designer_views.h"
 #include <inttypes.h>

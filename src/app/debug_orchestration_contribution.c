@@ -7,9 +7,12 @@
  *   All configuration, breakpoint, thread, register, memory, disassembly and
  *   adapter behaviour remains authoritative inside Umicom Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/debug_orchestration_contribution.h"
 

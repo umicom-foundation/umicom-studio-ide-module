@@ -13,9 +13,12 @@
  *   keeping data/model precision intact while making the fixed status buffer's
  *   formatting bounds explicit to the compiler.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static GtkWidget *runtime_build_status_bar(

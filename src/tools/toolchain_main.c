@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/tools/toolchain_main.c
  * PURPOSE: Native Toolchain & Environment Centre inspection command.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/toolchain_centre.h"
 

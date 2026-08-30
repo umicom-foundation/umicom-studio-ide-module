@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_security_packages.c
+ *
+ * PURPOSE:
+ *   Verify the test security packages behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE Tests | Security package trust v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include "security_centre_fixture.h"

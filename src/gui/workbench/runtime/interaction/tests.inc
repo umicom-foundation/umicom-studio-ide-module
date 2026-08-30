@@ -6,9 +6,12 @@
  *   Render the Framework Test Platform item registry as an operational Test
  *   Explorer with select, run, debug and source navigation actions.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiTestPlatformService *runtime_test_platform(

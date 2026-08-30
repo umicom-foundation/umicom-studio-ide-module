@@ -6,9 +6,12 @@
  *   Inspect an indexed Studio workspace, discovered projects and optional text
  *   search from a native command without starting GTK4.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/workspace.h"
 #include "umicom/studio/search.h"

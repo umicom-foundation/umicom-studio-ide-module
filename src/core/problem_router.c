@@ -3,6 +3,21 @@
  * File: src/core/problem_router.c
  *
  * PURPOSE:
+ *   Implement the problem router behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/problem_router.c
+ *
+ * PURPOSE:
  *   Implementation of the simple “Problem Router”: takes raw lines (usually
  *   from build/run tools) and:
  *     - tries to parse them into diagnostics and push to UmiProblemList, and

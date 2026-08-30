@@ -7,9 +7,12 @@
  *   resetting Studio's typed settings.  The command uses the same schema and
  *   Framework repository as the GTK4 and console frontends.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/settings.h"
 

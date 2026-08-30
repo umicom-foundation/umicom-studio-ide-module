@@ -7,9 +7,12 @@
  *   and confirm that obsolete migration paths and CMake identifiers are not
  *   active.  Results are emitted through the Framework diagnostic contract.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/doctor.h"
 

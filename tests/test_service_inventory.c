@@ -6,9 +6,12 @@
  *   Verify the stable minimum Studio service identities published into the
  *   Framework service registry by the composition root.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/platform_contract.h"
 

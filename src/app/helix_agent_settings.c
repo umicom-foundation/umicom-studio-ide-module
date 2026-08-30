@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/helix_agent_settings.c
  * PURPOSE: Read validated Helix v2 settings into AI platform configuration.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/helix_agent_settings.h"
 

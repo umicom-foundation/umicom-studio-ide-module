@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Format Framework product-readiness metadata without introducing reusable product logic into Studio.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/experience_projection.h"

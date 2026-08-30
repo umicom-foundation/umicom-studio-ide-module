@@ -7,9 +7,12 @@
  *   windows. Framework continues to own hosting, lifecycle, context and all
  *   cross-application communication.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/federated_content.h"
 

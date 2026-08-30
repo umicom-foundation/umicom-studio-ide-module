@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_visual_builder_templates.c
+ *
+ * PURPOSE:
+ *   Verify the test visual builder templates behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 template test. Sammy Hegab, Umicom Foundation, MIT. */
 /* BEGINNER NOTE: Palette templates instantiate visible normal components. */
 #include "umicom/studio/visual_builder_templates.h"

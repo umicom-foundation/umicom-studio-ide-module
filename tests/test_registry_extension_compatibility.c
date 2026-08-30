@@ -7,9 +7,12 @@
  *   additional command, preventing future optional features from reintroducing
  *   the fragile exact-registry-count regression.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/platform_contract.h"
 

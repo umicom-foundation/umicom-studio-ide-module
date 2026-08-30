@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/knowledge_views.c
  * PURPOSE: Delegate Studio Knowledge Centre panes to Framework view models.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/knowledge_views.h"
 

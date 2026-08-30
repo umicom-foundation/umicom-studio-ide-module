@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/tests/test_toolchain_project_binding.c
  * PURPOSE: Verify that separate projects can select separate C23 profiles.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdint.h>
 #include <stdlib.h>

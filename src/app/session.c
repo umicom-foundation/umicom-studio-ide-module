@@ -6,9 +6,12 @@
  *   Implement Studio workspace and document session metadata on top of the
  *   Framework session store and its atomic persistence contract.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/session.h"
 

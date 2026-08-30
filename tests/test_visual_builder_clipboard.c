@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_visual_builder_clipboard.c
+ *
+ * PURPOSE:
+ *   Verify the test visual builder clipboard behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 clipboard test. Sammy Hegab, Umicom Foundation, MIT. */
 /* BEGINNER NOTE: Paste remaps identities while preserving subtree relationships. */
 #include "umicom/studio/visual_builder_clipboard.h"

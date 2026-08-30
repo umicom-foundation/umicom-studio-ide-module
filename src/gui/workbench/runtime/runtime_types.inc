@@ -12,9 +12,12 @@
  *   Phase 2 extends the Phase 1 structure. Existing fields and behaviors remain
  *   available; no feature is removed to make room for the interactive panels.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include <glib/gstdio.h>

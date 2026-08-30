@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: src/app/test_readiness_contribution.c
  * PURPOSE: Implement thin placement over Framework readiness contracts.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/test_readiness_contribution.h"
 

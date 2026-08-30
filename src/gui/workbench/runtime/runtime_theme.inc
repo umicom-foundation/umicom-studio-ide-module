@@ -7,9 +7,12 @@
  *   Framework appearance model. The theme uses symbolic system colours and
  *   remains compatible with the user's light/dark preference.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static const char *RUNTIME_CSS =

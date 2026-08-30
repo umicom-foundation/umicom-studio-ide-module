@@ -6,9 +6,12 @@
  *   Verify Batch 23 Studio workbench services and primary-sidebar hosts are
  *   present after normal Framework bootstrap.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/contributions.h"

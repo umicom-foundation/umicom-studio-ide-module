@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/llm/providers/llm_zai.c
+ *
+ * PURPOSE:
+ *   Implement the llm zai behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/llm/providers/llm_zai.c
  * PURPOSE: Z.ai provider stub (kept minimal until live API keys & endpoints)
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-11 | MIT
  *---------------------------------------------------------------------------*/

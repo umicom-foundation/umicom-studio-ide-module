@@ -6,9 +6,12 @@
  *   Present Framework debugger records as dedicated Variables, Watch, Call
  *   Stack, Breakpoints and Debug Console view models for every frontend.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/debug_workspace_views.h"

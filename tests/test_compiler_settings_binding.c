@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_compiler_settings_binding.c
+ *
+ * PURPOSE:
+ *   Verify the test compiler settings binding behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Batch 58 test | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/compiler_project_binding.h"
 #include "umicom/studio/compiler_settings.h"

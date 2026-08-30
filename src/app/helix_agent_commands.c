@@ -2,9 +2,12 @@
  * Umicom Studio IDE
  * File: applications/studio/src/app/helix_agent_commands.c
  * PURPOSE: Implement Studio command façades for Helix v2 governance.
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/helix_agent_commands.h"
 

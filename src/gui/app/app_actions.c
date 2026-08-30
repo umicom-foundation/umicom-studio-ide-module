@@ -3,6 +3,21 @@
  * File: src/gui/app/app_actions.c
  *
  * PURPOSE:
+ *   Implement the app actions behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/app/app_actions.c
+ *
+ * PURPOSE:
  *   Application-level action callbacks for menus & keymap. This module keeps
  *   cross-module coupling *very* low by using weak references for optional
  *   features (editor, run pipeline). Pure C, no CSS, no UI dependencies here.

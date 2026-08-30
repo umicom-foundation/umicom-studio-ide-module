@@ -6,9 +6,12 @@
  *   Verify namespace-level inventory reporting for Studio commands and services
  *   while keeping the registry open to other Framework-owned contributions.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/platform_contract.h"
 

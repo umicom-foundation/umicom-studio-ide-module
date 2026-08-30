@@ -6,9 +6,12 @@
  *   Populate Studio from the Framework-owned reusable component and window
  *   catalogue. Studio does not maintain private component definitions.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/workspace_catalogue.h"
 

@@ -1,3 +1,18 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_visual_builder_properties.c
+ *
+ * PURPOSE:
+ *   Verify the test visual builder properties behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 property test. Sammy Hegab, Umicom Foundation, MIT. */
 /* BEGINNER NOTE: Studio commits only validated typed drafts. */
 #include "umicom/studio/visual_builder_properties.h"

@@ -8,9 +8,12 @@
  *   message or other user input. All other commands remain on the Framework
  *   Studio Runtime Host Controller.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 static UmiStatus runtime_route_vcs_commit_accepted(

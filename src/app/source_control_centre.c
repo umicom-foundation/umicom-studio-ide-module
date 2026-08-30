@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement the Source Control Centre composition.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/source_control_centre.h"
 #include <stdlib.h>

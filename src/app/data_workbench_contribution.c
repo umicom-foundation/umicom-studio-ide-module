@@ -6,9 +6,12 @@
  *   Define Studio-only command and view placement for the Framework Database
  *   workbench. All operational behaviour remains Framework-owned.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/data_workbench_contribution.h"
 

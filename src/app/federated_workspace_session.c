@@ -6,9 +6,12 @@
  *   Supply Studio's declarative session identity to Framework services. All
  *   checkpoint, transaction and monitor-affinity logic remains in Framework.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/federated_workspace_session.h"
 

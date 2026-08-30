@@ -2,6 +2,21 @@
  * Umicom Studio IDE
  * File: src/ui/icon.c
  *
+ * PURPOSE:
+ *   Implement the icon behavior for
+ *   Umicom Studio IDE.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/ui/icon.c
+ *
  * PURPOSE (What does this file do?):
  *   Provide tiny branding helpers for the Umicom Studio IDE. We embed a very
  *   small PNG (a 1×1 transparent pixel) so the code compiles and runs without

@@ -5,9 +5,12 @@
  * PURPOSE:
  *   Implement persistent Studio developer context and workflow preferences.
  *
- * Created by: Sammy Hegab
- * Organisation: Umicom Foundation
- * Licence: MIT
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/developer_workspace_state_centre.h"
 
