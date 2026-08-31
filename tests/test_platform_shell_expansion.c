@@ -194,6 +194,9 @@ int main(void)
     if(umi_studio_application_centre_snapshot(NULL,&f)!=UMI_STATUS_OK)return 8;
     if(umi_studio_settings_centre_snapshot(NULL,&g)!=UMI_STATUS_OK)return 9;
     if(umi_studio_welcome_centre_snapshot(NULL,&h)!=UMI_STATUS_OK)return 10;
+    /* The welcome page must expose real Framework layouts, not copied labels. */
+    if(h.workspace_choice_count==0U||h.recommended_layout_id[0]=='\0'||
+       h.readiness_percent>100U)return 52;
     if(umi_studio_developer_dashboard_snapshot(NULL,&i)!=UMI_STATUS_OK)return 11;
     if(umi_studio_chart_workspace_snapshot(NULL,&j)!=UMI_STATUS_OK)return 12;
     if(umi_studio_designer_workspace_snapshot(NULL,&k)!=UMI_STATUS_OK)return 13;

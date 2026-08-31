@@ -33,11 +33,22 @@ typedef struct UmiStudioWelcomeCentreSnapshot {
     char view_type[128];
     char title[256];
     char summary[512];
+    /* The recommended layout comes from the canonical Framework experience. */
+    char recommended_layout_id[128];
     uint64_t revision;
     size_t item_count;
+    /* Each choice represents one user-selectable Framework layout recipe. */
+    size_t workspace_choice_count;
+    /* Readiness reports maturity without claiming visible means complete. */
+    unsigned readiness_percent;
+    /* Product readiness is copied from Framework adoption evidence. */
+    int product_ready;
     int available;
 } UmiStudioWelcomeCentreSnapshot;
-UmiStatus umi_studio_welcome_centre_snapshot(UmiStudioServices *services, UmiStudioWelcomeCentreSnapshot *out_snapshot);
+/* Build the Studio first-screen model from shared Framework catalogues. */
+UmiStatus umi_studio_welcome_centre_snapshot(
+    UmiStudioServices *services,
+    UmiStudioWelcomeCentreSnapshot *out_snapshot);
 #ifdef __cplusplus
 }
 #endif
