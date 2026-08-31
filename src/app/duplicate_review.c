@@ -21,4 +21,80 @@
  */
 #include "umicom/studio/duplicate_review.h"
 #include "umicom/codeguard/codeguard.h"
-UmiStatus umi_studio_duplicate_review(const char *root,size_t *out){UmiCodeGuardResult *r=NULL;UmiCodeGuardConfig c;UmiStatus s;if(root==NULL||out==NULL)return UMI_STATUS_INVALID_ARGUMENT;*out=0U;s=umi_codeguard_result_create(256U,&r);if(s==UMI_STATUS_OK){c=umi_codeguard_config_default(root);c.profile.scan_architecture=0;c.profile.scan_duplicates=1;s=umi_codeguard_scan(&c,r);}if(s==UMI_STATUS_OK)*out=umi_codeguard_result_count_category(r,UMI_CODEGUARD_CATEGORY_DUPLICATION);umi_codeguard_result_destroy(r);return s;}
+
+#include <string.h>
+
+/* Count stable rule identifiers so the Studio panel remains independent of
+ * CodeGuard's internal scanner and filesystem traversal. */
+static void umi_studio_source_governance_count_finding(
+    const UmiCodeGuardFinding *finding,
+    UmiStudioSourceGovernanceSummary *summary)
+{
+    if (finding == NULL || summary == NULL) {
+        return;
+    }
+
+    ++summary->total_findings;
+    if (finding->category == UMI_CODEGUARD_CATEGORY_DUPLICATION) {
+        ++summary->duplicate_findings;
+    }
+    if (strcmp(finding->rule_id, "CODEGUARD-NAME-VERSION-001") == 0) {
+        ++summary->versioned_name_findings;
+    } else if (strcmp(finding->rule_id, "CODEGUARD-NAME-BATCH-001") == 0) {
+        ++summary->batch_name_findings;
+    }
+}
+
+UmiStatus umi_studio_source_governance_review(
+    const char *root,
+    UmiStudioSourceGovernanceSummary *out_summary)
+{
+    UmiCodeGuardResult *result = NULL;
+    UmiCodeGuardConfig config;
+    UmiStatus status;
+    size_t index;
+
+    if (root == NULL || out_summary == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    (void)memset(out_summary, 0, sizeof(*out_summary));
+    status = umi_codeguard_result_create(256U, &result);
+    if (status == UMI_STATUS_OK) {
+        /* Studio consumes the reusable naming and duplicate contracts. The
+         * architecture centre owns the separate architecture scan surface. */
+        config = umi_codeguard_config_default(root);
+        config.profile.scan_architecture = 0;
+        config.profile.scan_duplicates = 1;
+        config.profile.scan_source_names = 1;
+        status = umi_codeguard_scan(&config, result);
+    }
+
+    if (status == UMI_STATUS_OK) {
+        for (index = 0U; index < umi_codeguard_result_count(result); ++index) {
+            umi_studio_source_governance_count_finding(
+                umi_codeguard_result_at(result, index), out_summary);
+        }
+    }
+
+    umi_codeguard_result_destroy(result);
+    return status;
+}
+
+UmiStatus umi_studio_duplicate_review(const char *root,
+                                      size_t *out_duplicates)
+{
+    UmiStudioSourceGovernanceSummary summary;
+    UmiStatus status;
+
+    if (root == NULL || out_duplicates == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    *out_duplicates = 0U;
+    status = umi_studio_source_governance_review(root, &summary);
+    if (status == UMI_STATUS_OK) {
+        *out_duplicates = summary.duplicate_findings;
+    }
+    return status;
+}

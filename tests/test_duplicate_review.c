@@ -21,4 +21,27 @@
  */
 #include <assert.h>
 #include "umicom/studio/duplicate_review.h"
-int main(void){size_t n=0U;UmiStatus s=umi_studio_duplicate_review(".",&n);assert(s==UMI_STATUS_OK||s==UMI_STATUS_IO_ERROR);return 0;}
+
+int main(void)
+{
+    UmiStudioSourceGovernanceSummary summary;
+    size_t duplicates = 0U;
+    UmiStatus status;
+
+    assert(umi_studio_source_governance_review(NULL, &summary) ==
+           UMI_STATUS_INVALID_ARGUMENT);
+    assert(umi_studio_source_governance_review(".", NULL) ==
+           UMI_STATUS_INVALID_ARGUMENT);
+
+    status = umi_studio_source_governance_review(".", &summary);
+    assert(status == UMI_STATUS_OK || status == UMI_STATUS_IO_ERROR);
+    if (status == UMI_STATUS_OK) {
+        assert(summary.total_findings >= summary.duplicate_findings);
+        assert(summary.total_findings >= summary.versioned_name_findings);
+        assert(summary.total_findings >= summary.batch_name_findings);
+    }
+
+    status = umi_studio_duplicate_review(".", &duplicates);
+    assert(status == UMI_STATUS_OK || status == UMI_STATUS_IO_ERROR);
+    return 0;
+}
