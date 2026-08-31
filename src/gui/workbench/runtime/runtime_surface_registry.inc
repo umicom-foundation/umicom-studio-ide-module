@@ -73,7 +73,7 @@ static void runtime_region_visibility_refresh(
     int has_visible_surface = 0;
     if (runtime == NULL || revealer == NULL) return;
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {
         if (runtime->surface_state_initialised[kind] &&
             runtime->surface_regions[kind] == (int)region &&
@@ -101,7 +101,7 @@ static void runtime_surface_location_refresh(
     GtkWidget *label;
     char text[96];
     if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
-        kind > UMI_STUDIO_SURFACE_AI_VALIDATION) {
+        kind > UMI_STUDIO_SURFACE_LAST) {
         return;
     }
     label = runtime->surface_location_labels[kind];
@@ -122,7 +122,7 @@ static UmiStudioRuntimeSurfaceKind runtime_surface_kind_from_id(
     int kind;
     if (surface_id == NULL) return UMI_STUDIO_SURFACE_EDITOR;
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {
         const char *candidate = umi_studio_runtime_surface_kind_text(
             (UmiStudioRuntimeSurfaceKind)kind);
@@ -227,6 +227,8 @@ static GtkWidget *runtime_build_surface_for_kind(
             return runtime_build_surface_ai_tools(runtime);
         case UMI_STUDIO_SURFACE_AI_VALIDATION:
             return runtime_build_surface_ai_validation(runtime);
+        case UMI_STUDIO_SURFACE_AI_MODEL_COMPARISON:
+            return runtime_build_surface_ai_model_comparison(runtime);
         default:
             return NULL;
     }
@@ -250,7 +252,7 @@ static UmiStudioRuntimeSurfaceKind runtime_active_surface_kind(
     if (bindings == NULL) return UMI_STUDIO_SURFACE_EDITOR;
 
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {
         const UmiStudioRuntimeSurfaceBinding *surface =
             umi_studio_surface_catalogue_for_kind(
@@ -303,7 +305,7 @@ static UmiStatus runtime_rebuild_surface_panels(
     if (runtime == NULL) return UMI_STATUS_INVALID_ARGUMENT;
 
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {
         GtkWidget *old_panel = runtime->surface_panels[kind];
         GtkWidget *panel = runtime_build_surface_for_kind(

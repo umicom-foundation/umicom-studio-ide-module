@@ -223,7 +223,7 @@ UmiStatus umi_studio_workspace_profiles_register(UmiUiWorkbench *workbench)
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_TRADING, "Trading",
-        "TWS-inspired market, chart, order, risk and activity workspace",
+        "Professional market, chart, order, risk and activity workspace",
         "view-statistics-symbolic", 1, 1, 1, 260, 390, 300, 70);
     if (status != UMI_STATUS_OK) return status;
 

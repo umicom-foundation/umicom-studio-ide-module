@@ -93,19 +93,19 @@ static UmiStatus seed_catalogue(UmiDistributionService *service)
     UmiDistributionPolicy policy = umi_distribution_policy_default();
     UmiStatus status;
     status = publish_release(
-        service, "studio-0.17.0", "org.umicom.studio", "Umicom Studio IDE",
-        "Stable C23-first Umicom development environment.",
-        (UmiVersion){0U, 17U, 0U}, UMI_RELEASE_STABLE,
+        service, "studio-0.23.1", "org.umicom.studio", "Umicom Studio IDE",
+        "Verified maintenance update for the current Studio release.",
+        (UmiVersion){0U, 23U, 1U}, UMI_RELEASE_STABLE,
         UMI_DISTRIBUTION_APPLICATION, 0);
     if (status == UMI_STATUS_OK) status = publish_release(
-        service, "studio-0.18.0-beta", "org.umicom.studio", "Umicom Studio IDE Beta",
+        service, "studio-0.24.0-beta", "org.umicom.studio", "Umicom Studio IDE Preview",
         "Preview channel with the next Studio integration milestone.",
-        (UmiVersion){0U, 18U, 0U}, UMI_RELEASE_BETA,
+        (UmiVersion){0U, 24U, 0U}, UMI_RELEASE_BETA,
         UMI_DISTRIBUTION_APPLICATION, 0);
     if (status == UMI_STATUS_OK) status = publish_release(
-        service, "framework-0.7.1", "org.umicom.framework", "Umicom Framework SDK",
+        service, "framework-0.9.1", "org.umicom.framework", "Umicom Framework SDK",
         "Reusable C23 Framework headers, libraries and CMake package.",
-        (UmiVersion){0U, 7U, 1U}, UMI_RELEASE_STABLE,
+        (UmiVersion){0U, 9U, 1U}, UMI_RELEASE_STABLE,
         UMI_DISTRIBUTION_RUNTIME, 1);
     if (status == UMI_STATUS_OK) status = publish_release(
         service, "c-tools-1.1.0", "org.umicom.c-tools", "Umicom C23 Tools",

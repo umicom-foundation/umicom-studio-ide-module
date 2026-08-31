@@ -942,7 +942,7 @@ if(BUILD_TESTING)
         COMMAND umicom-studio-framework-bootstrap-test
     )
 
-    # Unified workbench and Batch 25 platform shell coverage.
+    # Unified workbench and reusable platform shell coverage.
     foreach(UMICOM_STUDIO_PLATFORM_TEST
             workbench_shell_catalogue
             workbench_activity
@@ -1577,6 +1577,7 @@ if(BUILD_TESTING)
     foreach(UMICOM_STUDIO_AI_TEST
             ai_platform
             ai_chat
+            ai_model_comparison
             ai_retrieval
             ai_tools
             authorengine
@@ -1684,6 +1685,7 @@ if(BUILD_TESTING)
         studio.developer_platform
         studio.ai_platform
         studio.ai_chat
+        studio.ai_model_comparison
         studio.ai_retrieval
         studio.ai_tools
         studio.authorengine

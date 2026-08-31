@@ -92,6 +92,8 @@ extern "C" {
 #define UMI_STUDIO_PANE_AI_CODING "studio.pane.ai-coding"
 #define UMI_STUDIO_PANE_AI_CODING_CONTEXT "studio.pane.ai-coding-context"
 #define UMI_STUDIO_PANE_AI_PATCH_REVIEW "studio.pane.ai-patch-review"
+#define UMI_STUDIO_PANE_AI_MODEL_COMPARISON \
+    "studio.pane.ai-model-comparison"
 #define UMI_STUDIO_PANE_KNOWLEDGE "studio.pane.knowledge"
 #define UMI_STUDIO_PANE_KNOWLEDGE_COLLECTIONS \
     "studio.pane.knowledge-collections"

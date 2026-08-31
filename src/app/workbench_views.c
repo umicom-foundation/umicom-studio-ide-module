@@ -88,6 +88,7 @@
 #define VIEW_GTK4_COVERAGE "studio.gtk4-coverage"
 #define VIEW_ARCHITECTURE "studio.architecture"
 #define VIEW_FRAMEWORK     "studio.framework"
+#define VIEW_CHAT          "studio.ai-chat"
 #define VIEW_AI            "studio.authorengine"
 #define VIEW_AI_RUNTIMES   "studio.ai-runtimes"
 #define VIEW_AI_CONTEXT    "studio.ai-context"
@@ -96,6 +97,7 @@
 #define VIEW_AI_CODING     "studio.ai-coding"
 #define VIEW_AI_CODING_CONTEXT "studio.ai-coding-context"
 #define VIEW_AI_PATCH_REVIEW "studio.ai-patch-review"
+#define VIEW_AI_MODEL_COMPARISON "studio.ai-model-comparison"
 #define VIEW_KNOWLEDGE "studio.knowledge"
 #define VIEW_KNOWLEDGE_COLLECTIONS "studio.knowledge-collections"
 #define VIEW_KNOWLEDGE_SOURCES "studio.knowledge-sources"
@@ -906,6 +908,18 @@ static UmiStatus create_ai(const char *view_id,
     return status;
 }
 
+static UmiStatus create_chat(const char *view_id,
+                             void *user_data,
+                             UmiUiViewModel **out_view)
+{
+    UmiStudioAiPlatform *platform = umi_studio_services_ai_platform(
+        (UmiStudioServices *)user_data);
+    return platform != NULL
+        ? umi_ai_ui_chat_view_create(
+              view_id, umi_studio_ai_platform_authorengine(platform), out_view)
+        : UMI_STATUS_INVALID_STATE;
+}
+
 static UmiStatus create_ai_runtimes(const char *view_id,
                                     void *user_data,
                                     UmiUiViewModel **out_view)
@@ -996,6 +1010,20 @@ static UmiStatus create_ai_patch_review(const char *view_id,
               view_id, umi_studio_ai_platform_coding_assistant(platform),
               snapshot.last_patch_id, out_view)
         : status;
+}
+
+static UmiStatus create_ai_model_comparison(
+    const char *view_id,
+    void *user_data,
+    UmiUiViewModel **out_view)
+{
+    UmiStudioAiPlatform *platform = umi_studio_services_ai_platform(
+        (UmiStudioServices *)user_data);
+    const UmiAiModelEnsembleReport *report =
+        umi_studio_ai_platform_model_comparison(platform);
+    return report != NULL
+        ? umi_ai_ui_model_comparison_view_create(view_id, report, out_view)
+        : UMI_STATUS_INVALID_STATE;
 }
 
 static UmiStatus create_knowledge(const char *view_id,
@@ -1095,6 +1123,7 @@ static const StudioViewDefinition DEFINITIONS[] = {
     { VIEW_GTK4_COVERAGE, create_gtk4_coverage },
     { VIEW_ARCHITECTURE, create_architecture_audit },
     { VIEW_FRAMEWORK, create_framework },
+    { VIEW_CHAT, create_chat },
     { VIEW_AI, create_ai },
     { VIEW_AI_RUNTIMES, create_ai_runtimes },
     { VIEW_AI_CONTEXT, create_ai_context },
@@ -1103,6 +1132,7 @@ static const StudioViewDefinition DEFINITIONS[] = {
     { VIEW_AI_CODING, create_ai_coding },
     { VIEW_AI_CODING_CONTEXT, create_ai_coding_context },
     { VIEW_AI_PATCH_REVIEW, create_ai_patch_review },
+    { VIEW_AI_MODEL_COMPARISON, create_ai_model_comparison },
     { VIEW_KNOWLEDGE, create_knowledge },
     { VIEW_KNOWLEDGE_COLLECTIONS, create_knowledge_collections },
     { VIEW_KNOWLEDGE_SOURCES, create_knowledge_sources },

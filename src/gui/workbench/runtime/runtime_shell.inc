@@ -220,6 +220,8 @@ static UmiStatus runtime_build_shell(
         runtime);
 
     gtk_window_set_default_size(runtime->owner->window, 1500, 940);
+    /* Keep the operating-system title and application bar identity aligned. */
+    gtk_window_set_title(runtime->owner->window, "Umicom Studio IDE");
     gtk_window_set_child(runtime->owner->window, runtime->outer_root);
     runtime_welcome_update_mode(runtime);
     return UMI_STATUS_OK;

@@ -36,7 +36,7 @@ int main(void)
         centre, 100U, &updates) == UMI_STATUS_OK);
     assert(updates == 2U);
     assert(umi_studio_product_centre_plan_update(
-        centre, "studio-0.17.0", 200U, &decision, &transaction) == UMI_STATUS_OK);
+        centre, "studio-0.23.1", 200U, &decision, &transaction) == UMI_STATUS_OK);
     assert(decision.update_available);
     assert(transaction.action == UMI_DISTRIBUTION_UPDATE);
     assert(transaction.reversible);

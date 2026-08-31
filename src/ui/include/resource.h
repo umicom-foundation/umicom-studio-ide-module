@@ -10,7 +10,7 @@
  * WHAT’S DEFINED HERE:
  *   - Icon resource IDs (big + small app icons)
  *   - PNG splash image ID (embedded as RCDATA)
- *   - Safe defaults for Visual Studio’s resource editor (APSTUDIO) and
+ *   - Safe defaults for Windows resource editors (APSTUDIO) and
  *     IDC_STATIC, so builds are consistent across MSVC/MinGW/Clang.
  *
  * ID RANGES (guideline):
@@ -56,7 +56,7 @@
    #define IDM_FILE_EXIT    1101
 */
 
-/* --- Visual Studio resource editor defaults (harmless elsewhere) ---------- */
+/* --- Windows resource editor defaults (harmless elsewhere) ---------------- */
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE    300

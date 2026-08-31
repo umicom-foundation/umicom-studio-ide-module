@@ -20,6 +20,7 @@
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/helix_agent_centre.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +37,8 @@ struct UmiStudioAiPlatform {
     char knowledge_archive_path[UMI_KNOWLEDGE_URI_CAPACITY];
     char default_provider[UMI_AI_ID_CAPACITY];
     UmiStudioAiWorkbenchProfile workbench_profile;
+    UmiAiModelEnsembleReport model_comparison;
+    uint64_t model_comparison_sequence;
 };
 
 static int copy_text(char *destination, size_t capacity, const char *source)
@@ -392,6 +395,13 @@ UmiStatus umi_studio_ai_platform_create_configured(
         config->require_patch_approval != 0;
 
     umi_ai_runtime_init(&platform->ai);
+    status = umi_ai_model_ensemble_report_initialize(
+        &platform->model_comparison);
+    if (status != UMI_STATUS_OK) {
+        free(platform);
+        return status;
+    }
+    platform->ai.policy.allow_remote = config->allow_remote != 0;
     platform->ai.policy.allow_tools = 1;
     platform->ai.policy.require_tool_approval = 1;
     umi_helix_runtime_init(&platform->helix, "studio.helix");
@@ -554,12 +564,25 @@ void umi_studio_ai_platform_destroy(UmiStudioAiPlatform *platform)
     umi_knowledge_service_destroy(platform->knowledge);
     umi_ai_coding_assistant_destroy(platform->coding_assistant);
     umi_ai_authorengine_service_destroy(platform->authorengine);
+    /* Release registered adapter instances after their consumers are gone. */
+    umi_ai_runtime_destroy(&platform->ai);
     free(platform);
 }
 
 UmiAiRuntime *umi_studio_ai_platform_runtime(UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? &platform->ai : NULL;
+}
+
+UmiStatus umi_studio_ai_platform_register_provider(
+    UmiStudioAiPlatform *platform,
+    const UmiAiProvider *provider)
+{
+    if (platform == NULL || provider == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    /* Adapters register once here; every request still passes runtime policy. */
+    return umi_ai_provider_registry_add(&platform->ai.providers, provider);
 }
 
 UmiHelixRuntime *umi_studio_ai_platform_helix(UmiStudioAiPlatform *platform)
@@ -665,4 +688,46 @@ UmiStatus umi_studio_ai_platform_snapshot(
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_authorengine_service_snapshot(
         platform->authorengine, out_snapshot);
+}
+
+UmiStatus umi_studio_ai_platform_compare_models(
+    UmiStudioAiPlatform *platform,
+    const char *prompt,
+    const UmiAiModelTarget *targets,
+    size_t target_count)
+{
+    UmiAiRequest request;
+    UmiAiMessage message;
+    UmiStatus status;
+    int written;
+    if (platform == NULL || prompt == NULL || prompt[0] == '\0' ||
+        targets == NULL || target_count == 0U) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    /* Studio supplies only prompt composition; Framework owns routing policy. */
+    umi_ai_request_init(&request);
+    ++platform->model_comparison_sequence;
+    written = snprintf(request.request_id, sizeof(request.request_id),
+                       "studio.model-comparison.%" PRIu64,
+                       platform->model_comparison_sequence);
+    if (written < 0 || (size_t)written >= sizeof(request.request_id)) {
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    }
+    status = umi_ai_message_set(&message, UMI_AI_ROLE_USER, "user", prompt);
+    if (status == UMI_STATUS_OK) {
+        status = umi_ai_request_add_message(&request, &message);
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_ai_model_ensemble_query(
+            &platform->ai, &request, targets, target_count,
+            &platform->model_comparison);
+    }
+    return status;
+}
+
+const UmiAiModelEnsembleReport *umi_studio_ai_platform_model_comparison(
+    const UmiStudioAiPlatform *platform)
+{
+    return platform != NULL ? &platform->model_comparison : NULL;
 }

@@ -46,6 +46,10 @@ static const char *studio_pane_resolver(
         return UMI_STUDIO_PANE_RUN_DEBUG;
     if (strcmp(panel->panel_id, "ai-assistant") == 0)
         return UMI_STUDIO_PANE_AI;
+    if (strcmp(panel->panel_id, "ai-chat") == 0)
+        return UMI_STUDIO_PANE_CHAT;
+    if (strcmp(panel->panel_id, "ai-model-comparison") == 0)
+        return UMI_STUDIO_PANE_AI_MODEL_COMPARISON;
     if (strcmp(panel->panel_id, "knowledge") == 0)
         return UMI_STUDIO_PANE_KNOWLEDGE;
     if (strcmp(panel->panel_id, "context-inspector") == 0)

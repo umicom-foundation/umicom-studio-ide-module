@@ -28,9 +28,7 @@ static GtkWidget *runtime_build_surface_ai_chat(
     char summary[256];
 
     if (panel == NULL || runtime == NULL || runtime->owner == NULL) {
-        runtime_append_context_actions(runtime, panel, "ai");
-
-    return panel;
+        return panel;
     }
 
     ai = umi_studio_services_ai_platform(
@@ -153,5 +151,7 @@ static GtkWidget *runtime_build_surface_ai_chat(
         runtime_ai_set_result(runtime, runtime->last_ai_result);
     }
 
+    /* Shared context actions expose chat, explain, test and review commands. */
+    runtime_append_context_actions(runtime, panel, "ai");
     return panel;
 }

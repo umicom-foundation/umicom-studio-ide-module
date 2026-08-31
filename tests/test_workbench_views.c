@@ -39,6 +39,8 @@ int main(void)
     UmiUiViewModel *build_graph = NULL;
     UmiUiViewModel *trading_watchlist = NULL;
     UmiUiViewModel *trading_ticket = NULL;
+    UmiUiViewModel *chat = NULL;
+    UmiUiViewModel *model_comparison = NULL;
     UmiUiCommandViewAction action;
 
     assert(umi_studio_bootstrap_create(&bootstrap) == UMI_STATUS_OK);
@@ -160,6 +162,26 @@ int main(void)
     assert(action.enabled);
     umi_ui_view_model_destroy(trading_ticket);
     umi_ui_view_model_destroy(trading_watchlist);
+
+    /* AI panes must resolve to real Framework projections, not placeholders. */
+    assert(umi_ui_view_factory_create_view(
+               umi_ui_workbench_view_factories(workbench),
+               "studio.ai-chat", UMI_STUDIO_PANE_CHAT, &chat) ==
+           UMI_STATUS_OK);
+    assert(umi_ui_view_model_get_property(
+               chat, "ai-chat.active-session", &debug_state.value) ==
+           UMI_STATUS_OK);
+    assert(umi_ui_view_factory_create_view(
+               umi_ui_workbench_view_factories(workbench),
+               "studio.ai-model-comparison",
+               UMI_STUDIO_PANE_AI_MODEL_COMPARISON,
+               &model_comparison) == UMI_STATUS_OK);
+    assert(umi_ui_view_model_get_property(
+               model_comparison, "ai-models.result-count",
+               &debug_state.value) == UMI_STATUS_OK);
+    assert(debug_state.value.integer_value == 0);
+    umi_ui_view_model_destroy(model_comparison);
+    umi_ui_view_model_destroy(chat);
 
     umi_studio_bootstrap_destroy(bootstrap);
     return 0;

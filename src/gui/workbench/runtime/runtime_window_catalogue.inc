@@ -28,7 +28,7 @@ static UmiStatus runtime_surface_place(
     UmiStudioGtkRuntimeRegion previous_region;
 
     if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
-        kind > UMI_STUDIO_SURFACE_AI_VALIDATION ||
+        kind > UMI_STUDIO_SURFACE_LAST ||
         region < UMI_STUDIO_GTK_REGION_PRIMARY ||
         region > UMI_STUDIO_GTK_REGION_BOTTOM) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -72,7 +72,7 @@ static UmiStatus runtime_surface_hide(
 {
     GtkWidget *panel;
     if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
-        kind > UMI_STUDIO_SURFACE_AI_VALIDATION) {
+        kind > UMI_STUDIO_SURFACE_LAST) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     if (runtime->layout_locked) return UMI_STATUS_PERMISSION_DENIED;
@@ -314,7 +314,7 @@ static void runtime_show_window_catalogue(UmiStudioGtkRuntimeChrome *runtime)
     int kind;
     if (runtime == NULL || runtime->window_catalogue_window == NULL) return;
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {
         runtime_surface_location_refresh(
             runtime, (UmiStudioRuntimeSurfaceKind)kind);

@@ -38,6 +38,11 @@ int main(void)
         &model->windows,"umicom.creator.canvas") != NULL);
     assert(umi_ui_window_catalogue_find(
         &model->windows,"umicom.cad.viewport") != NULL);
+    /* Shared assistant windows are registered without Studio-owned copies. */
+    assert(umi_ui_window_catalogue_find(
+        &model->windows, UMI_AI_UI_WINDOW_CHAT) != NULL);
+    assert(umi_ui_window_catalogue_find(
+        &model->windows, UMI_AI_UI_WINDOW_MODEL_COMPARISON) != NULL);
     umi_studio_professional_workspace_destroy(workspace);
     return 0;
 }

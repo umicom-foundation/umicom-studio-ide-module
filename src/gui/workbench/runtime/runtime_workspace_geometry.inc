@@ -179,7 +179,7 @@ static void runtime_on_layout_lock_toggled(
                 umi_studio_ui_workbench(runtime->owner->ui),
                 &runtime->layout_edit_baseline) == UMI_STATUS_OK) {
             for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-                 kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+                 kind <= (int)UMI_STUDIO_SURFACE_LAST;
                  ++kind) {
                 runtime->layout_surface_region_baseline[kind] =
                     runtime->surface_regions[kind];
@@ -209,7 +209,7 @@ static void runtime_on_layout_cancel_clicked(
         umi_studio_ui_workbench(runtime->owner->ui),
         &runtime->layout_edit_baseline);
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {
         UmiStudioRuntimeSurfaceKind surface =
             (UmiStudioRuntimeSurfaceKind)kind;

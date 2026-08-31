@@ -16,12 +16,19 @@
 #include "umicom/studio/workspace_catalogue.h"
 
 #include "umicom/desktop/ui_bridge.h"
+#include "umicom/ai_ui/assistant_windows.h"
 
 UmiStatus umi_studio_workspace_catalogue_seed(
     UmiStudioProfessionalWorkspace *workspace)
 {
     UmiUiWorkspaceCustomisation *model =
         umi_studio_professional_workspace_model(workspace);
+    UmiStatus status;
     if (model == NULL) return UMI_STATUS_INVALID_ARGUMENT;
-    return umi_desktop_seed_window_catalogue(&model->windows);
+    status = umi_desktop_seed_window_catalogue(&model->windows);
+    if (status == UMI_STATUS_OK) {
+        /* Studio opts into the same assistant tools available to other apps. */
+        status = umi_ai_ui_assistant_windows_register(&model->windows);
+    }
+    return status;
 }

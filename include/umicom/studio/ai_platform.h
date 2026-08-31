@@ -87,6 +87,10 @@ UmiStatus umi_studio_ai_platform_create_configured(
     UmiStudioAiPlatform **out_platform);
 void umi_studio_ai_platform_destroy(UmiStudioAiPlatform *platform);
 UmiAiRuntime *umi_studio_ai_platform_runtime(UmiStudioAiPlatform *platform);
+/* A successful registration transfers adapter-instance cleanup to platform. */
+UmiStatus umi_studio_ai_platform_register_provider(
+    UmiStudioAiPlatform *platform,
+    const UmiAiProvider *provider);
 UmiHelixRuntime *umi_studio_ai_platform_helix(UmiStudioAiPlatform *platform);
 UmiAiAuthorEngineService *umi_studio_ai_platform_authorengine(
     UmiStudioAiPlatform *platform);
@@ -123,6 +127,13 @@ UmiStatus umi_studio_ai_platform_save_session(
 UmiStatus umi_studio_ai_platform_snapshot(
     UmiStudioAiPlatform *platform,
     UmiAiAuthorEngineServiceSnapshot *out_snapshot);
+UmiStatus umi_studio_ai_platform_compare_models(
+    UmiStudioAiPlatform *platform,
+    const char *prompt,
+    const UmiAiModelTarget *targets,
+    size_t target_count);
+const UmiAiModelEnsembleReport *umi_studio_ai_platform_model_comparison(
+    const UmiStudioAiPlatform *platform);
 
 #ifdef __cplusplus
 }

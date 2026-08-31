@@ -352,6 +352,7 @@ static const UmiStudioGtkSurfaceProfile RUNTIME_SURFACE_PROFILES[] = {
 #include "profiles/surfaces/ai_approvals.inc"
 #include "profiles/surfaces/ai_tools.inc"
 #include "profiles/surfaces/ai_validation.inc"
+#include "profiles/surfaces/ai_model_comparison.inc"
 };
 #undef UMI_STUDIO_GTK_SURFACE_PROFILE
 

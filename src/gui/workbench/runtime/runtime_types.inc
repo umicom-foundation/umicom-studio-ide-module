@@ -50,7 +50,7 @@
 #include "umicom/vcs/diff_document.h"
 #include "umicom/vcs/workspace.h"
 
-#define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 16U
+#define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 17U
 #define UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT 10U
 #define UMI_STUDIO_GTK_RUNTIME_REFRESH_MS 750U
 #define UMI_STUDIO_GTK_RUNTIME_TOOL_WIDTH 300
@@ -155,6 +155,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *ai_prompt_view;
     GtkWidget *ai_result_view;
     GtkWidget *ai_summary_label;
+    GtkWidget *ai_model_prompt_view;
+    GtkWidget *ai_model_results_view;
+    GtkWidget *ai_model_summary_label;
 
     GtkWidget *debug_thread_entry;
     GtkWidget *debug_summary_label;

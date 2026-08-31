@@ -63,7 +63,7 @@ static void runtime_update_activity_selection(
     if (runtime == NULL) return;
 
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {
         GtkWidget *button = runtime->activity_buttons[kind];
 
