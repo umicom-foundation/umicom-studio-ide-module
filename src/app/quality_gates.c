@@ -13,7 +13,6 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* Umicom Studio IDE | Combined quality gates v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/quality_gates.h"
 UmiStatus umi_studio_quality_set_policy(UmiStudioQualityCentre *centre,const UmiCodeGuardQualityPolicy *policy)
 {

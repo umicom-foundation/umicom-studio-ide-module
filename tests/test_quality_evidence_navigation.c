@@ -13,7 +13,6 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* Umicom Studio IDE Tests | Evidence and navigation v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include <string.h>
 #include "quality_centre_fixture.h"

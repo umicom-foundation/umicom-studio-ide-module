@@ -1902,6 +1902,7 @@ foreach(UMICOM_STUDIO_QUALITY_TEST
         quality_compatibility
         quality_gates
         quality_views
+        quality_documentation
         quality_commands)
     string(REPLACE "_" "-" UMICOM_STUDIO_QUALITY_TEST_TARGET
         "${UMICOM_STUDIO_QUALITY_TEST}")

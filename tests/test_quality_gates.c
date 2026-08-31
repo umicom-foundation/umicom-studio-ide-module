@@ -13,7 +13,6 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* Umicom Studio IDE Tests | Combined quality gates v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include <assert.h>
 #include "quality_centre_fixture.h"
 #include "umicom/studio/quality_evidence.h"
