@@ -40,33 +40,22 @@ The problem was not the number of features. The problem was hierarchy. A
 professional application can contain thousands of features if it reveals them
 at the right time.
 
-## What professional products teach us
+## Familiar professional design principles
 
-The design is informed by official product documentation, not by copying a
-screenshot pixel for pixel.
+Umicom Studio uses established desktop-application principles through its own
+Framework contracts and visual language:
 
-- [RAD Studio's IDE tour](https://docwiki.embarcadero.com/RADStudio/Athens/en/Tour_of_the_IDE)
-  separates its menu, toolbars, central editor and docked tool windows.
-- [RAD Studio's Welcome Page](https://docwiki.embarcadero.com/RADStudio/Alexandria/en/Welcome_Page)
-  gives new projects, recent work and learning material a dedicated start
-  surface.
-- [RAD Studio desktop layouts](https://docwiki.embarcadero.com/RADStudio/Sydney/en/Saving_Desktop_Layouts)
-  let a developer save arrangements for different kinds of work.
-- [Visual Studio window layouts](https://learn.microsoft.com/en-us/visualstudio/ide/customizing-window-layouts-in-visual-studio?view=visualstudio)
-  support docking, floating, hiding, tab groups and named saved layouts.
-- [IntelliJ IDEA tool-window layouts](https://www.jetbrains.com/help/idea/tool-window-layouts.html)
-  treat tool windows as a reusable arrangement rather than a collection of
-  fixed boxes.
-- [IntelliJ IDEA tool-window controls](https://www.jetbrains.com/help/idea/manipulating-the-tool-windows.html)
-  keep common move, resize, hide and restore actions close to the panel.
-- [IBKR Mosaic layouts](https://www.ibkrguides.com/traderworkstation/mosaic-layout.htm)
-  use named workspaces, an explicit edit mode and a lock to stop accidental
-  movement.
-- [IBKR colour-linked panels](https://www.ibkrguides.com/traderworkstation/color-grouping-linked-panels.htm)
-  show how several tools can follow the same selected instrument or context.
+- menus, toolbars, the central editor and docked tools have clear boundaries;
+- new projects, recent work and learning material have a dedicated start
+  surface;
+- users can save arrangements for different kinds of work;
+- panels support docking, floating, hiding, tab groups and restoration;
+- common move, resize, hide and restore actions stay close to each panel;
+- an explicit edit mode and lock prevent accidental layout changes;
+- linked tools can follow the same project, file, symbol or other context.
 
-These products differ in appearance, but they share the same structural lesson:
-layout is user-owned state and commands are product-owned behaviour.
+The structural rule is simple: layout is user-owned state and commands are
+product-owned behaviour.
 
 ## The new startup sequence
 
@@ -198,7 +187,8 @@ the GTK code is only the visible surface.
 The current change establishes the startup and visual hierarchy. The following
 work should continue through existing Framework contracts:
 
-- render Framework-owned move/close/pin actions in every Studio panel header;
+- extend the shared panel header from its working close action to guarded move,
+  pin and floating-window actions;
 - render Context Host colour groups in relevant panel headers;
 - provide drag previews and keyboard docking commands;
 - support floating tool windows and multiple monitors;

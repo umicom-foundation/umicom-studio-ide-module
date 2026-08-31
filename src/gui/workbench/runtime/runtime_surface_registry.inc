@@ -116,6 +116,80 @@ static void runtime_surface_location_refresh(
     gtk_label_set_text(GTK_LABEL(label), text);
 }
 
+static UmiStudioRuntimeSurfaceKind runtime_surface_kind_from_id(
+    const char *surface_id)
+{
+    int kind;
+    if (surface_id == NULL) return UMI_STUDIO_SURFACE_EDITOR;
+    for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
+         kind <= (int)UMI_STUDIO_SURFACE_AI_VALIDATION;
+         ++kind) {
+        const char *candidate = umi_studio_runtime_surface_kind_text(
+            (UmiStudioRuntimeSurfaceKind)kind);
+        if (candidate != NULL && strcmp(candidate, surface_id) == 0)
+            return (UmiStudioRuntimeSurfaceKind)kind;
+    }
+    return UMI_STUDIO_SURFACE_EDITOR;
+}
+
+static void runtime_on_panel_chrome_action(
+    UmiWsPanelAction action,
+    const UmiWsPanelChrome *chrome,
+    void *user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+    UmiStudioRuntimeSurfaceKind kind;
+    UmiStudioGtkRuntimeRegion region;
+    if (runtime == NULL || chrome == NULL ||
+        action != UMI_WS_PANEL_ACTION_CLOSE)
+        return;
+    if (runtime->layout_locked) {
+        runtime_show_notification(
+            runtime, "Unlock the layout before hiding a panel.");
+        return;
+    }
+    kind = runtime_surface_kind_from_id(chrome->panel_id);
+    if (kind == UMI_STUDIO_SURFACE_EDITOR ||
+        runtime->surface_panels[kind] == NULL)
+        return;
+    region = (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind];
+    gtk_widget_set_visible(runtime->surface_panels[kind], FALSE);
+    runtime->surface_visible[kind] = 0;
+    runtime_region_visibility_refresh(runtime, region);
+    runtime_surface_location_refresh(runtime, kind);
+}
+
+static GtkWidget *runtime_wrap_surface_panel(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind,
+    const UmiStudioGtkSurfaceProfile *profile,
+    GtkWidget *content)
+{
+    UmiWsPanelChrome chrome;
+    const char *surface_id = umi_studio_runtime_surface_kind_text(kind);
+    const char *placement;
+    if (runtime == NULL || profile == NULL || content == NULL ||
+        surface_id == NULL)
+        return content;
+    placement = runtime_region_text(
+        (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]);
+    if (umi_ws_panel_chrome_init(&chrome, profile->title) != UMI_STATUS_OK)
+        return content;
+    (void)umi_ws_panel_chrome_set_identity(&chrome, surface_id, placement);
+    chrome.show_pin = false;
+    chrome.show_menu = false;
+    chrome.show_context = false;
+    chrome.show_move = false;
+    chrome.show_float = false;
+    chrome.show_maximise = false;
+    chrome.show_settings = false;
+    chrome.show_close = true;
+    umi_ws_panel_chrome_set_compact(&chrome, true);
+    return umi_gtk4_ws_panel_frame_create_interactive(
+        &chrome, content, runtime_on_panel_chrome_action, runtime);
+}
+
 static GtkWidget *runtime_build_surface_for_kind(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind)
@@ -259,6 +333,9 @@ static UmiStatus runtime_rebuild_surface_panels(
             runtime->surface_visible[kind] = profile->default_visible;
             runtime->surface_state_initialised[kind] = 1;
         }
+        panel = runtime_wrap_surface_panel(
+            runtime, (UmiStudioRuntimeSurfaceKind)kind, profile, panel);
+        runtime->surface_panels[kind] = panel;
         runtime_stack_add(
             runtime_region_stack(
                 runtime,

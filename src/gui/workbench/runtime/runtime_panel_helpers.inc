@@ -16,9 +16,10 @@
 static GtkWidget *runtime_panel_new(const char *title)
 {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    GtkWidget *heading = runtime_section_title(title);
 
     if (box == NULL) return NULL;
+
+    (void)title;
 
     gtk_widget_add_css_class(box, "umicom-runtime-tool-panel");
     gtk_widget_set_size_request(
@@ -26,7 +27,6 @@ static GtkWidget *runtime_panel_new(const char *title)
         UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH,
         -1);
 
-    if (heading != NULL) gtk_box_append(GTK_BOX(box), heading);
     return box;
 }
 

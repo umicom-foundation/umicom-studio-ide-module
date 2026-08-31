@@ -56,13 +56,9 @@ semantic layout service. That will let custom layouts be cloned, renamed,
 restored on another monitor and recovered after an interrupted session without
 creating Studio-only storage logic.
 
-## Design references
+## Design principles
 
-Studio combines well-understood desktop IDE conventions with the explicit
-workspace editing found in trading workstations. The relevant TWS behaviours
-are documented in the official [Anchor Window guide](https://www.ibkrguides.com/traderworkstation/mosaic-anchor-window.htm),
-[custom layout guide](https://www.ibkrguides.com/traderworkstation/custom-layouts.htm)
-and [display configuration guide](https://www.ibkrguides.com/traderworkstation/display-configuration.htm).
-
-Umicom uses those public behaviours as research. Studio remains an original IDE
-with its own Framework contracts, visual language and developer workflows.
+Studio combines familiar desktop IDE conventions with explicit workspace
+editing commonly found in professional workstation applications. It remains
+an original Umicom IDE with Framework-owned contracts, an Umicom visual
+language and developer workflows designed for this project.

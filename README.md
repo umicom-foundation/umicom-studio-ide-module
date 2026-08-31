@@ -35,6 +35,8 @@ See [the Studio application surface guide](docs/APPLICATION_SURFACE_GUIDE.md).
 The [Studio runtime behavior guide](docs/RUNTIME_BEHAVIOR_ADOPTION.md) explains
 how Studio uses shared refresh, background, context and checkpoint rules and
 how a developer should connect them to a graphical event loop.
+[Professional startup and workspace design](docs/PROFESSIONAL_STARTUP_AND_WORKSPACE_DESIGN.md)
+explains the visible workbench hierarchy, layout lock and shared panel rules.
 
 Studio's public headers follow the same SDK contract audit as Framework. The
 [catalogue include-order repair](docs/EXPERIENCE_CATALOGUE_INCLUDE_ORDER.md)

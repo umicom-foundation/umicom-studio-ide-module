@@ -31,6 +31,7 @@
 #include "umicom/test_platform/output.h"
 #include "umicom/platform/file_index.h"
 #include "umicom/ui/workbench.h"
+#include "umicom/ui/gtk4/workstation/panel_frame.h"
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/coding_assistant.h"
