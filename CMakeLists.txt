@@ -150,6 +150,8 @@ add_library(umicom_studio_core STATIC
     src/app/extension_centre.c
     src/app/extension_platform.c
     src/app/product_centre.c
+    # Engine Centre is a thin view over Framework-owned engine descriptors.
+    src/app/engine_centre.c
     src/app/application_centre.c
     src/app/settings_centre.c
     src/app/welcome_centre.c
@@ -843,6 +845,18 @@ if(UMICOM_STUDIO_BUILD_GTK)
         "${CMAKE_SOURCE_DIR}/win/umicom-logo.png"
         "${CMAKE_SOURCE_DIR}/win/umicom.ico"
         DESTINATION bin/branding)
+endif()
+
+# The Engine Centre test verifies Studio does not duplicate Framework maturity.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-engine-centre-test
+        tests/test_engine_centre.c)
+    target_link_libraries(umicom-studio-engine-centre-test
+        PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-engine-centre-test)
+    umicom_apply_sanitizers(umicom-studio-engine-centre-test)
+    add_test(NAME studio.engine_centre
+        COMMAND umicom-studio-engine-centre-test)
 endif()
 
 # Studio adopts the Framework application-surface runtime as an additive
