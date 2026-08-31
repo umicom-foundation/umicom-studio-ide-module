@@ -1863,13 +1863,6 @@ install(TARGETS
     RUNTIME DESTINATION bin
 )
 
-# The interactive IDE is optional, so install it only when the GTK product was
-# built.  This makes the new Deploy action and documented cmake --install flow
-# produce a launchable Studio application instead of tools alone.
-if(TARGET umicom-studio-ide)
-    install(TARGETS umicom-studio-ide RUNTIME DESTINATION bin)
-endif()
-
 if(BUILD_TESTING)
 add_executable(umicom-studio-codeguard-test tests/test_codeguard.c)
 target_link_libraries(umicom-studio-codeguard-test PRIVATE Umicom::StudioCore)

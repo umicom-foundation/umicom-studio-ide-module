@@ -27,6 +27,8 @@ int main(void)
         &centre, UMI_INSTALLER_WINDOWS);
     assert(windows != NULL);
     assert(windows->create_start_menu_shortcut);
+    assert(strcmp(windows->entrypoint,
+                  "bin/umicom-studio-ide.exe") == 0);
     assert(strcmp(umi_installer_plan_generator(windows), "NSIS") == 0);
     return 0;
 }

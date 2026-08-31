@@ -23,13 +23,13 @@ UmiStatus umi_studio_installer_centre_init(UmiStudioInstallerCentre *centre,
     (void)memset(centre, 0, sizeof(*centre));
     status = umi_installer_plan_init(
         &centre->windows, "Umicom Studio", "Umicom Foundation", version,
-        "Umicom Studio", "bin/umicom-studio-console.exe",
+        "Umicom Studio", "bin/umicom-studio-ide.exe",
         UMI_INSTALLER_WINDOWS, UMI_INSTALL_SCOPE_USER);
     if (status != UMI_STATUS_OK) return status;
     umi_installer_plan_set_shortcuts(&centre->windows, 1, 0);
     status = umi_installer_plan_init(
         &centre->linux, "Umicom Studio", "Umicom Foundation", version,
-        "/opt/umicom-studio", "bin/umicom-studio-console",
+        "/opt/umicom-studio", "bin/umicom-studio-ide",
         UMI_INSTALLER_LINUX, UMI_INSTALL_SCOPE_USER);
     if (status != UMI_STATUS_OK) return status;
     umi_installer_plan_set_shortcuts(&centre->linux, 0, 0);

@@ -41,3 +41,7 @@ explains the visible workbench hierarchy, layout lock and shared panel rules.
 Studio's public headers follow the same SDK contract audit as Framework. The
 [catalogue include-order repair](docs/EXPERIENCE_CATALOGUE_INCLUDE_ORDER.md)
 explains why two different catalogue families must have distinct guards.
+
+The Windows suite installer exposes Studio as the optional **Studio**
+component. Umicom Desk registers the real `umicom-studio-ide` executable and
+can launch Studio together with other installed Umicom applications.

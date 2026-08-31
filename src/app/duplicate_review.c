@@ -24,8 +24,8 @@
 
 #include <string.h>
 
-/* Count stable rule identifiers so the Studio panel remains independent of
- * CodeGuard's internal scanner and filesystem traversal. */
+/* Count stable rule identifiers so Studio remains independent of CodeGuard's
+ * internal scanner implementation and filesystem traversal details. */
 static void umi_studio_source_governance_count_finding(
     const UmiCodeGuardFinding *finding,
     UmiStudioSourceGovernanceSummary *summary)
@@ -61,8 +61,7 @@ UmiStatus umi_studio_source_governance_review(
     (void)memset(out_summary, 0, sizeof(*out_summary));
     status = umi_codeguard_result_create(256U, &result);
     if (status == UMI_STATUS_OK) {
-        /* Studio consumes the reusable naming and duplicate contracts. The
-         * architecture centre owns the separate architecture scan surface. */
+        /* Select only the checks represented by this focused Studio view. */
         config = umi_codeguard_config_default(root);
         config.profile.scan_architecture = 0;
         config.profile.scan_duplicates = 1;

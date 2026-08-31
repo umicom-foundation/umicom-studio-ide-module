@@ -15,7 +15,10 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-static const char *RUNTIME_CSS =
+/* Keep each source literal below the ISO C translation limit. The two pieces
+ * are joined once when the theme is installed, so GTK still receives one
+ * complete and internally consistent stylesheet. */
+static const char RUNTIME_CHROME_CSS[] =
     ".umicom-runtime-root {"
     "  background: @theme_bg_color; color: @theme_fg_color;"
     "}"
@@ -127,7 +130,9 @@ static const char *RUNTIME_CSS =
     ".umicom-runtime-detail-notebook {"
     "  background: alpha(@theme_fg_color,0.025);"
     "}"
-    ".umicom-runtime-diff-pane { font-family: monospace; }"
+    ".umicom-runtime-diff-pane { font-family: monospace; }";
+
+static const char RUNTIME_WELCOME_CSS[] =
     ".umicom-welcome-scroll {"
     "  background: linear-gradient(135deg,"
     "    alpha(@theme_selected_bg_color,0.08),"
@@ -160,6 +165,7 @@ static const char *RUNTIME_CSS =
 static UmiStatus runtime_apply_theme(UmiStudioGtkRuntimeChrome *runtime)
 {
     GdkDisplay *display;
+    char *complete_css;
 
     if (runtime == NULL || runtime->outer_root == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -168,9 +174,21 @@ static UmiStatus runtime_apply_theme(UmiStudioGtkRuntimeChrome *runtime)
     runtime->css_provider = gtk_css_provider_new();
     if (runtime->css_provider == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
+    /* Join the bounded source fragments at runtime to avoid an overlength C
+     * literal without weakening or dropping any visual styling rules. */
+    complete_css = g_strconcat(
+        RUNTIME_CHROME_CSS,
+        RUNTIME_WELCOME_CSS,
+        NULL);
+    if (complete_css == NULL) {
+        g_clear_object(&runtime->css_provider);
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
+
     gtk_css_provider_load_from_string(
         runtime->css_provider,
-        RUNTIME_CSS);
+        complete_css);
+    g_free(complete_css);
 
     display = gtk_widget_get_display(runtime->outer_root);
     if (display != NULL) {

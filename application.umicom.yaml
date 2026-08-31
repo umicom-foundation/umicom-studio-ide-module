@@ -47,3 +47,8 @@ migration:
   product_source_root: src
   completed_vertical_slice: native-platform-and-repository-foundation
   next_vertical_slice: native-frontend-surface-host-adoption
+
+installation:
+  component: Studio
+  selected_by_default: true
+  show_in_application_launcher: true
