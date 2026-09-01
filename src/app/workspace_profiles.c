@@ -83,6 +83,19 @@ static int is_trading_workspace_pane(const char *pane_id)
            strcmp(pane_id, UMI_STUDIO_PANE_TRADING_PORTFOLIO_RISK) == 0;
 }
 
+/* Combine Studio's always-available presentation profiles with the layouts in
+ * the live Framework experience catalogue used by this installation. */
+size_t umi_studio_workspace_profile_count(void)
+{
+    const UmiApplicationExperienceDefinition *experience =
+        umi_application_experience_catalogue_find("org.umicom.studio");
+
+    /* Built-in presentation profiles remain available even if the canonical
+     * experience is unavailable during a damaged or partial installation. */
+    return UMI_STUDIO_BUILTIN_WORKSPACE_PROFILE_COUNT +
+        (experience != NULL ? experience->layout_count : 0U);
+}
+
 static UmiStatus register_profile(UmiUiWorkbench *workbench,
                                   const char *profile_id,
                                   const char *label,

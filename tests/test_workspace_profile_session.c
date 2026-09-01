@@ -19,7 +19,7 @@
 #include "umicom/studio/workbench.h"
 #include "umicom/studio/workspace_profiles.h"
 
-#include <assert.h>
+#include "umicom/test_runtime/check.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -34,44 +34,44 @@ int main(void)
     UmiUiWorkspaceProfileSnapshot restored;
     char profile_id[UMI_UI_ID_CAPACITY];
 
-    assert(umi_command_registry_create(&first_commands) == UMI_STATUS_OK);
-    assert(umi_command_registry_create(&second_commands) == UMI_STATUS_OK);
-    assert(umi_ui_workbench_create("studio.first", first_commands, &first) ==
+    UMI_TEST_REQUIRE(umi_command_registry_create(&first_commands) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_command_registry_create(&second_commands) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_ui_workbench_create("studio.first", first_commands, &first) ==
            UMI_STATUS_OK);
-    assert(umi_ui_workbench_create("studio.second", second_commands, &second) ==
+    UMI_TEST_REQUIRE(umi_ui_workbench_create("studio.second", second_commands, &second) ==
            UMI_STATUS_OK);
-    assert(umi_studio_workspace_profiles_register(first) == UMI_STATUS_OK);
-    assert(umi_studio_workspace_profiles_register(second) == UMI_STATUS_OK);
-    assert(umi_studio_appearance_register(first) == UMI_STATUS_OK);
-    assert(umi_studio_appearance_register(second) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_studio_workspace_profiles_register(first) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_studio_workspace_profiles_register(second) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_studio_appearance_register(first) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_studio_appearance_register(second) == UMI_STATUS_OK);
 
-    assert(umi_ui_workbench_state_snapshot(first, &state) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_ui_workbench_state_snapshot(first, &state) == UMI_STATUS_OK);
     state.sidebar_size = 314;
     state.auxiliary_sidebar_size = 418;
     state.bottom_panel_size = 286;
     state.active_workspace_profile[0] = '\0';
-    assert(umi_ui_workbench_state_apply(first, &state) == UMI_STATUS_OK);
-    assert(umi_ui_workbench_save_workspace_profile(
+    UMI_TEST_REQUIRE(umi_ui_workbench_state_apply(first, &state) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_ui_workbench_save_workspace_profile(
                first, "Persistent Review", "Restored between sessions",
                profile_id, sizeof(profile_id)) == UMI_STATUS_OK);
-    assert(umi_ui_workbench_set_workspace_profile_locked(first, profile_id, 1) ==
+    UMI_TEST_REQUIRE(umi_ui_workbench_set_workspace_profile_locked(first, profile_id, 1) ==
            UMI_STATUS_OK);
 
-    assert(umi_session_store_create(&session) == UMI_STATUS_OK);
-    assert(umi_studio_workbench_save_session(first, session) == UMI_STATUS_OK);
-    assert(umi_studio_workbench_restore_session(second, session) ==
+    UMI_TEST_REQUIRE(umi_session_store_create(&session) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_studio_workbench_save_session(first, session) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_studio_workbench_restore_session(second, session) ==
            UMI_STATUS_OK);
-    assert(umi_ui_workspace_profile_model_count(
+    UMI_TEST_REQUIRE(umi_ui_workspace_profile_model_count(
                umi_ui_workbench_workspace_profiles(second)) ==
-           UMI_STUDIO_WORKSPACE_PROFILE_COUNT + 1U);
-    assert(umi_ui_workspace_profile_model_find(
+           umi_studio_workspace_profile_count() + 1U);
+    UMI_TEST_REQUIRE(umi_ui_workspace_profile_model_find(
                umi_ui_workbench_workspace_profiles(second), profile_id,
                &restored) == UMI_STATUS_OK);
-    assert(restored.active && restored.locked && !restored.built_in);
-    assert(restored.sidebar_size == 314);
-    assert(restored.auxiliary_sidebar_size == 418);
-    assert(restored.bottom_panel_size == 286);
-    assert(strcmp(restored.label, "Persistent Review") == 0);
+    UMI_TEST_REQUIRE(restored.active && restored.locked && !restored.built_in);
+    UMI_TEST_REQUIRE(restored.sidebar_size == 314);
+    UMI_TEST_REQUIRE(restored.auxiliary_sidebar_size == 418);
+    UMI_TEST_REQUIRE(restored.bottom_panel_size == 286);
+    UMI_TEST_REQUIRE(strcmp(restored.label, "Persistent Review") == 0);
 
     umi_session_store_destroy(session);
     umi_ui_workbench_destroy(second);

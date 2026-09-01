@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE production control-plane test | Sammy Hegab | Umicom Foundation | MIT */
-#include <assert.h>
+#include "umicom/test_runtime/check.h"
 #include <stdlib.h>
 #include "umicom/studio/production_readiness.h"
 static int available(const char *id, void *context) {
@@ -23,11 +23,11 @@ static int available(const char *id, void *context) {
 int main(void) {
     UmiApplicationProductionRuntime *runtime = calloc(1U, sizeof(*runtime));
     UmiStudioProductionReadiness readiness;
-    assert(runtime != NULL);
-    assert(umi_application_production_runtime_init(umi_studio_productisation_contribution(), available, NULL, runtime) == UMI_STATUS_OK);
-    assert(umi_studio_production_readiness_build(runtime, &readiness) == UMI_STATUS_OK);
-    assert(readiness.launchable);
-    assert(readiness.panel_count > 0U);
+    UMI_TEST_REQUIRE(runtime != NULL);
+    UMI_TEST_REQUIRE(umi_application_production_runtime_init(umi_studio_productisation_contribution(), available, NULL, runtime) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_studio_production_readiness_build(runtime, &readiness) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(readiness.launchable);
+    UMI_TEST_REQUIRE(readiness.panel_count > 0U);
     free(runtime); return 0;
 }
 

@@ -16,7 +16,7 @@
 
 #include "umicom/studio/workspace_profiles.h"
 
-#include <assert.h>
+#include "umicom/test_runtime/check.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,54 +27,54 @@ int main(void)
     UmiUiWorkbenchSnapshot snapshot;
     UmiUiWorkbenchState state;
 
-    assert(umi_command_registry_create(&commands) == UMI_STATUS_OK);
-    assert(umi_ui_workbench_create("studio.profile-test", commands,
+    UMI_TEST_REQUIRE(umi_command_registry_create(&commands) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_ui_workbench_create("studio.profile-test", commands,
                                    &workbench) == UMI_STATUS_OK);
-    assert(umi_studio_workspace_profiles_register(workbench) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(umi_studio_workspace_profiles_register(workbench) == UMI_STATUS_OK);
 
-    assert(umi_ui_workbench_snapshot(workbench, &snapshot) == UMI_STATUS_OK);
-    assert(snapshot.workspace_profile_count ==
-           UMI_STUDIO_WORKSPACE_PROFILE_COUNT);
-    assert(strcmp(snapshot.active_workspace_profile,
+    UMI_TEST_REQUIRE(umi_ui_workbench_snapshot(workbench, &snapshot) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(snapshot.workspace_profile_count ==
+           umi_studio_workspace_profile_count());
+    UMI_TEST_REQUIRE(strcmp(snapshot.active_workspace_profile,
                   UMI_STUDIO_WORKSPACE_PROFILE_DEVELOP) == 0);
 
-    assert(umi_ui_workbench_activate_workspace_profile(
+    UMI_TEST_REQUIRE(umi_ui_workbench_activate_workspace_profile(
                workbench, UMI_STUDIO_WORKSPACE_PROFILE_FOCUS) == UMI_STATUS_OK);
-    assert(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
-    assert(!state.sidebar_visible && !state.auxiliary_sidebar_visible &&
+    UMI_TEST_REQUIRE(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(!state.sidebar_visible && !state.auxiliary_sidebar_visible &&
            !state.bottom_panel_visible);
 
-    assert(umi_ui_workbench_activate_workspace_profile(
+    UMI_TEST_REQUIRE(umi_ui_workbench_activate_workspace_profile(
                workbench, UMI_STUDIO_WORKSPACE_PROFILE_TRADING) ==
            UMI_STATUS_OK);
-    assert(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
-    assert(state.sidebar_visible && state.auxiliary_sidebar_visible &&
+    UMI_TEST_REQUIRE(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(state.sidebar_visible && state.auxiliary_sidebar_visible &&
            state.bottom_panel_visible);
-    assert(state.bottom_panel_size == 300);
+    UMI_TEST_REQUIRE(state.bottom_panel_size == 300);
 
-    assert(umi_ui_workbench_activate_workspace_profile(
+    UMI_TEST_REQUIRE(umi_ui_workbench_activate_workspace_profile(
                workbench, UMI_STUDIO_WORKSPACE_PROFILE_SOURCE_CONTROL) ==
            UMI_STATUS_OK);
-    assert(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
-    assert(state.sidebar_visible && state.auxiliary_sidebar_visible &&
+    UMI_TEST_REQUIRE(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(state.sidebar_visible && state.auxiliary_sidebar_visible &&
            state.bottom_panel_visible);
-    assert(state.bottom_panel_size == 320);
+    UMI_TEST_REQUIRE(state.bottom_panel_size == 320);
 
-    assert(umi_ui_workbench_activate_workspace_profile(
+    UMI_TEST_REQUIRE(umi_ui_workbench_activate_workspace_profile(
                workbench, UMI_STUDIO_WORKSPACE_PROFILE_TESTING) ==
            UMI_STATUS_OK);
-    assert(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
-    assert(state.sidebar_visible && state.auxiliary_sidebar_visible &&
+    UMI_TEST_REQUIRE(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(state.sidebar_visible && state.auxiliary_sidebar_visible &&
            state.bottom_panel_visible);
-    assert(state.bottom_panel_size == 320);
+    UMI_TEST_REQUIRE(state.bottom_panel_size == 320);
 
-    assert(umi_ui_workbench_activate_workspace_profile(
+    UMI_TEST_REQUIRE(umi_ui_workbench_activate_workspace_profile(
                workbench, UMI_STUDIO_WORKSPACE_PROFILE_BUILD) ==
            UMI_STATUS_OK);
-    assert(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
-    assert(state.sidebar_visible && state.auxiliary_sidebar_visible &&
+    UMI_TEST_REQUIRE(umi_ui_workbench_state_snapshot(workbench, &state) == UMI_STATUS_OK);
+    UMI_TEST_REQUIRE(state.sidebar_visible && state.auxiliary_sidebar_visible &&
            state.bottom_panel_visible);
-    assert(state.bottom_panel_size == 340);
+    UMI_TEST_REQUIRE(state.bottom_panel_size == 340);
 
     umi_ui_workbench_destroy(workbench);
     umi_command_registry_destroy(commands);

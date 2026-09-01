@@ -34,11 +34,14 @@ extern "C" {
 #define UMI_STUDIO_WORKSPACE_PROFILE_TRADING "trading"
 
 #define UMI_STUDIO_BUILTIN_WORKSPACE_PROFILE_COUNT 9U
-#define UMI_STUDIO_CANONICAL_WORKSPACE_PROFILE_COUNT 3U
+#define UMI_STUDIO_CANONICAL_WORKSPACE_PROFILE_COUNT 6U
 #define UMI_STUDIO_WORKSPACE_PROFILE_COUNT \
     (UMI_STUDIO_BUILTIN_WORKSPACE_PROFILE_COUNT + \
      UMI_STUDIO_CANONICAL_WORKSPACE_PROFILE_COUNT)
 
+/* Return the live total so tests and future UI adapters follow catalogue
+ * growth instead of relying solely on the compile-time compatibility value. */
+size_t umi_studio_workspace_profile_count(void);
 UmiStatus umi_studio_workspace_profiles_register(UmiUiWorkbench *workbench);
 
 #ifdef __cplusplus
