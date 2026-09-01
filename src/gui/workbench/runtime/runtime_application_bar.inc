@@ -37,6 +37,124 @@ static void runtime_on_new_window_clicked(GtkButton *button, gpointer user_data)
         (UmiStudioGtkRuntimeChrome *)user_data);
 }
 
+/* Classify commands by the objects they reveal. Prefix search can then narrow
+ * a large IDE inventory without Studio implementing another search language. */
+static UmiWsCommandScope runtime_command_bar_scope(
+    const UmiStudioGtkCommandProfile *profile)
+{
+    if (profile == NULL) return UMI_WS_COMMAND_SCOPE_ALL;
+    if (strcmp(profile->profile_id, "ai") == 0 ||
+        strcmp(profile->profile_id, "ai_review") == 0) {
+        return UMI_WS_COMMAND_SCOPE_AI;
+    }
+    if (strcmp(profile->profile_id, "explorer") == 0 ||
+        strcmp(profile->profile_id, "problems") == 0 ||
+        strcmp(profile->profile_id, "terminal") == 0 ||
+        strcmp(profile->profile_id, "tests") == 0 ||
+        strcmp(profile->profile_id, "debug_view") == 0) {
+        return UMI_WS_COMMAND_SCOPE_PANEL;
+    }
+    return UMI_WS_COMMAND_SCOPE_COMMAND;
+}
+
+/* Build Studio's portable command catalogue from the existing profile tables.
+ * Those tables remain the single source for labels, commands and help text. */
+static UmiStatus runtime_build_command_bar_model(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    size_t index;
+    UmiStatus status = UMI_STATUS_OK;
+
+    if (runtime == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    umi_ws_command_bar_model_init(&runtime->command_bar_model);
+
+    for (index = 0U;
+         index < sizeof(RUNTIME_COMMAND_PROFILES) /
+                     sizeof(RUNTIME_COMMAND_PROFILES[0]);
+         ++index) {
+        const UmiStudioGtkCommandProfile *profile =
+            &RUNTIME_COMMAND_PROFILES[index];
+        status = umi_ws_command_bar_model_add(
+            &runtime->command_bar_model,
+            profile->command_id,
+            profile->label,
+            profile->tooltip,
+            profile->command_id,
+            profile->category,
+            runtime_command_bar_scope(profile),
+            80U);
+        if (status != UMI_STATUS_OK) return status;
+
+        /* Disabled commands stay searchable and documented, but the shared
+         * renderer prevents activation until Framework context enables them. */
+        (void)umi_ws_command_bar_model_set_enabled(
+            &runtime->command_bar_model,
+            profile->command_id,
+            runtime_command_enabled(runtime, profile->command_id) != 0);
+    }
+
+    for (index = 0U;
+         index < sizeof(RUNTIME_LAYOUT_PROFILES) /
+                     sizeof(RUNTIME_LAYOUT_PROFILES[0]);
+         ++index) {
+        const UmiStudioGtkLayoutProfile *profile =
+            &RUNTIME_LAYOUT_PROFILES[index];
+        status = umi_ws_command_bar_model_add(
+            &runtime->command_bar_model,
+            profile->command_id,
+            profile->label,
+            profile->description,
+            profile->command_id,
+            "layout workspace perspective",
+            UMI_WS_COMMAND_SCOPE_COMMAND,
+            60U);
+        if (status != UMI_STATUS_OK) return status;
+        (void)umi_ws_command_bar_model_set_enabled(
+            &runtime->command_bar_model,
+            profile->command_id,
+            runtime_command_enabled(runtime, profile->command_id) != 0);
+    }
+    return UMI_STATUS_OK;
+}
+
+/* The shared component reports semantic command identifiers. Studio routes
+ * them through its established registry so shortcuts, menus and search behave
+ * exactly like the same action selected from the new inline command bar. */
+static void runtime_on_command_bar_activated(
+    const UmiWsCommandBarItem *item,
+    void *user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+
+    if (runtime == NULL || item == NULL || !item->enabled) return;
+    (void)runtime_route_command(runtime, item->command_id, NULL);
+}
+
+/* Give the reusable component a proportional part of the header. Its portable
+ * policy chooses full, compact or button presentation for the resulting width. */
+static void runtime_on_application_bar_width_changed(
+    GObject *object,
+    GParamSpec *property,
+    gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+    int width;
+    int command_width;
+    (void)property;
+
+    if (runtime == NULL || runtime->command_bar == NULL || object == NULL) {
+        return;
+    }
+    width = gtk_widget_get_width(GTK_WIDGET(object));
+    if (width <= 0) return;
+    command_width = width / 4;
+    if (command_width > 420) command_width = 420;
+    (void)umi_gtk4_ws_command_bar_set_available_width(
+        runtime->command_bar, command_width);
+}
+
 /* Create a compact icon button while keeping a readable accessible name and
  * tooltip for keyboard, screen-reader and first-time users. */
 static GtkWidget *runtime_application_bar_icon_button(
@@ -145,6 +263,8 @@ static GtkWidget *runtime_build_application_bar(
     GtkWidget *layouts;
     GtkWidget *new_window;
     GtkWidget *brand;
+    UmiGtk4WorkstationCommandBarConfig command_config;
+    UmiStatus command_status;
 
     if (runtime == NULL) return NULL;
 
@@ -163,9 +283,27 @@ static GtkWidget *runtime_build_application_bar(
         "Add a window",
         "Add, show, hide or move Framework panels in the current layout");
     brand = runtime_build_brand_identity(runtime);
+    command_status = runtime_build_command_bar_model(runtime);
+    if (command_status == UMI_STATUS_OK) {
+        command_config = umi_gtk4_ws_command_bar_config_default();
+        command_config.placeholder = "Search Studio commands and windows";
+        command_config.compact_placeholder = "Quick action";
+        command_config.initial_available_width = 220;
+        command_status = umi_gtk4_ws_command_bar_create_managed(
+            &command_config,
+            &runtime->command_bar_model,
+            &runtime->command_bar);
+    }
+    if (command_status == UMI_STATUS_OK) {
+        command_status = umi_gtk4_ws_command_bar_set_activated_handler(
+            runtime->command_bar,
+            runtime_on_command_bar_activated,
+            runtime);
+    }
 
     if (bar == NULL || menu_scroll == NULL || brand == NULL ||
-        commands == NULL || layouts == NULL || new_window == NULL) {
+        commands == NULL || layouts == NULL || new_window == NULL ||
+        command_status != UMI_STATUS_OK || runtime->command_bar == NULL) {
         /* None are parented yet, so release every successful allocation. */
         if (bar != NULL) g_object_unref(bar);
         if (menu_scroll != NULL) g_object_unref(menu_scroll);
@@ -173,10 +311,17 @@ static GtkWidget *runtime_build_application_bar(
         if (commands != NULL) g_object_unref(commands);
         if (layouts != NULL) g_object_unref(layouts);
         if (new_window != NULL) g_object_unref(new_window);
+        umi_gtk4_ws_command_bar_destroy(runtime->command_bar);
+        runtime->command_bar = NULL;
         return NULL;
     }
 
     gtk_widget_add_css_class(bar, "umicom-runtime-appbar");
+    g_signal_connect(
+        bar,
+        "notify::width",
+        G_CALLBACK(runtime_on_application_bar_width_changed),
+        runtime);
 
     g_signal_connect(
         commands,
@@ -234,6 +379,11 @@ static GtkWidget *runtime_build_application_bar(
         /* A missing menu registry should not leak the unparented scroller. */
         g_object_unref(menu_scroll);
     }
+    /* Search sits after the menus, following the reading order while keeping
+     * project content and status messages to its right. */
+    gtk_box_append(
+        GTK_BOX(bar),
+        umi_gtk4_ws_command_bar_widget(runtime->command_bar));
     if (runtime->notification_label != NULL) {
         gtk_box_append(GTK_BOX(bar), runtime->notification_label);
     }

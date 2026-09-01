@@ -257,8 +257,12 @@ static void runtime_destroy_framework(
         runtime->window_catalogue_window = NULL;
     }
 
-    /* The GTK tree owns the visible widget. This call releases only the
-     * Framework controller that tracks identity text and SVG selection. */
+    /* The GTK tree owns the visible widgets. These calls release the Framework
+     * controllers that track command and identity state. */
+    (void)umi_gtk4_ws_command_bar_set_activated_handler(
+        runtime->command_bar, NULL, NULL);
+    umi_gtk4_ws_command_bar_destroy(runtime->command_bar);
+    runtime->command_bar = NULL;
     umi_gtk4_ws_shell_header_destroy(runtime->brand_identity);
     runtime->brand_identity = NULL;
 

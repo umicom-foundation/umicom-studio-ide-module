@@ -221,9 +221,17 @@ static void runtime_on_palette_search_changed(
     GtkSearchEntry *entry,
     gpointer user_data)
 {
+    UmiWsCommandBarQuery query;
+
+    /* The full palette and inline command bar share one prefix parser. The
+     * search service receives plain text after the optional scope marker. */
+    if (umi_gtk4_ws_command_bar_query(
+            GTK_WIDGET(entry), &query) != UMI_STATUS_OK) {
+        return;
+    }
     runtime_command_palette_refresh(
         (UmiStudioGtkRuntimeChrome *)user_data,
-        gtk_editable_get_text(GTK_EDITABLE(entry)));
+        query.text);
 }
 
 static gboolean runtime_on_palette_close(
@@ -247,7 +255,8 @@ static UmiStatus runtime_build_command_palette(
     }
 
     runtime->command_window = GTK_WIDGET(gtk_window_new());
-    runtime->command_entry = gtk_search_entry_new();
+    runtime->command_entry = umi_gtk4_ws_command_bar_create(
+        "Search commands; use >, +, / or ? to narrow the scope");
     runtime->command_list = gtk_list_box_new();
 
     if (runtime->command_window == NULL ||

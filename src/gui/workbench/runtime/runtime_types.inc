@@ -31,6 +31,7 @@
 #include "umicom/test_platform/output.h"
 #include "umicom/platform/file_index.h"
 #include "umicom/ui/workbench.h"
+#include "umicom/ui/gtk4/workstation/command_bar.h"
 #include "umicom/ui/gtk4/workstation/panel_frame.h"
 #include "umicom/ui/gtk4/workstation/shell_header.h"
 #include "umicom/studio/ai_platform.h"
@@ -83,6 +84,8 @@ typedef struct UmiStudioGtkRuntimeChrome {
 
     GtkWidget *outer_root;
     UmiGtk4WorkstationShellHeader *brand_identity;
+    UmiGtk4WorkstationCommandBar *command_bar;
+    UmiWsCommandBarModel command_bar_model;
     GtkWidget *application_bar;
     GtkWidget *menu_bar;
     GtkWidget *toolbar;
