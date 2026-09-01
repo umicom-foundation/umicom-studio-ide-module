@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "umicom/studio/productisation_contribution.h"
+#include "umicom/application/productisation/workspace_guide_portfolio.h"
 
 int main(void)
 {
@@ -27,6 +28,9 @@ int main(void)
     UmiProductApplicationSessionSnapshot session_snapshot;
     UmiProductWorkspaceGuide workspace_guide;
     const UmiProductWorkspaceGuideChoice *recommended_workspace;
+    UmiProductAdoptionRegistry adoption_registry;
+    UmiProductWorkspaceGuidePortfolio guide_portfolio;
+    const UmiProductWorkspaceGuideSummary *portfolio_summary;
     UmiProductApplicationSessionCommand command = {
         sizeof(UmiProductApplicationSessionCommand),
         UMI_PRODUCT_SESSION_REFRESH_READINESS,
@@ -81,5 +85,19 @@ int main(void)
     assert(recommended_workspace->default_layout);
     assert(recommended_workspace->panel_count ==
            snapshot.default_layout_window_count);
+    /* Prove this thin product can participate in a suite launcher portfolio. */
+    umi_product_adoption_registry_init(&adoption_registry);
+    assert(umi_product_adoption_registry_register(
+        &adoption_registry, adoption) == UMI_STATUS_OK);
+    assert(umi_product_workspace_guide_portfolio_build(
+        &adoption_registry, &guide_portfolio) == UMI_STATUS_OK);
+    assert(guide_portfolio.application_count == 1U);
+    portfolio_summary = umi_product_workspace_guide_portfolio_find(
+        &guide_portfolio, adoption->application_id);
+    assert(portfolio_summary != NULL);
+    assert(portfolio_summary->layout_choice_count ==
+           workspace_guide.choice_count);
+    assert(strcmp(portfolio_summary->recommended_layout_id,
+                  workspace_guide.recommended_layout_id) == 0);
     return 0;
 }
