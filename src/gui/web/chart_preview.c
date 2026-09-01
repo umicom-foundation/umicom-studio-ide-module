@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Only presentation logic is GTK-specific; series and indicators stay in Framework.
  */
 

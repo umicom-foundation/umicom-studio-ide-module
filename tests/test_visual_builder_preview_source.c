@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 preview/source test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: Preview and visible source share the semantic document revision. */
+/* Preview and visible source share the semantic document revision. */
 #include "umicom/studio/visual_builder_preview.h"
 #include "umicom/studio/visual_builder_source.h"
 #include <assert.h>

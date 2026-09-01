@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Frontends report a completed semantic drop; Framework owns the edit. */
+/* Frontends report a completed semantic drop; Framework owns the edit. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_DRAG_DROP_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_DRAG_DROP_H
 #include "umicom/studio/visual_builder_centre.h"

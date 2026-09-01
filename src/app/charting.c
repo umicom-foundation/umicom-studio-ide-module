@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The Studio layer names the series and chooses indicators. It does not own the generic numerical implementation.
  */
 

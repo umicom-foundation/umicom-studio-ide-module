@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Agent inspection lets the UI show roles and permissions instead of presenting Helix as one opaque autonomous process.
  */
 

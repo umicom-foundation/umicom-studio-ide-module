@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The adapter stores concise evidence rather than model reasoning text, preserving an auditable operational record.
  */
 

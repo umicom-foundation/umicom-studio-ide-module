@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This is the product adapter that supplies Studio paths and names while Framework owns package-provider contracts.
  */
 

@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Activity buttons, menus, keyboard shortcuts and the command palette all end
  * here. The GTK4 frontend never owns a second implementation of the command.
  */

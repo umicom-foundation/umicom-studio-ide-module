@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The manifest lists only user-created profile IDs. Built-in profiles remain
  * source-controlled Studio defaults and are never overwritten by session data.
  * Old unused values may remain in the session file, but are ignored unless

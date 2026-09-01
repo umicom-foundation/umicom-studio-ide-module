@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: The centre owns product policy and adapters.  All operation,
+/* The centre owns product policy and adapters.  All operation,
  * approval, retry and evidence rules stay in reusable Framework services. */
 #ifndef UMICOM_STUDIO_HELIX_AGENT_CENTRE_H
 #define UMICOM_STUDIO_HELIX_AGENT_CENTRE_H

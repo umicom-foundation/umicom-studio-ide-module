@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Studio supplies pane identity while Framework supplies the
+/* Studio supplies pane identity while Framework supplies the
  * toolkit-neutral runtime projection shared by every frontend. */
 #ifndef UMICOM_STUDIO_HELIX_AGENT_VIEWS_H
 #define UMICOM_STUDIO_HELIX_AGENT_VIEWS_H

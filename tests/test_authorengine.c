@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This focused test verifies one product adapter while keeping the provider-neutral implementation inside Framework.
  */
 

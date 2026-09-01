@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Promotion is evaluated through Framework release gates; the Studio UI cannot promote merely because a button was clicked.
  */
 

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio supplies the prompt and target choice. Framework owns provider lookup,
  * approval policy, response collection and result selection.
  */

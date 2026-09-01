@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This file is part of Studio workspace/editor productivity. The implementation
  * uses bounded C23 data structures and explicit ownership so the behaviour is
  * easy to inspect, test and later connect to the main Studio workbench.

@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * With only a state-file path this command loads and prints the stored context.
  * Supplying a project id and workspace directory updates the shared Framework
  * developer context first and then writes the state through atomic replacement.

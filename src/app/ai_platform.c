@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The built-in reference provider is deterministic and test-safe; real local and remote providers plug into the same Framework registry.
  */
 

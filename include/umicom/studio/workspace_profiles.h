@@ -39,9 +39,9 @@ extern "C" {
     (UMI_STUDIO_BUILTIN_WORKSPACE_PROFILE_COUNT + \
      UMI_STUDIO_CANONICAL_WORKSPACE_PROFILE_COUNT)
 
-/* Return the live total so tests and future UI adapters follow catalogue
- * growth instead of relying solely on the compile-time compatibility value. */
+/** Return the live total so frontends follow catalogue growth automatically. */
 size_t umi_studio_workspace_profile_count(void);
+/** Register Studio chrome profiles and canonical layouts in one workbench. */
 UmiStatus umi_studio_workspace_profiles_register(UmiUiWorkbench *workbench);
 
 #ifdef __cplusplus

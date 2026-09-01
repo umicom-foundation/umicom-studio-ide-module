@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This view proves that GTK4 can inspect the same plan used by generated web frontends.
  */
 

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The wrapper fixes the current Studio acceptance threshold while leaving the reusable weighting algorithm in Framework.
  */
 

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * All provider selection and policy checks happen inside the Framework runtime, keeping Studio chat code deliberately thin.
  */
 

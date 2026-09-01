@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Candidate metadata names an isolated workspace so future Builder agents do not modify the active Studio checkout in place.
  */
 

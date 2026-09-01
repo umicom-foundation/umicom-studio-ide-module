@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Property drafts validate against component schemas before commit. */
+/* Property drafts validate against component schemas before commit. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_PROPERTIES_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_PROPERTIES_H
 #include "umicom/studio/visual_builder_centre.h"

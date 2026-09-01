@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Studio edits stable Framework binding records, not hidden widget state. */
+/* Studio edits stable Framework binding records, not hidden widget state. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_BINDINGS_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_BINDINGS_H
 #include "umicom/studio/visual_builder_centre.h"

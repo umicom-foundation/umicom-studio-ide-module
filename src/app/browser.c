@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio asks the browser contract to navigate. A future WebKit or Edge adapter can replace the headless provider without changing this use case.
  */
 

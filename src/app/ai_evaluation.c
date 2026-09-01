@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio records evaluation evidence as Framework data so Helix can consume the same result without parsing UI text.
  */
 

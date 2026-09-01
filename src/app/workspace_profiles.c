@@ -14,8 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
- * These profiles change only visible workbench chrome. They do not delete,
+/* These profiles change only visible workbench chrome. They do not delete,
  * move or rewrite project files. Users can switch profiles from the toolbar,
  * the Window menu or the shared command registry, and the active selection is
  * saved in the normal Studio session state.
@@ -26,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "umicom/application/experience_catalogue.h"
 #include "umicom/studio/contributions.h"
 #include "umicom/studio/workspace_layouts.h"
 
@@ -240,9 +240,9 @@ UmiStatus umi_studio_workspace_profiles_register(UmiUiWorkbench *workbench)
         "view-statistics-symbolic", 1, 1, 1, 260, 390, 300, 70);
     if (status != UMI_STATUS_OK) return status;
 
-    /* Add the three canonical Application Suite profiles to the same live
-     * workbench.  The resolver maps Framework experience panel IDs to Studio's
-     * existing pane identities; no new Studio layout engine is introduced. */
+    /* Add the canonical Application Suite profiles to the same live workbench.
+     * The resolver maps Framework experience panel IDs to Studio's existing
+     * pane identities; no new Studio layout engine is introduced. */
     status = umi_studio_workspace_layout_register_workbench(workbench, 0);
     if (status != UMI_STATUS_OK) return status;
 

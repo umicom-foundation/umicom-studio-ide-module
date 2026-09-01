@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The GTK view receives plain Studio snapshots. It does not own the HTTP server or browser state.
  */
 

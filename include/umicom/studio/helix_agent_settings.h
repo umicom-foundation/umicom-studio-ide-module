@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Settings are validated before the agent centre is created,
+/* Settings are validated before the agent centre is created,
  * preserving a safe default even when a settings file is malformed. */
 #ifndef UMICOM_STUDIO_HELIX_AGENT_SETTINGS_H
 #define UMICOM_STUDIO_HELIX_AGENT_SETTINGS_H

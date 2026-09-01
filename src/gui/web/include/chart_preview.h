@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The first preview is intentionally textual. Later chart renderers can draw the same model without changing Studio controllers.
  */
 

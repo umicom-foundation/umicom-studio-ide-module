@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * All reusable behaviour remains in Framework. This file names Studio's specific activities and connects them to existing Studio panes.
  */
 

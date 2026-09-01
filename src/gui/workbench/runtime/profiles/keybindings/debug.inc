@@ -2,7 +2,7 @@
  * Umicom Studio IDE
  * File: applications/studio/src/gui/workbench/runtime/profiles/keybindings/debug.inc
  * PURPOSE:
- *   Familiar Visual Studio-style F5 entry point for the real Framework
+ *   Familiar F5 entry point for the real Framework
  *   debug.start command.
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab

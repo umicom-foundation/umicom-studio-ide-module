@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This command is a thin product-facing wrapper; the reusable delivery logic lives in Umicom Framework.
  */
 

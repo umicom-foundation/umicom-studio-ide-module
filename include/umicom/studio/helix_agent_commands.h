@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Command handlers stay thin and call the same centre used by
+/* Command handlers stay thin and call the same centre used by
  * native tools and future graphical workbench actions. */
 #ifndef UMICOM_STUDIO_HELIX_AGENT_COMMANDS_H
 #define UMICOM_STUDIO_HELIX_AGENT_COMMANDS_H

@@ -15,6 +15,8 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/production_profile.h"
 #include <string.h>
+
+/* Build a small Studio-specific view over the canonical production binding. */
 UmiStatus umi_studio_production_profile_build(
     UmiStudioProductionProfile *out_profile)
 {

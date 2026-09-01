@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The helper creates only metadata; source mutation remains a later controlled operation executed by authorised agents.
  */
 

@@ -15,7 +15,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * These records name Studio-specific surfaces. Framework owns how panes are
  * stored, activated, laid out and rendered by headless or GTK4 adapters.
  */

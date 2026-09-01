@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This file owns GTK widgets only. Component metadata, ranking and filtering
  * remain in Umicom Framework so future applications can reuse them.
  */

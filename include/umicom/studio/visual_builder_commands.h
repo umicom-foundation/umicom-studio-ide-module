@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Keyboard, menu and toolbar actions call the same command contract. */
+/* Keyboard, menu and toolbar actions call the same command contract. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_COMMANDS_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_COMMANDS_H
 #include "umicom/studio/visual_builder_centre.h"

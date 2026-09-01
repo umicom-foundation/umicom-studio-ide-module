@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio delegates chunking and ranking to Framework instead of owning a second retrieval implementation.
  */
 

@@ -2,7 +2,7 @@
  * Umicom Studio IDE
  * File: applications/studio/src/gui/workbench/runtime/profiles/keybindings/run.inc
  * PURPOSE:
- *   Familiar Visual Studio-style Ctrl+F5 entry point for the real Framework
+ *   Familiar Ctrl+F5 entry point for the real Framework
  *   run.start command (Run Without Debugging).
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab

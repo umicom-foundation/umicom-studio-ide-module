@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 clipboard test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: Paste remaps identities while preserving subtree relationships. */
+/* Paste remaps identities while preserving subtree relationships. */
 #include "umicom/studio/visual_builder_clipboard.h"
 #include "umicom/studio/visual_builder_tree.h"
 #include <assert.h>

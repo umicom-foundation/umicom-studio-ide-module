@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The widget displays plan metadata rather than becoming the source of truth for pages, routes or assets.
  */
 

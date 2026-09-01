@@ -29,6 +29,7 @@ typedef struct UmiStudioProductionCommandCatalogue {
     size_t count;
     size_t mutating_count;
 } UmiStudioProductionCommandCatalogue;
+/** Project shared production commands into Studio menu and view locations. */
 UmiStatus umi_studio_production_commands_build(
     UmiStudioProductionCommandCatalogue *out_catalogue);
 #ifdef __cplusplus

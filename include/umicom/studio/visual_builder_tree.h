@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: The displayed tree is rebuilt from the Framework semantic document. */
+/* The displayed tree is rebuilt from the Framework semantic document. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_TREE_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_TREE_H
 #include "umicom/studio/visual_builder_centre.h"

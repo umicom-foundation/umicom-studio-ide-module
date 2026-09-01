@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: This smoke command uses the same approval and adapter paths
+/* This smoke command uses the same approval and adapter paths
  * that graphical workbench actions use. */
 #include <stdio.h>
 #include "umicom/studio/ai_platform.h"

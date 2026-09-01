@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * These helpers translate Studio product identity into Framework release records without implementing generic release mechanics twice.
  */
 

@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio supplies product defaults and a workspace file adapter.  Repository
  * planning, approval, conflict detection and patch rollback remain reusable
  * Framework responsibilities exposed through the stable C ABI.

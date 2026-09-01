@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The test uses public Studio and Framework contracts so it documents the expected behaviour for new contributors.
  */
 

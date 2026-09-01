@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio writes evidence through the Helix memory API so later durable storage can replace the in-memory reference implementation transparently.
  */
 

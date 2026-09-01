@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 centre test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: The centre exposes one Framework-owned authoring session. */
+/* The centre exposes one Framework-owned authoring session. */
 #include "umicom/studio/visual_builder_centre.h"
 #include <assert.h>
 #include <stdlib.h>

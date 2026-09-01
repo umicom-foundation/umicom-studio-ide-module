@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Undo/redo are Studio commands over Framework-owned history. Palette search,
  * geometry and preview policies are also owned by Framework; this file only
  * decides where GTK widgets appear in the Studio window.

@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 drag/drop test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: Completed drops become undoable semantic edits. */
+/* Completed drops become undoable semantic edits. */
 #include "umicom/studio/visual_builder_drag_drop.h"
 #include <assert.h>
 #include <stdlib.h>

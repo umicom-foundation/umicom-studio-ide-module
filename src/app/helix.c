@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The wrapper keeps workflow stage changes behind one Studio use case that can later add audit and permissions.
  */
 

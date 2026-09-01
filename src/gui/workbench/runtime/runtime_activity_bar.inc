@@ -3,7 +3,7 @@
  * File: applications/studio/src/gui/workbench/runtime/runtime_activity_bar.inc
  *
  * PURPOSE:
- *   Create a Visual Studio/VS Code/TWS-style activity rail backed by real
+ *   Create a familiar application activity rail backed by real
  *   Framework commands.
  *
  * AUTHOR AND ORGANISATION:

@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 interaction test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: Named command mappings are portable across frontends. */
+/* Named command mappings are portable across frontends. */
 #include "umicom/studio/visual_builder_interactions.h"
 #include <assert.h>
 #include <stdlib.h>

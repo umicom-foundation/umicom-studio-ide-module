@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This command-line entry point parses user arguments, calls the shared Studio
  * service and reports the result; business logic stays in reusable services.
  */

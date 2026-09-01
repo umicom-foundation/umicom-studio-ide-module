@@ -15,7 +15,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio owns only the lifetime and deterministic demonstration market. The
  * trading rules, risk checks and view projections remain Framework-owned so a
  * dedicated Trader or TMS application can reuse them unchanged.

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio tools are declared Framework tools with permissions, so an AI response cannot bypass approval by calling application functions directly.
  */
 

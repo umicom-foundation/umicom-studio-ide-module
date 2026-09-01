@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Handlers below translate Studio state into web responses. Parsing, routing and response formatting stay in Framework.
  */
 

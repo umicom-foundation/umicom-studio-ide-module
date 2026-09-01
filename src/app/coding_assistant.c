@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Merely preparing a task never reads or edits a file.  The adapter below is
  * passed only to an approved apply/revert call, and every relative path has
  * already passed the Framework's workspace-containment check.

@@ -10,7 +10,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio chooses product defaults and user-facing inputs.  Embedding, vector
  * indexing, incremental refresh and citations remain Framework services.
  */

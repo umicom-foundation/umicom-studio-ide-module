@@ -15,7 +15,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * These factories expose ordinary UmiUiViewModel properties. They never create
  * GTK widgets. The Framework GTK4 adapter can render them today, while a future
  * Qt, Wt or headless adapter can render the same models without rewriting the

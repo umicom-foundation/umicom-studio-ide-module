@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The test uses no GTK objects. It verifies that Studio can compose and use
  * the same editor session model from console, GTK4 or future frontends.
  */

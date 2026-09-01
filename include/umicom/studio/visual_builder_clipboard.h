@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Copy and paste retain complete semantic component subtrees. */
+/* Copy and paste retain complete semantic component subtrees. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_CLIPBOARD_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_CLIPBOARD_H
 #include "umicom/studio/visual_builder_centre.h"

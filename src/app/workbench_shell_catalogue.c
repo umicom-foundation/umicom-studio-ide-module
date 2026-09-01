@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This file contains Studio-specific IDs and labels only. The models, search, conflict detection, state transitions and GTK rendering are Framework capabilities.
  */
 

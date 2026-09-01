@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio owns product composition only; provider-neutral AI and Helix mechanics remain inside Umicom Framework.
  */
 

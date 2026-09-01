@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Source construction stays independent of the UI so chat, retrieval and future editor annotations can share attribution data.
  */
 

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This native command exercises the same Framework-backed service that future Studio GUI views will call.
  */
 

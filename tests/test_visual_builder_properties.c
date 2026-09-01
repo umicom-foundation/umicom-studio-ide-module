@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 property test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: Studio commits only validated typed drafts. */
+/* Studio commits only validated typed drafts. */
 #include "umicom/studio/visual_builder_properties.h"
 #include <assert.h>
 #include <stdlib.h>

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This command is intentionally small: it calls the same Studio service used by GUI code, which makes the feature easy to test from a terminal.
  */
 

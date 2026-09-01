@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio uses the Framework fitness calculation unchanged so candidate acceptance is consistent across CLI, GUI and future Helix agents.
  */
 

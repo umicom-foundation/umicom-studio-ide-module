@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Only configuration crosses this boundary; the AuthorEngine process remains independently buildable and replaceable.
  */
 

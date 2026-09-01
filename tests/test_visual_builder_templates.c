@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 template test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: Palette templates instantiate visible normal components. */
+/* Palette templates instantiate visible normal components. */
 #include "umicom/studio/visual_builder_templates.h"
 #include <assert.h>
 #include <stdlib.h>

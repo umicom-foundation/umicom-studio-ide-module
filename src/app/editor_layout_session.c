@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The count plus indexed entries avoid placing an entire large layout in one
  * session value.  Surplus entries from an older, larger layout are left alone
  * and ignored, following Umicom's non-destructive persistence policy.

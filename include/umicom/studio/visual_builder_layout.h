@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Layout commands are atomic and operate on the current semantic selection. */
+/* Layout commands are atomic and operate on the current semantic selection. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_LAYOUT_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_LAYOUT_H
 #include "umicom/studio/visual_builder_centre.h"

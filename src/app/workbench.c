@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio chooses which Framework capabilities it wants. Framework owns the
  * behaviour. This keeps the same workbench state usable by GTK4 and headless
  * tests and leaves future Qt/Wt adapters possible.

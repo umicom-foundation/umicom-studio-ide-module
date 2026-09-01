@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The chat adapter assembles a Framework request; it does not know how the selected model is hosted.
  */
 

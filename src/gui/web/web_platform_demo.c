@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The demo composes three thin GTK views over the same reusable Studio service used by command-line tests.
  */
 

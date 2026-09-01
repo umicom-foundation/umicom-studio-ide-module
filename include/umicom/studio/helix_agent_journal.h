@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: The reporting helper formats copies of journal entries; it
+/* The reporting helper formats copies of journal entries; it
  * never provides a mutation path into Framework's append-only record. */
 #ifndef UMICOM_STUDIO_HELIX_AGENT_JOURNAL_H
 #define UMICOM_STUDIO_HELIX_AGENT_JOURNAL_H

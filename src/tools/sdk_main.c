@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This command exposes one compatibility check in a form that is easy to run from PowerShell, CI, or the future Studio workbench UI.
  */
 #include <stdio.h>

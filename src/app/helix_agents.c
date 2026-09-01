@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The returned pointers are read-only views into the shared runtime; callers do not own or modify agent descriptors.
  */
 

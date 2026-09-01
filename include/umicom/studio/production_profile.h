@@ -25,6 +25,7 @@ typedef struct UmiStudioProductionProfile {
     const char *primary_workspace_id;
     const char *default_command_category;
 } UmiStudioProductionProfile;
+/** Resolve Studio's canonical experience into a thin production binding. */
 UmiStatus umi_studio_production_profile_build(
     UmiStudioProductionProfile *out_profile);
 #ifdef __cplusplus

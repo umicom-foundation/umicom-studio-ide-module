@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Typed settings are validated before the service allocates its index. */
+/* Typed settings are validated before the service allocates its index. */
 #ifndef UMICOM_STUDIO_KNOWLEDGE_SETTINGS_H
 #define UMICOM_STUDIO_KNOWLEDGE_SETTINGS_H
 

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The session owns a copy of the active developer context.  Callers may supply
  * identifiers for the current project, build configuration, launch profile,
  * source-control repository, test item and active file, but callers do not own

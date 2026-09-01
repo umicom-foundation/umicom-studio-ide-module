@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The frontend plan describes pages and routes. It does not make React, gtk-js or a browser the owner of Studio state.
  */
 

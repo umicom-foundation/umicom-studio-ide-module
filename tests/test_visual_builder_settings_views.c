@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 settings/views test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: Validated settings and toolkit-neutral view models serve every frontend. */
+/* Validated settings and toolkit-neutral view models serve every frontend. */
 #include "umicom/studio/visual_builder_settings.h"
 #include "umicom/studio/visual_builder_views.h"
 #include <assert.h>

@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: One registry makes these commands available to every frontend. */
+/* One registry makes these commands available to every frontend. */
 #ifndef UMICOM_STUDIO_KNOWLEDGE_COMMANDS_H
 #define UMICOM_STUDIO_KNOWLEDGE_COMMANDS_H
 

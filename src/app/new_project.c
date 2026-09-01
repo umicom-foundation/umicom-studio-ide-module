@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This Studio adapter keeps product composition thin: it delegates reusable
  * behaviour to Framework services and adds only Studio-specific coordination.
  */

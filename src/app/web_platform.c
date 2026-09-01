@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio owns how these services are combined, but it does not reimplement their generic algorithms.
  */
 

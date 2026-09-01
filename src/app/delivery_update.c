@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio can explain an update decision without owning the generic comparison or rollback algorithm.
  */
 

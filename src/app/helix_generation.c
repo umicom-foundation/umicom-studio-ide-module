@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The call combines test evidence, fitness, human approval and rollback readiness before promotion can succeed.
  */
 

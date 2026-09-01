@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Studio owns product composition; reusable authoring state lives in Framework. */
+/* Studio owns product composition; reusable authoring state lives in Framework. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_CENTRE_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_CENTRE_H
 #include "umicom/umicom.h"

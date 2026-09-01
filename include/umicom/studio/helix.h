@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio displays and advances a governed Framework workflow; it does not let the GUI mutate Helix internals directly.
  */
 

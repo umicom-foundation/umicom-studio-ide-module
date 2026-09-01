@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Templates expand to normal document nodes in one transaction. */
+/* Templates expand to normal document nodes in one transaction. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_TEMPLATES_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_TEMPLATES_H
 #include "umicom/studio/visual_builder_centre.h"

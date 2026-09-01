@@ -15,7 +15,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio owns product composition only. The reusable data model and service
  * remain in Umicom Framework so future applications can consume the same API.
  */

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio composes Framework delivery services here; packaging mechanics remain reusable inside Framework.
  */
 

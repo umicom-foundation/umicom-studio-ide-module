@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Named commands keep generated interactions inspectable and portable. */
+/* Named commands keep generated interactions inspectable and portable. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_INTERACTIONS_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_INTERACTIONS_H
 #include "umicom/studio/visual_builder_centre.h"

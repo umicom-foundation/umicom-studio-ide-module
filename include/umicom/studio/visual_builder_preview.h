@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Preview health exposes current, stale and invalid states honestly. */
+/* Preview health exposes current, stale and invalid states honestly. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_PREVIEW_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_PREVIEW_H
 #include "umicom/studio/visual_builder_centre.h"

@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 binding test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: Bindings reference stable properties and state expressions. */
+/* Bindings reference stable properties and state expressions. */
 #include "umicom/studio/visual_builder_bindings.h"
 #include <assert.h>
 #include <stdlib.h>

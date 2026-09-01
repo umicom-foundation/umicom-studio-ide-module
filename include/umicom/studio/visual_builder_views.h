@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: A frontend renders view-model properties without owning builder state. */
+/* A frontend renders view-model properties without owning builder state. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_VIEWS_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_VIEWS_H
 #include "umicom/studio/visual_builder_centre.h"

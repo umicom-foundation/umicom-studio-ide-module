@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * GTK4 formatting lives here; the data comes from the toolkit-neutral
  * UmiStudioWebPlatform snapshot.
  */

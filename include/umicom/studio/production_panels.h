@@ -31,6 +31,7 @@ typedef struct UmiStudioProductionPanelCatalogue {
     size_t critical_count;
     size_t context_linked_count;
 } UmiStudioProductionPanelCatalogue;
+/** Project runtime panel bindings into Studio workspace contributions. */
 UmiStatus umi_studio_production_panels_build(
     const UmiApplicationProductionRuntime *runtime,
     UmiStudioProductionPanelCatalogue *out_catalogue);

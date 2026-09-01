@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The echo tool is intentionally harmless but exercises the same approval path later used by build, Git, file and Helix tools.
  */
 

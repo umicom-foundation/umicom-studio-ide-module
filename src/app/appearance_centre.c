@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The trademark artwork remains an application asset.  Framework stores only
  * the resource locations and semantic presentation values, so another Umicom
  * application can provide its own brand while reusing the same theme engine.

@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The centre borrows the existing UmiDeveloperRuntime.  It does not create a
  * second project workspace, so tasks shown here are the same tasks visible to
  * the Project Centre and to future automation commands.

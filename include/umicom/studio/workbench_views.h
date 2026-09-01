@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio decides what data belongs in Explorer, Source Control, Testing,
  * Designer, Applications, Framework and AI views. Framework owns the view-model
  * contract and frontend adapters decide how those models are drawn.

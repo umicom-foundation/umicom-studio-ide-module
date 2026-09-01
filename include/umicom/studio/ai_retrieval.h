@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This reference retrieval path works without an embedding model, providing a reliable fallback for source-aware AI features.
  */
 

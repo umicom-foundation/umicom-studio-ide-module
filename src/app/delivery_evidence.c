@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Evidence helpers provide deterministic test data now and a stable place to connect real build results later.
  */
 

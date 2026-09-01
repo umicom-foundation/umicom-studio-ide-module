@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The same structured report can be shown in a future GTK Release perspective or printed by native tools.
  */
 

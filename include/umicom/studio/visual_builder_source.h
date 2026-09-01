@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Every generated file remains visible for review, saving and diffing. */
+/* Every generated file remains visible for review, saving and diffing. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_SOURCE_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_SOURCE_H
 #include "umicom/studio/visual_builder_centre.h"

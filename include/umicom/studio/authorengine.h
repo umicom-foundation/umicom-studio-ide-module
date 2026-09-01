@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio points at AuthorEngine through an executable/workspace contract instead of copying its book-building implementation.
  */
 

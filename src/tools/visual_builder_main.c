@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: This command exercises the same services used by graphical frontends. */
+/* This command exercises the same services used by graphical frontends. */
 #include "umicom/studio/visual_builder_centre.h"
 #include "umicom/studio/visual_builder_preview.h"
 #include "umicom/studio/visual_builder_source.h"

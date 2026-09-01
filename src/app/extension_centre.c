@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Studio composes reusable Framework capabilities here. Generic models and
  * engines stay in Framework so the same mechanisms can serve future products.
  */

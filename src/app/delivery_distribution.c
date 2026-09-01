@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Distribution metadata tells the release system what Studio intends to ship on each supported platform.
  */
 

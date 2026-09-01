@@ -29,6 +29,7 @@ typedef struct UmiStudioProductionReadiness {
     unsigned readiness_percent;
     int launchable;
 } UmiStudioProductionReadiness;
+/** Summarise Studio launch readiness from the shared production runtime. */
 UmiStatus umi_studio_production_readiness_build(
     const UmiApplicationProductionRuntime *runtime,
     UmiStudioProductionReadiness *out_readiness);

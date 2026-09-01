@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Studio supplies view IDs while Framework supplies view data. */
+/* Studio supplies view IDs while Framework supplies view data. */
 #ifndef UMICOM_STUDIO_KNOWLEDGE_VIEWS_H
 #define UMICOM_STUDIO_KNOWLEDGE_VIEWS_H
 

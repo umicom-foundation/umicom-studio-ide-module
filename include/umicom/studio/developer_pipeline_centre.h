@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This centre does not duplicate Framework operation state.  It borrows the
  * UmiDeveloperRuntime owned by the Studio developer workbench and provides the
  * small product-facing surface that command handlers, panels and future GTK4

@@ -15,7 +15,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Normal startup presents the reusable Framework workbench. --legacy-ui keeps
  * the older product shell available during migration and comparison testing.
  */

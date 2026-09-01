@@ -15,7 +15,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Pane IDs are Studio product composition. The pane model, visibility, layout,
  * activity and view-container behaviour remain reusable Umicom Framework code.
  */

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * The test keeps product integration small so failures are easy for a new developer to locate.
  */
 

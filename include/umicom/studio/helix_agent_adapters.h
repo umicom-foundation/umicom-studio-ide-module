@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: These flags are product policy.  Framework verifies approval;
+/* These flags are product policy.  Framework verifies approval;
  * Studio separately decides which side-effect categories are available. */
 #ifndef UMICOM_STUDIO_HELIX_AGENT_ADAPTERS_H
 #define UMICOM_STUDIO_HELIX_AGENT_ADAPTERS_H

@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * A caller is allowed to pass a snapshot that contains any revision value.
  * The session must ignore that external revision and advance its own revision
  * exactly once for every successful update.

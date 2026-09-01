@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This file is part of the Studio Application Hub / Runtime Manager.
  * The code is intentionally explicit and bounded so a new C developer can
  * follow the data flow without hidden ownership or private product coupling.

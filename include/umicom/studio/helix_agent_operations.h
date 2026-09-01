@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Canonical constructors keep action identifiers and retry
+/* Canonical constructors keep action identifiers and retry
  * limits consistent across command palette, tools and workbench views. */
 #ifndef UMICOM_STUDIO_HELIX_AGENT_OPERATIONS_H
 #define UMICOM_STUDIO_HELIX_AGENT_OPERATIONS_H

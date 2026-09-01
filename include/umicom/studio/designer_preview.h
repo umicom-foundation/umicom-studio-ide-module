@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This Studio-facing contract composes reusable Framework capabilities.
  * Generic designer and declarative logic remains owned by Umicom Framework.
  */

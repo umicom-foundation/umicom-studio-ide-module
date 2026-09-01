@@ -9,7 +9,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Studio does not invent a separate ranking algorithm; it uses
+/* Studio does not invent a separate ranking algorithm; it uses
  * Framework's deterministic eligible-candidate selection contract. */
 #ifndef UMICOM_STUDIO_HELIX_AGENT_CANDIDATES_H
 #define UMICOM_STUDIO_HELIX_AGENT_CANDIDATES_H

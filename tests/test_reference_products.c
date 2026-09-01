@@ -13,7 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * This integration test proves Studio consumes the public Framework contract rather than a private duplicate implementation.
  */
 #include <assert.h>

@@ -12,7 +12,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* BEGINNER NOTE: Typed settings produce one reusable frontend-independent builder configuration. */
+/* Typed settings produce one reusable frontend-independent builder configuration. */
 #ifndef UMICOM_STUDIO_VISUAL_BUILDER_SETTINGS_H
 #define UMICOM_STUDIO_VISUAL_BUILDER_SETTINGS_H
 #include "umicom/studio/settings.h"

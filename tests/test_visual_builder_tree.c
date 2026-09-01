@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 /* Umicom Studio Visual Builder v2 tree test. Sammy Hegab, Umicom Foundation, MIT. */
-/* BEGINNER NOTE: The hierarchy pane projects semantic parent relationships. */
+/* The hierarchy pane projects semantic parent relationships. */
 #include "umicom/studio/visual_builder_tree.h"
 #include <assert.h>
 #include <stdlib.h>

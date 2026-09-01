@@ -2,7 +2,7 @@
  * Umicom Studio IDE
  * File: applications/studio/src/gui/workbench/runtime/profiles/keybindings/debug_stop.inc
  * PURPOSE:
- *   Familiar Visual Studio-style Shift+F5 entry point for the real Framework
+ *   Familiar Shift+F5 entry point for the real Framework
  *   debug.stop command.
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab

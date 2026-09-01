@@ -14,7 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* BEGINNER NOTE:
+/*
  * Without --execute this command only builds and prints the dependency plan.
  * With --execute it runs the ready operations synchronously through Framework's
  * structured process service.  The GUI can use the same runtime from a worker
