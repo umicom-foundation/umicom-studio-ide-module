@@ -58,10 +58,27 @@ Debugging, Testing, Source Control, AI Development, Review and Zen. The Layout
 Browser explains each preset. The New Window manager changes which real panels
 are shown in the active shell.
 
-The next integration step is to persist every move through the Framework
-semantic layout service. That will let custom layouts be cloned, renamed,
-restored on another monitor and recovered after an interrupted session without
-creating Studio-only storage logic.
+The Framework now provides two related persistence paths. Studio's semantic
+runtime commands save and restore the shell session. The professional workspace
+API also delegates portable active-layout export and validated import to
+`UmiUiWorkspaceCustomisation`, so Studio has no private layout parser. Import
+rejects an existing identifier unless the caller explicitly asks to replace it.
+
+The next integration step is to connect every native detached-window position
+and monitor identity to the same semantic session. This will let a complete
+multi-monitor arrangement recover after a monitor is removed without creating
+Studio-only storage rules.
+
+## What Save and Restore mean
+
+- **Save** records the current committed semantic Studio session.
+- **Restore** loads the last saved semantic session and refreshes the shell.
+- Portable export produces text suitable for a trusted settings store or a
+  reviewed layout-sharing workflow.
+- Portable import checks panel and context dependencies before accepting a
+  layout; it never accepts half of a layout.
+- Save and import wait until layout editing is applied or cancelled, preserving
+  the meaning of **Cancel Edit**.
 
 ## Design principles
 

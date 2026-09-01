@@ -13,30 +13,57 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/* Umicom Studio IDE | Workspace persistence v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/workspace_persistence.h"
-#include <string.h>
-UmiStatus umi_studio_workspace_persistence_export_active(UmiStudioProfessionalWorkspace *workspace,uint64_t saved_at_ns,char *out_text,size_t capacity)
+
+/* Keep Studio thin by asking Framework to encode its active customisation. */
+UmiStatus umi_studio_workspace_persistence_export_active(
+    UmiStudioProfessionalWorkspace *workspace,
+    uint64_t saved_at_ns,
+    char *out_text,
+    size_t capacity)
 {
-    UmiUiWorkspaceCustomisation *model = umi_studio_professional_workspace_model(workspace);
-    UmiUiWorkspaceLayout *layout;
-    UmiUiLayoutPersistenceRecord record;
-    if (model == NULL || out_text == NULL) return UMI_STATUS_INVALID_ARGUMENT;
-    layout = umi_ui_workspace_customisation_active(model);
-    if (layout == NULL) return UMI_STATUS_NOT_FOUND;
-    (void)memset(&record,0,sizeof(record));
-    record.schema_version = 2U; record.saved_at_ns = saved_at_ns; record.layout = *layout;
-    return umi_ui_layout_persistence_encode(&record,out_text,capacity);
+    UmiUiWorkspaceCustomisation *model =
+        umi_studio_professional_workspace_model(workspace);
+    if (model == NULL || out_text == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    return umi_ui_workspace_customisation_export_active(
+        model, saved_at_ns, out_text, capacity);
 }
-UmiStatus umi_studio_workspace_persistence_import(UmiStudioProfessionalWorkspace *workspace,const char *text,bool activate)
+
+/* Preserve the simple Studio API by delegating to the detailed import path. */
+UmiStatus umi_studio_workspace_persistence_import(
+    UmiStudioProfessionalWorkspace *workspace,
+    const char *text,
+    bool activate)
 {
-    UmiUiWorkspaceCustomisation *model = umi_studio_professional_workspace_model(workspace);
-    UmiUiLayoutPersistenceRecord record;
-    UmiStatus status;
-    if (model == NULL || text == NULL) return UMI_STATUS_INVALID_ARGUMENT;
-    status = umi_ui_layout_persistence_decode(text,&record);
-    if (status != UMI_STATUS_OK) return status;
-    status = umi_ui_workspace_customisation_add_layout(model,&record.layout);
-    if (status != UMI_STATUS_OK) return status;
-    return activate ? umi_ui_workspace_customisation_activate(model,record.layout.layout_id) : UMI_STATUS_OK;
+    return umi_studio_workspace_persistence_import_with_report(
+        workspace, text, activate, false, NULL);
+}
+
+/* Translate Studio choices into Framework policy without duplicating parsing. */
+UmiStatus umi_studio_workspace_persistence_import_with_report(
+    UmiStudioProfessionalWorkspace *workspace,
+    const char *text,
+    bool activate,
+    bool replace_existing,
+    UmiUiWorkspaceImportReport *out_report)
+{
+    UmiUiWorkspaceCustomisation *model =
+        umi_studio_professional_workspace_model(workspace);
+    UmiUiWorkspaceImportOptions options =
+        umi_ui_workspace_import_options_default();
+
+    if (model == NULL || text == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    /* Studio can import user-created layouts in addition to its canonical
+     * views; explicit replacement is required before overwriting one. */
+    options.allow_new_layout = true;
+    options.activate_imported_layout = activate;
+    options.conflict_policy = replace_existing
+        ? UMI_UI_WORKSPACE_IMPORT_REPLACE_CONFLICT
+        : UMI_UI_WORKSPACE_IMPORT_REJECT_CONFLICT;
+    return umi_ui_workspace_customisation_import(
+        model, text, &options, out_report);
 }
