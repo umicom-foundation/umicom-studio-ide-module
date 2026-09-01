@@ -22,8 +22,10 @@ static void runtime_configure_splitter(GtkWidget *paned)
     gtk_paned_set_wide_handle(GTK_PANED(paned), FALSE);
     gtk_paned_set_resize_start_child(GTK_PANED(paned), TRUE);
     gtk_paned_set_resize_end_child(GTK_PANED(paned), TRUE);
-    gtk_paned_set_shrink_start_child(GTK_PANED(paned), FALSE);
-    gtk_paned_set_shrink_end_child(GTK_PANED(paned), FALSE);
+    /* Allow both children to contract when the operating system gives Studio
+     * less room than the saved layout used on a larger monitor. */
+    gtk_paned_set_shrink_start_child(GTK_PANED(paned), TRUE);
+    gtk_paned_set_shrink_end_child(GTK_PANED(paned), TRUE);
 }
 
 static UmiStatus runtime_build_shell(
@@ -219,7 +221,9 @@ static UmiStatus runtime_build_shell(
         G_CALLBACK(runtime_on_workspace_position_changed),
         runtime);
 
-    gtk_window_set_default_size(runtime->owner->window, 1500, 940);
+    /* A moderate first-run size fits common laptop displays. Users may resize,
+     * maximise and save a different geometry through Framework layout state. */
+    gtk_window_set_default_size(runtime->owner->window, 1180, 760);
     /* Keep the operating-system title and application bar identity aligned. */
     gtk_window_set_title(runtime->owner->window, "Umicom Studio IDE");
     gtk_window_set_child(runtime->owner->window, runtime->outer_root);

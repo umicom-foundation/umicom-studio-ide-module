@@ -779,14 +779,37 @@ if(UMICOM_STUDIO_BUILD_GTK)
         src/ui/splash.c
     )
 
-    set(UMICOM_STUDIO_WINDOWS_RESOURCE
-        "${CMAKE_SOURCE_DIR}/win/umicom.rc"
-    )
-
-    if(WIN32 AND EXISTS "${UMICOM_STUDIO_WINDOWS_RESOURCE}")
-        target_sources(umicom-studio-ide PRIVATE
-            "${UMICOM_STUDIO_WINDOWS_RESOURCE}"
-        )
+    if(NOT COMMAND umicom_apply_application_branding)
+        include(
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/cmake/UmicomApplicationBranding.cmake")
+    endif()
+    # Studio receives its executable icon, taskbar identity and runtime vectors
+    # from Framework rather than maintaining a second brand resource file.
+    if(UMICOM_STUDIO_GUI)
+        umicom_apply_application_branding(
+            TARGET umicom-studio-ide
+            PRODUCT_NAME "Umicom Studio IDE"
+            INTERNAL_NAME "umicom-studio-ide"
+            APPLICATION_ID "org.umicom.studio.framework-workbench"
+            VERSION_MAJOR ${PROJECT_VERSION_MAJOR}
+            VERSION_MINOR ${PROJECT_VERSION_MINOR}
+            VERSION_PATCH ${PROJECT_VERSION_PATCH}
+            RESOURCE_ROOT
+                "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/resources"
+            DESKTOP_ENTRY
+            WINDOWS_GUI)
+    else()
+        umicom_apply_application_branding(
+            TARGET umicom-studio-ide
+            PRODUCT_NAME "Umicom Studio IDE"
+            INTERNAL_NAME "umicom-studio-ide"
+            APPLICATION_ID "org.umicom.studio.framework-workbench"
+            VERSION_MAJOR ${PROJECT_VERSION_MAJOR}
+            VERSION_MINOR ${PROJECT_VERSION_MINOR}
+            VERSION_PATCH ${PROJECT_VERSION_PATCH}
+            RESOURCE_ROOT
+                "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/resources"
+            DESKTOP_ENTRY)
     endif()
 
     target_include_directories(umicom-studio-ide PRIVATE
@@ -814,22 +837,11 @@ if(UMICOM_STUDIO_BUILD_GTK)
         UMICOM_VERSION_PATCH=0
     )
 
-    if(WIN32 AND UMICOM_STUDIO_GUI)
-        set_property(TARGET umicom-studio-ide PROPERTY WIN32_EXECUTABLE TRUE)
-    endif()
-
-    # Keep the canonical trademark assets beside the executable in development
-    # and in installed packages. Runtime path discovery avoids leaking a
-    # developer's private source-tree path into the binary.
+    # The shared branding helper copies all vector variants. Studio adds only
+    # the raster wordmark used by its native splash fallback.
     add_custom_command(TARGET umicom-studio-ide POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E make_directory
             "$<TARGET_FILE_DIR:umicom-studio-ide>/branding"
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/assets/umicom-icon.svg"
-            "$<TARGET_FILE_DIR:umicom-studio-ide>/branding/umicom-icon.svg"
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/assets/umicom-logo.svg"
-            "$<TARGET_FILE_DIR:umicom-studio-ide>/branding/umicom-logo.svg"
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "${CMAKE_SOURCE_DIR}/win/umicom-logo.png"
             "$<TARGET_FILE_DIR:umicom-studio-ide>/branding/umicom-logo.png"
@@ -840,8 +852,6 @@ if(UMICOM_STUDIO_BUILD_GTK)
         umicom-studio-workbench-demo
         RUNTIME DESTINATION bin)
     install(FILES
-        "${CMAKE_SOURCE_DIR}/assets/umicom-icon.svg"
-        "${CMAKE_SOURCE_DIR}/assets/umicom-logo.svg"
         "${CMAKE_SOURCE_DIR}/win/umicom-logo.png"
         "${CMAKE_SOURCE_DIR}/win/umicom.ico"
         DESTINATION bin/branding)

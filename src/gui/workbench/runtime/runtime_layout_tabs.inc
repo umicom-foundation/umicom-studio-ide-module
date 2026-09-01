@@ -60,6 +60,8 @@ static GtkWidget *runtime_build_layout_tabs(
     runtime->layout_lock_button = gtk_toggle_button_new_with_label(
         "Layout Locked");
     if (runtime->layout_lock_button != NULL) {
+        gtk_widget_add_css_class(
+            runtime->layout_lock_button, "umicom-runtime-layout-lock");
         gtk_toggle_button_set_active(
             GTK_TOGGLE_BUTTON(runtime->layout_lock_button), TRUE);
         g_signal_connect(

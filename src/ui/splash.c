@@ -35,14 +35,23 @@ struct UmiSplash {
 };
 
 static const char *SPLASH_CSS =
-    ".umicom-studio-splash { background: #17202b; color: #f3f6fa; }"
-    ".umicom-studio-splash-brand { background: #0866b5; padding: 28px; }"
-    ".umicom-studio-splash-title { font-size: 34px; font-weight: 700; }"
-    ".umicom-studio-splash-edition { color: alpha(#ffffff,0.76); }"
-    ".umicom-studio-splash-content { padding: 24px 28px; }"
-    ".umicom-studio-splash-status { color: alpha(#ffffff,0.82); }"
-    ".umicom-studio-splash progressbar trough { min-height: 3px; background: #2d3947; }"
-    ".umicom-studio-splash progressbar progress { background: #2d9cff; }";
+    ".umicom-studio-splash {"
+    "  background: linear-gradient(135deg,#121c2a,#0b1220);"
+    "  color: #f4f7fb; border: 1px solid #41556d;"
+    "}"
+    ".umicom-studio-splash-brand { padding: 24px 28px 18px 28px; }"
+    ".umicom-studio-splash-title {"
+    "  font-size: 30px; font-weight: 700; letter-spacing: 0.01em;"
+    "}"
+    ".umicom-studio-splash-edition { color: #a9b6c6; }"
+    ".umicom-studio-splash-content {"
+    "  padding: 20px 28px 24px 28px; border-top: 1px solid #2b3a4d;"
+    "}"
+    ".umicom-studio-splash-status { color: #f4f7fb; }"
+    ".umicom-studio-splash progressbar trough {"
+    "  min-height: 3px; background: #223247;"
+    "}"
+    ".umicom-studio-splash progressbar progress { background: #4c8ed9; }";
 
 static double clamp_progress(double value)
 {
@@ -63,7 +72,7 @@ static gboolean auto_close(gpointer user_data)
 static GtkWidget *make_brand_area(UmiSplash *splash, const char *title)
 {
     GtkWidget *area = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-    GtkWidget *brand_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 18);
+    GtkWidget *brand_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 16);
     GtkWidget *text = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
     GtkWidget *heading = gtk_label_new(
         title != NULL && title[0] != '\0' ? title : "Umicom Studio IDE");
@@ -71,7 +80,9 @@ static GtkWidget *make_brand_area(UmiSplash *splash, const char *title)
         "Umicom Framework • C23 • GTK4 • Community Edition");
 
     splash->brand_picture = gtk_picture_new();
-    gtk_widget_set_size_request(splash->brand_picture, 88, 88);
+    /* The splash uses the symbol beside real text. Text remains sharp,
+     * accessible and easy to localise at every display scale. */
+    gtk_widget_set_size_request(splash->brand_picture, 72, 72);
     gtk_picture_set_content_fit(
         GTK_PICTURE(splash->brand_picture), GTK_CONTENT_FIT_CONTAIN);
     gtk_widget_add_css_class(heading, "umicom-studio-splash-title");
@@ -159,7 +170,7 @@ UmiSplash *umi_splash_new(
     gtk_window_set_title(GTK_WINDOW(splash->window), "Umicom Studio IDE");
     gtk_window_set_decorated(GTK_WINDOW(splash->window), FALSE);
     gtk_window_set_resizable(GTK_WINDOW(splash->window), FALSE);
-    gtk_window_set_default_size(GTK_WINDOW(splash->window), 680, 360);
+    gtk_window_set_default_size(GTK_WINDOW(splash->window), 620, 300);
     gtk_widget_add_css_class(splash->window, "umicom-studio-splash");
     {
         GtkWidget *brand_area = make_brand_area(splash, title);

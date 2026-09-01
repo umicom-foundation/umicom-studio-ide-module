@@ -14,6 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Keep a saved panel size inside the range supported by the current monitor. */
 static int runtime_clamp_dimension(int value, int minimum, int maximum)
 {
     if (maximum < minimum) return minimum;
@@ -22,6 +23,7 @@ static int runtime_clamp_dimension(int value, int minimum, int maximum)
     return value;
 }
 
+/* Keep the lock control's words, help text and visual state in agreement. */
 static void runtime_workspace_update_lock_button(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -34,6 +36,17 @@ static void runtime_workspace_update_lock_button(
         runtime->layout_locked
             ? "Unlock before moving or resizing panels"
             : "Lock this arrangement to prevent accidental changes");
+    /* A distinct class makes edit mode visible without relying on the label
+     * alone, which helps users notice when panel movement is enabled. */
+    gtk_widget_remove_css_class(
+        runtime->layout_lock_button, "umicom-layout-locked");
+    gtk_widget_remove_css_class(
+        runtime->layout_lock_button, "umicom-layout-editing");
+    gtk_widget_add_css_class(
+        runtime->layout_lock_button,
+        runtime->layout_locked
+            ? "umicom-layout-locked"
+            : "umicom-layout-editing");
     if (runtime->layout_cancel_button != NULL) {
         gtk_widget_set_visible(
             runtime->layout_cancel_button,
@@ -41,12 +54,16 @@ static void runtime_workspace_update_lock_button(
     }
 }
 
+/* Apply saved splitter sizes while reserving usable room for the editor. */
 static void runtime_workspace_apply_geometry(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiUiWorkbenchState state;
-    int width;
+    int total_width;
+    int secondary_width;
     int height;
+    int side_maximum;
+    int bottom_maximum;
     int primary;
     int secondary;
     int bottom;
@@ -65,34 +82,55 @@ static void runtime_workspace_apply_geometry(
         return;
     }
 
-    width = gtk_widget_get_width(runtime->secondary_paned);
+    total_width = gtk_widget_get_width(runtime->primary_paned);
+    secondary_width = gtk_widget_get_width(runtime->secondary_paned);
     height = gtk_widget_get_height(runtime->workspace_paned);
+
+    /* Reserve a useful editor area before dividing the remaining width between
+     * the two optional sidebars. This prevents a layout saved on a large
+     * monitor from making Studio wider than a smaller screen. */
+    side_maximum =
+        (total_width - UMI_STUDIO_GTK_RUNTIME_ACTIVITY_WIDTH -
+         UMI_STUDIO_GTK_RUNTIME_CENTRE_MIN_WIDTH) / 2;
+    side_maximum = runtime_clamp_dimension(
+        side_maximum,
+        UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH,
+        UMI_STUDIO_GTK_RUNTIME_TOOL_MAX_WIDTH);
+    bottom_maximum = (height - UMI_STUDIO_GTK_RUNTIME_CENTRE_MIN_HEIGHT) / 2;
+    bottom_maximum = runtime_clamp_dimension(
+        bottom_maximum,
+        UMI_STUDIO_GTK_RUNTIME_BOTTOM_MIN_HEIGHT,
+        UMI_STUDIO_GTK_RUNTIME_BOTTOM_MAX_HEIGHT);
     primary = runtime_clamp_dimension(
         state.sidebar_size,
         UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH,
-        480) + UMI_STUDIO_GTK_RUNTIME_ACTIVITY_WIDTH;
+        side_maximum) + UMI_STUDIO_GTK_RUNTIME_ACTIVITY_WIDTH;
     secondary = runtime_clamp_dimension(
         state.auxiliary_sidebar_size,
         UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH,
-        480);
+        side_maximum);
     bottom = runtime_clamp_dimension(
         state.bottom_panel_size,
         UMI_STUDIO_GTK_RUNTIME_BOTTOM_MIN_HEIGHT,
-        420);
+        bottom_maximum);
 
     runtime->applying_workspace_geometry = 1;
     gtk_paned_set_position(GTK_PANED(runtime->primary_paned), primary);
-    if (width > secondary + 420) {
+    /* Only apply a split when the editor can keep its guaranteed centre area. */
+    if (secondary_width >
+        secondary + UMI_STUDIO_GTK_RUNTIME_CENTRE_MIN_WIDTH) {
         gtk_paned_set_position(
-            GTK_PANED(runtime->secondary_paned), width - secondary);
+            GTK_PANED(runtime->secondary_paned),
+            secondary_width - secondary);
     }
-    if (height > bottom + 260) {
+    if (height > bottom + UMI_STUDIO_GTK_RUNTIME_CENTRE_MIN_HEIGHT) {
         gtk_paned_set_position(
             GTK_PANED(runtime->workspace_paned), height - bottom);
     }
     runtime->applying_workspace_geometry = 0;
 }
 
+/* Delay geometry restoration until GTK knows the window's real dimensions. */
 static void runtime_on_workspace_mapped(
     GtkWidget *widget,
     gpointer user_data)
@@ -102,6 +140,7 @@ static void runtime_on_workspace_mapped(
         (UmiStudioGtkRuntimeChrome *)user_data);
 }
 
+/* Store a user-adjusted splitter position only while layout editing is open. */
 static void runtime_on_workspace_position_changed(
     GObject *object,
     GParamSpec *property,
@@ -136,19 +175,19 @@ static void runtime_on_workspace_position_changed(
         state.sidebar_size = runtime_clamp_dimension(
             position - UMI_STUDIO_GTK_RUNTIME_ACTIVITY_WIDTH,
             UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH,
-            480);
+            UMI_STUDIO_GTK_RUNTIME_TOOL_MAX_WIDTH);
     } else if (paned == runtime->secondary_paned) {
         available = gtk_widget_get_width(paned);
         state.auxiliary_sidebar_size = runtime_clamp_dimension(
             available - position,
             UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH,
-            480);
+            UMI_STUDIO_GTK_RUNTIME_TOOL_MAX_WIDTH);
     } else if (paned == runtime->workspace_paned) {
         available = gtk_widget_get_height(paned);
         state.bottom_panel_size = runtime_clamp_dimension(
             available - position,
             UMI_STUDIO_GTK_RUNTIME_BOTTOM_MIN_HEIGHT,
-            420);
+            UMI_STUDIO_GTK_RUNTIME_BOTTOM_MAX_HEIGHT);
     } else {
         return;
     }
@@ -162,6 +201,7 @@ static void runtime_on_workspace_position_changed(
         umi_studio_ui_workbench(runtime->owner->ui), &state);
 }
 
+/* Start or finish a reversible layout-editing session. */
 static void runtime_on_layout_lock_toggled(
     GtkToggleButton *button,
     gpointer user_data)
@@ -200,6 +240,7 @@ static void runtime_on_layout_lock_toggled(
     if (runtime->layout_locked) runtime_workspace_apply_geometry(runtime);
 }
 
+/* Restore the layout snapshot captured when editing began. */
 static void runtime_on_layout_cancel_clicked(
     GtkButton *button,
     gpointer user_data)

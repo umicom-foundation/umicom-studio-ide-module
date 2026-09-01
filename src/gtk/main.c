@@ -292,7 +292,7 @@ static UmiSplash *show_startup_splash(const char *program_path)
     UmiSplash *splash;
     char *absolute_program;
     char *program_directory;
-    char *logo_path;
+    char *icon_path;
 
     gtk_init();
     splash = umi_splash_new(
@@ -309,15 +309,17 @@ static UmiSplash *show_startup_splash(const char *program_path)
         return splash;
     }
     program_directory = g_path_get_dirname(absolute_program);
-    logo_path = program_directory != NULL
+    icon_path = program_directory != NULL
         ? g_build_filename(
-              program_directory, "branding", "umicom-logo.png", NULL)
+              program_directory, "branding", "umicom-icon.png", NULL)
         : NULL;
-    if (logo_path != NULL &&
-        g_file_test(logo_path, G_FILE_TEST_IS_REGULAR)) {
-        umi_splash_set_brand_image(splash, logo_path);
+    /* The splash composes the icon with its native title label; it does not
+     * rasterise the application name into a second image. */
+    if (icon_path != NULL &&
+        g_file_test(icon_path, G_FILE_TEST_IS_REGULAR)) {
+        umi_splash_set_brand_image(splash, icon_path);
     }
-    g_free(logo_path);
+    g_free(icon_path);
     g_free(program_directory);
     g_free(absolute_program);
 
@@ -332,6 +334,10 @@ int main(int argc, char **argv)
     UmiSplash *splash;
     UmiStatus status;
     int result;
+
+    /* Keep operating-system window matching aligned with the packaged Studio
+     * identity and its Framework-owned native icon. */
+    g_set_prgname("umicom-studio-ide");
 
     splash = show_startup_splash(argc > 0 ? argv[0] : NULL);
     umi_splash_set_progress(

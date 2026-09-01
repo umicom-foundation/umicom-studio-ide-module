@@ -37,7 +37,15 @@ int main(void)
            UMI_STATUS_OK);
     assert(strcmp(profile.profile_id, UMI_STUDIO_APPEARANCE_DARK) == 0);
     assert(strcmp(profile.brand_name, "Umicom") == 0);
-    assert(strcmp(profile.accent, "#C84C55") == 0);
+    assert(strcmp(profile.accent, "#4C8ED9") == 0);
+    /* The active dark profile must select light-on-dark artwork while keeping
+     * the application name available as native text. */
+    assert(strcmp(
+               profile.logo_resource,
+               "branding/umicom-logo-on-dark.svg") == 0);
+    assert(strcmp(
+               profile.icon_resource,
+               "branding/umicom-icon-on-dark.svg") == 0);
     assert(umi_ui_appearance_model_remove(
                umi_ui_workbench_appearance(workbench),
                UMI_STUDIO_APPEARANCE_DARK) == UMI_STATUS_PERMISSION_DENIED);

@@ -83,10 +83,24 @@ static UmiStatus add_builtin(UmiUiWorkbench *workbench,
 
     (void)snprintf(profile.description, sizeof(profile.description), "%s",
                    description);
-    (void)snprintf(profile.logo_resource, sizeof(profile.logo_resource), "%s",
-                   "branding/umicom-logo.svg");
-    (void)snprintf(profile.icon_resource, sizeof(profile.icon_resource), "%s",
-                   "branding/umicom-icon.svg");
+    /* Dark profiles select artwork with a light foreground. Other profiles
+     * use the darker primary artwork so the same identity remains readable. */
+    if (mode == UMI_UI_THEME_MODE_DARK ||
+        mode == UMI_UI_THEME_MODE_HIGH_CONTRAST) {
+        (void)snprintf(
+            profile.logo_resource, sizeof(profile.logo_resource), "%s",
+            "branding/umicom-logo-on-dark.svg");
+        (void)snprintf(
+            profile.icon_resource, sizeof(profile.icon_resource), "%s",
+            "branding/umicom-icon-on-dark.svg");
+    } else {
+        (void)snprintf(
+            profile.logo_resource, sizeof(profile.logo_resource), "%s",
+            "branding/umicom-logo.svg");
+        (void)snprintf(
+            profile.icon_resource, sizeof(profile.icon_resource), "%s",
+            "branding/umicom-icon.svg");
+    }
     profile.active = active != 0;
     profile.built_in = 1;
     profile.locked = 1;
@@ -101,7 +115,7 @@ UmiStatus umi_studio_appearance_register(UmiUiWorkbench *workbench)
 
     status = add_builtin(
         workbench, UMI_STUDIO_APPEARANCE_DARK, "Umicom Dark",
-        "Trademark navy workspace with a restrained red action accent",
+        "Deep neutral workspace with a clear blue interaction accent",
         UMI_UI_THEME_MODE_DARK, UMI_UI_DENSITY_COMPACT, 1);
     if (status == UMI_STATUS_OK) {
         status = add_builtin(

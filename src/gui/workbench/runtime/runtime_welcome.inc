@@ -15,6 +15,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Create one reusable welcome card with a heading and wrapped explanation. */
 static GtkWidget *runtime_welcome_card(
     const char *title,
     const char *description)
@@ -25,6 +26,8 @@ static GtkWidget *runtime_welcome_card(
 
     if (card == NULL || heading == NULL || detail == NULL) return card;
     gtk_widget_add_css_class(card, "umicom-welcome-card");
+    gtk_widget_set_hexpand(card, TRUE);
+    gtk_widget_set_vexpand(card, TRUE);
     gtk_widget_add_css_class(heading, "umicom-welcome-card-title");
     gtk_widget_add_css_class(detail, "umicom-runtime-muted");
     gtk_label_set_wrap(GTK_LABEL(detail), TRUE);
@@ -35,6 +38,7 @@ static GtkWidget *runtime_welcome_card(
     return card;
 }
 
+/* Add a Framework command to a card and optionally mark it as the main action. */
 static void runtime_welcome_add_action(
     UmiStudioGtkRuntimeChrome *runtime,
     GtkWidget *card,
@@ -51,17 +55,18 @@ static void runtime_welcome_add_action(
     gtk_box_append(GTK_BOX(card), button);
 }
 
+/* Build the responsive startup surface that introduces common Studio tasks. */
 static GtkWidget *runtime_build_welcome_surface(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioWelcomeCentreSnapshot snapshot;
-    GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 24);
-    GtkWidget *header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 18);
+    GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 18);
+    GtkWidget *header = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     GtkWidget *heading = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     GtkWidget *quick_tools = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     GtkWidget *title = runtime_label("Welcome to Umicom Studio", 0.0F);
     GtkWidget *summary;
-    GtkWidget *grid = gtk_grid_new();
+    GtkWidget *card_flow = gtk_flow_box_new();
     GtkWidget *create;
     GtkWidget *recent;
     GtkWidget *learn;
@@ -70,7 +75,7 @@ static GtkWidget *runtime_build_welcome_surface(
 
     if (page == NULL || runtime == NULL || runtime->owner == NULL ||
         header == NULL || heading == NULL || quick_tools == NULL ||
-        title == NULL || grid == NULL) {
+        title == NULL || card_flow == NULL) {
         return page;
     }
     (void)memset(&snapshot, 0, sizeof(snapshot));
@@ -99,16 +104,25 @@ static GtkWidget *runtime_build_welcome_surface(
     runtime_welcome_add_action(
         runtime, quick_tools, "Settings", "settings.open",
         "Change Studio and Framework preferences", 0);
+    /* Keeping quick actions below the heading lets the welcome surface narrow
+     * without forcing the central work area wider than the monitor. */
     gtk_widget_set_valign(quick_tools, GTK_ALIGN_START);
+    gtk_widget_set_halign(quick_tools, GTK_ALIGN_START);
     gtk_box_append(GTK_BOX(header), heading);
     gtk_box_append(GTK_BOX(header), quick_tools);
     gtk_box_append(GTK_BOX(page), header);
 
-    gtk_grid_set_column_spacing(GTK_GRID(grid), 18);
-    gtk_grid_set_row_spacing(GTK_GRID(grid), 18);
-    gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
-    gtk_widget_set_hexpand(grid, TRUE);
-    gtk_widget_set_vexpand(grid, TRUE);
+    /* FlowBox automatically changes from three columns to two or one as the
+     * central area narrows, so every card stays visible without clipping. */
+    gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(card_flow), 14U);
+    gtk_flow_box_set_row_spacing(GTK_FLOW_BOX(card_flow), 14U);
+    gtk_flow_box_set_min_children_per_line(GTK_FLOW_BOX(card_flow), 1U);
+    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(card_flow), 3U);
+    gtk_flow_box_set_homogeneous(GTK_FLOW_BOX(card_flow), TRUE);
+    gtk_flow_box_set_selection_mode(
+        GTK_FLOW_BOX(card_flow), GTK_SELECTION_NONE);
+    gtk_widget_set_hexpand(card_flow, TRUE);
+    gtk_widget_set_vexpand(card_flow, TRUE);
 
     create = runtime_welcome_card(
         "Start",
@@ -150,15 +164,15 @@ static GtkWidget *runtime_build_welcome_surface(
         "Review IDE keyboard shortcuts", 0);
 
     if (create != NULL) {
-        gtk_grid_attach(GTK_GRID(grid), create, 0, 0, 1, 1);
+        gtk_flow_box_append(GTK_FLOW_BOX(card_flow), create);
     }
     if (recent != NULL) {
-        gtk_grid_attach(GTK_GRID(grid), recent, 1, 0, 1, 1);
+        gtk_flow_box_append(GTK_FLOW_BOX(card_flow), recent);
     }
     if (learn != NULL) {
-        gtk_grid_attach(GTK_GRID(grid), learn, 2, 0, 1, 1);
+        gtk_flow_box_append(GTK_FLOW_BOX(card_flow), learn);
     }
-    gtk_box_append(GTK_BOX(page), grid);
+    gtk_box_append(GTK_BOX(page), card_flow);
 
     scroll = runtime_scroll(page);
     if (scroll != NULL) {
@@ -168,6 +182,7 @@ static GtkWidget *runtime_build_welcome_surface(
     return page;
 }
 
+/* Show the welcome surface only while no ordinary source document is active. */
 static void runtime_welcome_update_mode(
     UmiStudioGtkRuntimeChrome *runtime)
 {

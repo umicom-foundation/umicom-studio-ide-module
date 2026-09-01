@@ -196,6 +196,47 @@ static void runtime_on_panel_chrome_action(
     }
 }
 
+/* Return the default linked-context group displayed by a Studio panel. The
+ * Context Host remains authoritative and can replace this assignment when the
+ * user chooses another group. */
+static const char *runtime_surface_default_context_group(
+    UmiStudioRuntimeSurfaceKind kind)
+{
+    switch (kind) {
+        case UMI_STUDIO_SURFACE_TEST_EXPLORER:
+            return "studio.context.testing";
+        case UMI_STUDIO_SURFACE_AI_CHAT:
+        case UMI_STUDIO_SURFACE_AI_REVIEW:
+        case UMI_STUDIO_SURFACE_AI_APPROVALS:
+        case UMI_STUDIO_SURFACE_AI_TOOLS:
+        case UMI_STUDIO_SURFACE_AI_VALIDATION:
+        case UMI_STUDIO_SURFACE_AI_MODEL_COMPARISON:
+            return "studio.context.ai";
+        default:
+            return "studio.context.development";
+    }
+}
+
+/* Context groups receive a restrained header stripe. The colour is a visual
+ * aid only and never changes how selections or commands are routed. */
+static const char *runtime_surface_default_context_colour(
+    UmiStudioRuntimeSurfaceKind kind)
+{
+    switch (kind) {
+        case UMI_STUDIO_SURFACE_TEST_EXPLORER:
+            return "umicom-context-green";
+        case UMI_STUDIO_SURFACE_AI_CHAT:
+        case UMI_STUDIO_SURFACE_AI_REVIEW:
+        case UMI_STUDIO_SURFACE_AI_APPROVALS:
+        case UMI_STUDIO_SURFACE_AI_TOOLS:
+        case UMI_STUDIO_SURFACE_AI_VALIDATION:
+        case UMI_STUDIO_SURFACE_AI_MODEL_COMPARISON:
+            return "umicom-context-purple";
+        default:
+            return "umicom-context-blue";
+    }
+}
+
 static GtkWidget *runtime_wrap_surface_panel(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind,
@@ -213,6 +254,10 @@ static GtkWidget *runtime_wrap_surface_panel(
     if (umi_ws_panel_chrome_init(&chrome, profile->title) != UMI_STATUS_OK)
         return content;
     (void)umi_ws_panel_chrome_set_identity(&chrome, surface_id, placement);
+    (void)umi_ws_panel_chrome_set_context(
+        &chrome,
+        runtime_surface_default_context_group(kind),
+        runtime_surface_default_context_colour(kind));
     chrome.show_pin = false;
     chrome.show_menu = false;
     chrome.show_context = true;
