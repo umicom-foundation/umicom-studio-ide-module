@@ -31,4 +31,8 @@ typedef enum UmiStudioWorkspaceCommand {
 } UmiStudioWorkspaceCommand;
 UmiStatus umi_studio_workspace_seed(UmiStudioProfessionalWorkspace *workspace);
 UmiStatus umi_studio_workspace_execute(UmiStudioProfessionalWorkspace *workspace,UmiStudioWorkspaceCommand command);
+/* Forward a complete panel edit to Framework without Studio-owned layout logic. */
+UmiStatus umi_studio_workspace_apply_panel_settings(
+    UmiStudioProfessionalWorkspace *workspace,
+    const UmiUiWorkspacePanelSettings *settings);
 #endif

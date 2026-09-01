@@ -28,14 +28,21 @@ searchable **New Window** manager for its real Framework-backed surfaces.
 3. Select **New Window** in the application bar.
 4. Search for Explorer, Problems, Output, Terminal, Source Control, Tests,
    Debug, Build or an AI surface.
-5. Move the panel to Left, Right or Bottom, or hide it.
+5. Move the panel to Left, Right, Bottom or Centre. Select **Float** to place it
+   in a separate native window, or select **Hide** when it is not needed.
 6. Select **Editing Layout** again to lock the result.
 7. If the experiment did not help, select **Cancel Edit**. Studio restores the
-   panel locations, visibility and splitter sizes captured when editing began.
+   panel locations, floating state, visibility and splitter sizes captured when
+   editing began.
 
-The editor remains the central document region. Tool panels may move around it;
-ordinary source documents continue to use the Framework editor-group and
-document-tab services.
+A floating panel remembers its previous dock region. Close its native window
+while the layout is unlocked and Studio returns the panel to that region. A
+locked layout refuses this structural change, preventing an accidental window
+close from silently rearranging the workspace.
+
+The editor remains the normal document region. A tool panel can temporarily
+join the Centre tab stack, while source documents continue to use the Framework
+editor-group and document-tab services.
 
 ## Why locking matters
 

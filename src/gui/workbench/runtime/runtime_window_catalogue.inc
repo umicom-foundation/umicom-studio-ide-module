@@ -5,7 +5,8 @@
  * PURPOSE:
  *   Present Studio's real Framework-backed tool surfaces as a searchable New
  *   Window catalogue and let an unlocked workspace move those surfaces between
- *   the left, right and bottom tool regions without recreating business logic.
+ *   named dock regions or detached native windows without recreating business
+ *   logic inside the catalogue.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
@@ -14,6 +15,12 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+
+/* The place command disconnects this callback during a programmatic redock,
+ * so publish its local signature before the command implementation. */
+static gboolean runtime_on_floating_surface_close(
+    GtkWindow *window,
+    gpointer user_data);
 
 static UmiStatus runtime_surface_place(
     UmiStudioGtkRuntimeChrome *runtime,
@@ -26,17 +33,19 @@ static UmiStatus runtime_surface_place(
     GtkWidget *revealer;
     const char *name;
     UmiStudioGtkRuntimeRegion previous_region;
+    int was_floating;
 
     if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
         kind > UMI_STUDIO_SURFACE_LAST ||
         region < UMI_STUDIO_GTK_REGION_PRIMARY ||
-        region > UMI_STUDIO_GTK_REGION_BOTTOM) {
+        region > UMI_STUDIO_GTK_REGION_EDITOR) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     if (runtime->layout_locked) return UMI_STATUS_PERMISSION_DENIED;
     panel = runtime->surface_panels[kind];
     previous_region =
         (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind];
+    was_floating = runtime->surface_floating[kind];
     target = runtime_region_stack(runtime, region);
     name = umi_studio_runtime_surface_kind_text(kind);
     if (panel == NULL || target == NULL || name == NULL)
@@ -47,19 +56,32 @@ static UmiStatus runtime_surface_place(
         g_object_ref(panel);
         if (GTK_IS_STACK(parent)) {
             gtk_stack_remove(GTK_STACK(parent), panel);
+        } else if (GTK_IS_WINDOW(parent)) {
+            gtk_window_set_child(GTK_WINDOW(parent), NULL);
         }
         runtime_stack_add(target, panel, name);
         g_object_unref(panel);
     }
+    if (runtime->surface_windows[kind] != NULL) {
+        /* A programmatic redock owns the transfer and must not also run the
+         * user-close callback, which would attempt to redock the same panel. */
+        g_signal_handlers_disconnect_by_func(
+            runtime->surface_windows[kind],
+            G_CALLBACK(runtime_on_floating_surface_close),
+            runtime);
+        gtk_window_destroy(GTK_WINDOW(runtime->surface_windows[kind]));
+        runtime->surface_windows[kind] = NULL;
+    }
     runtime->surface_regions[kind] = (int)region;
     runtime->surface_visible[kind] = 1;
+    runtime->surface_floating[kind] = 0;
     gtk_widget_set_visible(panel, TRUE);
     gtk_stack_set_visible_child_name(GTK_STACK(target), name);
     revealer = runtime_region_revealer(runtime, region);
     if (revealer != NULL) {
         gtk_revealer_set_reveal_child(GTK_REVEALER(revealer), TRUE);
     }
-    if (previous_region != region) {
+    if (was_floating || previous_region != region) {
         runtime_region_visibility_refresh(runtime, previous_region);
     }
     runtime_surface_location_refresh(runtime, kind);
@@ -78,12 +100,125 @@ static UmiStatus runtime_surface_hide(
     if (runtime->layout_locked) return UMI_STATUS_PERMISSION_DENIED;
     panel = runtime->surface_panels[kind];
     if (panel == NULL) return UMI_STATUS_NOT_FOUND;
-    gtk_widget_set_visible(panel, FALSE);
+    if (runtime->surface_floating[kind] &&
+        runtime->surface_windows[kind] != NULL) {
+        gtk_widget_set_visible(runtime->surface_windows[kind], FALSE);
+    } else {
+        gtk_widget_set_visible(panel, FALSE);
+    }
     runtime->surface_visible[kind] = 0;
     runtime_region_visibility_refresh(
         runtime,
         (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]);
     runtime_surface_location_refresh(runtime, kind);
+    return UMI_STATUS_OK;
+}
+
+/* Redock a panel when its detached native window is closed by the user. */
+static gboolean runtime_on_floating_surface_close(
+    GtkWindow *window,
+    gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+    UmiStudioRuntimeSurfaceKind kind;
+    GtkWidget *panel;
+    UmiStatus status;
+
+    if (runtime == NULL) return FALSE;
+    kind = (UmiStudioRuntimeSurfaceKind)GPOINTER_TO_INT(
+        g_object_get_data(G_OBJECT(window), "umicom-surface-kind"));
+    if (kind < UMI_STUDIO_SURFACE_EXPLORER ||
+        kind > UMI_STUDIO_SURFACE_LAST) {
+        return FALSE;
+    }
+    if (runtime->layout_locked) {
+        runtime_show_notification(
+            runtime,
+            "Unlock the layout before docking or closing a floating panel.");
+        return TRUE;
+    }
+    panel = runtime->surface_panels[kind];
+    if (panel == NULL) return FALSE;
+
+    /* Hold the panel while removing it from the top-level window; otherwise
+     * GTK may release the final widget reference before it is redocked. */
+    g_object_ref(panel);
+    gtk_window_set_child(window, NULL);
+    runtime->surface_windows[kind] = NULL;
+    runtime->surface_floating[kind] = 0;
+    status = runtime_surface_place(
+        runtime,
+        kind,
+        (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]);
+    g_object_unref(panel);
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(
+            runtime, "The panel could not be returned to its dock region.");
+    }
+    return FALSE;
+}
+
+/* Move a tool panel into an independent native window while preserving its
+ * previous dock region as the deterministic destination for later redocking. */
+static UmiStatus runtime_surface_float(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind)
+{
+    GtkWidget *panel;
+    GtkWidget *parent;
+    GtkWidget *window;
+    const UmiStudioGtkSurfaceProfile *profile;
+
+    if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
+        kind > UMI_STUDIO_SURFACE_LAST ||
+        kind == UMI_STUDIO_SURFACE_EDITOR) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    if (runtime->layout_locked) return UMI_STATUS_PERMISSION_DENIED;
+    if (runtime->surface_floating[kind] &&
+        runtime->surface_windows[kind] != NULL) {
+        gtk_widget_set_visible(runtime->surface_windows[kind], TRUE);
+        gtk_window_present(GTK_WINDOW(runtime->surface_windows[kind]));
+        return UMI_STATUS_OK;
+    }
+    panel = runtime->surface_panels[kind];
+    profile = runtime_surface_profile(kind);
+    if (panel == NULL || profile == NULL) return UMI_STATUS_NOT_FOUND;
+    window = GTK_WIDGET(gtk_window_new());
+    if (window == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+
+    /* Keep the panel alive while ownership moves from a stack to a window. */
+    g_object_ref(panel);
+    parent = gtk_widget_get_parent(panel);
+    if (GTK_IS_STACK(parent)) {
+        gtk_stack_remove(GTK_STACK(parent), panel);
+    }
+    gtk_window_set_title(GTK_WINDOW(window), profile->title);
+    gtk_window_set_default_size(GTK_WINDOW(window), 720, 520);
+    gtk_window_set_transient_for(GTK_WINDOW(window), runtime->owner->window);
+    gtk_window_set_application(
+        GTK_WINDOW(window),
+        gtk_window_get_application(runtime->owner->window));
+    gtk_window_set_child(GTK_WINDOW(window), panel);
+    g_object_unref(panel);
+    g_object_set_data(
+        G_OBJECT(window),
+        "umicom-surface-kind",
+        GINT_TO_POINTER((int)kind));
+    g_signal_connect(
+        window,
+        "close-request",
+        G_CALLBACK(runtime_on_floating_surface_close),
+        runtime);
+    runtime->surface_windows[kind] = window;
+    runtime->surface_floating[kind] = 1;
+    runtime->surface_visible[kind] = 1;
+    runtime_region_visibility_refresh(
+        runtime,
+        (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]);
+    runtime_surface_location_refresh(runtime, kind);
+    gtk_window_present(GTK_WINDOW(window));
     return UMI_STATUS_OK;
 }
 
@@ -117,6 +252,22 @@ static void runtime_on_surface_hide(GtkButton *button, gpointer user_data)
         runtime_show_notification(
             runtime,
             "Unlock the layout before hiding panels.");
+    }
+}
+
+/* Handle the catalogue's explicit Float action with the same lock guard as
+ * every other layout mutation. */
+static void runtime_on_surface_float(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+    UmiStudioRuntimeSurfaceKind kind =
+        (UmiStudioRuntimeSurfaceKind)GPOINTER_TO_INT(
+            g_object_get_data(G_OBJECT(button), "umicom-surface-kind"));
+    UmiStatus status = runtime_surface_float(runtime, kind);
+    if (status == UMI_STATUS_PERMISSION_DENIED) {
+        runtime_show_notification(
+            runtime, "Unlock the layout before floating a panel.");
     }
 }
 
@@ -189,8 +340,8 @@ static UmiStatus runtime_build_window_catalogue(
     root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     heading = runtime_section_title("New Window");
     help = runtime_label(
-        "Open, hide or move Studio panels. Unlock the current layout before "
-        "changing its arrangement.",
+        "Dock panels left, right, bottom or centre, or detach them into native "
+        "windows. Unlock the current layout before changing its arrangement.",
         0.0F);
     scroll = gtk_scrolled_window_new();
     if (runtime->window_catalogue_window == NULL ||
@@ -232,6 +383,8 @@ static UmiStatus runtime_build_window_catalogue(
         GtkWidget *left;
         GtkWidget *right;
         GtkWidget *bottom;
+        GtkWidget *centre;
+        GtkWidget *floating;
         GtkWidget *hide;
         char search_text[512];
 
@@ -248,10 +401,14 @@ static UmiStatus runtime_build_window_catalogue(
             runtime, profile->kind, UMI_STUDIO_GTK_REGION_SECONDARY, "Right");
         bottom = runtime_surface_place_button(
             runtime, profile->kind, UMI_STUDIO_GTK_REGION_BOTTOM, "Bottom");
+        centre = runtime_surface_place_button(
+            runtime, profile->kind, UMI_STUDIO_GTK_REGION_EDITOR, "Centre");
+        floating = gtk_button_new_with_label("Float");
         hide = gtk_button_new_with_label("Hide");
         if (row == NULL || identity == NULL || title == NULL ||
             location == NULL || actions == NULL || left == NULL ||
-            right == NULL || bottom == NULL || hide == NULL) {
+            right == NULL || bottom == NULL || centre == NULL ||
+            floating == NULL || hide == NULL) {
             continue;
         }
         runtime->surface_location_labels[profile->kind] = location;
@@ -262,6 +419,17 @@ static UmiStatus runtime_build_window_catalogue(
         gtk_box_append(GTK_BOX(actions), left);
         gtk_box_append(GTK_BOX(actions), right);
         gtk_box_append(GTK_BOX(actions), bottom);
+        gtk_box_append(GTK_BOX(actions), centre);
+        gtk_widget_add_css_class(floating, "flat");
+        g_object_set_data(
+            G_OBJECT(floating), "umicom-surface-kind",
+            GINT_TO_POINTER((int)profile->kind));
+        g_signal_connect(
+            floating,
+            "clicked",
+            G_CALLBACK(runtime_on_surface_float),
+            runtime);
+        gtk_box_append(GTK_BOX(actions), floating);
         gtk_widget_add_css_class(hide, "flat");
         g_object_set_data(
             G_OBJECT(hide), "umicom-surface-kind",

@@ -15,6 +15,19 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* The catalogue implementation is included later in the same translation
+ * unit. These declarations let panel-header actions call its shared commands. */
+static UmiStatus runtime_surface_place(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind,
+    UmiStudioGtkRuntimeRegion region);
+static UmiStatus runtime_surface_float(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind);
+static UmiStatus runtime_surface_hide(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind);
+
 static void runtime_stack_add(
     GtkWidget *stack,
     GtkWidget *child,
@@ -45,6 +58,7 @@ static GtkWidget *runtime_region_stack(
         case UMI_STUDIO_GTK_REGION_PRIMARY: return runtime->primary_stack;
         case UMI_STUDIO_GTK_REGION_SECONDARY: return runtime->secondary_stack;
         case UMI_STUDIO_GTK_REGION_BOTTOM: return runtime->bottom_stack;
+        case UMI_STUDIO_GTK_REGION_EDITOR: return runtime->centre_stack;
         default: return NULL;
     }
 }
@@ -77,7 +91,8 @@ static void runtime_region_visibility_refresh(
          ++kind) {
         if (runtime->surface_state_initialised[kind] &&
             runtime->surface_regions[kind] == (int)region &&
-            runtime->surface_visible[kind]) {
+            runtime->surface_visible[kind] &&
+            !runtime->surface_floating[kind]) {
             has_visible_surface = 1;
             if (first_visible == NULL) {
                 first_visible = runtime->surface_panels[kind];
@@ -110,8 +125,10 @@ static void runtime_surface_location_refresh(
         text,
         sizeof(text),
         "%s · %s",
-        runtime_region_text(
-            (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]),
+        runtime->surface_floating[kind]
+            ? "Floating"
+            : runtime_region_text(
+                  (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]),
         runtime->surface_visible[kind] ? "open" : "hidden");
     gtk_label_set_text(GTK_LABEL(label), text);
 }
@@ -140,24 +157,43 @@ static void runtime_on_panel_chrome_action(
     UmiStudioGtkRuntimeChrome *runtime =
         (UmiStudioGtkRuntimeChrome *)user_data;
     UmiStudioRuntimeSurfaceKind kind;
-    UmiStudioGtkRuntimeRegion region;
-    if (runtime == NULL || chrome == NULL ||
-        action != UMI_WS_PANEL_ACTION_CLOSE)
-        return;
-    if (runtime->layout_locked) {
-        runtime_show_notification(
-            runtime, "Unlock the layout before hiding a panel.");
-        return;
-    }
+    UmiStatus status = UMI_STATUS_OK;
+    if (runtime == NULL || chrome == NULL) return;
     kind = runtime_surface_kind_from_id(chrome->panel_id);
     if (kind == UMI_STUDIO_SURFACE_EDITOR ||
         runtime->surface_panels[kind] == NULL)
         return;
-    region = (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind];
-    gtk_widget_set_visible(runtime->surface_panels[kind], FALSE);
-    runtime->surface_visible[kind] = 0;
-    runtime_region_visibility_refresh(runtime, region);
-    runtime_surface_location_refresh(runtime, kind);
+    switch (action) {
+        case UMI_WS_PANEL_ACTION_CLOSE:
+            status = runtime_surface_hide(runtime, kind);
+            break;
+        case UMI_WS_PANEL_ACTION_FLOAT_TOGGLE:
+            status = runtime->surface_floating[kind]
+                ? runtime_surface_place(
+                      runtime,
+                      kind,
+                      (UmiStudioGtkRuntimeRegion)
+                          runtime->surface_regions[kind])
+                : runtime_surface_float(runtime, kind);
+            break;
+        case UMI_WS_PANEL_ACTION_MOVE:
+        case UMI_WS_PANEL_ACTION_SETTINGS:
+            runtime_show_window_catalogue(runtime);
+            return;
+        case UMI_WS_PANEL_ACTION_CONTEXT_GROUP:
+            /* The context strip above the workbench is the single visible
+             * editor for source, destination and bidirectional link roles. */
+            runtime_show_notification(
+                runtime,
+                "Use the linked-context strip above the workbench to group panels.");
+            return;
+        default:
+            return;
+    }
+    if (status == UMI_STATUS_PERMISSION_DENIED) {
+        runtime_show_notification(
+            runtime, "Unlock the layout before changing this panel.");
+    }
 }
 
 static GtkWidget *runtime_wrap_surface_panel(
@@ -179,12 +215,14 @@ static GtkWidget *runtime_wrap_surface_panel(
     (void)umi_ws_panel_chrome_set_identity(&chrome, surface_id, placement);
     chrome.show_pin = false;
     chrome.show_menu = false;
-    chrome.show_context = false;
-    chrome.show_move = false;
-    chrome.show_float = false;
+    chrome.show_context = true;
+    chrome.show_move = true;
+    chrome.show_float = true;
     chrome.show_maximise = false;
-    chrome.show_settings = false;
+    chrome.show_settings = true;
     chrome.show_close = true;
+    chrome.locked = runtime->layout_locked != 0;
+    chrome.floating = runtime->surface_floating[kind] != 0;
     umi_ws_panel_chrome_set_compact(&chrome, true);
     return umi_gtk4_ws_panel_frame_create_interactive(
         &chrome, content, runtime_on_panel_chrome_action, runtime);
@@ -284,6 +322,14 @@ static void runtime_show_surface(
 
     if (runtime == NULL || name == NULL) return;
     if (kind == UMI_STUDIO_SURFACE_EDITOR) return;
+    if (runtime->surface_floating[kind] &&
+        runtime->surface_windows[kind] != NULL) {
+        runtime->surface_visible[kind] = 1;
+        gtk_widget_set_visible(runtime->surface_windows[kind], TRUE);
+        gtk_window_present(GTK_WINDOW(runtime->surface_windows[kind]));
+        runtime_surface_location_refresh(runtime, kind);
+        return;
+    }
     region = (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind];
     stack = runtime_region_stack(runtime, region);
     revealer = runtime_region_revealer(runtime, region);
@@ -321,6 +367,10 @@ static UmiStatus runtime_rebuild_surface_panels(
             GtkWidget *parent = gtk_widget_get_parent(old_panel);
             if (GTK_IS_STACK(parent)) {
                 gtk_stack_remove(GTK_STACK(parent), old_panel);
+            } else if (GTK_IS_WINDOW(parent)) {
+                /* A refresh replaces the panel body without destroying its
+                 * detached native window or losing monitor placement. */
+                gtk_window_set_child(GTK_WINDOW(parent), NULL);
             }
         }
 
@@ -338,12 +388,18 @@ static UmiStatus runtime_rebuild_surface_panels(
         panel = runtime_wrap_surface_panel(
             runtime, (UmiStudioRuntimeSurfaceKind)kind, profile, panel);
         runtime->surface_panels[kind] = panel;
-        runtime_stack_add(
-            runtime_region_stack(
-                runtime,
-                (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]),
-            panel,
-            name);
+        if (runtime->surface_floating[kind] &&
+            runtime->surface_windows[kind] != NULL) {
+            gtk_window_set_child(
+                GTK_WINDOW(runtime->surface_windows[kind]), panel);
+        } else {
+            runtime_stack_add(
+                runtime_region_stack(
+                    runtime,
+                    (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]),
+                panel,
+                name);
+        }
         gtk_widget_set_visible(panel, runtime->surface_visible[kind] != 0);
         runtime_surface_location_refresh(
             runtime, (UmiStudioRuntimeSurfaceKind)kind);

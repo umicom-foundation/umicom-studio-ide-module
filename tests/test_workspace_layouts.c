@@ -47,6 +47,17 @@ int main(void)
     assert(active->window_count == 4U && active->locked);
     assert(umi_studio_workspace_execute(workspace,UMI_STUDIO_WORKSPACE_COMMAND_UNLOCK) == UMI_STATUS_OK);
     assert(!active->locked);
+    {
+        UmiUiWorkspacePanelSettings settings =
+            umi_ui_workspace_panel_settings_default(
+                active->windows[0].window_id);
+        settings.placement_id = "right";
+        settings.stack_id = "studio-inspector";
+        settings.context_group_id = "compare-orange";
+        /* The Studio wrapper must leave transaction semantics in Framework. */
+        assert(umi_studio_workspace_apply_panel_settings(
+                   workspace, &settings) == UMI_STATUS_OK);
+    }
     umi_ui_workspace_customisation_snapshot(model, &customisation_snapshot);
     assert(customisation_snapshot.editing);
     assert(umi_studio_workspace_execute(workspace,UMI_STUDIO_WORKSPACE_COMMAND_LOCK) == UMI_STATUS_OK);

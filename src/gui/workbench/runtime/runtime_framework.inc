@@ -236,6 +236,7 @@ static UmiStatus runtime_create_framework(
 static void runtime_destroy_framework(
     UmiStudioGtkRuntimeChrome *runtime)
 {
+    int kind;
     if (runtime == NULL) return;
 
     if (runtime->refresh_source != 0U) {
@@ -254,6 +255,22 @@ static void runtime_destroy_framework(
     if (runtime->window_catalogue_window != NULL) {
         gtk_window_destroy(GTK_WINDOW(runtime->window_catalogue_window));
         runtime->window_catalogue_window = NULL;
+    }
+
+    /* Detached panels are top-level GTK windows and therefore must be closed
+     * explicitly before the runtime state they reference is released. */
+    for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST;
+        ++kind) {
+        if (runtime->surface_windows[kind] != NULL) {
+            g_signal_handlers_disconnect_by_func(
+                runtime->surface_windows[kind],
+                G_CALLBACK(runtime_on_floating_surface_close),
+                runtime);
+            gtk_window_destroy(GTK_WINDOW(runtime->surface_windows[kind]));
+            runtime->surface_windows[kind] = NULL;
+            runtime->surface_floating[kind] = 0;
+        }
     }
 
     umi_studio_runtime_bootstrap_destroy(

@@ -185,6 +185,8 @@ static void runtime_on_layout_lock_toggled(
                     runtime->surface_regions[kind];
                 runtime->layout_surface_visible_baseline[kind] =
                     runtime->surface_visible[kind];
+                runtime->layout_surface_floating_baseline[kind] =
+                    runtime->surface_floating[kind];
             }
             runtime->layout_baseline_valid = 1;
         }
@@ -192,6 +194,9 @@ static void runtime_on_layout_lock_toggled(
         runtime->layout_baseline_valid = 0;
     }
     runtime_workspace_update_lock_button(runtime);
+    /* Rebuild only presentation wrappers so panel-header buttons immediately
+     * reflect the new edit lock while their Framework-backed content persists. */
+    (void)runtime_rebuild_surface_panels(runtime);
     if (runtime->layout_locked) runtime_workspace_apply_geometry(runtime);
 }
 
@@ -218,10 +223,14 @@ static void runtime_on_layout_cancel_clicked(
                 runtime->layout_surface_region_baseline[kind];
         if (surface == UMI_STUDIO_SURFACE_EDITOR ||
             region < UMI_STUDIO_GTK_REGION_PRIMARY ||
-            region > UMI_STUDIO_GTK_REGION_BOTTOM) {
+            region > UMI_STUDIO_GTK_REGION_EDITOR) {
             continue;
         }
-        (void)runtime_surface_place(runtime, surface, region);
+        if (runtime->layout_surface_floating_baseline[kind]) {
+            (void)runtime_surface_float(runtime, surface);
+        } else {
+            (void)runtime_surface_place(runtime, surface, region);
+        }
         if (!runtime->layout_surface_visible_baseline[kind]) {
             (void)runtime_surface_hide(runtime, surface);
         }

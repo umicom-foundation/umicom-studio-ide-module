@@ -101,6 +101,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *notification_label;
 
     GtkWidget *surface_panels[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+    GtkWidget *surface_windows[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     GtkWidget *activity_buttons[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     GtkWidget *status_labels[UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT + 1U];
 
@@ -178,9 +179,11 @@ typedef struct UmiStudioGtkRuntimeChrome {
     int layout_baseline_valid;
     int surface_regions[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     int surface_visible[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+    int surface_floating[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     int surface_state_initialised[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     int layout_surface_region_baseline[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     int layout_surface_visible_baseline[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+    int layout_surface_floating_baseline[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
 
     UmiUiWorkbenchState layout_edit_baseline;
 

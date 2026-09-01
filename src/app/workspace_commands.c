@@ -47,3 +47,19 @@ UmiStatus umi_studio_workspace_execute(UmiStudioProfessionalWorkspace *workspace
         default: return UMI_STATUS_NOT_IMPLEMENTED;
     }
 }
+
+/* Forward Studio panel settings to the reusable Framework transaction. */
+UmiStatus umi_studio_workspace_apply_panel_settings(
+    UmiStudioProfessionalWorkspace *workspace,
+    const UmiUiWorkspacePanelSettings *settings)
+{
+    UmiUiWorkspaceCustomisation *model =
+        umi_studio_professional_workspace_model(workspace);
+    if (model == NULL || settings == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    /* Studio contributes the selected panel identity and user choices only;
+     * Framework owns the transactional docking, grouping and rollback rules. */
+    return umi_ui_workspace_customisation_apply_panel_settings(
+        model, settings);
+}
