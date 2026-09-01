@@ -32,6 +32,7 @@
 #include "umicom/platform/file_index.h"
 #include "umicom/ui/workbench.h"
 #include "umicom/ui/gtk4/workstation/panel_frame.h"
+#include "umicom/ui/gtk4/workstation/shell_header.h"
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/coding_assistant.h"
@@ -81,6 +82,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiStudioRuntimeHostAdapter host_adapter;
 
     GtkWidget *outer_root;
+    UmiGtk4WorkstationShellHeader *brand_identity;
     GtkWidget *application_bar;
     GtkWidget *menu_bar;
     GtkWidget *toolbar;
@@ -177,6 +179,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkCssProvider *css_provider;
     guint refresh_source;
     uint32_t panel_refresh_tick;
+    uint64_t appearance_revision;
     int force_close;
     int runtime_ready;
     int interaction_busy;

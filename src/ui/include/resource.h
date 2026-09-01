@@ -9,13 +9,13 @@
  *
  * WHAT’S DEFINED HERE:
  *   - Icon resource IDs (big + small app icons)
- *   - PNG splash image ID (embedded as RCDATA)
+ *   - Scalable brand-mark ID (embedded as RCDATA)
  *   - Safe defaults for Windows resource editors (APSTUDIO) and
  *     IDC_STATIC, so builds are consistent across MSVC/MinGW/Clang.
  *
  * ID RANGES (guideline):
  *   100–199 : Icons / cursors
- *   200–299 : Raw data (RCDATA) such as PNGs
+ *   200–299 : Raw data (RCDATA) such as SVG artwork
  *   1000+   : Dialogs, menus, accelerators (future)
  *
  * HOW TO USE:
@@ -41,8 +41,12 @@
 #define IDI_APPICON         101
 #define IDI_APPICON_SMALL   102
 
-/* Raw data (RCDATA) — PNG splash/logo embedded by win/umicom.rc              */
-#define IDP_SPLASH          201
+/* Raw SVG data used by native startup integrations that read resources.      */
+#define IDR_BRAND_MARK      201
+
+/* Older code used this name for the same resource number. The alias prevents
+ * an unnecessary source break while new code uses the format-neutral name. */
+#define IDP_SPLASH          IDR_BRAND_MARK
 
 /* --- Compatibility shims -------------------------------------------------- */
 /* Some toolchains expect IDC_STATIC; make sure it’s defined.                 */

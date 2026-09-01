@@ -257,6 +257,11 @@ static void runtime_destroy_framework(
         runtime->window_catalogue_window = NULL;
     }
 
+    /* The GTK tree owns the visible widget. This call releases only the
+     * Framework controller that tracks identity text and SVG selection. */
+    umi_gtk4_ws_shell_header_destroy(runtime->brand_identity);
+    runtime->brand_identity = NULL;
+
     /* Detached panels are top-level GTK windows and therefore must be closed
      * explicitly before the runtime state they reference is released. */
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;

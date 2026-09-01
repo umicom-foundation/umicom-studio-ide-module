@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "app.h"
+#include "icon.h"
 #include "splash.h"
 #include "workbench_window.h"
 #include "umicom/studio/appearance_centre.h"
@@ -51,16 +52,22 @@ static void configure_runtime_branding(UmiStudioBootstrap *bootstrap,
     if (absolute_program == NULL) return;
     program_directory = g_path_get_dirname(absolute_program);
     branding_directory = g_build_filename(program_directory, "branding", NULL);
+    /* Studio starts with its dark workspace, so the first visible controls use
+     * the light-on-dark vectors. The appearance service can select another
+     * contrast variant later when the user changes theme. */
     logo_path = g_build_filename(
-        branding_directory, "umicom-logo.svg", NULL);
+        branding_directory, "umicom-logo-on-dark.svg", NULL);
     icon_path = g_build_filename(
-        branding_directory, "umicom-icon.svg", NULL);
+        branding_directory, "umicom-icon-on-dark.svg", NULL);
     ui = umi_studio_bootstrap_ui(bootstrap);
     if (ui != NULL && logo_path != NULL && icon_path != NULL &&
         g_file_test(logo_path, G_FILE_TEST_IS_REGULAR) &&
         g_file_test(icon_path, G_FILE_TEST_IS_REGULAR)) {
         (void)umi_studio_appearance_set_brand_resources(
             umi_studio_ui_workbench(ui), logo_path, icon_path);
+        /* Legacy Studio header widgets use this shared vector path rather than
+         * carrying a second embedded raster copy of the Umicom mark. */
+        (void)umi_icon_set_brand_path(icon_path);
     }
     g_free(icon_path);
     g_free(logo_path);
@@ -311,7 +318,7 @@ static UmiSplash *show_startup_splash(const char *program_path)
     program_directory = g_path_get_dirname(absolute_program);
     icon_path = program_directory != NULL
         ? g_build_filename(
-              program_directory, "branding", "umicom-icon.png", NULL)
+              program_directory, "branding", "umicom-icon-on-dark.svg", NULL)
         : NULL;
     /* The splash composes the icon with its native title label; it does not
      * rasterise the application name into a second image. */
@@ -376,6 +383,8 @@ int main(int argc, char **argv)
 
     result = run_studio(bootstrap, splash, argc, argv);
     umi_studio_bootstrap_destroy(bootstrap);
+    /* Release the startup path after all Studio windows have closed. */
+    umi_icon_clear_brand_path();
     return result;
 }
 

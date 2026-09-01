@@ -837,24 +837,10 @@ if(UMICOM_STUDIO_BUILD_GTK)
         UMICOM_VERSION_PATCH=0
     )
 
-    # The shared branding helper copies all vector variants. Studio adds only
-    # the raster wordmark used by its native splash fallback.
-    add_custom_command(TARGET umicom-studio-ide POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E make_directory
-            "$<TARGET_FILE_DIR:umicom-studio-ide>/branding"
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/win/umicom-logo.png"
-            "$<TARGET_FILE_DIR:umicom-studio-ide>/branding/umicom-logo.png"
-        COMMENT "Copying Umicom trademark assets for the Studio workbench")
-
     install(TARGETS
         umicom-studio-ide
         umicom-studio-workbench-demo
         RUNTIME DESTINATION bin)
-    install(FILES
-        "${CMAKE_SOURCE_DIR}/win/umicom-logo.png"
-        "${CMAKE_SOURCE_DIR}/win/umicom.ico"
-        DESTINATION bin/branding)
 endif()
 
 # The Engine Centre test verifies Studio does not duplicate Framework maturity.

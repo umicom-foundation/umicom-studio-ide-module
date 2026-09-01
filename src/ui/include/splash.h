@@ -48,9 +48,9 @@
  *        umi_splash_free(s);    // releases resources (safe to call once)
  *
  * BRANDING HOOKS:
- *   - The implementation (splash.c) draws a simple branded header and supports
- *     showing a small in-memory logo icon if available (via icon.c). If you
- *     don’t ship icon assets yet, the splash still works: it just shows text.
+ *   - The implementation draws a simple branded header and accepts the
+ *     packaged SVG icon through umi_splash_set_brand_image(). If the asset is
+ *     unavailable, the title and progress information remain fully usable.
  *
  * ACCESSIBILITY:
  *   - We set titles and labels as normal GTK widgets so screen readers can
@@ -82,19 +82,8 @@
 /* Ensure C symbols have C linkage when included from C++ translation units. */
 G_BEGIN_DECLS
 
-/*-----------------------------------------------------------------------------
- * PNG Resource Access
- *
- * PURPOSE:
- *   Provide a unified way to fetch the splash PNG bytes and its length across
- *   platforms. On Windows, the implementation reads from an RCDATA resource
- *   (IDP_SPLASH) embedded by umicom.rc. On other platforms, the implementation
- *   can return compiled-in bytes (see ustudio_resources.c) or NULL.
- *
- * RETURNS:
- *   Pointer to read-only PNG bytes, and writes the byte length to *out_size.
- *   If unavailable, returns NULL and sets *out_size to 0 when non-NULL.
- *---------------------------------------------------------------------------*/
+/* Return a transparent PNG used only by older callers of this internal API.
+ * Current splash code uses the packaged SVG and does not call this function. */
 const unsigned char *umi_splash_png(size_t *out_size);
 
 /*-----------------------------------------------------------------------------
@@ -182,7 +171,8 @@ void umi_splash_set_progress(UmiSplash *splash,
                              double fraction,
                              const char *message);
 
-/* Replace the embedded fallback with a packaged SVG or PNG brand image. */
+/* Present a packaged SVG brand image. Raster files remain accepted so an
+ * older extension can migrate without breaking its existing call site. */
 void umi_splash_set_brand_image(UmiSplash *splash, const char *image_path);
 
 /*-----------------------------------------------------------------------------
@@ -252,7 +242,7 @@ static inline GtkWidget *umi_splash_widget(UmiSplash *s)
  * @auto_close_ms: Milliseconds before auto-closing (0 = manual close only)
  *
  * Creates and presents a splash window with the Umicom branding.
- * The window shows "Umicom Studio IDE" title, progress bar, and optional PNG.
+ * The window shows the Studio title, progress bar and configured vector mark.
  *
  * Returns: (transfer none): The GtkWidget* representing the splash window.
  *          DO NOT manually destroy this widget; use uside_splash_close_later().

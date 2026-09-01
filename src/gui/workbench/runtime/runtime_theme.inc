@@ -54,7 +54,7 @@ static const char RUNTIME_CHROME_CSS[] =
     ".umicom-runtime-brand {"
     "  min-height: 25px; padding: 1px 8px 1px 2px;"
     "}"
-    ".umicom-runtime-brand-title {"
+    ".umicom-workstation-identity-title {"
     "  color: @umi_foreground; font-weight: 700; letter-spacing: 0.01em;"
     "}"
     ".umicom-runtime-toolbar {"

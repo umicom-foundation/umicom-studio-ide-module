@@ -36,6 +36,11 @@ static UmiStatus runtime_refresh_services(
     status = umi_studio_gtk_workbench_refresh(runtime->owner);
     if (status != UMI_STATUS_OK) return status;
 
+    /* Keep the shared header's contrast-aware SVG aligned with the active
+     * Studio appearance before refreshing the rest of the workbench panels. */
+    status = runtime_refresh_brand_appearance(runtime);
+    if (status != UMI_STATUS_OK) return status;
+
     snapshot_status = runtime_refresh_service_snapshots(runtime);
 
     if (runtime->runtime_bootstrap != NULL) {

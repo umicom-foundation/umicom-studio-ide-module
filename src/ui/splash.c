@@ -19,11 +19,6 @@
 
 #include "icon.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#include "resource.h"
-#endif
-
 struct UmiSplash {
     GtkWidget *window;
     GtkWidget *brand_picture;
@@ -125,26 +120,9 @@ static GtkWidget *make_progress_area(UmiSplash *splash, const char *subtitle)
 
 const unsigned char *umi_splash_png(size_t *out_size)
 {
-#ifdef _WIN32
-    HINSTANCE instance = GetModuleHandleW(NULL);
-    HRSRC resource = FindResourceW(
-        instance, MAKEINTRESOURCEW(IDP_SPLASH), L"RCDATA");
-    HGLOBAL data;
-    DWORD size;
-    void *bytes;
-
-    if (resource == NULL) {
-        if (out_size != NULL) *out_size = 0U;
-        return NULL;
-    }
-    data = LoadResource(instance, resource);
-    size = SizeofResource(instance, resource);
-    bytes = data != NULL ? LockResource(data) : NULL;
-    if (out_size != NULL) *out_size = (size_t)size;
-    return (const unsigned char *)bytes;
-#else
+    /* Older callers may still request raster bytes. Keep their ABI stable,
+     * but use no raster image as the primary Studio identity. */
     return umi_icon_logo_png_data(out_size);
-#endif
 }
 
 UmiSplash *umi_splash_new(
@@ -154,9 +132,6 @@ UmiSplash *umi_splash_new(
 {
     UmiSplash *splash = g_new0(UmiSplash, 1U);
     GtkWidget *root;
-    const unsigned char *png;
-    size_t png_size = 0U;
-
     if (splash == NULL) return NULL;
 
     splash->window = gtk_window_new();
@@ -198,20 +173,6 @@ UmiSplash *umi_splash_new(
             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     }
 
-    png = umi_splash_png(&png_size);
-    if (png != NULL && png_size > 0U) {
-        GBytes *bytes = g_bytes_new_static(png, png_size);
-        GError *error = NULL;
-        GdkTexture *texture = gdk_texture_new_from_bytes(bytes, &error);
-        if (texture != NULL) {
-            gtk_picture_set_paintable(
-                GTK_PICTURE(splash->brand_picture), GDK_PAINTABLE(texture));
-            g_object_unref(texture);
-        }
-        if (error != NULL) g_error_free(error);
-        g_bytes_unref(bytes);
-    }
-
     umi_splash_set_progress(splash, 0.05, subtitle);
     if (auto_close_ms > 0U) {
         splash->auto_close_id = g_timeout_add(
@@ -222,24 +183,17 @@ UmiSplash *umi_splash_new(
 
 void umi_splash_set_brand_image(UmiSplash *splash, const char *image_path)
 {
-    GFile *file;
-    GError *error = NULL;
-    GdkTexture *texture;
-
     if (splash == NULL || splash->brand_picture == NULL ||
         image_path == NULL || image_path[0] == '\0') {
         return;
     }
-
-    file = g_file_new_for_path(image_path);
-    texture = gdk_texture_new_from_file(file, &error);
-    if (texture != NULL) {
-        gtk_picture_set_paintable(
-            GTK_PICTURE(splash->brand_picture), GDK_PAINTABLE(texture));
-        g_object_unref(texture);
+    /* GtkPicture asks the installed image loader to render the file. This is
+     * the SVG-aware path used by Studio, while still accepting a raster file
+     * from an older extension that calls the same API. */
+    if (g_file_test(image_path, G_FILE_TEST_IS_REGULAR)) {
+        gtk_picture_set_filename(
+            GTK_PICTURE(splash->brand_picture), image_path);
     }
-    if (error != NULL) g_error_free(error);
-    if (file != NULL) g_object_unref(file);
 }
 
 void umi_splash_show(UmiSplash *splash, GtkWindow *parent)

@@ -13,10 +13,6 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-#ifdef G_OS_WIN32
-#include <glib/gwin32.h>
-#endif
-
 /* Open the searchable command list when the compact search button is used. */
 static void runtime_on_commands_clicked(GtkButton *button, gpointer user_data)
 {
@@ -66,98 +62,76 @@ static GtkWidget *runtime_application_bar_icon_button(
     return button;
 }
 
-/* Find the directory that contains the running Studio executable. Packaged
- * brand resources live beside that executable rather than beside the user's
- * current terminal directory. */
-static char *runtime_executable_directory(void)
-{
-#ifdef G_OS_WIN32
-    return g_win32_get_package_installation_directory_of_module(NULL);
-#else
-    GError *error = NULL;
-    char *executable = g_file_read_link("/proc/self/exe", &error);
-    char *directory = NULL;
-
-    if (executable != NULL) directory = g_path_get_dirname(executable);
-    g_free(executable);
-    if (error != NULL) g_error_free(error);
-    return directory;
-#endif
-}
-
-/* Resolve a logical relative resource against the executable when it is not
- * already available from the current directory. The caller owns the result. */
-static char *runtime_resolve_brand_resource(const char *resource)
-{
-    char *directory;
-    char *candidate;
-
-    if (resource == NULL || resource[0] == '\0') return NULL;
-    if (g_file_test(resource, G_FILE_TEST_IS_REGULAR)) {
-        return g_strdup(resource);
-    }
-
-    directory = runtime_executable_directory();
-    candidate = directory != NULL
-        ? g_build_filename(directory, resource, NULL)
-        : NULL;
-    g_free(directory);
-    if (candidate != NULL &&
-        g_file_test(candidate, G_FILE_TEST_IS_REGULAR)) {
-        return candidate;
-    }
-    g_free(candidate);
-    return NULL;
-}
-
-/* Compose the application identity from the reusable mark and a native text
- * label. Keeping these separate makes the name accessible and translatable. */
+/* Ask the Framework-owned identity component to compose the SVG mark and
+ * native application name. Studio supplies only its product identity. */
 static GtkWidget *runtime_build_brand_identity(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiUiAppearanceProfile appearance;
     UmiUiWorkbench *workbench;
+    UmiGtk4WorkstationShellHeaderConfig config;
     GtkWidget *identity;
-    GtkWidget *title;
-    char *icon_path = NULL;
+    UmiStatus status;
 
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->ui == NULL) return NULL;
-    identity = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-    title = gtk_label_new("Umicom Studio IDE");
-    if (identity == NULL || title == NULL) {
-        /* Release whichever independently allocated widget did succeed. */
-        if (title != NULL) g_object_unref(title);
-        if (identity != NULL) g_object_unref(identity);
-        return NULL;
-    }
+    config = umi_gtk4_ws_shell_header_config_default(
+        "org.umicom.studio", "Umicom Studio IDE");
+    config.compact = true;
+    status = umi_gtk4_ws_shell_header_create_managed(
+        &config, &runtime->brand_identity);
+    if (status != UMI_STATUS_OK) return NULL;
+    identity = umi_gtk4_ws_shell_header_widget(runtime->brand_identity);
 
-    /* Resolve the icon through Framework appearance state, not a source path. */
+    /* The workbench owns the appearance model; the shared header copies the
+     * selected SVG resource and safely falls back to text if it is absent. */
     workbench = umi_studio_ui_workbench(runtime->owner->ui);
     if (workbench != NULL &&
         umi_ui_appearance_model_active(
             umi_ui_workbench_appearance(workbench), &appearance) ==
-            UMI_STATUS_OK &&
-        appearance.icon_resource[0] != '\0' &&
-        (icon_path = runtime_resolve_brand_resource(
-            appearance.icon_resource)) != NULL) {
-        GtkWidget *icon = gtk_picture_new_for_filename(icon_path);
-        g_free(icon_path);
-        if (icon != NULL) {
-            /* The menu identity uses only the SVG mark; the adjacent native
-             * label renders the application name as real text. */
-            gtk_widget_set_size_request(icon, 18, 18);
-            gtk_picture_set_can_shrink(GTK_PICTURE(icon), TRUE);
-            gtk_widget_set_tooltip_text(icon, "Umicom Studio IDE");
-            gtk_box_append(GTK_BOX(identity), icon);
-        }
+            UMI_STATUS_OK) {
+        (void)umi_gtk4_ws_shell_header_apply_appearance(
+            runtime->brand_identity, &appearance);
+        runtime->appearance_revision = umi_ui_appearance_model_revision(
+            umi_ui_workbench_appearance(workbench));
     }
 
-    /* The name remains visible when a package is missing its optional image. */
+    /* Keep Studio's spacing hook while all identity content uses Framework
+     * classes shared with the suite workstations. */
     gtk_widget_add_css_class(identity, "umicom-runtime-brand");
-    gtk_widget_add_css_class(title, "umicom-runtime-brand-title");
-    gtk_box_append(GTK_BOX(identity), title);
     return identity;
+}
+
+/* Refresh the icon only when Studio's toolkit-neutral appearance model has
+ * changed. The regular service timer makes direct and restored choices visible
+ * without adding a second product-specific theme event system. */
+static UmiStatus runtime_refresh_brand_appearance(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiUiAppearanceModel *model;
+    UmiUiAppearanceProfile appearance;
+    UmiUiWorkbench *workbench;
+    uint64_t revision;
+    UmiStatus status;
+
+    if (runtime == NULL || runtime->brand_identity == NULL ||
+        runtime->owner == NULL || runtime->owner->ui == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    workbench = umi_studio_ui_workbench(runtime->owner->ui);
+    if (workbench == NULL) return UMI_STATUS_INVALID_STATE;
+    model = umi_ui_workbench_appearance(workbench);
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    revision = umi_ui_appearance_model_revision(model);
+    if (revision == runtime->appearance_revision) return UMI_STATUS_OK;
+
+    status = umi_ui_appearance_model_active(model, &appearance);
+    if (status == UMI_STATUS_OK) {
+        status = umi_gtk4_ws_shell_header_apply_appearance(
+            runtime->brand_identity, &appearance);
+    }
+    if (status == UMI_STATUS_OK) runtime->appearance_revision = revision;
+    return status;
 }
 
 /* Build the top-level menu strip and its compact workspace actions. The menu
