@@ -17,6 +17,10 @@
 
 #include "umicom/studio/application_feature_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiApplicationUiOwnershipRow rows[UMI_APPLICATION_UI_OWNERSHIP_ROW_COUNT];

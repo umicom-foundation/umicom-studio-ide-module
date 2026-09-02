@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Provide the usage operation used by this module and its client applications. */
 static void usage(const char *program)
 {
     printf("Usage: %s <source-dir> <build-dir> [configuration] [--execute]\n",
@@ -34,6 +35,7 @@ static void usage(const char *program)
 }
 
 
+/* Provide the run import mode operation used by this module and its client applications. */
 static int run_import_mode(int argc, char **argv)
 {
     UmiStudioDeveloperWorkbench *workbench = NULL;
@@ -50,27 +52,32 @@ static int run_import_mode(int argc, char **argv)
     size_t operation_index;
     size_t operation_count;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (argc < 3) {
         usage(argv[0]);
         return 2;
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (argument_index = 3; argument_index < argc; ++argument_index) {
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (strcmp(argv[argument_index], "--execute") == 0) {
             execute = 1;
-        } else if (strcmp(argv[argument_index], "--launch") == 0) {
+        } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(argv[argument_index], "--launch") == 0) {
+            /* Keep the operation inside its valid bounds before reading, writing or adding data. */
             if (argument_index + 1 >= argc) {
                 usage(argv[0]);
                 return 2;
             }
             launch_program = argv[++argument_index];
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             usage(argv[0]);
             return 2;
         }
     }
 
     status = umi_studio_developer_workbench_create(&workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Failed to create developer workbench: %s\n",
                       umi_status_text(status));
@@ -97,6 +104,7 @@ static int run_import_mode(int argc, char **argv)
 
     status = umi_studio_developer_workbench_import_project(
         workbench, &request, &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Project import failed: %s\n",
                       umi_status_text(status));
@@ -122,8 +130,10 @@ static int run_import_mode(int argc, char **argv)
         umi_studio_developer_pipeline_centre_runtime(centre));
     operation_count = umi_developer_pipeline_count(pipeline);
     (void)printf("Developer pipeline: %zu operations\n", operation_count);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (operation_index = 0U; operation_index < operation_count;
          ++operation_index) {
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_developer_pipeline_at(pipeline, operation_index, &operation) ==
             UMI_STATUS_OK) {
             (void)printf("  %s  %-10s  %s\n",
@@ -133,13 +143,17 @@ static int run_import_mode(int argc, char **argv)
         }
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (execute != 0) {
+        /* Visit each bounded item once so every record receives the same rule. */
         for (;;) {
             status = umi_studio_developer_pipeline_centre_execute_next_process(
                 centre, &operation, &result);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_NOT_FOUND) {
                 break;
             }
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status != UMI_STATUS_OK) {
                 (void)fprintf(stderr, "Pipeline execution stopped: %s\n",
                               umi_status_text(status));
@@ -150,6 +164,7 @@ static int run_import_mode(int argc, char **argv)
                          umi_developer_operation_state_text(operation.state),
                          operation.title,
                          result.exit_code);
+            /* Apply this branch only when its contract condition is satisfied. */
             if (operation.state != UMI_DEVELOPER_OPERATION_SUCCEEDED) {
                 umi_studio_developer_workbench_destroy(workbench);
                 return 1;
@@ -161,6 +176,10 @@ static int run_import_mode(int argc, char **argv)
     return 0;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioDeveloperWorkbench *workbench = NULL;
@@ -176,24 +195,29 @@ int main(int argc, char **argv)
     size_t index;
     size_t count;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (argc < 3) {
         usage(argv[0]);
         return 2;
     }
 
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(argv[1], "--import") == 0) {
         return run_import_mode(argc, argv);
     }
 
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (argc >= 4 && strcmp(argv[3], "--execute") != 0) {
         configuration = argv[3];
     }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if ((argc >= 4 && strcmp(argv[3], "--execute") == 0) ||
         (argc >= 5 && strcmp(argv[4], "--execute") == 0)) {
         execute = 1;
     }
 
     status = umi_studio_developer_workbench_create(&workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         fprintf(stderr, "Failed to create developer workbench: %s\n",
                 umi_status_text(status));
@@ -220,6 +244,7 @@ int main(int argc, char **argv)
 
     status = umi_studio_developer_pipeline_centre_prepare_cmake(
         centre, &request, &plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         fprintf(stderr, "Failed to prepare pipeline: %s\n",
                 umi_status_text(status));
@@ -229,7 +254,9 @@ int main(int argc, char **argv)
 
     printf("Developer pipeline: %zu operations\n", plan.operation_count);
     count = umi_developer_pipeline_count(pipeline);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < count; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (umi_developer_pipeline_at(pipeline, index, &operation) ==
             UMI_STATUS_OK) {
             printf("  %s  %-10s  %s\n",
@@ -239,13 +266,17 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (execute != 0) {
+        /* Visit each bounded item once so every record receives the same rule. */
         for (;;) {
             status = umi_studio_developer_pipeline_centre_execute_next_process(
                 centre, &operation, &result);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_NOT_FOUND) {
                 break;
             }
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status != UMI_STATUS_OK) {
                 fprintf(stderr, "Pipeline execution stopped: %s\n",
                         umi_status_text(status));
@@ -258,6 +289,7 @@ int main(int argc, char **argv)
                    operation.title,
                    result.exit_code);
 
+            /* Apply this branch only when its contract condition is satisfied. */
             if (operation.state != UMI_DEVELOPER_OPERATION_SUCCEEDED) {
                 break;
             }

@@ -18,12 +18,24 @@
  */
 
 #include "umicom/studio/delivery_report.h"
+/*
+ * Initialise delivery report from caller-provided values so later operations receive a
+ * known state.
+ */
 void umi_delivery_report_init(UmiDeliveryReport *report);
 
+/*
+ * Provide the studio delivery report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_delivery_report(const UmiReleaseCandidate *candidate,
                                      const UmiDeliveryPipeline *pipeline,
                                      UmiDeliveryReport *out_report)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (candidate == NULL || pipeline == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

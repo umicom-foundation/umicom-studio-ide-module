@@ -26,6 +26,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio ui catalogue data shared with callers of this public contract.
+ */
 typedef struct UmiStudioUiCatalogue {
     size_t perspectives;
     size_t panes;
@@ -38,8 +41,16 @@ typedef struct UmiStudioUiCatalogue {
     uint64_t revision;
 } UmiStudioUiCatalogue;
 
+/**
+ * Provide the studio ui catalogue snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ui_catalogue_snapshot(UmiStudioUi *ui,
                                            UmiStudioUiCatalogue *out_catalogue);
+/**
+ * Provide the studio ui catalogue format operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ui_catalogue_format(const UmiStudioUiCatalogue *catalogue,
                                          char *out_text,
                                          size_t capacity);

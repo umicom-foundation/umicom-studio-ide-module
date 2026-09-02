@@ -41,6 +41,7 @@ static void on_about_response(GtkDialog *dialog, int response, gpointer user_dat
     gtk_window_destroy(GTK_WINDOW(dialog));
 }
 
+/* Provide the about show operation used by this module and its client applications. */
 void umi_about_show(GtkWindow *parent)
 {
     /* In GTK4, GtkAboutDialog still exists but run() is gone; present instead. */
@@ -54,6 +55,7 @@ void umi_about_show(GtkWindow *parent)
       "Copyright © Umicom Foundation."
     );
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (parent) {
         gtk_window_set_transient_for(GTK_WINDOW(dlg), parent);
         gtk_window_set_modal        (GTK_WINDOW(dlg), TRUE);

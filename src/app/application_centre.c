@@ -19,13 +19,22 @@
  */
 #include "umicom/studio/application_centre.h"
 #include <string.h>
-static void copy_text(char *dst,size_t cap,const char *src){size_t len;if(dst==NULL||cap==0U)return;if(src==NULL)src="";len=strlen(src);if(len>=cap)len=cap-1U;if(len>0U)memcpy(dst,src,len);dst[len]='\0';}
+/* Provide the copy text operation used by this module and its client applications. */
+static void copy_text(char *dst,size_t cap,const char *src){size_t len;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(dst==NULL||cap==0U)return;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(src==NULL)src="";len=strlen(src);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(len>=cap)len=cap-1U;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(len>0U)memcpy(dst,src,len);dst[len]='\0';}
+/*
+ * Provide the studio application centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_application_centre_snapshot(UmiStudioServices *services,UmiStudioApplicationCentreSnapshot *out)
 {
     UmiApplicationAuditReport audit;
     UmiGtk4CoverageReport gtk4;
     UmiStatus status;
     (void)services;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if(out==NULL)return UMI_STATUS_INVALID_ARGUMENT;
     memset(out,0,sizeof(*out)); out->struct_size=(uint32_t)sizeof(*out); out->api_version=2U;
     copy_text(out->area_id,sizeof(out->area_id),"studio.application-centre");
@@ -40,6 +49,7 @@ UmiStatus umi_studio_application_centre_snapshot(UmiStudioServices *services,Umi
     gtk4=umi_gtk4_widget_coverage();
     out->gtk4_widget_count=gtk4.widget_count;
     status=umi_application_portfolio_audit(&audit);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status!=UMI_STATUS_OK)return status;
     out->architecture_error_count=audit.error_count;
     out->architecture_passed=audit.passed;

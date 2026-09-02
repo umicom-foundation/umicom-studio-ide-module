@@ -19,10 +19,18 @@
  */
 #include "preview_view.h"
 
+/*
+ * Provide the studio designer preview view new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_designer_preview_view_new(UmiStudioDesigner *designer)
 {
     GtkWidget *scroll=gtk_scrolled_window_new();GtkWidget *text=gtk_text_view_new();GtkTextBuffer *buffer=gtk_text_view_get_buffer(GTK_TEXT_VIEW(text));UmiDeclDiagnosticList diagnostics;char preview[16384];
     gtk_text_view_set_editable(GTK_TEXT_VIEW(text),FALSE);gtk_text_view_set_monospace(GTK_TEXT_VIEW(text),TRUE);
-    if(designer!=NULL&&umi_studio_designer_preview(designer,preview,sizeof(preview),&diagnostics)==UMI_STATUS_OK)gtk_text_buffer_set_text(buffer,preview,-1);else gtk_text_buffer_set_text(buffer,"Preview unavailable",-1);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if(designer!=NULL&&umi_studio_designer_preview(designer,preview,sizeof(preview),&diagnostics)==UMI_STATUS_OK)gtk_text_buffer_set_text(buffer,preview,-1);/* Use this fallback path when the earlier condition does not apply. */ else gtk_text_buffer_set_text(buffer,"Preview unavailable",-1);
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll),text);return scroll;
 }

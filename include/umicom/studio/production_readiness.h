@@ -19,6 +19,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio production readiness data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioProductionReadiness {
     UmiApplicationProductionState state;
     size_t panel_count;

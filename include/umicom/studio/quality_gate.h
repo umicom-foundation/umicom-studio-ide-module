@@ -25,6 +25,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Provide the studio quality gate operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_quality_gate(const char *root,int *out_passed,UmiCodeGuardSummary *out_summary);
 #ifdef __cplusplus
 }

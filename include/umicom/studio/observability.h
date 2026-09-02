@@ -22,6 +22,10 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio observability report data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioObservabilityReport {
     UmiObservabilitySnapshot snapshot;
     size_t successful_audits;
@@ -30,20 +34,36 @@ typedef struct UmiStudioObservabilityReport {
     size_t profile_samples;
 } UmiStudioObservabilityReport;
 
+/**
+ * Provide the studio observability report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_observability_report(
     UmiStudioServices *services,
     UmiStudioObservabilityReport *out_report);
+/**
+ * Provide the studio observability event operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_observability_event(UmiStudioServices *services,
                                          const char *category,
                                          const char *message,
                                          UmiDiagnosticSeverity severity,
                                          uint64_t correlation_id);
+/**
+ * Provide the studio observability begin operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_observability_begin(UmiStudioServices *services,
                                          const char *name,
                                          uint64_t trace_id,
                                          uint64_t parent_span_id,
                                          UmiProfileScope *out_scope,
                                          uint64_t *out_span_id);
+/**
+ * Provide the studio observability end operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_observability_end(UmiStudioServices *services,
                                        const UmiProfileScope *scope,
                                        uint64_t span_id,

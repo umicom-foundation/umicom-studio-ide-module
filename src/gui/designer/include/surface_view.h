@@ -22,5 +22,9 @@
 #define UMICOM_STUDIO_DESIGNER_SURFACE_VIEW_H
 #include <gtk/gtk.h>
 #include "umicom/studio/designer.h"
+/**
+ * Provide the studio designer surface view new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_designer_surface_view_new(UmiStudioDesigner *designer);
 #endif

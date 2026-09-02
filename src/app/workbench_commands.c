@@ -28,6 +28,10 @@
 #include "umicom/studio/ui.h"
 #include "umicom/studio/workbench.h"
 
+/*
+ * Provide the perspective activate operation used by this module and its client
+ * applications.
+ */
 static UmiStatus perspective_activate(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -35,9 +39,17 @@ static UmiStatus perspective_activate(void *user_data,
 {
     UmiStudioUi *ui = (UmiStudioUi *)user_data;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_ui_workbench_activate_perspective(
         umi_studio_ui_workbench(ui), argument);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK ? argument : umi_status_text(status));
@@ -45,6 +57,7 @@ static UmiStatus perspective_activate(void *user_data,
     return status;
 }
 
+/* Provide the activity activate operation used by this module and its client applications. */
 static UmiStatus activity_activate(void *user_data,
                                    const char *argument,
                                    char *out_message,
@@ -53,13 +66,19 @@ static UmiStatus activity_activate(void *user_data,
     UmiStudioUi *ui = (UmiStudioUi *)user_data;
     UmiUiWorkbench *workbench;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL || argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     workbench = umi_studio_ui_workbench(ui);
     status = umi_ui_workbench_activate_activity(workbench, argument);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         UmiUiWorkbenchSnapshot snapshot;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (umi_ui_workbench_snapshot(workbench, &snapshot) == UMI_STATUS_OK) {
             (void)umi_ui_context_set_string(
                 umi_ui_workbench_context(workbench),
@@ -67,6 +86,10 @@ static UmiStatus activity_activate(void *user_data,
                 snapshot.active_activity);
         }
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK ? argument : umi_status_text(status));
@@ -74,6 +97,7 @@ static UmiStatus activity_activate(void *user_data,
     return status;
 }
 
+/* Provide the pane toggle operation used by this module and its client applications. */
 static UmiStatus pane_toggle(void *user_data,
                              const char *argument,
                              char *out_message,
@@ -82,13 +106,22 @@ static UmiStatus pane_toggle(void *user_data,
     UmiStudioUi *ui = (UmiStudioUi *)user_data;
     UmiUiPaneSnapshot pane;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_ui_pane_model_find(
         umi_ui_workbench_panes(umi_studio_ui_workbench(ui)), argument, &pane);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     pane.visible = !pane.visible;
     status = umi_ui_pane_model_upsert(
         umi_ui_workbench_panes(umi_studio_ui_workbench(ui)), &pane);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s %s", pane.title,
                        pane.visible ? "visible" : "hidden");
@@ -96,6 +129,7 @@ static UmiStatus pane_toggle(void *user_data,
     return status;
 }
 
+/* Provide the chrome toggle operation used by this module and its client applications. */
 static UmiStatus chrome_toggle(UmiStudioUi *ui,
                                int toggle_sidebar,
                                int toggle_bottom,
@@ -107,18 +141,27 @@ static UmiStatus chrome_toggle(UmiStudioUi *ui,
     UmiUiWorkbenchState state;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     workbench = umi_studio_ui_workbench(ui);
     status = umi_ui_workbench_state_snapshot(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
+    /* Apply this operation only while the related capability or state is available. */
     if (toggle_sidebar) state.sidebar_visible = !state.sidebar_visible;
+    /* Apply this operation only while the related capability or state is available. */
     if (toggle_bottom) state.bottom_panel_visible = !state.bottom_panel_visible;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (toggle_auxiliary) {
         state.auxiliary_sidebar_visible = !state.auxiliary_sidebar_visible;
     }
 
     status = umi_ui_workbench_state_apply(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     (void)umi_ui_context_set_boolean(umi_ui_workbench_context(workbench),
@@ -131,6 +174,10 @@ static UmiStatus chrome_toggle(UmiStudioUi *ui,
                                      "studio.ui.auxiliary.visible",
                                      state.auxiliary_sidebar_visible);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity,
                        "Sidebar=%s Bottom=%s Auxiliary=%s",
@@ -141,6 +188,7 @@ static UmiStatus chrome_toggle(UmiStudioUi *ui,
     return UMI_STATUS_OK;
 }
 
+/* Provide the sidebar toggle operation used by this module and its client applications. */
 static UmiStatus sidebar_toggle(void *user_data,
                                 const char *argument,
                                 char *out_message,
@@ -151,6 +199,10 @@ static UmiStatus sidebar_toggle(void *user_data,
                          out_message, capacity);
 }
 
+/*
+ * Provide the bottom panel toggle operation used by this module and its client
+ * applications.
+ */
 static UmiStatus bottom_panel_toggle(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -161,6 +213,7 @@ static UmiStatus bottom_panel_toggle(void *user_data,
                          out_message, capacity);
 }
 
+/* Provide the auxiliary toggle operation used by this module and its client applications. */
 static UmiStatus auxiliary_toggle(void *user_data,
                                   const char *argument,
                                   char *out_message,
@@ -171,6 +224,7 @@ static UmiStatus auxiliary_toggle(void *user_data,
                          out_message, capacity);
 }
 
+/* Copy status into module-owned storage so callers keep ownership of their input values. */
 static UmiStatus status_set(void *user_data,
                             const char *argument,
                             char *out_message,
@@ -178,12 +232,20 @@ static UmiStatus status_set(void *user_data,
 {
     UmiStudioUi *ui = (UmiStudioUi *)user_data;
     UmiUiStatusSnapshot item = {0};
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)snprintf(item.item_id, sizeof(item.item_id), "%s", "studio.status.ready");
     (void)snprintf(item.text, sizeof(item.text), "%s", argument);
     (void)snprintf(item.tooltip, sizeof(item.tooltip), "%s", "Studio runtime status");
     item.priority = 100;
     item.visible = 1;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s", argument);
     }
@@ -191,6 +253,7 @@ static UmiStatus status_set(void *user_data,
         umi_ui_workbench_status(umi_studio_ui_workbench(ui)), &item);
 }
 
+/* Release or reset state held by layout so the same storage can be reused safely. */
 static UmiStatus layout_reset(void *user_data,
                               const char *argument,
                               char *out_message,
@@ -200,6 +263,10 @@ static UmiStatus layout_reset(void *user_data,
     (void)argument;
     status = umi_studio_workbench_reset_layout(
         umi_studio_ui_workbench((UmiStudioUi *)user_data));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK
@@ -209,6 +276,10 @@ static UmiStatus layout_reset(void *user_data,
     return status;
 }
 
+/*
+ * Provide the workspace profile activate operation used by this module and its client
+ * applications.
+ */
 static UmiStatus workspace_profile_activate(void *user_data,
                                             const char *argument,
                                             char *out_message,
@@ -218,22 +289,32 @@ static UmiStatus workspace_profile_activate(void *user_data,
     UmiUiWorkbench *workbench;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL || argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     workbench = umi_studio_ui_workbench(ui);
     status = umi_ui_workbench_activate_workspace_profile(workbench, argument);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)umi_ui_context_set_string(
             umi_ui_workbench_context(workbench),
             "studio.ui.workspace-profile",
             argument);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, capacity,
                            "Workspace profile: %s", argument);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, capacity, "%s",
                            umi_status_text(status));
         }
@@ -241,6 +322,7 @@ static UmiStatus workspace_profile_activate(void *user_data,
     return status;
 }
 
+/* Provide the notification info operation used by this module and its client applications. */
 static UmiStatus notification_info(void *user_data,
                                    const char *argument,
                                    char *out_message,
@@ -258,6 +340,10 @@ static UmiStatus notification_info(void *user_data,
     status = umi_ui_notification_publish(
         umi_ui_workbench_notifications(umi_studio_ui_workbench(ui)),
         &notification, NULL);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK
@@ -267,6 +353,7 @@ static UmiStatus notification_info(void *user_data,
     return status;
 }
 
+/* Provide the quick access show operation used by this module and its client applications. */
 static UmiStatus quick_access_show(void *user_data,
                                    const char *argument,
                                    char *out_message,
@@ -278,8 +365,13 @@ static UmiStatus quick_access_show(void *user_data,
     int64_t request = 1;
     UmiStatus status;
     (void)argument;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     context = umi_ui_workbench_context(umi_studio_ui_workbench(ui));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_ui_context_get(context,
                            UMI_UI_QUICK_ACCESS_REQUEST_CONTEXT_KEY,
                            &current) == UMI_STATUS_OK &&
@@ -289,6 +381,10 @@ static UmiStatus quick_access_show(void *user_data,
     }
     status = umi_ui_context_set_integer(
         context, UMI_UI_QUICK_ACCESS_REQUEST_CONTEXT_KEY, request);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK
@@ -298,6 +394,7 @@ static UmiStatus quick_access_show(void *user_data,
     return status;
 }
 
+/* Provide the active document operation used by this module and its client applications. */
 static UmiStatus active_document(UmiStudioUi *ui,
                                  UmiUiWorkbench **out_workbench,
                                  UmiUiDocumentViewSnapshot *out_document)
@@ -305,21 +402,29 @@ static UmiStatus active_document(UmiStudioUi *ui,
     UmiUiWorkbenchSnapshot snapshot;
     UmiUiWorkbench *workbench;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL || out_workbench == NULL || out_document == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     workbench = umi_studio_ui_workbench(ui);
     status = umi_ui_workbench_snapshot(workbench, &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (snapshot.active_document_view[0] == '\0') return UMI_STATUS_NOT_FOUND;
     status = umi_ui_document_view_model_find(
         umi_ui_workbench_documents(workbench),
         snapshot.active_document_view,
         out_document);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) *out_workbench = workbench;
     return status;
 }
 
+/* Provide the editor close operation used by this module and its client applications. */
 static UmiStatus editor_close(void *user_data,
                               int close_all,
                               char *out_message,
@@ -331,6 +436,7 @@ static UmiStatus editor_close(void *user_data,
     UmiUiDocumentCloseResult result = {0};
     UmiStatus status;
     status = active_document(ui, &workbench, &document);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = close_all
         ? umi_ui_document_view_model_close_all(
@@ -339,6 +445,7 @@ static UmiStatus editor_close(void *user_data,
               umi_ui_workbench_documents(workbench),
               document.view_id,
               &result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK && close_all &&
         umi_ui_document_view_model_find(
             umi_ui_workbench_documents(workbench),
@@ -353,6 +460,10 @@ static UmiStatus editor_close(void *user_data,
         status = umi_ui_workbench_activate_document(workbench,
                                                     document.view_id);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (status == UMI_STATUS_OK && out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity,
                        "Closed %zu editor(s); preserved %zu dirty, %zu pinned and %zu protected",
@@ -364,6 +475,10 @@ static UmiStatus editor_close(void *user_data,
     return status;
 }
 
+/*
+ * Provide the editor close others operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_close_others(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -373,6 +488,7 @@ static UmiStatus editor_close_others(void *user_data,
     return editor_close(user_data, 0, out_message, capacity);
 }
 
+/* Provide the editor close all operation used by this module and its client applications. */
 static UmiStatus editor_close_all(void *user_data,
                                   const char *argument,
                                   char *out_message,
@@ -382,6 +498,7 @@ static UmiStatus editor_close_all(void *user_data,
     return editor_close(user_data, 1, out_message, capacity);
 }
 
+/* Provide the editor pin toggle operation used by this module and its client applications. */
 static UmiStatus editor_pin_toggle(void *user_data,
                                    const char *argument,
                                    char *out_message,
@@ -394,11 +511,16 @@ static UmiStatus editor_pin_toggle(void *user_data,
     status = active_document((UmiStudioUi *)user_data,
                              &workbench,
                              &document);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_document_view_model_set_pinned(
         umi_ui_workbench_documents(workbench),
         document.view_id,
         !document.pinned);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s: %s",
                        document.title,
@@ -407,6 +529,10 @@ static UmiStatus editor_pin_toggle(void *user_data,
     return status;
 }
 
+/*
+ * Provide the editor preview promote operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_preview_promote(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -419,9 +545,14 @@ static UmiStatus editor_preview_promote(void *user_data,
     status = active_document((UmiStudioUi *)user_data,
                              &workbench,
                              &document);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_document_view_model_promote_preview(
         umi_ui_workbench_documents(workbench), document.view_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity,
                        "%s is now a permanent editor", document.title);
@@ -429,6 +560,10 @@ static UmiStatus editor_preview_promote(void *user_data,
     return status;
 }
 
+/*
+ * Provide the editor word wrap toggle operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_word_wrap_toggle(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -441,11 +576,16 @@ static UmiStatus editor_word_wrap_toggle(void *user_data,
     status = active_document((UmiStudioUi *)user_data,
                              &workbench,
                              &document);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_document_view_model_set_word_wrap(
         umi_ui_workbench_documents(workbench),
         document.view_id,
         !document.word_wrap);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Word wrap %s",
                        document.word_wrap ? "disabled" : "enabled");
@@ -453,6 +593,7 @@ static UmiStatus editor_word_wrap_toggle(void *user_data,
     return status;
 }
 
+/* Provide the editor navigate operation used by this module and its client applications. */
 static UmiStatus editor_navigate(void *user_data,
                                  int direction,
                                  char *out_message,
@@ -465,6 +606,7 @@ static UmiStatus editor_navigate(void *user_data,
     status = active_document((UmiStudioUi *)user_data,
                              &workbench,
                              &document);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_document_view_model_activate_relative(
         umi_ui_workbench_documents(workbench),
@@ -472,9 +614,14 @@ static UmiStatus editor_navigate(void *user_data,
         direction,
         target,
         sizeof(target));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_workbench_activate_document(workbench, target);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK ? target : umi_status_text(status));
@@ -482,6 +629,7 @@ static UmiStatus editor_navigate(void *user_data,
     return status;
 }
 
+/* Provide the editor next operation used by this module and its client applications. */
 static UmiStatus editor_next(void *user_data,
                              const char *argument,
                              char *out_message,
@@ -491,6 +639,7 @@ static UmiStatus editor_next(void *user_data,
     return editor_navigate(user_data, 1, out_message, capacity);
 }
 
+/* Provide the editor previous operation used by this module and its client applications. */
 static UmiStatus editor_previous(void *user_data,
                                  const char *argument,
                                  char *out_message,
@@ -500,6 +649,10 @@ static UmiStatus editor_previous(void *user_data,
     return editor_navigate(user_data, -1, out_message, capacity);
 }
 
+/*
+ * Provide the other editor group operation used by this module and its client
+ * applications.
+ */
 static const char *other_editor_group(const char *group_id)
 {
     return strcmp(group_id, UMI_UI_SECONDARY_EDITOR_GROUP_ID) == 0
@@ -507,6 +660,7 @@ static const char *other_editor_group(const char *group_id)
         : UMI_UI_SECONDARY_EDITOR_GROUP_ID;
 }
 
+/* Provide the editor split operation used by this module and its client applications. */
 static UmiStatus editor_split(void *user_data,
                               UmiUiEditorSplitMode mode,
                               char *out_message,
@@ -517,26 +671,35 @@ static UmiStatus editor_split(void *user_data,
     UmiUiWorkbenchState state;
     UmiStatus status = active_document((UmiStudioUi *)user_data,
                                        &workbench, &document);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_workbench_state_snapshot(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     state.editor_split_mode = mode;
     state.editor_split_ratio = UMI_UI_EDITOR_SPLIT_RATIO_DEFAULT;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(document.group_id,
                UMI_UI_SECONDARY_EDITOR_GROUP_ID) != 0) {
         status = umi_ui_document_view_model_move_to_group(
             umi_ui_workbench_documents(workbench), document.view_id,
             UMI_UI_SECONDARY_EDITOR_GROUP_ID);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     (void)snprintf(state.active_editor_group,
                    sizeof(state.active_editor_group), "%s",
                    UMI_UI_SECONDARY_EDITOR_GROUP_ID);
     status = umi_ui_workbench_state_apply(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_workbench_activate_document(workbench,
                                                     document.view_id);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK
@@ -548,6 +711,10 @@ static UmiStatus editor_split(void *user_data,
     return status;
 }
 
+/*
+ * Provide the editor split right operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_split_right(void *user_data,
                                     const char *argument,
                                     char *out_message,
@@ -558,6 +725,7 @@ static UmiStatus editor_split_right(void *user_data,
                         out_message, capacity);
 }
 
+/* Provide the editor split down operation used by this module and its client applications. */
 static UmiStatus editor_split_down(void *user_data,
                                    const char *argument,
                                    char *out_message,
@@ -568,6 +736,7 @@ static UmiStatus editor_split_down(void *user_data,
                         out_message, capacity);
 }
 
+/* Provide the editor move group operation used by this module and its client applications. */
 static UmiStatus editor_move_group(void *user_data,
                                    char *out_message,
                                    size_t capacity)
@@ -578,29 +747,39 @@ static UmiStatus editor_move_group(void *user_data,
     const char *target_group;
     UmiStatus status = active_document((UmiStudioUi *)user_data,
                                        &workbench, &document);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     target_group = other_editor_group(document.group_id);
     status = umi_ui_document_view_model_move_to_group(
         umi_ui_workbench_documents(workbench), document.view_id,
         target_group);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_workbench_state_snapshot(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (state.editor_split_mode == UMI_UI_EDITOR_SPLIT_SINGLE) {
         state.editor_split_mode = UMI_UI_EDITOR_SPLIT_COLUMNS;
     }
     (void)snprintf(state.active_editor_group,
                    sizeof(state.active_editor_group), "%s", target_group);
     status = umi_ui_workbench_state_apply(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_workbench_activate_document(workbench,
                                                     document.view_id);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, capacity, "Moved %s to %s",
                            document.title, target_group);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, capacity, "%s",
                            umi_status_text(status));
         }
@@ -608,6 +787,10 @@ static UmiStatus editor_move_group(void *user_data,
     return status;
 }
 
+/*
+ * Provide the editor move next group operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_move_next_group(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -617,6 +800,10 @@ static UmiStatus editor_move_next_group(void *user_data,
     return editor_move_group(user_data, out_message, capacity);
 }
 
+/*
+ * Provide the editor move previous group operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_move_previous_group(void *user_data,
                                             const char *argument,
                                             char *out_message,
@@ -626,6 +813,10 @@ static UmiStatus editor_move_previous_group(void *user_data,
     return editor_move_group(user_data, out_message, capacity);
 }
 
+/*
+ * Provide the editor focus next group operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_focus_next_group(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -638,17 +829,27 @@ static UmiStatus editor_focus_next_group(void *user_data,
     char target_view[UMI_UI_ID_CAPACITY];
     UmiStatus status;
     (void)argument;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     workbench = umi_studio_ui_workbench(ui);
     status = umi_ui_workbench_state_snapshot(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     target_group = other_editor_group(state.active_editor_group);
     status = umi_ui_document_view_model_activate_group(
         umi_ui_workbench_documents(workbench), target_group,
         target_view, sizeof(target_view));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_workbench_activate_document(workbench, target_view);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK
@@ -658,6 +859,10 @@ static UmiStatus editor_focus_next_group(void *user_data,
     return status;
 }
 
+/*
+ * Provide the editor balance groups operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_balance_groups(void *user_data,
                                        const char *argument,
                                        char *out_message,
@@ -668,12 +873,21 @@ static UmiStatus editor_balance_groups(void *user_data,
     UmiUiWorkbenchState state;
     UmiStatus status;
     (void)argument;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     workbench = umi_studio_ui_workbench(ui);
     status = umi_ui_workbench_state_snapshot(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     state.editor_split_ratio = UMI_UI_EDITOR_SPLIT_RATIO_DEFAULT;
     status = umi_ui_workbench_state_apply(workbench, &state);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK
@@ -683,6 +897,10 @@ static UmiStatus editor_balance_groups(void *user_data,
     return status;
 }
 
+/*
+ * Provide the editor reset groups operation used by this module and its client
+ * applications.
+ */
 static UmiStatus editor_reset_groups(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -694,14 +912,20 @@ static UmiStatus editor_reset_groups(void *user_data,
     char target_view[UMI_UI_ID_CAPACITY];
     UmiStatus status;
     (void)argument;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     workbench = umi_studio_ui_workbench(ui);
     status = umi_ui_document_view_model_merge_group(
         umi_ui_workbench_documents(workbench),
         UMI_UI_SECONDARY_EDITOR_GROUP_ID,
         UMI_UI_PRIMARY_EDITOR_GROUP_ID);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_workbench_state_snapshot(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     state.editor_split_mode = UMI_UI_EDITOR_SPLIT_SINGLE;
     state.editor_split_ratio = UMI_UI_EDITOR_SPLIT_RATIO_DEFAULT;
@@ -709,6 +933,7 @@ static UmiStatus editor_reset_groups(void *user_data,
                    sizeof(state.active_editor_group), "%s",
                    UMI_UI_PRIMARY_EDITOR_GROUP_ID);
     status = umi_ui_workbench_state_apply(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK &&
         umi_ui_document_view_model_activate_group(
             umi_ui_workbench_documents(workbench),
@@ -716,6 +941,10 @@ static UmiStatus editor_reset_groups(void *user_data,
             target_view, sizeof(target_view)) == UMI_STATUS_OK) {
         status = umi_ui_workbench_activate_document(workbench, target_view);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s",
                        status == UMI_STATUS_OK
@@ -725,6 +954,10 @@ static UmiStatus editor_reset_groups(void *user_data,
     return status;
 }
 
+/*
+ * Add studio workbench commands only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_workbench_commands_register(UmiCommandRegistry *registry,
                                                   UmiStudioUi *ui)
 {
@@ -824,7 +1057,12 @@ UmiStatus umi_studio_workbench_commands_register(UmiCommandRegistry *registry,
     UmiStatus status;
     UmiCommandDescriptor descriptor;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (registry == NULL || ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(DEFINITIONS) / sizeof(DEFINITIONS[0]); ++index) {
         (void)memset(&descriptor, 0, sizeof(descriptor));
         descriptor.structure_size = (uint32_t)sizeof(descriptor);
@@ -837,6 +1075,7 @@ UmiStatus umi_studio_workbench_commands_register(UmiCommandRegistry *registry,
         descriptor.handler = DEFINITIONS[index].handler;
         descriptor.user_data = ui;
         status = umi_command_registry_register(registry, &descriptor);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return UMI_STATUS_OK;

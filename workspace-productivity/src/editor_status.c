@@ -24,8 +24,16 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Initialise studio editor status from caller-provided values so later operations receive
+ * a known state.
+ */
 void umi_studio_editor_status_init(UmiStudioEditorStatus *status)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (status != NULL) {
         (void)memset(status, 0, sizeof(*status));
         status->line = 1U;
@@ -36,8 +44,13 @@ void umi_studio_editor_status_init(UmiStudioEditorStatus *status)
     }
 }
 
+/*
+ * Provide the studio line ending text operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_line_ending_text(UmiStudioLineEnding line_ending)
 {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (line_ending) {
         case UMI_STUDIO_LINE_ENDING_LF: return "LF";
         case UMI_STUDIO_LINE_ENDING_CRLF: return "CRLF";
@@ -46,6 +59,10 @@ const char *umi_studio_line_ending_text(UmiStudioLineEnding line_ending)
     }
 }
 
+/*
+ * Provide the studio editor status format operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_editor_status_format(
     const UmiStudioEditorStatus *status,
     char *output,
@@ -53,6 +70,10 @@ UmiStatus umi_studio_editor_status_format(
 {
     int written;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (status == NULL || output == NULL || output_capacity == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

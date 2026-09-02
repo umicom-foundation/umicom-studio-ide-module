@@ -19,6 +19,10 @@
 
 #include "umicom/studio/ai_retrieval.h"
 
+/*
+ * Provide the studio ai retrieve operation used by this module and its client
+ * applications.
+ */
 size_t umi_studio_ai_retrieve(const char *document_id,
                               const char *document_text,
                               const char *query,
@@ -27,6 +31,10 @@ size_t umi_studio_ai_retrieve(const char *document_id,
 {
     UmiAiChunk chunks[32];
     size_t count;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (document_id == NULL || document_text == NULL || query == NULL ||
         results == NULL || capacity == 0U) {
         return 0U;

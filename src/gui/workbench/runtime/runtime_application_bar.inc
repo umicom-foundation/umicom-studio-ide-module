@@ -42,11 +42,17 @@ static void runtime_on_new_window_clicked(GtkButton *button, gpointer user_data)
 static UmiWsCommandScope runtime_command_bar_scope(
     const UmiStudioGtkCommandProfile *profile)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (profile == NULL) return UMI_WS_COMMAND_SCOPE_ALL;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(profile->profile_id, "ai") == 0 ||
         strcmp(profile->profile_id, "ai_review") == 0) {
         return UMI_WS_COMMAND_SCOPE_AI;
     }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(profile->profile_id, "explorer") == 0 ||
         strcmp(profile->profile_id, "problems") == 0 ||
         strcmp(profile->profile_id, "terminal") == 0 ||
@@ -65,9 +71,14 @@ static UmiStatus runtime_build_command_bar_model(
     size_t index;
     UmiStatus status = UMI_STATUS_OK;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     umi_ws_command_bar_model_init(&runtime->command_bar_model);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(RUNTIME_COMMAND_PROFILES) /
                      sizeof(RUNTIME_COMMAND_PROFILES[0]);
@@ -83,6 +94,7 @@ static UmiStatus runtime_build_command_bar_model(
             profile->category,
             runtime_command_bar_scope(profile),
             80U);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
 
         /* Disabled commands stay searchable and documented, but the shared
@@ -93,6 +105,7 @@ static UmiStatus runtime_build_command_bar_model(
             runtime_command_enabled(runtime, profile->command_id) != 0);
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(RUNTIME_LAYOUT_PROFILES) /
                      sizeof(RUNTIME_LAYOUT_PROFILES[0]);
@@ -108,6 +121,7 @@ static UmiStatus runtime_build_command_bar_model(
             "layout workspace perspective",
             UMI_WS_COMMAND_SCOPE_COMMAND,
             60U);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
         (void)umi_ws_command_bar_model_set_enabled(
             &runtime->command_bar_model,
@@ -127,6 +141,10 @@ static void runtime_on_command_bar_activated(
     UmiStudioGtkRuntimeChrome *runtime =
         (UmiStudioGtkRuntimeChrome *)user_data;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || item == NULL || !item->enabled) return;
     (void)runtime_route_command(runtime, item->command_id, NULL);
 }
@@ -144,12 +162,18 @@ static void runtime_on_application_bar_width_changed(
     int command_width;
     (void)property;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->command_bar == NULL || object == NULL) {
         return;
     }
     width = gtk_widget_get_width(GTK_WIDGET(object));
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (width <= 0) return;
     command_width = width / 4;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (command_width > 420) command_width = 420;
     (void)umi_gtk4_ws_command_bar_set_available_width(
         runtime->command_bar, command_width);
@@ -164,10 +188,18 @@ static GtkWidget *runtime_application_bar_icon_button(
 {
     GtkWidget *button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (icon_name == NULL || accessible_name == NULL || tooltip == NULL) {
         return NULL;
     }
     button = gtk_button_new_from_icon_name(icon_name);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (button == NULL) return NULL;
     gtk_widget_add_css_class(button, "flat");
     gtk_widget_add_css_class(button, "umicom-runtime-appbar-action");
@@ -191,6 +223,10 @@ static GtkWidget *runtime_build_brand_identity(
     GtkWidget *identity;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->ui == NULL) return NULL;
     config = umi_gtk4_ws_shell_header_config_default(
@@ -198,12 +234,17 @@ static GtkWidget *runtime_build_brand_identity(
     config.compact = true;
     status = umi_gtk4_ws_shell_header_create_managed(
         &config, &runtime->brand_identity);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return NULL;
     identity = umi_gtk4_ws_shell_header_widget(runtime->brand_identity);
 
     /* The workbench owns the appearance model; the shared header copies the
      * selected SVG resource and safely falls back to text if it is absent. */
     workbench = umi_studio_ui_workbench(runtime->owner->ui);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench != NULL &&
         umi_ui_appearance_model_active(
             umi_ui_workbench_appearance(workbench), &appearance) ==
@@ -232,22 +273,37 @@ static UmiStatus runtime_refresh_brand_appearance(
     uint64_t revision;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->brand_identity == NULL ||
         runtime->owner == NULL || runtime->owner->ui == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     workbench = umi_studio_ui_workbench(runtime->owner->ui);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) return UMI_STATUS_INVALID_STATE;
     model = umi_ui_workbench_appearance(workbench);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (model == NULL) return UMI_STATUS_INVALID_STATE;
     revision = umi_ui_appearance_model_revision(model);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (revision == runtime->appearance_revision) return UMI_STATUS_OK;
 
     status = umi_ui_appearance_model_active(model, &appearance);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_gtk4_ws_shell_header_apply_appearance(
             runtime->brand_identity, &appearance);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) runtime->appearance_revision = revision;
     return status;
 }
@@ -266,6 +322,10 @@ static GtkWidget *runtime_build_application_bar(
     UmiGtk4WorkstationCommandBarConfig command_config;
     UmiStatus command_status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return NULL;
 
     bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -284,6 +344,7 @@ static GtkWidget *runtime_build_application_bar(
         "Add, show, hide or move Framework panels in the current layout");
     brand = runtime_build_brand_identity(runtime);
     command_status = runtime_build_command_bar_model(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (command_status == UMI_STATUS_OK) {
         command_config = umi_gtk4_ws_command_bar_config_default();
         command_config.placeholder = "Search Studio commands and windows";
@@ -294,6 +355,7 @@ static GtkWidget *runtime_build_application_bar(
             &runtime->command_bar_model,
             &runtime->command_bar);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (command_status == UMI_STATUS_OK) {
         command_status = umi_gtk4_ws_command_bar_set_activated_handler(
             runtime->command_bar,
@@ -301,15 +363,39 @@ static GtkWidget *runtime_build_application_bar(
             runtime);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bar == NULL || menu_scroll == NULL || brand == NULL ||
         commands == NULL || layouts == NULL || new_window == NULL ||
         command_status != UMI_STATUS_OK || runtime->command_bar == NULL) {
         /* None are parented yet, so release every successful allocation. */
         if (bar != NULL) g_object_unref(bar);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (menu_scroll != NULL) g_object_unref(menu_scroll);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (brand != NULL) g_object_unref(brand);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (commands != NULL) g_object_unref(commands);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (layouts != NULL) g_object_unref(layouts);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (new_window != NULL) g_object_unref(new_window);
         umi_gtk4_ws_command_bar_destroy(runtime->command_bar);
         runtime->command_bar = NULL;
@@ -341,11 +427,19 @@ static GtkWidget *runtime_build_application_bar(
 
     runtime->workflow_badge = gtk_label_new("Workflow");
     runtime->notification_label = gtk_label_new("");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->workflow_badge != NULL) {
         gtk_widget_add_css_class(
             runtime->workflow_badge,
             "umicom-runtime-muted");
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->notification_label != NULL) {
         gtk_widget_add_css_class(
             runtime->notification_label,
@@ -360,6 +454,10 @@ static GtkWidget *runtime_build_application_bar(
     runtime->menu_bar = runtime_build_menu_bar(runtime);
 
     gtk_box_append(GTK_BOX(bar), brand);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->menu_bar != NULL) {
         /* The menu strip may be wider than a small monitor. A horizontal
          * scroller keeps actions reachable without widening the whole window. */
@@ -375,7 +473,7 @@ static GtkWidget *runtime_build_application_bar(
         gtk_widget_add_css_class(
             menu_scroll, "umicom-runtime-menu-scroll");
         gtk_box_append(GTK_BOX(bar), menu_scroll);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         /* A missing menu registry should not leak the unparented scroller. */
         g_object_unref(menu_scroll);
     }
@@ -384,9 +482,17 @@ static GtkWidget *runtime_build_application_bar(
     gtk_box_append(
         GTK_BOX(bar),
         umi_gtk4_ws_command_bar_widget(runtime->command_bar));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->notification_label != NULL) {
         gtk_box_append(GTK_BOX(bar), runtime->notification_label);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->workflow_badge != NULL) {
         gtk_box_append(GTK_BOX(bar), runtime->workflow_badge);
     }

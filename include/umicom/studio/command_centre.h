@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio command centre snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioCommandCentreSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioCommandCentreSnapshot {
     size_t item_count;
     int available;
 } UmiStudioCommandCentreSnapshot;
+/**
+ * Provide the studio command centre snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_command_centre_snapshot(UmiStudioServices *services, UmiStudioCommandCentreSnapshot *out_snapshot);
 #ifdef __cplusplus
 }

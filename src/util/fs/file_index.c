@@ -54,6 +54,7 @@ struct _UmiFileIndex {
 static void
 clear_files(UmiFileIndex *idx)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!idx || !idx->files) return;
     /* GPtrArray does not have a clear-with-free; remove one by one to free. */
     for (guint i = 0; i < idx->files->len; ++i) {
@@ -69,8 +70,10 @@ static void
 on_visit(const char *path, gboolean is_dir, gpointer user)
 {
     UmiFileIndex *idx = (UmiFileIndex *)user;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!idx || !idx->files) return;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (is_dir) {
         return;                                         /* ignore directories   */
     }
@@ -96,6 +99,7 @@ cmp_paths(gconstpointer a, gconstpointer b, gpointer user_data)
 UmiFileIndex *
 umi_index_build(const char *root)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!root || !*root) return NULL;
 
     UmiFileIndex *idx = g_new0(UmiFileIndex, 1);
@@ -120,6 +124,7 @@ umi_index_build(const char *root)
 void
 umi_index_refresh(UmiFileIndex *idx)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!idx) return;
 
     clear_files(idx);
@@ -133,9 +138,11 @@ umi_index_refresh(UmiFileIndex *idx)
 void
 umi_index_free(UmiFileIndex *idx)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!idx) return;
 
     clear_files(idx);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (idx->files) g_ptr_array_free(idx->files, TRUE);
     g_clear_pointer(&idx->root, g_free);
     g_free(idx);
@@ -148,10 +155,13 @@ umi_index_free(UmiFileIndex *idx)
 const char * const *
 umi_index_files_real(const UmiFileIndex *idx, guint *out_len)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!idx || !idx->files) {
+        /* Apply this branch only when its contract condition is satisfied. */
         if (out_len) *out_len = 0;
         return NULL;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (out_len) *out_len = idx->files->len;
     return (const char * const *)idx->files->pdata;
 }

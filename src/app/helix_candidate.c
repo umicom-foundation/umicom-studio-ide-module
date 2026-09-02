@@ -21,6 +21,10 @@
 
 #include <stdio.h>
 
+/*
+ * Provide the studio helix candidate operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_candidate(const char *candidate_id,
                                      const char *plan_id,
                                      const char *workspace,
@@ -29,6 +33,10 @@ UmiStatus umi_studio_helix_candidate(const char *candidate_id,
     int a;
     int b;
     int c;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (candidate_id == NULL || plan_id == NULL || workspace == NULL ||
         candidate == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)umi_helix_candidate_init(candidate);
@@ -36,6 +44,7 @@ UmiStatus umi_studio_helix_candidate(const char *candidate_id,
                  "%s", candidate_id);
     b = snprintf(candidate->plan_id, sizeof(candidate->plan_id), "%s", plan_id);
     c = snprintf(candidate->workspace, sizeof(candidate->workspace), "%s", workspace);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (a < 0 || b < 0 || c < 0 ||
         (size_t)a >= sizeof(candidate->candidate_id) ||
         (size_t)b >= sizeof(candidate->plan_id) ||

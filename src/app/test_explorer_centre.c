@@ -28,15 +28,26 @@ struct UmiStudioTestExplorerCentre {
     int owns_workspace;
 };
 
+/* Provide the copy text operation used by this module and its client applications. */
 static void copy_text(char *destination, size_t capacity, const char *source)
 {
     size_t length;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (destination == NULL || capacity == 0U) return;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (source == NULL) source = "";
 
     length = strlen(source);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length >= capacity) length = capacity - 1U;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length > 0U) (void)memcpy(destination, source, length);
     destination[length] = '\0';
 }
@@ -121,35 +132,51 @@ static const UmiStudioTestExplorerViewContribution VIEWS[] = {
 
 #undef VIEW
 
+/* Provide the create experience operation used by this module and its client applications. */
 static UmiStatus create_experience(UmiStudioTestExplorerCentre *centre)
 {
     return umi_test_explorer_session_create_bound(
         centre->service, centre->workspace, &centre->experience);
 }
 
+/*
+ * Initialise studio test explorer centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_test_explorer_centre_create(
     UmiStudioTestExplorerCentre **out_centre)
 {
     UmiStudioTestExplorerCentre *centre;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_centre = NULL;
 
     centre = (UmiStudioTestExplorerCentre *)calloc(1U, sizeof(*centre));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     status = umi_test_platform_service_create(&centre->service);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         centre->owns_service = 1;
         status = umi_test_workspace_create(centre->service, &centre->workspace);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         centre->owns_workspace = 1;
         status = create_experience(centre);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_test_explorer_centre_destroy(centre);
         return status;
@@ -160,6 +187,10 @@ UmiStatus umi_studio_test_explorer_centre_create(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio test explorer centre create bound operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_create_bound(
     UmiStudioTestService *test_service,
     UmiStudioTestExplorerCentre **out_centre)
@@ -167,6 +198,10 @@ UmiStatus umi_studio_test_explorer_centre_create_bound(
     UmiStudioTestExplorerCentre *centre;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (test_service == NULL || out_centre == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -174,18 +209,27 @@ UmiStatus umi_studio_test_explorer_centre_create_bound(
     *out_centre = NULL;
 
     centre = (UmiStudioTestExplorerCentre *)calloc(1U, sizeof(*centre));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     centre->test_service = test_service;
     centre->service = umi_studio_test_service_platform(test_service);
     centre->workspace = umi_studio_test_service_workspace(test_service);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre->service == NULL || centre->workspace == NULL) {
         free(centre);
         return UMI_STATUS_INVALID_STATE;
     }
 
     status = create_experience(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         free(centre);
         return status;
@@ -196,17 +240,27 @@ UmiStatus umi_studio_test_explorer_centre_create_bound(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio test explorer centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_test_explorer_centre_destroy(
     UmiStudioTestExplorerCentre *centre)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return;
 
     umi_test_explorer_session_destroy(centre->experience);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (centre->owns_workspace) {
         umi_test_workspace_destroy(centre->workspace);
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (centre->owns_service) {
         umi_test_platform_service_destroy(centre->service);
     }
@@ -214,12 +268,20 @@ void umi_studio_test_explorer_centre_destroy(
     free(centre);
 }
 
+/*
+ * Provide the studio test explorer centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_snapshot(
     UmiStudioTestExplorerCentre *centre,
     UmiStudioTestExplorerCentreSnapshot *out_snapshot)
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || out_snapshot == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -245,34 +307,46 @@ UmiStatus umi_studio_test_explorer_centre_snapshot(
         centre->service,
         &out_snapshot->service);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_test_workspace_snapshot(
             centre->workspace,
             &out_snapshot->workspace);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_test_explorer_session_refresh(
             centre->experience,
             NULL);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_test_explorer_session_snapshot(
             centre->experience,
             &out_snapshot->experience);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre->test_service != NULL) {
         UmiTestPlatformHierarchyNode *nodes =
             (UmiTestPlatformHierarchyNode *)calloc(
                 UMI_TEST_PLATFORM_SELECTION_CAPACITY,
                 sizeof(*nodes));
 
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (nodes == NULL) {
             return UMI_STATUS_OUT_OF_MEMORY;
         }
@@ -281,6 +355,7 @@ UmiStatus umi_studio_test_explorer_centre_snapshot(
             centre->test_service,
             &out_snapshot->explorer);
 
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = umi_studio_test_service_hierarchy(
                 centre->test_service,
@@ -291,6 +366,7 @@ UmiStatus umi_studio_test_explorer_centre_snapshot(
 
         free(nodes);
 
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
@@ -320,24 +396,40 @@ UmiStatus umi_studio_test_explorer_centre_snapshot(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio test explorer centre service operation used by this module and its
+ * client applications.
+ */
 UmiTestPlatformService *umi_studio_test_explorer_centre_service(
     UmiStudioTestExplorerCentre *centre)
 {
     return centre != NULL ? centre->service : NULL;
 }
 
+/*
+ * Provide the studio test explorer centre workspace operation used by this module and its
+ * client applications.
+ */
 UmiTestWorkspace *umi_studio_test_explorer_centre_workspace(
     UmiStudioTestExplorerCentre *centre)
 {
     return centre != NULL ? centre->workspace : NULL;
 }
 
+/*
+ * Provide the studio test explorer centre experience operation used by this module and its
+ * client applications.
+ */
 UmiTestExplorerSession *umi_studio_test_explorer_centre_experience(
     UmiStudioTestExplorerCentre *centre)
 {
     return centre != NULL ? centre->experience : NULL;
 }
 
+/*
+ * Provide the studio test explorer centre set workspace operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_set_workspace(
     UmiStudioTestExplorerCentre *centre,
     const char *workspace_root,
@@ -346,6 +438,10 @@ UmiStatus umi_studio_test_explorer_centre_set_workspace(
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -356,10 +452,15 @@ UmiStatus umi_studio_test_explorer_centre_set_workspace(
         project_id,
         workspace_revision);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
 
+/*
+ * Provide the studio test explorer centre set filter operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_set_filter(
     UmiStudioTestExplorerCentre *centre,
     const char *search_text,
@@ -370,8 +471,16 @@ UmiStatus umi_studio_test_explorer_centre_set_filter(
     UmiStatus status;
     UmiTestPlatformFilter filter;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre->test_service != NULL) {
         status = umi_studio_test_service_set_filter(
             centre->test_service,
@@ -379,6 +488,7 @@ UmiStatus umi_studio_test_explorer_centre_set_filter(
             label,
             outcome,
             include_disabled);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
 
@@ -394,16 +504,25 @@ UmiStatus umi_studio_test_explorer_centre_set_filter(
         centre->experience,
         &filter);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
 
+/*
+ * Provide the studio test explorer centre hierarchy operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_hierarchy(
     UmiStudioTestExplorerCentre *centre,
     UmiTestPlatformHierarchyNode *nodes,
     size_t capacity,
     size_t *out_count)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -415,6 +534,10 @@ UmiStatus umi_studio_test_explorer_centre_hierarchy(
         out_count);
 }
 
+/*
+ * Provide the studio test explorer centre plan all operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_plan_all(
     UmiStudioTestExplorerCentre *centre,
     uint32_t repeat_count,
@@ -423,6 +546,10 @@ UmiStatus umi_studio_test_explorer_centre_plan_all(
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -433,16 +560,25 @@ UmiStatus umi_studio_test_explorer_centre_plan_all(
         stop_on_failure,
         out_plan);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
 
+/*
+ * Provide the studio test explorer centre plan failed operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_plan_failed(
     UmiStudioTestExplorerCentre *centre,
     UmiTestPlatformOperationPlan *out_plan)
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -451,16 +587,25 @@ UmiStatus umi_studio_test_explorer_centre_plan_failed(
         centre->test_service,
         out_plan);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
 
+/*
+ * Provide the studio test explorer centre begin operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_begin(
     UmiStudioTestExplorerCentre *centre,
     const UmiTestPlatformOperationPlan *plan)
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -469,15 +614,24 @@ UmiStatus umi_studio_test_explorer_centre_begin(
         centre->test_service,
         plan);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
 
+/*
+ * Provide the studio test explorer centre stop operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_stop(
     UmiStudioTestExplorerCentre *centre)
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->test_service == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -485,24 +639,41 @@ UmiStatus umi_studio_test_explorer_centre_stop(
     status = umi_studio_test_service_stop(
         centre->test_service);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }
 
+/*
+ * Provide the studio test explorer centre finish operation used by this module and its
+ * client applications.
+ */
 void umi_studio_test_explorer_centre_finish(
     UmiStudioTestExplorerCentre *centre)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->test_service == NULL) return;
 
     umi_studio_test_service_finish(centre->test_service);
     ++centre->revision;
 }
 
+/*
+ * Return the number of records represented by studio test explorer command contribution
+ * without changing their state.
+ */
 size_t umi_studio_test_explorer_command_contribution_count(void)
 {
     return sizeof(COMMANDS) / sizeof(COMMANDS[0]);
 }
 
+/*
+ * Find studio test explorer command contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioTestExplorerCommandContribution *
 umi_studio_test_explorer_command_contribution_at(size_t position)
 {
@@ -512,17 +683,27 @@ umi_studio_test_explorer_command_contribution_at(size_t position)
         : NULL;
 }
 
+/*
+ * Find studio test explorer command contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioTestExplorerCommandContribution *
 umi_studio_test_explorer_command_contribution_find(
     const char *framework_command_id)
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (framework_command_id == NULL) return NULL;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_test_explorer_command_contribution_count();
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(COMMANDS[index].framework_command_id,
                    framework_command_id) == 0) {
             return &COMMANDS[index];
@@ -532,11 +713,19 @@ umi_studio_test_explorer_command_contribution_find(
     return NULL;
 }
 
+/*
+ * Return the number of records represented by studio test explorer view contribution
+ * without changing their state.
+ */
 size_t umi_studio_test_explorer_view_contribution_count(void)
 {
     return sizeof(VIEWS) / sizeof(VIEWS[0]);
 }
 
+/*
+ * Find studio test explorer view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioTestExplorerViewContribution *
 umi_studio_test_explorer_view_contribution_at(size_t position)
 {
@@ -546,16 +735,26 @@ umi_studio_test_explorer_view_contribution_at(size_t position)
         : NULL;
 }
 
+/*
+ * Find studio test explorer view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioTestExplorerViewContribution *
 umi_studio_test_explorer_view_contribution_find(const char *view_id)
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (view_id == NULL) return NULL;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_test_explorer_view_contribution_count();
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(VIEWS[index].view_id, view_id) == 0) {
             return &VIEWS[index];
         }

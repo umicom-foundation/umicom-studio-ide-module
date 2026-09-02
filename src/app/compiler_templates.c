@@ -25,6 +25,18 @@ static const UmiStudioCompilerTemplate TEMPLATES[] = {
     {"uai-console","UAI Console","UAI application compiled through Umicc.","compiler/uai",UMI_COMPILER_LANGUAGE_BIT(UMI_COMPILER_LANGUAGE_UAI),false,true},
     {"polyglot-console","Polyglot Console","C, C++, Rust, Zig and UAI joined by a stable C ABI.","compiler/polyglot",UINT32_MAX,true,true}
 };
+/*
+ * Return the number of records represented by studio compiler templates without changing
+ * their state.
+ */
 size_t umi_studio_compiler_templates_count(void) { return sizeof(TEMPLATES) / sizeof(TEMPLATES[0]); }
+/*
+ * Find studio compiler templates while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioCompilerTemplate *umi_studio_compiler_templates_at(size_t index) { return index < umi_studio_compiler_templates_count() ? &TEMPLATES[index] : NULL; }
-const UmiStudioCompilerTemplate *umi_studio_compiler_templates_find(const char *template_id) { size_t index; if (template_id == NULL) return NULL; for (index = 0U; index < umi_studio_compiler_templates_count(); ++index) if (strcmp(TEMPLATES[index].template_id,template_id) == 0) return &TEMPLATES[index]; return NULL; }
+/*
+ * Find studio compiler templates while leaving the underlying catalogue or model owned by
+ * this module.
+ */
+const UmiStudioCompilerTemplate *umi_studio_compiler_templates_find(const char *template_id) { size_t index; /* Protect caller-owned memory by checking that required state is available before it is used. */ if (template_id == NULL) return NULL; /* Visit each bounded item once so every record receives the same rule. */ for (index = 0U; index < umi_studio_compiler_templates_count(); ++index) /* Protect caller-owned memory by checking that required state is available before it is used. */ if (strcmp(TEMPLATES[index].template_id,template_id) == 0) return &TEMPLATES[index]; return NULL; }

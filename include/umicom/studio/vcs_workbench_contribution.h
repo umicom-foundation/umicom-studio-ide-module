@@ -27,6 +27,10 @@ extern "C" {
 
 #define UMI_STUDIO_VCS_WORKBENCH_CONTRIBUTION_API_VERSION 1U
 
+/**
+ * Represent the studio vcs workbench command contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioVcsWorkbenchCommandContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioVcsWorkbenchCommandContribution {
     int show_in_command_centre;
 } UmiStudioVcsWorkbenchCommandContribution;
 
+/**
+ * Represent the studio vcs workbench view contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioVcsWorkbenchViewContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -49,16 +57,44 @@ typedef struct UmiStudioVcsWorkbenchViewContribution {
     int movable;
 } UmiStudioVcsWorkbenchViewContribution;
 
+/**
+ * Return the number of records represented by studio vcs workbench command without
+ * changing their state.
+ */
 size_t umi_studio_vcs_workbench_command_count(void);
+/**
+ * Find studio vcs workbench command while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiStudioVcsWorkbenchCommandContribution *
 umi_studio_vcs_workbench_command_at(size_t index);
+/**
+ * Find studio vcs workbench command while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiStudioVcsWorkbenchCommandContribution *
 umi_studio_vcs_workbench_command_find(const char *framework_command_id);
+/**
+ * Return the number of records represented by studio vcs workbench view without changing
+ * their state.
+ */
 size_t umi_studio_vcs_workbench_view_count(void);
+/**
+ * Find studio vcs workbench view while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioVcsWorkbenchViewContribution *
 umi_studio_vcs_workbench_view_at(size_t index);
+/**
+ * Find studio vcs workbench view while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioVcsWorkbenchViewContribution *
 umi_studio_vcs_workbench_view_find(const char *view_id);
+/**
+ * Initialise studio vcs workbench from caller-provided values so later operations receive
+ * a known state.
+ */
 UmiStatus umi_studio_vcs_workbench_create(
     UmiVcsWorkbenchRuntime **out_runtime);
 

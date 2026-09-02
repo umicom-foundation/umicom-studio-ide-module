@@ -27,6 +27,10 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio delivery report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_delivery_report(const UmiReleaseCandidate *candidate,
                                         const UmiDeliveryPipeline *pipeline,
                                         UmiDeliveryReport *out_report);

@@ -56,11 +56,13 @@ struct UmiStudioContextLinkCentre {
     uint64_t last_refresh_ms;
 };
 
+/* Provide the mask operation used by this module and its client applications. */
 static uint64_t mask(UmiContextKind kind)
 {
     return umi_workbench_context_host_kind_mask(kind);
 }
 
+/* Provide the add group operation used by this module and its client applications. */
 static UmiStatus add_group(
     UmiWorkbenchContextHostProfile *profile,
     const char *group_id,
@@ -74,6 +76,7 @@ static UmiStatus add_group(
     umi_workbench_context_host_group_definition_init(&group, group_id);
     status = umi_workbench_context_host_copy_text(
         group.title, sizeof(group.title), title);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     group.colour = colour;
     group.allowed_kinds_mask = kinds;
@@ -82,6 +85,7 @@ static UmiStatus add_group(
     return umi_workbench_context_host_profile_add_group(profile, &group);
 }
 
+/* Provide the add endpoint operation used by this module and its client applications. */
 static UmiStatus add_endpoint(
     UmiWorkbenchContextHostProfile *profile,
     const char *endpoint_id,
@@ -98,9 +102,11 @@ static UmiStatus add_endpoint(
     umi_workbench_context_host_endpoint_init(&endpoint, endpoint_id);
     status = umi_workbench_context_host_endpoint_set_identity(
         &endpoint, panel_id, "org.umicom.studio", display_name);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_host_endpoint_set_group(
         &endpoint, group_id, mode);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     endpoint.role = role;
     endpoint.accepted_kinds_mask = accepted;
@@ -109,6 +115,7 @@ static UmiStatus add_endpoint(
     return umi_workbench_context_host_profile_add_endpoint(profile, &endpoint);
 }
 
+/* Provide the build profile operation used by this module and its client applications. */
 static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
 {
     const uint64_t source = mask(UMI_CONTEXT_KIND_SOURCE_LOCATION);
@@ -121,6 +128,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         profile, "studio.context.profile", "org.umicom.studio");
     status = umi_workbench_context_host_profile_set_title(
         profile, "Umicom Studio Linked Workbench");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_group(
@@ -130,6 +138,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_CONTEXT_COLOUR_BLUE,
         source | project | workspace | selection,
         true);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = add_group(
         profile,
@@ -138,6 +147,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_CONTEXT_COLOUR_GREEN,
         source | project | selection,
         false);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = add_group(
         profile,
@@ -146,6 +156,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_CONTEXT_COLOUR_PURPLE,
         source | project | workspace | selection,
         false);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = add_group(
         profile,
@@ -154,6 +165,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_CONTEXT_COLOUR_CYAN,
         project | workspace | selection,
         false);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_endpoint(
@@ -166,6 +178,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_WORKBENCH_CONTEXT_LINK_MODE_PUBLISH,
         selection,
         selection);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_endpoint(
@@ -178,6 +191,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         project | workspace | selection,
         project | selection);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_endpoint(
@@ -190,6 +204,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         source | project | selection,
         source | selection);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_endpoint(
@@ -202,6 +217,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         source | project | selection,
         source | selection);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_endpoint(
@@ -214,6 +230,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         project | source | selection,
         project | source | selection);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_endpoint(
@@ -226,6 +243,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         source | project | selection,
         source | selection);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_endpoint(
@@ -238,6 +256,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         source | project | selection,
         source | selection);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = add_endpoint(
@@ -250,6 +269,7 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
         UMI_WORKBENCH_CONTEXT_LINK_MODE_BIDIRECTIONAL,
         source | project | workspace | selection,
         source | project | selection);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return add_endpoint(
@@ -265,6 +285,10 @@ static UmiStatus build_profile(UmiWorkbenchContextHostProfile *profile)
 }
 
 
+/*
+ * Provide the register event source operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_event_source(
     UmiStudioContextLinkCentre *centre,
     const char *source_id,
@@ -273,6 +297,10 @@ static UmiStatus register_event_source(
     UmiWorkbenchContextEventSourceDescriptor source;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->events == NULL ||
         source_id == NULL || label == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -284,14 +312,17 @@ static UmiStatus register_event_source(
     status = umi_workbench_context_event_source_descriptor_set_source(
         &source,
         source_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_source_descriptor_set_subject(
         &source,
         "org.umicom.studio");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_source_descriptor_set_label(
         &source,
         label);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     source.event_kind = UMI_WORKBENCH_CONTEXT_EVENT_GENERIC_SELECTION;
     source.context_kind = UMI_CONTEXT_KIND_SELECTION;
@@ -301,6 +332,10 @@ static UmiStatus register_event_source(
         &source);
 }
 
+/*
+ * Provide the register event sources operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_event_sources(
     UmiStudioContextLinkCentre *centre)
 {
@@ -320,6 +355,7 @@ static UmiStatus register_event_sources(
     size_t index;
     UmiStatus status;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(sources) / sizeof(sources[0]);
          ++index) {
@@ -327,11 +363,13 @@ static UmiStatus register_event_sources(
             centre,
             sources[index].source_id,
             sources[index].label);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return UMI_STATUS_OK;
 }
 
+/* Provide the submit event operation used by this module and its client applications. */
 static UmiStatus submit_event(
     UmiStudioContextLinkCentre *centre,
     UmiWorkbenchContextEvent *event,
@@ -340,6 +378,10 @@ static UmiStatus submit_event(
     size_t processed = 0U;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || event == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -355,12 +397,14 @@ static UmiStatus submit_event(
             event,
             "group-id",
             group_id);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
 
     status = umi_workbench_context_event_service_submit(
         centre->events,
         event);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return umi_workbench_context_event_service_pump(
@@ -369,6 +413,10 @@ static UmiStatus submit_event(
         &processed);
 }
 
+/*
+ * Initialise studio context link centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_context_link_centre_create(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session,
@@ -378,14 +426,26 @@ UmiStatus umi_studio_context_link_centre_create(
     UmiWorkbenchContextHostConfig config;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL || out_centre == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     *out_centre = NULL;
     centre = (UmiStudioContextLinkCentre *)calloc(1U, sizeof(*centre));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     centre->profile = (UmiWorkbenchContextHostProfile *)calloc(
         1U, sizeof(*centre->profile));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre->profile == NULL) {
         free(centre);
         return UMI_STATUS_OUT_OF_MEMORY;
@@ -402,6 +462,7 @@ UmiStatus umi_studio_context_link_centre_create(
         &centre->link_controller);
     status = umi_workbench_context_link_slave_controller_start(
         &centre->link_controller);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_context_link_centre_destroy(centre);
         return status;
@@ -416,21 +477,28 @@ UmiStatus umi_studio_context_link_centre_create(
         umi_workbench_context_link_slave_controller_service(
             &centre->link_controller),
         &centre->host);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_context_link_centre_destroy(centre);
         return status;
     }
 
     status = build_profile(centre->profile);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_workbench_context_host_apply_profile(
             centre->host, centre->profile);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_context_link_centre_destroy(centre);
         return status;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre->session != NULL) {
         bool restored = false;
         status = umi_workbench_context_host_session_restore(
@@ -438,6 +506,7 @@ UmiStatus umi_studio_context_link_centre_create(
             centre->session,
             "studio.context-links",
             &restored);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             umi_studio_context_link_centre_destroy(centre);
             return status;
@@ -448,9 +517,11 @@ UmiStatus umi_studio_context_link_centre_create(
     status = umi_workbench_context_event_service_create(
         centre->host,
         &centre->events);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = register_event_sources(centre);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_context_link_centre_destroy(centre);
         return status;
@@ -460,6 +531,7 @@ UmiStatus umi_studio_context_link_centre_create(
         &centre->host_controller, centre->host);
     status = umi_workbench_context_host_slave_controller_start(
         &centre->host_controller);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_context_link_centre_destroy(centre);
         return status;
@@ -469,11 +541,27 @@ UmiStatus umi_studio_context_link_centre_create(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio context link centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_context_link_centre_destroy(
     UmiStudioContextLinkCentre *centre)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre->host != NULL) {
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (centre->session != NULL) {
             (void)umi_workbench_context_host_session_save(
                 centre->host,
@@ -496,26 +584,40 @@ void umi_studio_context_link_centre_destroy(
     free(centre);
 }
 
+/*
+ * Provide the studio context link centre refresh operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_context_link_centre_refresh(
     UmiStudioContextLinkCentre *centre,
     uint64_t now_ms)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || centre->host == NULL || centre->workbench == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_workbench_context_host_observe_workbench(
         centre->host, centre->workbench, now_ms);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->last_refresh_ms = now_ms;
     return status;
 }
 
+/*
+ * Provide the studio context link centre host operation used by this module and its client
+ * applications.
+ */
 UmiWorkbenchContextHost *umi_studio_context_link_centre_host(
     UmiStudioContextLinkCentre *centre)
 {
     return centre != NULL ? centre->host : NULL;
 }
 
+/* Provide the next context id operation used by this module and its client applications. */
 static UmiStatus next_context_id(
     UmiStudioContextLinkCentre *centre,
     const char *prefix,
@@ -523,6 +625,10 @@ static UmiStatus next_context_id(
     size_t capacity)
 {
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || prefix == NULL || out_id == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -537,6 +643,10 @@ static UmiStatus next_context_id(
         : UMI_STATUS_CAPACITY_EXCEEDED;
 }
 
+/*
+ * Provide the studio context link centre publish project operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_project(
     UmiStudioContextLinkCentre *centre,
     const char *project_id,
@@ -551,12 +661,17 @@ UmiStatus umi_studio_context_link_centre_publish_project(
     char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
         centre,
         "studio-project",
         context_id,
         sizeof(context_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_workbench_context_event_build_project(
@@ -571,14 +686,17 @@ UmiStatus umi_studio_context_link_centre_publish_project(
         repository_id,
         language_id,
         now_ms);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_workbench_context_event_add_metadata(
         &event, "target-id", target_id != NULL ? target_id : "");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_add_metadata(
         &event, "configuration-id",
         configuration_id != NULL ? configuration_id : "");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return submit_event(
@@ -587,6 +705,10 @@ UmiStatus umi_studio_context_link_centre_publish_project(
         NULL);
 }
 
+/*
+ * Provide the studio context link centre publish source location operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_source_location(
     UmiStudioContextLinkCentre *centre,
     const char *file_path,
@@ -599,12 +721,17 @@ UmiStatus umi_studio_context_link_centre_publish_source_location(
     UmiWorkbenchContextEvent event;
     char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
         centre,
         "studio-source",
         context_id,
         sizeof(context_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_workbench_context_event_build_editor_location(
@@ -620,6 +747,7 @@ UmiStatus umi_studio_context_link_centre_publish_source_location(
         column,
         selection_length,
         now_ms);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return submit_event(
@@ -628,6 +756,10 @@ UmiStatus umi_studio_context_link_centre_publish_source_location(
         NULL);
 }
 
+/*
+ * Provide the studio context link centre publish diagnostic operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_diagnostic(
     UmiStudioContextLinkCentre *centre,
     const char *file_path,
@@ -642,12 +774,17 @@ UmiStatus umi_studio_context_link_centre_publish_diagnostic(
     char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
         centre,
         "studio-diagnostic",
         context_id,
         sizeof(context_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_workbench_context_event_build_diagnostic(
@@ -664,6 +801,7 @@ UmiStatus umi_studio_context_link_centre_publish_diagnostic(
         diagnostic_code,
         message,
         now_ms);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return submit_event(
@@ -672,6 +810,10 @@ UmiStatus umi_studio_context_link_centre_publish_diagnostic(
         NULL);
 }
 
+/*
+ * Provide the studio context link centre publish source control operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_source_control(
     UmiStudioContextLinkCentre *centre,
     const char *project_id,
@@ -686,12 +828,17 @@ UmiStatus umi_studio_context_link_centre_publish_source_control(
     char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
         centre,
         "studio-vcs",
         context_id,
         sizeof(context_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_workbench_context_event_build_source_control(
@@ -708,6 +855,7 @@ UmiStatus umi_studio_context_link_centre_publish_source_control(
         path,
         change_kind,
         now_ms);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return submit_event(
@@ -716,6 +864,10 @@ UmiStatus umi_studio_context_link_centre_publish_source_control(
         NULL);
 }
 
+/*
+ * Provide the studio context link centre publish test operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_test(
     UmiStudioContextLinkCentre *centre,
     const char *test_id,
@@ -730,12 +882,17 @@ UmiStatus umi_studio_context_link_centre_publish_test(
     char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
         centre,
         "studio-test",
         context_id,
         sizeof(context_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_workbench_context_event_build_test(
@@ -752,6 +909,7 @@ UmiStatus umi_studio_context_link_centre_publish_test(
         source_line,
         duration_ms,
         now_ms);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return submit_event(
@@ -760,6 +918,10 @@ UmiStatus umi_studio_context_link_centre_publish_test(
         NULL);
 }
 
+/*
+ * Provide the studio context link centre publish ai operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_ai(
     UmiStudioContextLinkCentre *centre,
     const char *conversation_id,
@@ -773,12 +935,17 @@ UmiStatus umi_studio_context_link_centre_publish_ai(
     char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
         centre,
         "studio-ai",
         context_id,
         sizeof(context_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_workbench_context_event_build_ai(
@@ -794,6 +961,7 @@ UmiStatus umi_studio_context_link_centre_publish_ai(
         model_id,
         evidence_id,
         now_ms);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return submit_event(
@@ -802,6 +970,10 @@ UmiStatus umi_studio_context_link_centre_publish_ai(
         NULL);
 }
 
+/*
+ * Provide the studio context link centre publish debug location operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_debug_location(
     UmiStudioContextLinkCentre *centre,
     const char *file_path,
@@ -814,12 +986,17 @@ UmiStatus umi_studio_context_link_centre_publish_debug_location(
     char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = next_context_id(
         centre,
         "studio-debug",
         context_id,
         sizeof(context_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_workbench_context_event_build_editor_location(
@@ -835,6 +1012,7 @@ UmiStatus umi_studio_context_link_centre_publish_debug_location(
         column,
         0U,
         now_ms);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     event.kind = UMI_WORKBENCH_CONTEXT_EVENT_DEBUG_LOCATION;
     (void)umi_workbench_context_event_refresh_hash(&event);
@@ -845,6 +1023,10 @@ UmiStatus umi_studio_context_link_centre_publish_debug_location(
         NULL);
 }
 
+/*
+ * Provide the studio context link centre publish selection operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_selection(
     UmiStudioContextLinkCentre *centre,
     const char *source_id,
@@ -857,6 +1039,10 @@ UmiStatus umi_studio_context_link_centre_publish_selection(
     char context_id[UMI_WORKBENCH_CONTEXT_EVENT_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || source_id == NULL || panel_id == NULL ||
         subject_id == NULL || selection_type == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -867,6 +1053,7 @@ UmiStatus umi_studio_context_link_centre_publish_selection(
         "studio-selection",
         context_id,
         sizeof(context_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     umi_workbench_context_event_init(
@@ -880,36 +1067,43 @@ UmiStatus umi_studio_context_link_centre_publish_selection(
         event.source_id,
         sizeof(event.source_id),
         source_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_copy_text(
         event.application_id,
         sizeof(event.application_id),
         "org.umicom.studio");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_copy_text(
         event.panel_id,
         sizeof(event.panel_id),
         panel_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_copy_text(
         event.workspace_id,
         sizeof(event.workspace_id),
         centre->workspace_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_copy_text(
         event.subject_id,
         sizeof(event.subject_id),
         subject_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_copy_text(
         event.secondary_id,
         sizeof(event.secondary_id),
         subject_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_workbench_context_event_add_metadata(
         &event,
         "selection-type",
         selection_type);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     /*
@@ -920,6 +1114,7 @@ UmiStatus umi_studio_context_link_centre_publish_selection(
     status = umi_workbench_context_event_service_submit(
         centre->events,
         &event);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     {

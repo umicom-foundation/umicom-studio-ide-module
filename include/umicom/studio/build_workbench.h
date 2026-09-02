@@ -25,6 +25,10 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio build publish result operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_build_publish_result(
     const UmiBuildResult *result,
     UmiUiProblemRegistry *problems,

@@ -18,12 +18,17 @@
 
 #include "umicom/studio/debug_orchestration_contribution.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     size_t index;
     size_t comparison;
     assert(umi_studio_debug_command_contribution_count() ==
            umi_debug_command_count());
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < umi_studio_debug_command_contribution_count();
          ++index) {
         const UmiStudioDebugCommandContribution *contribution =
@@ -37,6 +42,7 @@ int main(void)
         assert(contribution->menu_id[0] != '\0');
         assert(contribution->menu_group[0] != '\0');
         assert(contribution->show_in_command_centre);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison < umi_studio_debug_command_contribution_count();
              ++comparison) {
@@ -48,6 +54,7 @@ int main(void)
     }
 
     assert(umi_studio_debug_view_contribution_count() == 12U);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < umi_studio_debug_view_contribution_count();
          ++index) {
         const UmiStudioDebugViewContribution *view =
@@ -62,6 +69,7 @@ int main(void)
         assert(view->default_region[0] != '\0');
         assert(view->closable);
         assert(view->movable);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison < umi_studio_debug_view_contribution_count();
              ++comparison) {

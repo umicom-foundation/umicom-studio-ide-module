@@ -16,6 +16,10 @@
 static GtkWidget *runtime_build_surface_ai_validation(UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *panel = runtime_panel_new("AI Validation");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     gtk_box_append(

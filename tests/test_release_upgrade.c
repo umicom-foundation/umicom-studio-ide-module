@@ -17,6 +17,10 @@
 #include "umicom/studio/release_channels.h"
 #include "umicom/studio/upgrade_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioReleaseChannels channels;

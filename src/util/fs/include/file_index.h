@@ -3,6 +3,22 @@
  * File: src/util/fs/include/file_index.h
  *
  * PURPOSE:
+ *   Declare the file index contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/fs/include/file_index.h
+ *
+ * PURPOSE:
  *   Public API for a tiny in-memory file index used by panels that need fast
  *   access to "all files under a root directory". The index stores immutable
  *   (g_strdup'ed) absolute, canonicalized paths in a GLib GPtrArray.

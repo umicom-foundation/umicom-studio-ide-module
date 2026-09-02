@@ -25,6 +25,10 @@ typedef struct UmiStudioGtkPromptContext {
     UmiStudioGtkPromptAccepted accepted;
 } UmiStudioGtkPromptContext;
 
+/*
+ * Release or reset state held by runtime prompt context so the same storage can be reused
+ * safely.
+ */
 static void runtime_prompt_context_destroy(gpointer data)
 {
     UmiStudioGtkPromptContext *context =
@@ -32,6 +36,10 @@ static void runtime_prompt_context_destroy(gpointer data)
     free(context);
 }
 
+/*
+ * Provide the runtime prompt cancelled operation used by this module and its client
+ * applications.
+ */
 static void runtime_prompt_cancelled(
     GtkButton *button,
     gpointer user_data)
@@ -40,11 +48,19 @@ static void runtime_prompt_cancelled(
         (UmiStudioGtkPromptContext *)user_data;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (context != NULL && GTK_IS_WINDOW(context->window)) {
         gtk_window_destroy(GTK_WINDOW(context->window));
     }
 }
 
+/*
+ * Provide the runtime prompt accepted operation used by this module and its client
+ * applications.
+ */
 static void runtime_prompt_accepted(
     GtkButton *button,
     gpointer user_data)
@@ -55,12 +71,20 @@ static void runtime_prompt_accepted(
     UmiStatus status;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (context == NULL || context->runtime == NULL ||
         context->entry == NULL || context->accepted == NULL) {
         return;
     }
 
     value = gtk_editable_get_text(GTK_EDITABLE(context->entry));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (value == NULL || value[0] == '\0') {
         runtime_show_notification(
             context->runtime,
@@ -69,11 +93,16 @@ static void runtime_prompt_accepted(
     }
 
     status = context->accepted(context->runtime, value);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK && GTK_IS_WINDOW(context->window)) {
         gtk_window_destroy(GTK_WINDOW(context->window));
     }
 }
 
+/*
+ * Provide the runtime prompt text operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_prompt_text(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *title,
@@ -89,6 +118,10 @@ static UmiStatus runtime_prompt_text(
     GtkWidget *cancel;
     GtkWidget *accept;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL || accepted == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -97,6 +130,10 @@ static UmiStatus runtime_prompt_text(
     context = (UmiStudioGtkPromptContext *)calloc(
         1U,
         sizeof(*context));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (context == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     window = GTK_WIDGET(gtk_window_new());
@@ -107,6 +144,10 @@ static UmiStatus runtime_prompt_text(
     accept = gtk_button_new_with_label(
         accept_label != NULL ? accept_label : "OK");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (window == NULL || root == NULL || context->entry == NULL ||
         buttons == NULL || cancel == NULL || accept == NULL) {
         free(context);
@@ -131,10 +172,18 @@ static UmiStatus runtime_prompt_text(
     gtk_widget_set_margin_start(root, 16);
     gtk_widget_set_margin_end(root, 16);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (message != NULL && message[0] != '\0') {
         gtk_box_append(GTK_BOX(root), runtime_label(message, 0.0F));
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (initial_value != NULL) {
         gtk_editable_set_text(
             GTK_EDITABLE(context->entry),

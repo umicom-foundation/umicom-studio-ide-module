@@ -19,6 +19,10 @@
 #include "umicom/studio/contributions.h"
 #include "umicom/studio/workspace_profiles.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;

@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/plugins/transpile/include/transpile.h
+ *
+ * PURPOSE:
+ *   Declare the transpile contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/plugins/transpile/include/transpile.h
  * PURPOSE:
  *   Public “Transpile” demo entry points.
  *
@@ -18,8 +34,14 @@
 #include <glib.h>
 #include "i18n_translate.h"
 
+/**
+ * Provide the transpile demo operation used by this module and its client applications.
+ */
 G_BEGIN_DECLS
 
+/**
+ * Provide the transpile demo operation used by this module and its client applications.
+ */
 void umi_transpile_demo(void);
 
 G_END_DECLS

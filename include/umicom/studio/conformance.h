@@ -19,7 +19,15 @@
 #ifndef UMICOM_STUDIO_CONFORMANCE_H
 #define UMICOM_STUDIO_CONFORMANCE_H
 #include "umicom/studio/compatibility_platform.h"
+/**
+ * Represent the studio conformance result data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioConformanceResult { size_t products_checked; size_t products_compatible; int abi_ok; int passed; } UmiStudioConformanceResult;
+/**
+ * Perform studio conformance through the module contract so client applications do not
+ * duplicate its policy.
+ */
 UmiStatus umi_studio_conformance_run(UmiStudioCompatibilityPlatform *platform,UmiStudioConformanceResult *out_result);
 #endif
 

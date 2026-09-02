@@ -2,6 +2,22 @@
  * Umicom Studio IDE
  * File: src/include/runner.h
  *
+ * PURPOSE:
+ *   Declare the runner contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/include/runner.h
+ *
  * PROJECT:
  *   Umicom Studio IDE — public, cross-module process runner API.
  *
@@ -52,6 +68,9 @@
 
 G_BEGIN_DECLS
 
+/**
+ * Represent the runner data shared with callers of this public contract.
+ */
 typedef struct UmiRunner UmiRunner;  /* Opaque handle; fields are hidden.      */
 
 /* Exit callback: invoked once when the child exits. */

@@ -18,24 +18,44 @@
 static void runtime_refresh_interactive_panels(
     UmiStudioGtkRuntimeChrome *runtime)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->interaction_busy) return;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->explorer_list != NULL &&
         (runtime->explorer_search_entry == NULL ||
          !gtk_widget_has_focus(runtime->explorer_search_entry))) {
         runtime_explorer_refresh_list(runtime);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->problems_list != NULL) {
         runtime_problems_refresh_list(runtime);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->test_list != NULL &&
         (runtime->test_search_entry == NULL ||
          !gtk_widget_has_focus(runtime->test_search_entry))) {
         runtime_tests_refresh_list(runtime);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->source_control_list != NULL &&
         (runtime->source_control_commit_entry == NULL ||
          !gtk_widget_has_focus(runtime->source_control_commit_entry))) {
@@ -43,6 +63,10 @@ static void runtime_refresh_interactive_panels(
         runtime_source_control_refresh_details(runtime);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->terminal_text_view != NULL &&
         (runtime->terminal_entry == NULL ||
          !gtk_widget_has_focus(runtime->terminal_entry))) {

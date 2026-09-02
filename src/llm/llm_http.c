@@ -55,6 +55,7 @@ static size_t on_write(char *ptr, size_t size, size_t nmemb, void *userdata)
  *----------------------------------------------------------------------------*/
 static void add_header(struct curl_slist **hdrs, const char *line)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!line || !*line) return;        /* Ignore empty input safely.          */
   *hdrs = curl_slist_append(*hdrs, line);
 }
@@ -64,6 +65,7 @@ static void add_header(struct curl_slist **hdrs, const char *line)
  *----------------------------------------------------------------------------*/
 static void add_bearer(struct curl_slist **hdrs, const char *token)
 {
+  /* Preserve the original failure result so the caller can respond to the correct cause. */
   if (token && *token) {
     /* Build header line with token; freed after appended to list.            */
     gchar *h = g_strdup_printf("Authorization: Bearer %s", token);
@@ -97,6 +99,7 @@ gboolean umi_http_get_json(const gchar *url,
 
   /* Create easy handle; fail early if libcurl is unavailable. */
   CURL *C = curl_easy_init();
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!C) { g_strlcpy(errbuf, "curl init failed", errcap); return FALSE; }
 
   /* Headers: JSON content type and optional Authorization. */
@@ -123,10 +126,11 @@ gboolean umi_http_get_json(const gchar *url,
   /* Success = transport OK and 2xx status. */
   gboolean ok = (rc == CURLE_OK && code >= 200 && code < 300);
 
+  /* Preserve the original failure result so the caller can respond to the correct cause. */
   if (!ok) {
     /* Provide readable context: HTTP code plus curl error text. */
     g_snprintf(errbuf, errcap, "HTTP %ld: %s", code, curl_easy_strerror(rc));
-  } else if (out_body) {
+  } else /* Apply this branch only when its contract condition is satisfied. */ if (out_body) {
     /* Hand off buffer to caller (don’t free here). */
     *out_body = g_string_free(acc.buf, FALSE);
     acc.buf = NULL; /* mark as moved */
@@ -156,11 +160,14 @@ gboolean umi_http_post_json(const gchar *url,
                             gchar       *errbuf,
                             gsize        errcap)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (out_body) *out_body = NULL;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!umi_privacy_allow_url(url, errbuf, (unsigned)errcap))
     return FALSE;
 
   CURL *C = curl_easy_init();
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!C) { g_strlcpy(errbuf, "curl init failed", errcap); return FALSE; }
 
   struct curl_slist *hdr = NULL;
@@ -181,13 +188,15 @@ gboolean umi_http_post_json(const gchar *url,
   long code = 0; curl_easy_getinfo(C, CURLINFO_RESPONSE_CODE, &code);
   gboolean ok = (rc == CURLE_OK && code >= 200 && code < 300);
 
+  /* Preserve the original failure result so the caller can respond to the correct cause. */
   if (!ok) {
     g_snprintf(errbuf, errcap, "HTTP %ld: %s", code, curl_easy_strerror(rc));
-  } else if (out_body) {
+  } else /* Apply this branch only when its contract condition is satisfied. */ if (out_body) {
     *out_body = g_string_free(acc.buf, FALSE);
     acc.buf = NULL;
   }
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (acc.buf) g_string_free(acc.buf, TRUE);
   curl_slist_free_all(hdr);
   curl_easy_cleanup(C);
@@ -228,10 +237,12 @@ gboolean umi_http_post_stream(const gchar *url,
                               gchar       *errbuf,
                               gsize        errcap)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!umi_privacy_allow_url(url, errbuf, (unsigned)errcap))
     return FALSE;
 
   CURL *C = curl_easy_init();
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!C) { g_strlcpy(errbuf, "curl init failed", errcap); return FALSE; }
 
   struct curl_slist *hdr = NULL;
@@ -252,6 +263,7 @@ gboolean umi_http_post_stream(const gchar *url,
   long code = 0; curl_easy_getinfo(C, CURLINFO_RESPONSE_CODE, &code);
   gboolean ok = (rc == CURLE_OK && code >= 200 && code < 300);
 
+  /* Preserve the original failure result so the caller can respond to the correct cause. */
   if (!ok)
     g_snprintf(errbuf, errcap, "HTTP %ld: %s", code, curl_easy_strerror(rc));
 

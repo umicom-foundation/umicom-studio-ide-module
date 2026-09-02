@@ -18,4 +18,8 @@
  */
 #include <stdio.h>
 #include "umicom/studio/sdk.h"
-int main(int argc,char **argv){UmiSdkValidationResult r;if(argc<2){puts("Usage: umicom-studio-sdk <sdk-prefix>");return 2;}if(umi_studio_sdk_probe(argv[1],&r)!=UMI_STATUS_OK)return 1;printf("SDK probe: %s\nConformance: %zu/%zu\n",r.passed?"PASS":"FAIL",r.conformance.checks_passed,r.conformance.checks_run);return r.passed?0:3;}
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
+int main(int argc,char **argv){UmiSdkValidationResult r;/* Preserve the original failure result so the caller can respond to the correct cause. */ if(argc<2){puts("Usage: umicom-studio-sdk <sdk-prefix>");return 2;}/* Preserve the original failure result so the caller can respond to the correct cause. */ if(umi_studio_sdk_probe(argv[1],&r)!=UMI_STATUS_OK)return 1;printf("SDK probe: %s\nConformance: %zu/%zu\n",r.passed?"PASS":"FAIL",r.conformance.checks_passed,r.conformance.checks_run);return r.passed?0:3;}

@@ -16,6 +16,10 @@
 
 #include <string.h>
 
+/*
+ * Perform replay through the module contract so client applications do not duplicate its
+ * policy.
+ */
 static UmiStatus replay_dispatch(const UmiMessageEnvelope *message,
                                  void *user_data)
 {
@@ -27,6 +31,7 @@ static UmiStatus replay_dispatch(const UmiMessageEnvelope *message,
     status = umi_dispatcher_dispatch(umi_studio_services_dispatcher(services),
                                      &replayed,
                                      &deliveries);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         umi_message_metrics_increment(umi_studio_services_message_metrics(services),
                                       UMI_MESSAGE_METRIC_REPLAYED);
@@ -34,6 +39,10 @@ static UmiStatus replay_dispatch(const UmiMessageEnvelope *message,
     return status;
 }
 
+/*
+ * Provide the studio replay request default operation used by this module and its client
+ * applications.
+ */
 UmiStudioReplayRequest umi_studio_replay_request_default(void)
 {
     UmiStudioReplayRequest request;
@@ -43,12 +52,17 @@ UmiStudioReplayRequest umi_studio_replay_request_default(void)
     return request;
 }
 
+/* Provide the studio replay operation used by this module and its client applications. */
 UmiStatus umi_studio_replay(UmiStudioServices *services,
                             const UmiStudioReplayRequest *request,
                             size_t *out_replayed)
 {
     UmiReplayOptions options;
     UmiReplaySource source;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || request == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

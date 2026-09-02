@@ -26,6 +26,7 @@ target_sources(umicom_studio_core PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/../src/app/application_feature_centre.c"
 )
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
     add_executable(umicom-studio-experience-centre-test
         "${CMAKE_CURRENT_LIST_DIR}/../tests/test_experience_centre.c")
@@ -35,6 +36,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-experience-centre-test)
     add_test(NAME studio.experience_centre
              COMMAND umicom-studio-experience-centre-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-experience-centre-test)
     endif()
@@ -47,6 +49,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-experience-projection-test)
     add_test(NAME studio.experience_projection
              COMMAND umicom-studio-experience-projection-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-experience-projection-test)
     endif()
@@ -59,6 +62,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-application-runtime-centre-test)
     add_test(NAME studio.application_runtime_centre
              COMMAND umicom-studio-application-runtime-centre-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-application-runtime-centre-test)
@@ -72,6 +76,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-application-panel-centre-test)
     add_test(NAME studio.application_panel_centre
              COMMAND umicom-studio-application-panel-centre-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-application-panel-centre-test)
@@ -85,6 +90,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-application-feature-centre-test)
     add_test(NAME studio.application_feature_centre
              COMMAND umicom-studio-application-feature-centre-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-application-feature-centre-test)

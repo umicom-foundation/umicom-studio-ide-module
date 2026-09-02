@@ -3,6 +3,22 @@
  * File: src/gui/prefs/include/prefs_ui.h
  *
  * PURPOSE:
+ *   Declare the prefs ui contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/prefs/include/prefs_ui.h
+ *
+ * PURPOSE:
  *   Small Preferences UI controller that loads/saves settings via a JSON
  *   store and emits live change events to the settings bus.
  *
@@ -33,8 +49,17 @@ typedef struct UmiPrefsUI {
   UmiJsonStore *store;        /* settings backing store                       */
 } UmiPrefsUI;
 
+/**
+ * Initialise prefs from caller-provided values so later operations receive a known state.
+ */
 UmiPrefsUI *umi_prefs_create (GtkWindow *parent, const char *json_path);
+/**
+ * Provide the prefs show operation used by this module and its client applications.
+ */
 void        umi_prefs_show   (UmiPrefsUI *ui);
+/**
+ * Release or reset state held by prefs so the same storage can be reused safely.
+ */
 void        umi_prefs_destroy(UmiPrefsUI *ui);
 
 #endif /* UMICOM_PREFS_UI_H */

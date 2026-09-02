@@ -29,8 +29,11 @@
 #include <glib.h>
 #include <utf8.h>
 
+/* Provide the utf8 icontains operation used by this module and its client applications. */
 gboolean umi_utf8_icontains(const char *haystack, const char *needle) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!haystack || !needle) return FALSE;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (*needle == '\0') return TRUE;
 
     g_autofree gchar *h = g_utf8_casefold(haystack, -1);

@@ -21,6 +21,10 @@ static char *runtime_text_view_copy_all(GtkWidget *text_view)
     GtkTextIter start;
     GtkTextIter end;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (text_view == NULL) return NULL;
 
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
@@ -28,12 +32,20 @@ static char *runtime_text_view_copy_all(GtkWidget *text_view)
     return gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
 }
 
+/*
+ * Provide the runtime ai set result operation used by this module and its client
+ * applications.
+ */
 static void runtime_ai_set_result(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *text)
 {
     GtkTextBuffer *buffer;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     runtime_copy_selection(
@@ -41,6 +53,10 @@ static void runtime_ai_set_result(
         sizeof(runtime->last_ai_result),
         text);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->ai_result_view == NULL) return;
 
     buffer = gtk_text_view_get_buffer(
@@ -51,6 +67,10 @@ static void runtime_ai_set_result(
         -1);
 }
 
+/*
+ * Perform runtime ai through the module contract so client applications do not duplicate
+ * its policy.
+ */
 static void runtime_ai_execute(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id)
@@ -59,12 +79,20 @@ static void runtime_ai_execute(
     char message[2048];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || command_id == NULL ||
         runtime->ai_prompt_view == NULL) {
         return;
     }
 
     prompt = runtime_text_view_copy_all(runtime->ai_prompt_view);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (prompt == NULL || prompt[0] == '\0') {
         g_free(prompt);
         runtime_show_notification(
@@ -81,19 +109,24 @@ static void runtime_ai_execute(
         message,
         sizeof(message));
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         runtime_ai_set_result(
             runtime,
             message[0] != '\0'
                 ? message
                 : "AI coding request accepted.");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_ai_set_result(runtime, umi_status_text(status));
     }
 
     g_free(prompt);
 }
 
+/*
+ * Provide the runtime on ai chat operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_ai_chat(
     GtkButton *button,
     gpointer user_data)
@@ -104,6 +137,10 @@ static void runtime_on_ai_chat(
         UMI_STUDIO_COMMAND_AI_CODE_CHAT);
 }
 
+/*
+ * Provide the runtime on ai explain operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_ai_explain(
     GtkButton *button,
     gpointer user_data)
@@ -114,6 +151,10 @@ static void runtime_on_ai_explain(
         UMI_STUDIO_COMMAND_AI_EXPLAIN_CODE);
 }
 
+/*
+ * Provide the runtime on ai refactor operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_ai_refactor(
     GtkButton *button,
     gpointer user_data)
@@ -124,6 +165,10 @@ static void runtime_on_ai_refactor(
         UMI_STUDIO_COMMAND_AI_REFACTOR_CODE);
 }
 
+/*
+ * Provide the runtime on ai tests operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_ai_tests(
     GtkButton *button,
     gpointer user_data)
@@ -134,6 +179,10 @@ static void runtime_on_ai_tests(
         UMI_STUDIO_COMMAND_AI_GENERATE_TESTS);
 }
 
+/*
+ * Provide the runtime ai model render operation used by this module and its client
+ * applications.
+ */
 static void runtime_ai_model_render(
     UmiStudioGtkRuntimeChrome *runtime,
     const UmiAiModelEnsembleReport *report)
@@ -143,6 +192,10 @@ static void runtime_ai_model_render(
     size_t index;
     char summary[160];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->ai_model_results_view == NULL ||
         report == NULL || report->structure_size < sizeof(*report) ||
         report->api_version != UMI_AI_MODEL_ENSEMBLE_API_VERSION ||
@@ -152,7 +205,12 @@ static void runtime_ai_model_render(
 
     /* GString grows safely, avoiding fixed output buffers for model answers. */
     text = g_string_new(NULL);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (text == NULL) return;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < report->result_count; ++index) {
         const UmiAiModelResult *result = &report->results[index];
         g_string_append_printf(
@@ -165,19 +223,21 @@ static void runtime_ai_model_render(
             result->target.provider_id,
             result->target.model_id,
             umi_status_text(result->status));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (result->status == UMI_STATUS_OK) {
             g_string_append(text, result->response.text);
-        } else if (result->status == UMI_STATUS_PERMISSION_DENIED) {
+        } else /* Preserve the original failure result so the caller can respond to the correct cause. */ if (result->status == UMI_STATUS_PERMISSION_DENIED) {
             g_string_append(
                 text,
                 "This provider was blocked by the current approval policy.");
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             g_string_append(
                 text,
                 "No answer was returned by this provider adapter.");
         }
         g_string_append(text, "\n\n");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (report->result_count == 0U) {
         g_string_append(
             text,
@@ -197,18 +257,30 @@ static void runtime_ai_model_render(
         report->result_count,
         report->result_count == 1U ? "" : "s",
         report->success_count);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->ai_model_summary_label != NULL) {
         gtk_label_set_text(
             GTK_LABEL(runtime->ai_model_summary_label), summary);
     }
 }
 
+/*
+ * Provide the runtime ai has remote provider operation used by this module and its client
+ * applications.
+ */
 static int runtime_ai_has_remote_provider(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioAiPlatform *platform;
     UmiAiRuntime *ai_runtime;
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->ui == NULL) {
         return 0;
@@ -216,8 +288,14 @@ static int runtime_ai_has_remote_provider(
     platform = umi_studio_services_ai_platform(
         umi_studio_ui_services(runtime->owner->ui));
     ai_runtime = umi_studio_ai_platform_runtime(platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ai_runtime == NULL) return 0;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < ai_runtime->providers.count; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (ai_runtime->providers.providers[index].kind ==
             UMI_AI_PROVIDER_REMOTE) {
             return 1;
@@ -226,6 +304,10 @@ static int runtime_ai_has_remote_provider(
     return 0;
 }
 
+/*
+ * Perform runtime ai model compare through the module contract so client applications do
+ * not duplicate its policy.
+ */
 static UmiStatus runtime_ai_model_compare_execute(
     UmiStudioGtkRuntimeChrome *runtime,
     int remote_approved)
@@ -239,12 +321,20 @@ static UmiStatus runtime_ai_model_compare_execute(
     size_t index;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->ui == NULL ||
         runtime->ai_model_prompt_view == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     prompt = runtime_text_view_copy_all(runtime->ai_model_prompt_view);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (prompt == NULL || prompt[0] == '\0') {
         g_free(prompt);
         runtime_show_notification(
@@ -254,6 +344,10 @@ static UmiStatus runtime_ai_model_compare_execute(
     platform = umi_studio_services_ai_platform(
         umi_studio_ui_services(runtime->owner->ui));
     ai_runtime = umi_studio_ai_platform_runtime(platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL || ai_runtime == NULL) {
         g_free(prompt);
         return UMI_STATUS_INVALID_STATE;
@@ -270,26 +364,33 @@ static UmiStatus runtime_ai_model_compare_execute(
             &ai_runtime->providers.providers[index];
         const char *model_id = provider->provider_id;
         const char *label = umi_ai_provider_kind_text(provider->kind);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (provider->provider_id == NULL || provider->provider_id[0] == '\0') {
             continue;
         }
+        /* Apply this branch only when its contract condition is satisfied. */
         if (provider->kind == UMI_AI_PROVIDER_REMOTE &&
             profile.remote_configured &&
             strcmp(provider->provider_id, profile.remote_provider_id) == 0 &&
             profile.remote_model_id[0] != '\0') {
             model_id = profile.remote_model_id;
-        } else if (strcmp(provider->provider_id, "studio.local") == 0) {
+        } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(provider->provider_id, "studio.local") == 0) {
             model_id = "studio-reference";
         }
         status = umi_ai_model_target_initialize(
             &targets[target_count], provider->provider_id, model_id, label,
             provider->kind == UMI_AI_PROVIDER_REMOTE && remote_approved);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             g_free(prompt);
             return status;
         }
         ++target_count;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (target_count == 0U) {
         g_free(prompt);
         runtime_show_notification(runtime, "No AI provider adapter is registered.");
@@ -309,6 +410,10 @@ static UmiStatus runtime_ai_model_compare_execute(
     return status;
 }
 
+/*
+ * Provide the runtime ai model compare remote accepted operation used by this module and
+ * its client applications.
+ */
 static UmiStatus runtime_ai_model_compare_remote_accepted(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -316,6 +421,10 @@ static UmiStatus runtime_ai_model_compare_remote_accepted(
     return runtime_ai_model_compare_execute(runtime, 1);
 }
 
+/*
+ * Provide the runtime on ai model compare operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_ai_model_compare(
     GtkButton *button,
     gpointer user_data)
@@ -323,6 +432,7 @@ static void runtime_on_ai_model_compare(
     UmiStudioGtkRuntimeChrome *runtime =
         (UmiStudioGtkRuntimeChrome *)user_data;
     (void)button;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime_ai_has_remote_provider(runtime)) {
         (void)runtime_confirm(
             runtime,
@@ -331,11 +441,15 @@ static void runtime_on_ai_model_compare(
             "approved workspace context may leave this computer. Continue?",
             "Compare Models",
             runtime_ai_model_compare_remote_accepted);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         (void)runtime_ai_model_compare_execute(runtime, 0);
     }
 }
 
+/*
+ * Provide the runtime ai patch approve accepted operation used by this module and its
+ * client applications.
+ */
 static UmiStatus runtime_ai_patch_approve_accepted(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *patch_id)
@@ -346,6 +460,10 @@ static UmiStatus runtime_ai_patch_approve_accepted(
         patch_id);
 }
 
+/*
+ * Provide the runtime ai patch apply accepted operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_ai_patch_apply_accepted(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *patch_id)
@@ -356,6 +474,10 @@ static UmiStatus runtime_ai_patch_apply_accepted(
         patch_id);
 }
 
+/*
+ * Provide the runtime ai patch revert accepted operation used by this module and its
+ * client applications.
+ */
 static UmiStatus runtime_ai_patch_revert_accepted(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *patch_id)
@@ -366,6 +488,10 @@ static UmiStatus runtime_ai_patch_revert_accepted(
         patch_id);
 }
 
+/*
+ * Provide the runtime on ai patch approve operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_ai_patch_approve(
     GtkButton *button,
     gpointer user_data)
@@ -380,6 +506,10 @@ static void runtime_on_ai_patch_approve(
         runtime_ai_patch_approve_accepted);
 }
 
+/*
+ * Perform runtime on ai patch through the module contract so client applications do not
+ * duplicate its policy.
+ */
 static void runtime_on_ai_patch_apply(
     GtkButton *button,
     gpointer user_data)
@@ -394,6 +524,10 @@ static void runtime_on_ai_patch_apply(
         runtime_ai_patch_apply_accepted);
 }
 
+/*
+ * Provide the runtime on ai patch revert operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_ai_patch_revert(
     GtkButton *button,
     gpointer user_data)

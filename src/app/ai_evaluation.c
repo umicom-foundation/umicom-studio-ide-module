@@ -21,10 +21,18 @@
 
 #include <stdio.h>
 
+/*
+ * Provide the studio ai evaluation operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ai_evaluation(double score,
                                    double threshold,
                                    UmiAiEvaluation *evaluation)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (evaluation == NULL || score < 0.0 || score > 1.0 ||
         threshold < 0.0 || threshold > 1.0) {
         return UMI_STATUS_INVALID_ARGUMENT;

@@ -20,4 +20,8 @@
 #include "umicom/studio/web_platform.h"
 #include "umicom/studio/charting.h"
 #include <assert.h>
-int main(void){UmiStudioWebPlatform *p=NULL;assert(umi_studio_web_platform_create(&p)==UMI_STATUS_OK);for(int i=0;i<5;++i)assert(umi_studio_charting_add_close(p,i,(double)i)==UMI_STATUS_OK);assert(umi_studio_charting_add_sma(p,3U)==UMI_STATUS_OK);umi_studio_web_platform_destroy(p);return 0;}
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
+int main(void){UmiStudioWebPlatform *p=NULL;assert(umi_studio_web_platform_create(&p)==UMI_STATUS_OK);/* Visit each bounded item once so every record receives the same rule. */ for(int i=0;i<5;++i)assert(umi_studio_charting_add_close(p,i,(double)i)==UMI_STATUS_OK);assert(umi_studio_charting_add_sma(p,3U)==UMI_STATUS_OK);umi_studio_web_platform_destroy(p);return 0;}

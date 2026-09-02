@@ -28,6 +28,10 @@ extern "C" {
 
 #define UMI_STUDIO_WEB_API_WORKBENCH_CONTRIBUTION_API_VERSION 1U
 
+/**
+ * Represent the studio web api workbench command contribution data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioWebApiWorkbenchCommandContribution {
     uint32_t structure_size;
     uint32_t api_version;
@@ -38,6 +42,10 @@ typedef struct UmiStudioWebApiWorkbenchCommandContribution {
     bool enabled;
 } UmiStudioWebApiWorkbenchCommandContribution;
 
+/**
+ * Represent the studio web api workbench view contribution data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioWebApiWorkbenchViewContribution {
     uint32_t structure_size;
     uint32_t api_version;
@@ -50,16 +58,44 @@ typedef struct UmiStudioWebApiWorkbenchViewContribution {
     bool closable;
 } UmiStudioWebApiWorkbenchViewContribution;
 
+/**
+ * Return the number of records represented by studio web api workbench command without
+ * changing their state.
+ */
 size_t umi_studio_web_api_workbench_command_count(void);
+/**
+ * Find studio web api workbench command while leaving the underlying catalogue or model
+ * owned by this module.
+ */
 const UmiStudioWebApiWorkbenchCommandContribution *
 umi_studio_web_api_workbench_command_at(size_t index);
+/**
+ * Find studio web api workbench command while leaving the underlying catalogue or model
+ * owned by this module.
+ */
 const UmiStudioWebApiWorkbenchCommandContribution *
 umi_studio_web_api_workbench_command_find(const char *framework_command_id);
+/**
+ * Return the number of records represented by studio web api workbench view without
+ * changing their state.
+ */
 size_t umi_studio_web_api_workbench_view_count(void);
+/**
+ * Find studio web api workbench view while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiStudioWebApiWorkbenchViewContribution *
 umi_studio_web_api_workbench_view_at(size_t index);
+/**
+ * Find studio web api workbench view while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiStudioWebApiWorkbenchViewContribution *
 umi_studio_web_api_workbench_view_find(const char *view_id);
+/**
+ * Initialise studio web api workbench from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_web_api_workbench_create(
     UmiWebWorkbenchRuntime **out_runtime);
 

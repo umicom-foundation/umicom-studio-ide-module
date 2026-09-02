@@ -41,15 +41,18 @@ struct _UmiStatusBar {
     guint      flash_id; /* timeout source id for flash(); 0 when inactive     */
 };
 
+/* Provide the flash clear cb operation used by this module and its client applications. */
 static gboolean flash_clear_cb(gpointer data)
 {
     UmiStatusBar *sb = (UmiStatusBar *)data;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!sb) return G_SOURCE_REMOVE;
     gtk_label_set_text(GTK_LABEL(sb->label), "");
     sb->flash_id = 0;
     return G_SOURCE_REMOVE;
 }
 
+/* Provide the status bar new operation used by this module and its client applications. */
 UmiStatusBar *umi_status_bar_new(void)
 {
     UmiStatusBar *sb = g_new0(UmiStatusBar, 1);
@@ -75,30 +78,44 @@ UmiStatusBar *umi_status_bar_new(void)
     return sb;
 }
 
+/* Provide the status bar widget operation used by this module and its client applications. */
 GtkWidget *umi_status_bar_widget(UmiStatusBar *sb)
 {
     return sb ? sb->root : NULL;
 }
 
+/*
+ * Copy status bar into module-owned storage so callers keep ownership of their input
+ * values.
+ */
 void umi_status_bar_set(UmiStatusBar *sb, const char *text)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!sb) return;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (sb->flash_id) { g_source_remove(sb->flash_id); sb->flash_id = 0; }
     gtk_label_set_text(GTK_LABEL(sb->label), text ? text : "");
 }
 
+/* Provide the status bar flash operation used by this module and its client applications. */
 void umi_status_bar_flash(UmiStatusBar *sb, const char *text, guint ms)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!sb) return;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (sb->flash_id) { g_source_remove(sb->flash_id); sb->flash_id = 0; }
     gtk_label_set_text(GTK_LABEL(sb->label), text ? text : "");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (ms == 0) return;
     sb->flash_id = g_timeout_add(ms, flash_clear_cb, sb);
 }
 
+/* Provide the status bar free operation used by this module and its client applications. */
 void umi_status_bar_free(UmiStatusBar *sb)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!sb) return;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (sb->flash_id) { g_source_remove(sb->flash_id); sb->flash_id = 0; }
     gtk_widget_destroy(sb->root);
     g_free(sb);

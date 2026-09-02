@@ -28,20 +28,27 @@ static const UmiUiPerspectiveSnapshot STUDIO_PERSPECTIVES[] = {
     { UMI_STUDIO_PERSPECTIVE_RELEASE, "Release", "Build evidence, packages and delivery", "package-x-generic-symbolic", 80, 0 }
 };
 
+/* Add studio perspectives only after its inputs and available capacity have been checked. */
 UmiStatus umi_studio_perspectives_register(UmiUiWorkbench *workbench)
 {
     UmiUiPerspectiveModel *model;
     size_t index;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     model = umi_ui_workbench_perspectives(workbench);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(STUDIO_PERSPECTIVES) / sizeof(STUDIO_PERSPECTIVES[0]);
          ++index) {
         status = umi_ui_perspective_model_upsert(model, &STUDIO_PERSPECTIVES[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
@@ -50,6 +57,10 @@ UmiStatus umi_studio_perspectives_register(UmiUiWorkbench *workbench)
                                                   UMI_STUDIO_PERSPECTIVE_DEVELOP);
 }
 
+/*
+ * Return the number of records represented by studio perspective definition without
+ * changing their state.
+ */
 size_t umi_studio_perspective_definition_count(void)
 {
     return sizeof(STUDIO_PERSPECTIVES) / sizeof(STUDIO_PERSPECTIVES[0]);

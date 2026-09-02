@@ -27,6 +27,10 @@ extern "C" {
 
 #define UMI_STUDIO_EDITOR_PRODUCTIVITY_CONTRIBUTION_API_VERSION 1U
 
+/**
+ * Represent the studio editor productivity command contribution data shared with callers
+ * of this public contract.
+ */
 typedef struct UmiStudioEditorProductivityCommandContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioEditorProductivityCommandContribution {
     int show_in_command_centre;
 } UmiStudioEditorProductivityCommandContribution;
 
+/**
+ * Represent the studio editor productivity view contribution data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioEditorProductivityViewContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -49,15 +57,39 @@ typedef struct UmiStudioEditorProductivityViewContribution {
     int movable;
 } UmiStudioEditorProductivityViewContribution;
 
+/**
+ * Return the number of records represented by studio editor productivity command
+ * contribution without changing their state.
+ */
 size_t umi_studio_editor_productivity_command_contribution_count(void);
+/**
+ * Find studio editor productivity command contribution while leaving the underlying
+ * catalogue or model owned by this module.
+ */
 const UmiStudioEditorProductivityCommandContribution *
 umi_studio_editor_productivity_command_contribution_at(size_t index);
+/**
+ * Find studio editor productivity command contribution while leaving the underlying
+ * catalogue or model owned by this module.
+ */
 const UmiStudioEditorProductivityCommandContribution *
 umi_studio_editor_productivity_command_contribution_find(
     const char *framework_command_id);
+/**
+ * Return the number of records represented by studio editor productivity view contribution
+ * without changing their state.
+ */
 size_t umi_studio_editor_productivity_view_contribution_count(void);
+/**
+ * Find studio editor productivity view contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioEditorProductivityViewContribution *
 umi_studio_editor_productivity_view_contribution_at(size_t index);
+/**
+ * Find studio editor productivity view contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioEditorProductivityViewContribution *
 umi_studio_editor_productivity_view_contribution_find(const char *view_id);
 

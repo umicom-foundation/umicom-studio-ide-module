@@ -22,6 +22,10 @@
 #include <assert.h>
 #include "umicom/studio/runtime_catalogue.h"
 #include "umicom/studio/runtime_launch_plan.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){
     UmiStudioRuntimeManager m;
     UmiStudioRuntimeLaunchPlan p;

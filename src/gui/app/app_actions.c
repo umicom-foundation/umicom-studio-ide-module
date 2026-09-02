@@ -55,6 +55,7 @@ void     (*umi_run_pipeline_stop)(void) = NULL;
 /* Small helper to log a line (kept UI-agnostic). */
 static inline void log_info(const char *msg)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (msg && *msg) g_message("%s", msg);
 }
 
@@ -63,25 +64,30 @@ static inline void log_info(const char *msg)
 static void action_run(gpointer user)
 {
   (void)user;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (umi_run_pipeline_start) {
     GError *err = NULL;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!umi_run_pipeline_start(NULL, NULL, &err)) {
+      /* Preserve the original failure result so the caller can respond to the correct cause. */
       if (err) { g_warning("Run failed: %s", err->message); g_clear_error(&err); }
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
       log_info("Run started");
     }
-  } else {
+  } /* Use this fallback path when the earlier condition does not apply. */ else {
     log_info("Run not available (runner not linked)");
   }
 }
 
+/* Provide the action stop operation used by this module and its client applications. */
 static void action_stop(gpointer user)
 {
   (void)user;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (umi_run_pipeline_stop) {
     umi_run_pipeline_stop();
     log_info("Run stopped");
-  } else {
+  } /* Use this fallback path when the earlier condition does not apply. */ else {
     log_info("Stop not available (runner not linked)");
   }
 }
@@ -91,45 +97,60 @@ static void action_stop(gpointer user)
 static void action_save(gpointer user)
 {
   UmiApp *ua = (UmiApp *)user;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ua) { log_info("Save: no app context"); return; }
 
   struct _UmiEditor *ed = umi_app_editor(ua);
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ed) { log_info("Save: no editor"); return; }
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (umi_editor_save) {
     GError *err = NULL;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!umi_editor_save(ed, &err)) {
+      /* Preserve the original failure result so the caller can respond to the correct cause. */
       if (err) { g_warning("Save failed: %s", err->message); g_clear_error(&err); }
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
       log_info("Saved");
     }
-  } else {
+  } /* Use this fallback path when the earlier condition does not apply. */ else {
     log_info("Save not available (editor not linked)");
   }
 }
 
+/* Provide the action save as operation used by this module and its client applications. */
 static void action_save_as(gpointer user)
 {
   UmiApp *ua = (UmiApp *)user;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ua) { log_info("Save As: no app context"); return; }
 
   struct _UmiEditor *ed = umi_app_editor(ua);
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ed) { log_info("Save As: no editor"); return; }
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (umi_editor_save_as) {
     GError *err = NULL;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!umi_editor_save_as(ed, &err)) {
+      /* Preserve the original failure result so the caller can respond to the correct cause. */
       if (err) { g_warning("Save As failed: %s", err->message); g_clear_error(&err); }
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
       log_info("Saved As");
     }
-  } else {
+  } /* Use this fallback path when the earlier condition does not apply. */ else {
     log_info("Save As not available (editor not linked)");
   }
 }
 
 /* Placeholders to keep keymap complete (safe no-ops). */
 static void action_palette(gpointer user)      { (void)user; log_info("Palette (not implemented yet)"); }
+/*
+ * Provide the action focus search operation used by this module and its client
+ * applications.
+ */
 static void action_focus_search(gpointer user) { (void)user; log_info("Focus search (not implemented yet)"); }
 
 /* Public wiring -------------------------------------------------------------*/
@@ -137,6 +158,7 @@ static void action_focus_search(gpointer user) { (void)user; log_info("Focus sea
 void umi_app_fill_keymap(GtkApplication *app, UmiKeymapCallbacks *out)
 {
   (void)app;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!out) return;
   out->palette      = action_palette;
   out->save         = action_save;

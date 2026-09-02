@@ -22,6 +22,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio security report data shared with callers of this public contract.
+ */
 typedef struct UmiStudioSecurityReport {
     size_t identities;
     size_t roles;
@@ -32,12 +35,24 @@ typedef struct UmiStudioSecurityReport {
     size_t policy_rules;
 } UmiStudioSecurityReport;
 
+/**
+ * Provide the studio security report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_security_report(UmiStudioServices *services,
                                      UmiStudioSecurityReport *out_report);
+/**
+ * Provide the studio security set workspace trust operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_security_set_workspace_trust(
     UmiStudioServices *services,
     const char *path,
     UmiWorkspaceTrustLevel level);
+/**
+ * Provide the studio security authorise operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_security_authorise(UmiStudioServices *services,
                                        const char *principal,
                                        const char *role_id,

@@ -71,21 +71,26 @@ typedef struct ChatPane {
  *      widget whose gtk_widget_get_name() matches the requested name.
  *---------------------------------------------------------------------------*/
 static GtkWidget *gtk_widget_lookup(GtkWidget *root, const char *name) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!root || !name) return NULL;
 
     /* Fast-path: explicit object data on the root (acts like an index). */
     gpointer direct = g_object_get_data(G_OBJECT(root), name);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (direct) return GTK_WIDGET(direct);
 
     /* Traverse by GTK4 widget names. */
     const char *wname = gtk_widget_get_name(root);
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (wname && g_strcmp0(wname, name) == 0)
         return root;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (GtkWidget *child = gtk_widget_get_first_child(root);
          child != NULL;
          child = gtk_widget_get_next_sibling(child)) {
         GtkWidget *found = gtk_widget_lookup(child, name);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (found) return found;
     }
     return NULL;
@@ -96,14 +101,17 @@ static GtkWidget *gtk_widget_lookup(GtkWidget *root, const char *name) {
  * If `prefix` is provided, we render "prefix: text", otherwise just `text`.
  *---------------------------------------------------------------------------*/
 static void chat_append(ChatPane *cp, const char *prefix, const char *text) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!cp || !cp->log) return;
 
     GtkTextBuffer *buf = gtk_text_view_get_buffer(cp->log);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!buf) return;
 
     GtkTextIter end;
     gtk_text_buffer_get_end_iter(buf, &end);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (prefix) {
         gtk_text_buffer_insert(buf, &end, prefix, -1);
         gtk_text_buffer_insert(buf, &end, ": ", -1);
@@ -122,6 +130,7 @@ static void on_soup_done(GObject *source, GAsyncResult *res, gpointer user_data)
 
     /* Finish the async read into a GBytes */
     GBytes *body = soup_session_send_and_read_finish(SOUP_SESSION(source), res, &err);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (err) {
         chat_append(cp, "Error", err->message);
         return;
@@ -142,9 +151,11 @@ static void on_soup_done(GObject *source, GAsyncResult *res, gpointer user_data)
 static void on_send_clicked(GtkButton *btn, gpointer user_data) {
     (void)btn; /* Unused in this callback, but keep signature tidy */
     ChatPane *cp = (ChatPane*)user_data;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!cp || !cp->entry) return;
 
     const char *prompt = gtk_editable_get_text(GTK_EDITABLE(cp->entry));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!prompt || !*prompt) return;
 
     /* Echo user's text in the log first */
@@ -227,15 +238,18 @@ GtkWidget* umi_chat_pane_new(void) {
  * the child widgets by name). This mirrors how your code referenced names.
  *---------------------------------------------------------------------------*/
 void umi_chat_pane_wire(GtkWidget *pane) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!pane) return;
 
     ChatPane *cp = g_object_get_data(G_OBJECT(pane), "umi-chat-pane");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!cp) {
         /* If we didn't get one, reconstruct via object data or names. */
         GtkWidget *entry = gtk_widget_lookup(pane, "chat_entry");
         GtkWidget *tv    = gtk_widget_lookup(pane, "chat_log");
         GtkWidget *btn   = gtk_widget_lookup(pane, "chat_send");
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (entry && tv && btn) {
             cp = g_new0(ChatPane, 1);
             cp->log   = GTK_TEXT_VIEW(tv);

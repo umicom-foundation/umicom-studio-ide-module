@@ -22,6 +22,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio plugin report data shared with callers of this public contract.
+ */
 typedef struct UmiStudioPluginReport {
     size_t registered;
     size_t enabled;
@@ -37,10 +40,18 @@ typedef struct UmiStudioPluginReport {
     char default_isolation[64];
 } UmiStudioPluginReport;
 
+/**
+ * Provide the studio plugins discover operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_plugins_discover(UmiStudioServices *services,
                                       const char *root,
                                       int recursive,
                                       UmiStudioPluginReport *out_report);
+/**
+ * Provide the studio plugins report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_plugins_report(UmiStudioServices *services,
                                     UmiStudioPluginReport *out_report);
 

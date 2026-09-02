@@ -22,6 +22,10 @@
 #include <assert.h>
 #include <string.h>
 #include "umicom/studio/quick_open.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){
     UmiStudioQuickOpenCandidate c[]={
         {"window.c","src/gui/window.c",UMI_STUDIO_QUICK_OPEN_FILE,0},

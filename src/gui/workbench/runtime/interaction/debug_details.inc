@@ -20,6 +20,10 @@ static UmiDebugWorkspace *runtime_debug_workspace(
     UmiStudioServices *services;
     UmiStudioDebuggerService *debugger;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL) return NULL;
 
     services = umi_studio_ui_services(runtime->owner->ui);
@@ -32,6 +36,10 @@ static UmiDebugWorkspace *runtime_debug_workspace(
         : NULL;
 }
 
+/*
+ * Provide the runtime debug open source uri operation used by this module and its client
+ * applications.
+ */
 static void runtime_debug_open_source_uri(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *uri)
@@ -39,24 +47,41 @@ static void runtime_debug_open_source_uri(
     GFile *file;
     char *path = NULL;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || uri == NULL || uri[0] == '\0') return;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (g_str_has_prefix(uri, "file:")) {
         file = g_file_new_for_uri(uri);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (file != NULL) {
             path = g_file_get_path(file);
             g_object_unref(file);
         }
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         path = g_strdup(uri);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (path != NULL) {
         runtime_explorer_open_path(runtime, path);
         g_free(path);
     }
 }
 
+/*
+ * Provide the runtime on debug thread row operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_thread_row(
     GtkButton *button,
     gpointer user_data)
@@ -68,6 +93,10 @@ static void runtime_on_debug_thread_row(
             G_OBJECT(button),
             "umicom-debug-thread");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || thread_id == NULL) return;
 
     (void)runtime_execute_registered_command(
@@ -76,6 +105,10 @@ static void runtime_on_debug_thread_row(
         thread_id);
 }
 
+/*
+ * Provide the runtime on debug frame row operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_frame_row(
     GtkButton *button,
     gpointer user_data)
@@ -95,8 +128,13 @@ static void runtime_on_debug_frame_row(
             G_OBJECT(button),
             "umicom-debug-line"));
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || frame_id == NULL) return;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime_execute_registered_command(
             runtime,
             UMI_STUDIO_COMMAND_DEBUG_SELECT_FRAME,
@@ -105,6 +143,7 @@ static void runtime_on_debug_frame_row(
         source_uri[0] != '\0') {
         runtime_debug_open_source_uri(runtime, source_uri);
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (source_line > 0U) {
             size_t offset = 0U;
             (void)umi_document_coordinator_go_to_line(
@@ -115,6 +154,10 @@ static void runtime_on_debug_frame_row(
     }
 }
 
+/*
+ * Provide the runtime debug details refresh operation used by this module and its client
+ * applications.
+ */
 static void runtime_debug_details_refresh(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -122,13 +165,22 @@ static void runtime_debug_details_refresh(
     UmiDebugWorkspaceSnapshot snapshot;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     workspace = runtime_debug_workspace(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return;
 
     (void)umi_debug_workspace_refresh(workspace);
     (void)memset(&snapshot, 0, sizeof(snapshot));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_debug_workspace_snapshot(
             workspace,
             &snapshot) != UMI_STATUS_OK) {
@@ -141,13 +193,19 @@ static void runtime_debug_details_refresh(
     runtime_clear_list_box(runtime->debug_watches_list);
     runtime_clear_list_box(runtime->debug_breakpoints_list);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->debug_threads_list != NULL) {
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < snapshot.thread_count; ++index) {
             UmiDebugThreadSnapshot thread;
             GtkWidget *button;
             char text[640];
 
             (void)memset(&thread, 0, sizeof(thread));
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_debug_workspace_thread_at(
                     workspace,
                     index,
@@ -165,6 +223,10 @@ static void runtime_debug_details_refresh(
                 thread.detail);
 
             button = gtk_button_new_with_label(text);
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (button == NULL) continue;
             gtk_widget_add_css_class(button, "flat");
             g_object_set_data_full(
@@ -183,13 +245,19 @@ static void runtime_debug_details_refresh(
         }
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->debug_frames_list != NULL) {
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < snapshot.visible_frame_count; ++index) {
             UmiDebugStackFrameSnapshot frame;
             GtkWidget *button;
             char text[1400];
 
             (void)memset(&frame, 0, sizeof(frame));
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_debug_workspace_frame_at(
                     workspace,
                     index,
@@ -207,6 +275,10 @@ static void runtime_debug_details_refresh(
                 frame.column);
 
             button = gtk_button_new_with_label(text);
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (button == NULL) continue;
             gtk_widget_add_css_class(button, "flat");
             g_object_set_data_full(
@@ -234,12 +306,18 @@ static void runtime_debug_details_refresh(
         }
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->debug_variables_list != NULL) {
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < snapshot.visible_variable_count; ++index) {
             UmiDebugVariableSnapshot variable;
             char text[1700];
 
             (void)memset(&variable, 0, sizeof(variable));
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_debug_workspace_variable_at(
                     workspace,
                     index,
@@ -261,12 +339,18 @@ static void runtime_debug_details_refresh(
         }
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->debug_watches_list != NULL) {
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < snapshot.watch_count; ++index) {
             UmiDebugWatchSnapshot watch;
             char text[1800];
 
             (void)memset(&watch, 0, sizeof(watch));
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_debug_workspace_watch_at(
                     workspace,
                     index,
@@ -288,12 +372,18 @@ static void runtime_debug_details_refresh(
         }
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->debug_breakpoints_list != NULL) {
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < snapshot.breakpoint_count; ++index) {
             UmiDebugBreakpointSnapshot breakpoint;
             char text[1500];
 
             (void)memset(&breakpoint, 0, sizeof(breakpoint));
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_debug_workspace_breakpoint_at(
                     workspace,
                     index,
@@ -320,11 +410,19 @@ static void runtime_debug_details_refresh(
     }
 }
 
+/*
+ * Provide the runtime debug details notebook operation used by this module and its client
+ * applications.
+ */
 static GtkWidget *runtime_debug_details_notebook(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *notebook;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return NULL;
 
     notebook = gtk_notebook_new();
@@ -334,6 +432,10 @@ static GtkWidget *runtime_debug_details_notebook(
     runtime->debug_watches_list = gtk_list_box_new();
     runtime->debug_breakpoints_list = gtk_list_box_new();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (notebook == NULL ||
         runtime->debug_threads_list == NULL ||
         runtime->debug_frames_list == NULL ||

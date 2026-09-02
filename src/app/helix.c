@@ -21,16 +21,28 @@
 
 #include <stdio.h>
 
+/*
+ * Provide the studio helix status operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_status(UmiStudioAiPlatform *platform,
                                   char *output,
                                   size_t output_capacity)
 {
     UmiHelixRuntime *runtime;
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL || output == NULL || output_capacity == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     runtime = umi_studio_ai_platform_helix(platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return UMI_STATUS_INVALID_STATE;
     written = snprintf(output, output_capacity,
                        "workflow=%s stage=%s agents=%zu autonomy=%u",
@@ -42,10 +54,18 @@ UmiStatus umi_studio_helix_status(UmiStudioAiPlatform *platform,
         ? UMI_STATUS_OK : UMI_STATUS_CAPACITY_EXCEEDED;
 }
 
+/*
+ * Provide the studio helix advance operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_advance(UmiStudioAiPlatform *platform,
                                    UmiHelixWorkflowStage next_stage)
 {
     UmiHelixRuntime *runtime;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     runtime = umi_studio_ai_platform_helix(platform);
     return runtime != NULL

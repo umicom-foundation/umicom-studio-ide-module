@@ -20,6 +20,10 @@
 #include "umicom/platform/path.h"
 #include "umicom/studio/project_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioProjectCentre *centre = NULL;
@@ -32,16 +36,21 @@ int main(void)
     char ignored[UMI_PATH_CAPACITY];
     char cmake_file[UMI_PATH_CAPACITY];
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_fs_temp_directory(temporary, sizeof(temporary)) != UMI_STATUS_OK)
         return 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_path_join(temporary, "umicom-b34-studio-discovery",
                       root, sizeof(root)) != UMI_STATUS_OK) return 2;
     (void)umi_fs_remove_tree(root);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_fs_make_directories(root) != UMI_STATUS_OK) return 3;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_path_join(root, "CMakeLists.txt", cmake_file,
                       sizeof(cmake_file)) != UMI_STATUS_OK ||
         umi_fs_write_text(cmake_file, "project(studio_fixture C)\n") !=
             UMI_STATUS_OK) return 4;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_path_join(root, "vendor", ignored, sizeof(ignored)) !=
             UMI_STATUS_OK ||
         umi_fs_make_directories(ignored) != UMI_STATUS_OK ||
@@ -50,12 +59,14 @@ int main(void)
         umi_fs_write_text(cmake_file, "project(vendor C)\n") != UMI_STATUS_OK)
         return 5;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_project_centre_create(&centre) != UMI_STATUS_OK) return 6;
     root_snapshot.struct_size = (uint32_t)sizeof(root_snapshot);
     root_snapshot.api_version = UMI_PROJECT_WORKSPACE_MODEL_API_VERSION;
     strcpy(root_snapshot.id, "fixture");
     strcpy(root_snapshot.path, root);
     root_snapshot.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_workspace_root(
             centre, &root_snapshot) != UMI_STATUS_OK) return 7;
     exclusion.struct_size = (uint32_t)sizeof(exclusion);
@@ -64,21 +75,26 @@ int main(void)
     strcpy(exclusion.pattern, "vendor");
     exclusion.kind = UMI_PROJECT_WORKSPACE_EXCLUDE_PATH_SEGMENT;
     exclusion.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_workspace_exclusion(
             centre, &exclusion) != UMI_STATUS_OK) return 8;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_plan_workspace_refresh(
             centre, NULL, &refresh) != UMI_STATUS_OK) return 9;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (refresh.discovery.project_count != 1U ||
         refresh.import_candidate_count != 1U ||
         !refresh.requires_confirmation ||
         refresh.discovery.excluded_directory_count == 0U) return 10;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_project_centre_snapshot(centre, &snapshot) != UMI_STATUS_OK ||
         !snapshot.has_refresh_plan ||
         snapshot.refresh.import_candidate_count != 1U ||
         snapshot.refresh.discovered_project_count != 1U) return 11;
 
     umi_studio_project_centre_destroy(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_fs_remove_tree(root) != UMI_STATUS_OK) return 12;
     return 0;
 }

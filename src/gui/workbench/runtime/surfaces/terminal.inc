@@ -22,12 +22,20 @@ static GtkWidget *runtime_build_surface_terminal(
     GtkWidget *new_terminal;
     GtkWidget *clear;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     runtime->terminal_summary_label = runtime_label("", 0.0F);
     runtime->terminal_text_view = gtk_text_view_new();
     runtime->terminal_entry = gtk_entry_new();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->terminal_summary_label != NULL) {
         gtk_widget_add_css_class(
             runtime->terminal_summary_label,
@@ -37,6 +45,10 @@ static GtkWidget *runtime_build_surface_terminal(
             runtime->terminal_summary_label);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->terminal_text_view != NULL) {
         gtk_text_view_set_editable(
             GTK_TEXT_VIEW(runtime->terminal_text_view),
@@ -57,6 +69,10 @@ static GtkWidget *runtime_build_surface_terminal(
     new_terminal = gtk_button_new_with_label("New Terminal");
     clear = gtk_button_new_with_label("Clear");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (command_row != NULL && runtime->terminal_entry != NULL &&
         run != NULL && new_terminal != NULL && clear != NULL) {
         gtk_entry_set_placeholder_text(
@@ -100,6 +116,10 @@ static GtkWidget *runtime_build_surface_terminal(
         GtkWidget *split_v = gtk_button_new_with_label("Split V");
         GtkWidget *close = gtk_button_new_with_label("Close");
 
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (sessions != NULL && previous != NULL && next != NULL &&
             split_h != NULL && split_v != NULL && close != NULL) {
             g_object_set_data_full(

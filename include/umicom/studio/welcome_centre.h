@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio welcome centre snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioWelcomeCentreSnapshot {
     uint32_t struct_size;
     uint32_t api_version;

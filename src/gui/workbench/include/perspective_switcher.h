@@ -19,6 +19,10 @@
 #include <gtk/gtk.h>
 #include "umicom/studio/ui.h"
 
+/**
+ * Provide the studio perspective switcher new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_perspective_switcher_new(UmiStudioUi *ui);
 
 #endif

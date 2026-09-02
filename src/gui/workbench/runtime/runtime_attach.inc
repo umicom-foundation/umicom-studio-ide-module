@@ -19,20 +19,33 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
     UmiStudioGtkRuntimeChrome *runtime;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL || workbench->window == NULL ||
         workbench->ui == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench->runtime_chrome != NULL) return UMI_STATUS_OK;
 
     runtime = (UmiStudioGtkRuntimeChrome *)calloc(1U, sizeof(*runtime));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     runtime->owner = workbench;
     workbench->runtime_chrome = runtime;
 
     status = runtime_create_framework(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     /*
@@ -42,24 +55,31 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
     (void)runtime_refresh_service_snapshots(runtime);
 
     status = runtime_build_shell(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     status = runtime_apply_theme(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     status = runtime_build_command_palette(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     status = runtime_build_layout_browser(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     status = runtime_build_window_catalogue(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     status = runtime_install_keyboard(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     status = runtime_rebuild_surface_panels(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     runtime_host_adapter_init(runtime);
@@ -68,6 +88,7 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
         &runtime->host_controller,
         runtime->runtime_bootstrap,
         &runtime->host_adapter);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     g_signal_connect(
@@ -84,6 +105,7 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
     runtime->runtime_ready = 1;
 
     status = runtime_refresh_services(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         /*
          * A presentation refresh failure should remain visible to the operator,
@@ -104,13 +126,22 @@ fail:
     return status;
 }
 
+/* Provide the runtime detach operation used by this module and its client applications. */
 static void runtime_detach(UmiStudioGtkWorkbench *workbench)
 {
     UmiStudioGtkRuntimeChrome *runtime;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) return;
 
     runtime = workbench->runtime_chrome;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     runtime->runtime_ready = 0;

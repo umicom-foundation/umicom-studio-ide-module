@@ -40,6 +40,7 @@
 static void
 load_values(UmiPrefsUI *ui)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ui || !ui->store || !ui->theme_entry || !ui->font_spin) return;
 
   const char *theme = umi_json_get(ui->store, "theme");
@@ -58,6 +59,7 @@ on_save(GtkButton *btn, gpointer user_data)
 {
   (void)btn;
   UmiPrefsUI *ui = (UmiPrefsUI*)user_data;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ui || !ui->store) return;
 
   const char *theme = gtk_editable_get_text(GTK_EDITABLE(ui->theme_entry));
@@ -72,8 +74,10 @@ on_save(GtkButton *btn, gpointer user_data)
 
   /* Persist to disk */
   GError *e = NULL;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!umi_json_save(ui->store, &e)) {
     g_warning("prefs: save failed: %s", e ? e->message : "(unknown)");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (e) g_error_free(e);
   }
 
@@ -97,6 +101,7 @@ umi_prefs_create(GtkWindow *parent, const char *json_path)
   /* Window + headerbar */
   ui->window = GTK_WINDOW(gtk_window_new());
   gtk_window_set_title(ui->window, "Preferences");
+  /* Apply this branch only when its contract condition is satisfied. */
   if (parent) gtk_window_set_transient_for(ui->window, parent);
   gtk_window_set_modal(ui->window, TRUE);
 
@@ -141,6 +146,7 @@ umi_prefs_create(GtkWindow *parent, const char *json_path)
 void
 umi_prefs_show(UmiPrefsUI *ui)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ui || !ui->window) return;
   gtk_window_present(ui->window);
 }
@@ -149,7 +155,9 @@ umi_prefs_show(UmiPrefsUI *ui)
 void
 umi_prefs_destroy(UmiPrefsUI *ui)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ui) return;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (ui->window) gtk_window_destroy(ui->window);
   /* ui->store is owned by json_store; if ownership is ours, free accordingly */
   g_free(ui);

@@ -21,6 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Exercise add document and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void add_document(UmiUiWorkbench *workbench,
                          const char *view_id,
                          const char *group_id)
@@ -38,6 +42,10 @@ static void add_document(UmiUiWorkbench *workbench,
            UMI_STATUS_OK);
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiCommandRegistry *commands = NULL;

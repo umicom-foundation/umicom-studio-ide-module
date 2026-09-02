@@ -29,35 +29,55 @@ struct UmiStudioDebuggerService {
     UmiDebugWorkspace *workspace;
 };
 
+/*
+ * Initialise studio debugger service from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_debugger_service_create(
     UmiStudioDebuggerService **out_service)
 {
     UmiStudioDebuggerService *service;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_service = NULL;
     service = (UmiStudioDebuggerService *)calloc(1U, sizeof(*service));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     status = umi_protocol_transport_create_memory(256U, &service->transport);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_protocol_client_create(service->transport,
                                             &service->client);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_protocol_client_start(service->client);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_dap_client_init(&service->dap, service->client);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_dap_breakpoint_registry_create(&service->breakpoints);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_debug_service_create(&service->model);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_debug_controller_create(&service->dap, service->model,
                                              &service->controller);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_debug_workspace_create(service->model,
                                             service->controller,
                                             &service->workspace);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_debugger_service_destroy(service);
         return status;
@@ -66,8 +86,16 @@ UmiStatus umi_studio_debugger_service_create(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio debugger service so the same storage can be reused
+ * safely.
+ */
 void umi_studio_debugger_service_destroy(UmiStudioDebuggerService *service)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return;
     umi_debug_workspace_destroy(service->workspace);
     umi_debug_controller_destroy(service->controller);
@@ -78,17 +106,30 @@ void umi_studio_debugger_service_destroy(UmiStudioDebuggerService *service)
     free(service);
 }
 
+/*
+ * Initialise studio debugger service from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_debugger_service_initialize(
     UmiStudioDebuggerService *service,
     const char *adapter_id,
     int64_t *out_request_id)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     {
         UmiStatus status = umi_debug_controller_initialize(
             service->controller, adapter_id);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (status == UMI_STATUS_OK && out_request_id != NULL) {
             UmiDebugControllerSnapshot snapshot;
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_debug_controller_snapshot(service->controller,
                                                &snapshot) == UMI_STATUS_OK) {
                 *out_request_id = snapshot.last_request_id;
@@ -98,18 +139,31 @@ UmiStatus umi_studio_debugger_service_initialize(
     }
 }
 
+/*
+ * Provide the studio debugger service launch operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_debugger_service_launch(
     UmiStudioDebuggerService *service,
     const char *program,
     const char *working_directory,
     int64_t *out_request_id)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     {
         UmiStatus status = umi_debug_controller_launch(
             service->controller, program, working_directory);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (status == UMI_STATUS_OK && out_request_id != NULL) {
             UmiDebugControllerSnapshot snapshot;
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_debug_controller_snapshot(service->controller,
                                                &snapshot) == UMI_STATUS_OK) {
                 *out_request_id = snapshot.last_request_id;
@@ -119,20 +173,30 @@ UmiStatus umi_studio_debugger_service_launch(
     }
 }
 
+/*
+ * Provide the studio debugger service start operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_debugger_service_start(UmiStudioDebuggerService *service,
     const char *adapter_id, const char *program, const char *working_directory)
 {
     UmiDebugControllerSnapshot snapshot;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL || adapter_id == NULL || program == NULL ||
         working_directory == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_debug_controller_snapshot(service->controller, &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK &&
         (snapshot.state == UMI_DEBUG_CONTROLLER_IDLE ||
          snapshot.state == UMI_DEBUG_CONTROLLER_TERMINATED)) {
         status = umi_debug_controller_initialize(service->controller,
                                                  adapter_id);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_debug_controller_launch(service->controller, program,
                                              working_directory);
@@ -140,13 +204,41 @@ UmiStatus umi_studio_debugger_service_start(UmiStudioDebuggerService *service,
     return status;
 }
 
+/*
+ * Provide the studio debugger service continue operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_continue(UmiStudioDebuggerService *service,int thread_id){return service!=NULL?umi_debug_controller_continue(service->controller,thread_id):UMI_STATUS_INVALID_ARGUMENT;}
+/*
+ * Provide the studio debugger service pause operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_debugger_service_pause(UmiStudioDebuggerService *service,int thread_id){return service!=NULL?umi_debug_controller_pause(service->controller,thread_id):UMI_STATUS_INVALID_ARGUMENT;}
+/*
+ * Provide the studio debugger service next operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_debugger_service_next(UmiStudioDebuggerService *service,int thread_id){return service!=NULL?umi_debug_controller_next(service->controller,thread_id):UMI_STATUS_INVALID_ARGUMENT;}
+/*
+ * Provide the studio debugger service step in operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_debugger_service_step_in(UmiStudioDebuggerService *service,int thread_id){return service!=NULL?umi_debug_controller_step_in(service->controller,thread_id):UMI_STATUS_INVALID_ARGUMENT;}
+/*
+ * Provide the studio debugger service step out operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_step_out(UmiStudioDebuggerService *service,int thread_id){return service!=NULL?umi_debug_controller_step_out(service->controller,thread_id):UMI_STATUS_INVALID_ARGUMENT;}
+/*
+ * Provide the studio debugger service stop operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_debugger_service_stop(UmiStudioDebuggerService *service,int restart){return service!=NULL?umi_debug_controller_terminate(service->controller,restart):UMI_STATUS_INVALID_ARGUMENT;}
 
+/*
+ * Provide the studio debugger service add breakpoint operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_add_breakpoint(
     UmiStudioDebuggerService *service,
     const char *source_path,
@@ -155,10 +247,15 @@ UmiStatus umi_studio_debugger_service_add_breakpoint(
 {
     UmiDapBreakpoint breakpoint;
     size_t length;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL || source_path == NULL || line <= 0) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     length = strlen(source_path);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length + 1U > sizeof(breakpoint.source_path)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
@@ -170,6 +267,7 @@ UmiStatus umi_studio_debugger_service_add_breakpoint(
     {
         UmiStatus status = umi_dap_breakpoint_add(service->breakpoints,
                                                   &breakpoint);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             UmiDebugBreakpointSnapshot model_breakpoint = {0};
             (void)snprintf(model_breakpoint.id, sizeof(model_breakpoint.id),
@@ -187,6 +285,10 @@ UmiStatus umi_studio_debugger_service_add_breakpoint(
     }
 }
 
+/*
+ * Provide the studio debugger service set breakpoint enabled operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_debugger_service_set_breakpoint_enabled(
     UmiStudioDebuggerService *service, const char *breakpoint_id, int enabled)
 {
@@ -194,17 +296,23 @@ UmiStatus umi_studio_debugger_service_set_breakpoint_enabled(
     UmiDapBreakpoint dap_breakpoint;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL || breakpoint_id == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_debug_breakpoint_registry_find(
         umi_debug_service_breakpoint(service->model), breakpoint_id,
         &model_breakpoint);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
     status = umi_debug_workspace_set_breakpoint_enabled(
         service->workspace, breakpoint_id, enabled);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -224,18 +332,27 @@ UmiStatus umi_studio_debugger_service_set_breakpoint_enabled(
     return umi_dap_breakpoint_add(service->breakpoints, &dap_breakpoint);
 }
 
+/*
+ * Provide the studio debugger service remove breakpoint operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_debugger_service_remove_breakpoint(
     UmiStudioDebuggerService *service, const char *breakpoint_id)
 {
     UmiDebugBreakpointSnapshot breakpoint;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL || breakpoint_id == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_debug_breakpoint_registry_find(
         umi_debug_service_breakpoint(service->model), breakpoint_id,
         &breakpoint);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -245,6 +362,10 @@ UmiStatus umi_studio_debugger_service_remove_breakpoint(
                                                  breakpoint_id);
 }
 
+/*
+ * Provide the studio debugger service add watch operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_add_watch(
     UmiStudioDebuggerService *service, const char *expression,
     char *out_watch_id, size_t out_watch_id_capacity)
@@ -256,6 +377,10 @@ UmiStatus umi_studio_debugger_service_add_watch(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio debugger service remove watch operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_remove_watch(
     UmiStudioDebuggerService *service, const char *watch_id)
 {
@@ -264,6 +389,10 @@ UmiStatus umi_studio_debugger_service_remove_watch(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio debugger service select thread operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_select_thread(
     UmiStudioDebuggerService *service, const char *thread_id)
 {
@@ -272,6 +401,10 @@ UmiStatus umi_studio_debugger_service_select_thread(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio debugger service select frame operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_select_frame(
     UmiStudioDebuggerService *service, const char *frame_id)
 {
@@ -280,6 +413,10 @@ UmiStatus umi_studio_debugger_service_select_frame(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio debugger service select scope operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_select_scope(
     UmiStudioDebuggerService *service, const char *scope_id)
 {
@@ -288,9 +425,17 @@ UmiStatus umi_studio_debugger_service_select_scope(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio debugger service clear console operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_clear_console(
     UmiStudioDebuggerService *service)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -298,11 +443,19 @@ UmiStatus umi_studio_debugger_service_clear_console(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio debugger service snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_debugger_service_snapshot(
     const UmiStudioDebuggerService *service,
     UmiStudioDebuggerSnapshot *out_snapshot)
 {
     UmiProtocolTransportStats stats;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     stats = umi_protocol_transport_stats(service->transport);
@@ -316,6 +469,7 @@ UmiStatus umi_studio_debugger_service_snapshot(
     {
         UmiDebugServiceSnapshot model;
         UmiDebugControllerSnapshot controller;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (umi_debug_service_snapshot(service->model, &model) == UMI_STATUS_OK) {
             out_snapshot->session_count = model.session_count;
             out_snapshot->thread_count = model.thread_count;
@@ -324,6 +478,7 @@ UmiStatus umi_studio_debugger_service_snapshot(
             out_snapshot->watch_count = model.watch_count;
             out_snapshot->event_count = model.event_count;
         }
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_debug_controller_snapshot(service->controller,
                                           &controller) == UMI_STATUS_OK) {
             (void)snprintf(out_snapshot->controller_state,
@@ -336,24 +491,40 @@ UmiStatus umi_studio_debugger_service_snapshot(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio debugger service workspace operation used by this module and its
+ * client applications.
+ */
 UmiDebugWorkspace *umi_studio_debugger_service_workspace(
     UmiStudioDebuggerService *service)
 {
     return service != NULL ? service->workspace : NULL;
 }
 
+/*
+ * Provide the studio debugger service model operation used by this module and its client
+ * applications.
+ */
 UmiDebugService *umi_studio_debugger_service_model(
     UmiStudioDebuggerService *service)
 {
     return service != NULL ? service->model : NULL;
 }
 
+/*
+ * Provide the studio debugger service controller operation used by this module and its
+ * client applications.
+ */
 UmiDebugController *umi_studio_debugger_service_controller(
     UmiStudioDebuggerService *service)
 {
     return service != NULL ? service->controller : NULL;
 }
 
+/*
+ * Provide the studio debugger service transport operation used by this module and its
+ * client applications.
+ */
 UmiProtocolTransport *umi_studio_debugger_service_transport(
     UmiStudioDebuggerService *service)
 {

@@ -28,11 +28,27 @@ extern "C" {
 #define UMI_STUDIO_APPLICATION_ID "org.umicom.studio"
 #define UMI_STUDIO_DEFAULT_PERSPECTIVE "studio.perspective.develop"
 
+/**
+ * Provide the studio workbench populate operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workbench_populate(UmiUiWorkbench *workbench,
                                         UmiStudioServices *services);
+/**
+ * Provide the studio workbench reset layout operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workbench_reset_layout(UmiUiWorkbench *workbench);
+/**
+ * Provide the studio workbench restore session operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_workbench_restore_session(UmiUiWorkbench *workbench,
                                                UmiSessionStore *session);
+/**
+ * Provide the studio workbench save session operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workbench_save_session(UmiUiWorkbench *workbench,
                                             UmiSessionStore *session);
 

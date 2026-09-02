@@ -24,6 +24,7 @@
 
 #include "umicom/studio/workspace_productivity.h"
 
+/* Provide the populate operation used by this module and its client applications. */
 static void populate(UmiStudioSessionState *session,
                      UmiStudioRecentWorkspaceList *recent)
 {
@@ -60,6 +61,7 @@ static void populate(UmiStudioSessionState *session,
     );
 }
 
+/* Provide the command summary operation used by this module and its client applications. */
 static int command_summary(void)
 {
     UmiStudioSessionState session;
@@ -68,6 +70,7 @@ static int command_summary(void)
 
     populate(&session, &recent);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_workspace_summary_build(&session.documents,
                                            &recent,
                                            &summary) != UMI_STATUS_OK) {
@@ -83,6 +86,10 @@ static int command_summary(void)
     return 0;
 }
 
+/*
+ * Provide the command quick open operation used by this module and its client
+ * applications.
+ */
 static int command_quick_open(const char *query)
 {
     UmiStudioQuickOpenCandidate candidates[] = {
@@ -99,6 +106,7 @@ static int command_quick_open(const char *query)
     UmiStudioQuickOpenResults results;
     size_t index;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_quick_open_search(
             query,
             candidates,
@@ -107,6 +115,7 @@ static int command_quick_open(const char *query)
         return 1;
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < results.count; ++index) {
         (void)printf("%4d  %-22s %s\n",
                      results.items[index].score,
@@ -117,6 +126,7 @@ static int command_quick_open(const char *query)
     return 0;
 }
 
+/* Provide the command session operation used by this module and its client applications. */
 static int command_session(void)
 {
     UmiStudioSessionState session;
@@ -127,6 +137,7 @@ static int command_session(void)
     populate(&session, &recent);
     (void)recent;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_session_state_encode(&session,
                                         encoded,
                                         sizeof(encoded)) != UMI_STATUS_OK) {
@@ -135,6 +146,7 @@ static int command_session(void)
 
     (void)puts(encoded);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_session_state_decode(encoded, &restored) != UMI_STATUS_OK) {
         return 1;
     }
@@ -143,6 +155,7 @@ static int command_session(void)
     return 0;
 }
 
+/* Find command while leaving the underlying catalogue or model owned by this module. */
 static int command_find(const char *query)
 {
     const char *sample =
@@ -152,10 +165,12 @@ static int command_find(const char *query)
     size_t count = 0U;
 
     umi_studio_find_replace_init(&operation);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_find_replace_set(&operation, query, "") != UMI_STATUS_OK) {
         return 1;
     }
 
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (umi_studio_find_count(sample, &operation, &count) != UMI_STATUS_OK) {
         return 1;
     }
@@ -164,6 +179,7 @@ static int command_find(const char *query)
     return 0;
 }
 
+/* Provide the usage operation used by this module and its client applications. */
 static void usage(void)
 {
     (void)puts("Usage:");
@@ -173,22 +189,31 @@ static void usage(void)
     (void)puts("  umicom-studio-workspace-tools find <query>");
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (argc < 2) {
         usage();
         return 0;
     }
 
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(argv[1], "summary") == 0) {
         return command_summary();
     }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (strcmp(argv[1], "quick-open") == 0 && argc >= 3) {
         return command_quick_open(argv[2]);
     }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(argv[1], "session") == 0) {
         return command_session();
     }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (strcmp(argv[1], "find") == 0 && argc >= 3) {
         return command_find(argv[2]);
     }

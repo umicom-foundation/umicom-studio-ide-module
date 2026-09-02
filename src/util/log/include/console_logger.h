@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/util/log/include/console_logger.h
+ *
+ * PURPOSE:
+ *   Declare the console logger contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/log/include/console_logger.h
  * PURPOSE: Minimal text-view backed console logger (UI output pane)
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
  *---------------------------------------------------------------------------*/

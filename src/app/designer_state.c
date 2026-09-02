@@ -20,4 +20,8 @@
 
 #include "umicom/studio/designer_state.h"
 #include <stdio.h>
-UmiStatus umi_studio_designer_state_report(const UmiStudioDesigner *d,char *out,size_t cap){UmiStudioDesignerSnapshot s;int n;UmiStatus status=umi_studio_designer_snapshot(d,&s);if(status!=UMI_STATUS_OK)return status;if(out==NULL||cap==0U)return UMI_STATUS_INVALID_ARGUMENT;n=snprintf(out,cap,"Application: %s\nComponents: %zu\nPalette items: %zu\nSelected: %zu\nUndo: %zu\nRedo: %zu\nRevision: %llu\nDirty: %s\n",s.document.application_id,s.document.component_count,s.palette_items,s.selected_items,s.undo_count,s.redo_count,(unsigned long long)s.document.revision,s.document.dirty?"yes":"no");return n>=0&&(size_t)n<cap?UMI_STATUS_OK:UMI_STATUS_CAPACITY_EXCEEDED;}
+/*
+ * Provide the studio designer state report operation used by this module and its client
+ * applications.
+ */
+UmiStatus umi_studio_designer_state_report(const UmiStudioDesigner *d,char *out,size_t cap){UmiStudioDesignerSnapshot s;int n;UmiStatus status=umi_studio_designer_snapshot(d,&s);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(status!=UMI_STATUS_OK)return status;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(out==NULL||cap==0U)return UMI_STATUS_INVALID_ARGUMENT;n=snprintf(out,cap,"Application: %s\nComponents: %zu\nPalette items: %zu\nSelected: %zu\nUndo: %zu\nRedo: %zu\nRevision: %llu\nDirty: %s\n",s.document.application_id,s.document.component_count,s.palette_items,s.selected_items,s.undo_count,s.redo_count,(unsigned long long)s.document.revision,s.document.dirty?"yes":"no");return n>=0&&(size_t)n<cap?UMI_STATUS_OK:UMI_STATUS_CAPACITY_EXCEEDED;}

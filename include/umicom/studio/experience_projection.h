@@ -24,11 +24,19 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio experience format row operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_experience_format_row(
     const UmiStudioExperienceRow *row,
     char *buffer,
     size_t buffer_size);
 
+/**
+ * Provide the studio experience format next feature operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_experience_format_next_feature(
     const UmiExperienceFeatureDefinition *feature,
     char *buffer,

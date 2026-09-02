@@ -22,6 +22,10 @@
 extern "C" {
 #endif
 
+/**
+ * Add studio federated interactions only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_federated_interactions_register(
     UmiDesktopContextSynchronizer *synchronizer);
 

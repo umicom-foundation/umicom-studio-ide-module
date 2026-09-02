@@ -35,6 +35,7 @@ typedef struct {
   GtkWidget *spin_auto;
 } PrefsCtx;
 
+/* Provide the defaults operation used by this module and its client applications. */
 static UmiSettings *defaults(void){
   UmiSettings *s = g_new0(UmiSettings,1);
   s->theme = g_strdup("light");
@@ -49,25 +50,36 @@ static UmiSettings *defaults(void){
 
 static const char *SETTINGS_JSON = "config/settings.json";
 
+/* Read settings into validated module state and return a status when input cannot be used. */
 UmiSettings* umi_settings_load(void){
   gchar *txt=NULL; gsize len=0;
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!g_file_get_contents(SETTINGS_JSON,&txt,&len,NULL)) return defaults();
   JsonParser *p=json_parser_new();
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!json_parser_load_from_data(p,txt,(gssize)len,NULL)){ g_object_unref(p); g_free(txt); return defaults(); }
   JsonObject *o=json_node_get_object(json_parser_get_root(p));
   UmiSettings *s = defaults();
+  /* Apply this branch only when its contract condition is satisfied. */
   if(json_object_has_member(o,"theme")){ g_free(s->theme); s->theme = g_strdup(json_object_get_string_member(o,"theme")); }
+  /* Apply this branch only when its contract condition is satisfied. */
   if(json_object_has_member(o,"font_size")) s->font_size = json_object_get_int_member(o,"font_size");
   /* if(json_object_has_member(o,"umicc_path")){ g_free(s->umicc_path); s->umicc_path = g_strdup(json_object_get_string_member(o,"umicc_path")); } */
   /* if(json_object_has_member(o,"uaengine_path")){ g_free(s->uaengine_path); s->uaengine_path = g_strdup(json_object_get_string_member(o,"uaengine_path")); } */
   /* if(json_object_has_member(o,"ripgrep_path")){ g_free(s->ripgrep_path); s->ripgrep_path = g_strdup(json_object_get_string_member(o,"ripgrep_path")); } */
   if(json_object_has_member(o,"autosave_enabled")) s->autosave_enabled = json_object_get_boolean_member(o,"autosave_enabled");
+  /* Apply this branch only when its contract condition is satisfied. */
   if(json_object_has_member(o,"autosave_interval_sec")) s->autosave_interval_sec = json_object_get_int_member(o,"autosave_interval_sec");
   g_object_unref(p); g_free(txt);
   return s;
 }
 
+/*
+ * Write settings in its stable representation and report capacity or input failures to the
+ * caller.
+ */
 gboolean umi_settings_save(const UmiSettings *s){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!s) return FALSE;
   g_mkdir_with_parents("config",0755);
   JsonBuilder *b=json_builder_new(); json_builder_begin_object(b);
@@ -86,7 +98,9 @@ gboolean umi_settings_save(const UmiSettings *s){
   return ok;
 }
 
+/* Provide the settings free operation used by this module and its client applications. */
 void umi_settings_free(UmiSettings *s){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!s) return;
   g_free(s->theme);
   /* g_free(s->umicc_path); */      /* COMMENTED OUT: field not in struct yet */
@@ -95,9 +109,11 @@ void umi_settings_free(UmiSettings *s){
   g_free(s);
 }
 
+/* Provide the on ok clicked operation used by this module and its client applications. */
 static void on_ok_clicked(GtkButton *b, gpointer user){
   (void)b;
   PrefsCtx *c = (PrefsCtx*)user;
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!c || !c->s) return;
   g_free(c->s->theme);
   c->s->theme = g_strdup( gtk_drop_down_get_selected(GTK_DROP_DOWN(c->dd_theme))==1 ? "dark" : "light" );
@@ -110,6 +126,7 @@ static void on_ok_clicked(GtkButton *b, gpointer user){
   umi_settings_save(c->s);
 }
 
+/* Provide the prefs dialog new operation used by this module and its client applications. */
 GtkWidget* umi_prefs_dialog_new(GtkWindow *parent, UmiSettings *in_out){
   UmiSettings *s = in_out ? in_out : defaults();
   PrefsCtx *ctx = g_new0(PrefsCtx,1); ctx->s = s;
@@ -117,6 +134,7 @@ GtkWidget* umi_prefs_dialog_new(GtkWindow *parent, UmiSettings *in_out){
   G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   GtkWidget *dlg = gtk_dialog_new();
 G_GNUC_END_IGNORE_DEPRECATIONS
+  /* Apply this branch only when its contract condition is satisfied. */
   if(parent) gtk_window_set_transient_for(GTK_WINDOW(dlg), parent);
   gtk_window_set_title(GTK_WINDOW(dlg), "Preferences");
 

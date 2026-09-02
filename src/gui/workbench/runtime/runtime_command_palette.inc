@@ -18,6 +18,10 @@ static void runtime_command_palette_refresh(
     const char *query);
 
 
+/*
+ * Provide the runtime on operation palette result operation used by this module and its
+ * client applications.
+ */
 static void runtime_on_operation_palette_result(
     GtkButton *button,
     gpointer user_data)
@@ -30,9 +34,17 @@ static void runtime_on_operation_palette_result(
             "umicom-operation-command");
     const UmiStudioGtkOperationProfile *profile;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || command_id == NULL) return;
 
     profile = runtime_operation_profile(command_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (profile == NULL) {
         runtime_show_notification(runtime, "Operation profile was not found.");
         return;
@@ -42,6 +54,10 @@ static void runtime_on_operation_palette_result(
     (void)runtime_execute_operation_profile(runtime, profile);
 }
 
+/*
+ * Provide the runtime on palette result operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_palette_result(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime =
@@ -51,12 +67,20 @@ static void runtime_on_palette_result(GtkButton *button, gpointer user_data)
             G_OBJECT(button),
             "umicom-command-id");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || command_id == NULL) return;
 
     gtk_widget_set_visible(runtime->command_window, FALSE);
     (void)runtime_execute_command(runtime, command_id, NULL);
 }
 
+/*
+ * Provide the runtime command palette refresh operation used by this module and its client
+ * applications.
+ */
 static void runtime_command_palette_refresh(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *query)
@@ -65,6 +89,10 @@ static void runtime_command_palette_refresh(
     UmiStudioRuntimeCommandSearchResults results;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL ||
         runtime->runtime_bootstrap == NULL ||
         runtime->command_list == NULL) {
@@ -73,10 +101,15 @@ static void runtime_command_palette_refresh(
 
     bindings = umi_studio_runtime_platform_bindings(
         runtime->runtime_bootstrap->platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bindings == NULL) return;
 
     runtime_clear_list_box(runtime->command_list);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_command_search(
             bindings,
             query != NULL ? query : "",
@@ -84,6 +117,7 @@ static void runtime_command_palette_refresh(
         return;
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < results.count; ++index) {
         const UmiStudioRuntimeCommandSearchResult *item =
             &results.items[index];
@@ -97,6 +131,10 @@ static void runtime_command_palette_refresh(
         title = runtime_label(item->title, 0.0F);
         detail = runtime_label(item->command_id, 0.0F);
 
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (button == NULL || box == NULL ||
             title == NULL || detail == NULL) {
             continue;
@@ -137,6 +175,7 @@ static void runtime_command_palette_refresh(
         UmiCommandRegistry *commands = runtime_registered_commands(runtime);
         const size_t operation_count = runtime_operation_profile_count();
 
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < operation_count; ++index) {
             const UmiStudioGtkOperationProfile *profile =
                 &RUNTIME_OPERATION_PROFILES[index];
@@ -147,6 +186,10 @@ static void runtime_command_palette_refresh(
             char detail_text[768];
             int enabled;
 
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (commands == NULL ||
                 !umi_command_registry_contains(
                     commands,
@@ -168,6 +211,10 @@ static void runtime_command_palette_refresh(
                 profile->description);
             detail = runtime_label(detail_text, 0.0F);
 
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (button == NULL || box == NULL ||
                 title == NULL || detail == NULL) {
                 continue;
@@ -217,6 +264,10 @@ static void runtime_command_palette_refresh(
     }
 }
 
+/*
+ * Provide the runtime on palette search changed operation used by this module and its
+ * client applications.
+ */
 static void runtime_on_palette_search_changed(
     GtkSearchEntry *entry,
     gpointer user_data)
@@ -234,6 +285,10 @@ static void runtime_on_palette_search_changed(
         query.text);
 }
 
+/*
+ * Provide the runtime on palette close operation used by this module and its client
+ * applications.
+ */
 static gboolean runtime_on_palette_close(
     GtkWindow *window,
     gpointer user_data)
@@ -243,12 +298,20 @@ static gboolean runtime_on_palette_close(
     return TRUE;
 }
 
+/*
+ * Provide the runtime build command palette operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_build_command_palette(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *root;
     GtkWidget *scroll;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -259,6 +322,10 @@ static UmiStatus runtime_build_command_palette(
         "Search commands; use >, +, / or ? to narrow the scope");
     runtime->command_list = gtk_list_box_new();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->command_window == NULL ||
         runtime->command_entry == NULL ||
         runtime->command_list == NULL) {
@@ -279,6 +346,10 @@ static UmiStatus runtime_build_command_palette(
 
     root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     scroll = runtime_scroll(runtime->command_list);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (root == NULL || scroll == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     gtk_widget_set_margin_top(root, 12);
@@ -306,9 +377,17 @@ static UmiStatus runtime_build_command_palette(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the runtime show command palette operation used by this module and its client
+ * applications.
+ */
 static void runtime_show_command_palette(
     UmiStudioGtkRuntimeChrome *runtime)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->command_window == NULL) return;
 
     gtk_editable_set_text(GTK_EDITABLE(runtime->command_entry), "");

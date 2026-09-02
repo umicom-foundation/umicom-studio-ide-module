@@ -3,6 +3,22 @@
  * File: src/gui/app/include/app_actions.h
  *
  * PURPOSE:
+ *   Declare the app actions contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/app/include/app_actions.h
+ *
+ * PURPOSE:
  *   Declarations for wiring high-level application actions into a central
  *   keymap. This header *depends on* the shared keymap API to avoid
  *   duplicate struct definitions across modules. Pure C; no CSS.
@@ -20,6 +36,9 @@
 
 G_BEGIN_DECLS
 
+/**
+ * Provide the app fill keymap operation used by this module and its client applications.
+ */
 void umi_app_fill_keymap(GtkApplication *app, UmiKeymapCallbacks *out);
 
 G_END_DECLS

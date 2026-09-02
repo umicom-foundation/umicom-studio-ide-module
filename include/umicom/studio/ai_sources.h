@@ -26,6 +26,9 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio ai source operation used by this module and its client applications.
+ */
 UmiStatus umi_studio_ai_source(const char *source_id, const char *title, const char *uri, UmiAiSource *source);
 
 #ifdef __cplusplus

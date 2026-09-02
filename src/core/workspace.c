@@ -25,13 +25,16 @@
 
 static const char *WS_JSON = "config/workspace.json";
 
+/* Provide the workspace new operation used by this module and its client applications. */
 UmiWorkspace *umi_workspace_new(UmiFileTree *tree){
   UmiWorkspace *w = g_new0(UmiWorkspace,1);
   w->tree = tree;
   return w;
 }
 
+/* Provide the persist operation used by this module and its client applications. */
 static void persist(UmiWorkspace *ws){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!ws) return;
   g_mkdir_with_parents("config",0755);
   JsonBuilder *b=json_builder_new(); json_builder_begin_object(b);
@@ -43,19 +46,29 @@ static void persist(UmiWorkspace *ws){
   g_free(out); json_node_free(root); g_object_unref(g); g_object_unref(b);
 }
 
+/*
+ * Provide the workspace set root operation used by this module and its client
+ * applications.
+ */
 void umi_workspace_set_root(UmiWorkspace *ws, const char *dir){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!ws) return;
   g_free(ws->root_dir);
   ws->root_dir = g_strdup(dir?dir:".");
+  /* Apply this branch only when its contract condition is satisfied. */
   if(ws->tree) umi_file_tree_set_root(ws->tree, ws->root_dir);
   persist(ws);
 }
 
+/* Provide the workspace restore operation used by this module and its client applications. */
 void umi_workspace_restore(UmiWorkspace *ws){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!ws) return;
   gchar *txt=NULL; gsize len=0;
+  /* Apply this branch only when its contract condition is satisfied. */
   if(g_file_get_contents(WS_JSON,&txt,&len,NULL)){
     JsonParser *p=json_parser_new();
+    /* Apply this branch only when its contract condition is satisfied. */
     if(json_parser_load_from_data(p,txt,(gssize)len,NULL)){
       JsonObject *o=json_node_get_object(json_parser_get_root(p));
       const char *root = json_object_has_member(o,"root_dir") ? json_object_get_string_member(o,"root_dir") : ".";
@@ -65,9 +78,12 @@ void umi_workspace_restore(UmiWorkspace *ws){
   }
 }
 
+/* Provide the workspace root operation used by this module and its client applications. */
 const char *umi_workspace_root(UmiWorkspace *ws){ return ws?ws->root_dir:NULL; }
 
+/* Provide the workspace free operation used by this module and its client applications. */
 void umi_workspace_free(UmiWorkspace *ws){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!ws) return;
   g_free(ws->root_dir);
   g_free(ws);

@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/util/sys/include/utf8.h
+ *
+ * PURPOSE:
+ *   Declare the utf8 contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/sys/include/utf8.h
  * PURPOSE: UTF-8 utilities (validation, normalization, conversion helpers)
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
  *---------------------------------------------------------------------------*/
@@ -49,6 +65,9 @@ gchar *umi_utf8_trim(const gchar *s);
  *   Unicode-aware case conversions (locale-insensitive, GLib semantics).
  *---------------------------------------------------------------------------*/
 gchar *umi_utf8_to_lower(const gchar *s);
+/**
+ * Provide the utf8 to upper operation used by this module and its client applications.
+ */
 gchar *umi_utf8_to_upper(const gchar *s);
 
 /*-----------------------------------------------------------------------------

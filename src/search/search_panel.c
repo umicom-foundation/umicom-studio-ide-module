@@ -29,6 +29,7 @@
  *   to avoid -Wunused-function warnings until connected in the .ui file.
  *---------------------------------------------------------------------------*/
 static void on_clicked(void) G_GNUC_UNUSED;
+/* Provide the on clicked operation used by this module and its client applications. */
 static void on_clicked(void) {
   g_message("SearchPanel: click handler stub");
 }

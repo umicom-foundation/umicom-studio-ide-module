@@ -16,15 +16,42 @@
 #define UMICOM_STUDIO_OPERATIONS_CENTRE_H
 #include "umicom/studio/services.h"
 #include "umicom/observability/observability_admin.h"
+/**
+ * Represent the studio operations centre data shared with callers of this public contract.
+ */
 typedef struct UmiStudioOperationsCentre UmiStudioOperationsCentre;
+/**
+ * Represent the studio operations centre snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioOperationsCentreSnapshot {
     UmiOperationsCentreSnapshot operations;
     char active_view[UMI_OPERATIONS_ID_CAPACITY];
     uint64_t revision;
 } UmiStudioOperationsCentreSnapshot;
+/**
+ * Initialise studio operations centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_operations_centre_create(UmiStudioServices *services,UmiStudioOperationsCentre **out_centre);
+/**
+ * Release or reset state held by studio operations centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_operations_centre_destroy(UmiStudioOperationsCentre *centre);
+/**
+ * Provide the studio operations centre activate operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_operations_centre_activate(UmiStudioOperationsCentre *centre,const char *view_id);
+/**
+ * Provide the studio operations centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_operations_centre_snapshot(const UmiStudioOperationsCentre *centre,UmiStudioOperationsCentreSnapshot *out_snapshot);
+/**
+ * Provide the studio operations centre engine operation used by this module and its client
+ * applications.
+ */
 UmiOperationsCentre *umi_studio_operations_centre_engine(UmiStudioOperationsCentre *centre);
 #endif

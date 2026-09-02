@@ -22,6 +22,10 @@
 #include <assert.h>
 #include <string.h>
 #include "umicom/studio/session_state.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){
     UmiStudioSessionState a,b;
     char text[UMI_STUDIO_SESSION_TEXT_CAPACITY];

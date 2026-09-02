@@ -23,10 +23,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc,char **argv)
 {
     UmiStudioDeclarative *service=NULL;char report[16384];const char *filter=argc>1?argv[1]:NULL;UmiStatus status=umi_studio_declarative_create(&service);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status==UMI_STATUS_OK)status=umi_studio_designer_catalogue_report(service,filter,report,sizeof(report));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         fputs(report, stdout);
     }

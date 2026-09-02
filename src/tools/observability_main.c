@@ -17,12 +17,17 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioObservabilityReport report;
     UmiStatus status = umi_studio_bootstrap_create(&bootstrap);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_observability_event(
             umi_studio_bootstrap_services(bootstrap),
@@ -31,11 +36,13 @@ int main(void)
             UMI_DIAGNOSTIC_INFO,
             0U);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_observability_report(
             umi_studio_bootstrap_services(bootstrap),
             &report);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)printf("Metrics: %zu\nTrace spans: %zu\nAudit records: %zu\n"
                      "Readiness checks: %zu\nOperational events: %zu\n"
@@ -46,7 +53,7 @@ int main(void)
                      report.snapshot.operational_events,
                      report.profile_samples,
                      report.snapshot.ready ? "yes" : "no");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         (void)fprintf(stderr, "Observability command failed: %s\n", umi_status_text(status));
     }
     umi_studio_bootstrap_destroy(bootstrap);

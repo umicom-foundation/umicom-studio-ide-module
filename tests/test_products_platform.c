@@ -19,4 +19,8 @@
 #include <assert.h>
 #include <string.h>
 #include "umicom/studio/products.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){const UmiProductProfile *p=umi_studio_product_find("org.umicom.trader");char b[512];assert(p!=NULL);assert(umi_studio_product_report(p,b,sizeof(b))==UMI_STATUS_OK);assert(strstr(b,"Umicom Trader")!=NULL);return 0;}

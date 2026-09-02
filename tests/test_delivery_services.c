@@ -19,6 +19,10 @@
 
 #include <assert.h>
 #include "umicom/studio/services.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void) {
     UmiStudioServices *services = NULL;
     assert(umi_studio_services_create(NULL, NULL, &services) == UMI_STATUS_OK);

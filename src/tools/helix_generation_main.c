@@ -22,14 +22,20 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioAiPlatform *platform = NULL;
     UmiHelixFitness fitness;
     UmiStatus status = umi_studio_ai_platform_create(&platform);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_helix_fitness(0.95, 0.95, 0.90, 0.90, 0.95, &fitness);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         umi_studio_ai_platform_helix(platform)->policy.allow_release = 1;
         status = umi_studio_helix_can_promote(platform, &fitness, 4U, 4U, 1, 1);

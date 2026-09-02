@@ -43,17 +43,27 @@ static const UmiStudioFederatedContentDefinition DEFINITIONS[] = {
     }
 };
 
+/*
+ * Add studio federated content only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_federated_content_register(
     UmiDesktopContentRuntime *runtime,
     UmiStudioServices *services)
 {
     size_t index;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || services == NULL)
         return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_studio_workbench_views_register_registry(
         umi_desktop_content_runtime_view_factories(runtime), services);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(DEFINITIONS) / sizeof(DEFINITIONS[0]);
          ++index) {
         UmiDesktopContentBinding binding;
@@ -67,6 +77,7 @@ UmiStatus umi_studio_federated_content_register(
                        DEFINITIONS[index].view_id);
         binding.context_role = DEFINITIONS[index].context_role;
         status = umi_desktop_content_runtime_bind_window(runtime, &binding);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return UMI_STATUS_OK;

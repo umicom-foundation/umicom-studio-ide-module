@@ -37,6 +37,7 @@
 
 /* Mark helper as possiblyunused to avoid -Wunused-function when not referenced. */
 G_GNUC_UNUSED
+/* Provide the apply sgr operation used by this module and its client applications. */
 static void
 umi_apply_sgr(GtkTextBuffer *buf, GtkTextIter *start, GtkTextIter *end,
               const int *codes, int n_codes)
@@ -52,18 +53,30 @@ umi_apply_sgr(GtkTextBuffer *buf, GtkTextIter *start, GtkTextIter *end,
 void
 umi_ansi_append(GtkTextBuffer *buf, const char *text)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!buf || !text) return;
 
     const char *p = text;
     GtkTextIter end;
     gtk_text_buffer_get_end_iter(buf, &end);
 
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (*p) {
+        /* Apply this branch only when its contract condition is satisfied. */
         if (*p == '\x1B') {                     /* ESC sequence start          */
             /* Skip a minimal CSI 'ESC[' ... 'm' */
             const char *q = p + 1;
+            /* Apply this branch only when its contract condition is satisfied. */
             if (*q == '[') {
+                /*
+                 * Continue only while work remains available; the loop body advances the state on each
+                 * pass.
+                 */
                 while (*q && *q != 'm') q++;
+                /* Apply this branch only when its contract condition is satisfied. */
                 if (*q == 'm') { p = q + 1; continue; }
             }
         }

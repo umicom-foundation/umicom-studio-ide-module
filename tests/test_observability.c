@@ -18,6 +18,10 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/observability.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;

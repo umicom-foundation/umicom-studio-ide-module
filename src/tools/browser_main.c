@@ -20,4 +20,8 @@
 #include "umicom/studio/web_platform.h"
 #include "umicom/studio/browser.h"
 #include <stdio.h>
-int main(void){UmiStudioWebPlatform *p=NULL;UmiStatus s=umi_studio_web_platform_create(&p);if(s==UMI_STATUS_OK)s=umi_studio_browser_open(p,"https://umicom.foundation");if(s==UMI_STATUS_OK)(void)printf("Browser URL: %s\n",umi_studio_browser_current(p));umi_studio_web_platform_destroy(p);return s==UMI_STATUS_OK?0:1;}
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
+int main(void){UmiStudioWebPlatform *p=NULL;UmiStatus s=umi_studio_web_platform_create(&p);/* Preserve the original failure result so the caller can respond to the correct cause. */ if(s==UMI_STATUS_OK)s=umi_studio_browser_open(p,"https://umicom.foundation");if(s==UMI_STATUS_OK)(void)printf("Browser URL: %s\n",umi_studio_browser_current(p));umi_studio_web_platform_destroy(p);return s==UMI_STATUS_OK?0:1;}

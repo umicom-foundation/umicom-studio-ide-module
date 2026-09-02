@@ -3,6 +3,22 @@
  * File: src/core/include/run_pipeline.h
  *
  * PURPOSE:
+ *   Declare the run pipeline contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/include/run_pipeline.h
+ *
+ * PURPOSE:
  *   Tiny orchestration API to: (a) load run config, (b) spawn the target
  *   process (via build runner), and (c) pipe output through diagnostics.
  *
@@ -26,6 +42,9 @@
 
 /* Forward declarations for sinks */
 typedef struct _UmiOutputPane  UmiOutputPane;
+/**
+ * Represent the problem list data shared with callers of this public contract.
+ */
 typedef struct _UmiProblemList UmiProblemList;
 
 /* Start the run (spawn process and wire output). Returns TRUE on success.    */

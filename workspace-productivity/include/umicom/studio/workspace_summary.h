@@ -32,6 +32,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio workspace summary data shared with callers of this public contract.
+ */
 typedef struct UmiStudioWorkspaceSummary {
     size_t open_documents;
     size_t dirty_documents;
@@ -40,6 +43,10 @@ typedef struct UmiStudioWorkspaceSummary {
     size_t recent_workspaces;
 } UmiStudioWorkspaceSummary;
 
+/**
+ * Provide the studio workspace summary build operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workspace_summary_build(
     const UmiStudioDocumentSet *documents,
     const UmiStudioRecentWorkspaceList *recent,

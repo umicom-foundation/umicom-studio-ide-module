@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/plugins/transpile/include/i18n_translate.h
+ *
+ * PURPOSE:
+ *   Declare the i18n translate contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/plugins/transpile/include/i18n_translate.h
  * PURPOSE:
  *   Public API for simple LLM-powered text translation used by the
  *   "Transpile" demo/plugin.
@@ -22,6 +38,9 @@
 
 G_BEGIN_DECLS
 
+/**
+ * Provide the translate text operation used by this module and its client applications.
+ */
 gchar *umi_translate_text(const char *input_text,
                           const char *src_lang,
                           const char *dst_lang,

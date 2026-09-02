@@ -24,9 +24,17 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio workspace profile session restore operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_workspace_profile_session_restore(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session);
+/**
+ * Write studio workspace profile session in its stable representation and report capacity
+ * or input failures to the caller.
+ */
 UmiStatus umi_studio_workspace_profile_session_save(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session);

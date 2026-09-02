@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Provide the usage operation used by this module and its client applications. */
 static void usage(void)
 {
     (void)printf("Usage: umicom-studio-toolchain [--profile ID] "
@@ -21,6 +22,10 @@ static void usage(void)
                  "[--project-root PATH] [--no-probe]\n");
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioToolchainCentre *centre = NULL;
@@ -36,41 +41,54 @@ int main(int argc, char **argv)
     (void)memset(&request, 0, sizeof(request));
     request.require_c23 = 1;
     request.run_compile_probe = 1;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 1; index < argc; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(argv[index], "--profile") == 0 && index + 1 < argc)
             request.preferred_profile = argv[++index];
-        else if (strcmp(argv[index], "--root") == 0 && index + 1 < argc)
+        else /* Keep the operation inside its valid bounds before reading, writing or adding data. */ if (strcmp(argv[index], "--root") == 0 && index + 1 < argc)
             root = argv[++index];
-        else if (strcmp(argv[index], "--compile-commands") == 0 &&
+        else /* Keep the operation inside its valid bounds before reading, writing or adding data. */ if (strcmp(argv[index], "--compile-commands") == 0 &&
                  index + 1 < argc)
             compilation_database = argv[++index];
-        else if (strcmp(argv[index], "--project-root") == 0 &&
+        else /* Keep the operation inside its valid bounds before reading, writing or adding data. */ if (strcmp(argv[index], "--project-root") == 0 &&
                  index + 1 < argc)
             project_root = argv[++index];
-        else if (strcmp(argv[index], "--no-probe") == 0) {
+        else /* Keep the operation inside its valid bounds before reading, writing or adding data. */ if (strcmp(argv[index], "--no-probe") == 0) {
             /* A skipped compile probe cannot truthfully certify C23.  Keep
              * inventory-only mode useful by selecting a complete compiler
              * profile without claiming that the C23 execution gate passed. */
             request.run_compile_probe = 0;
             request.require_c23 = 0;
         }
+        /* Use this fallback path when the earlier condition does not apply. */
         else {
             usage();
             return 2;
         }
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (root != NULL) {
         roots[0] = root;
         request.explicit_roots = roots;
         request.explicit_root_count = 1U;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_toolchain_centre_create(&centre) != UMI_STATUS_OK) return 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_toolchain_centre_discover(
             centre, &request, &discovery) != UMI_STATUS_OK) {
         (void)fprintf(stderr, "No compatible C23 toolchain was discovered.\n");
         umi_studio_toolchain_centre_destroy(centre);
         return 1;
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (compilation_database != NULL &&
         umi_studio_toolchain_centre_load_compilation_database(
             centre, compilation_database) != UMI_STATUS_OK) {
@@ -78,6 +96,10 @@ int main(int argc, char **argv)
         umi_studio_toolchain_centre_destroy(centre);
         return 1;
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (compilation_database == NULL && project_root != NULL &&
         umi_studio_toolchain_centre_discover_compilation_database(
             centre, project_root, NULL, 0U, discovered_database,
@@ -88,6 +110,7 @@ int main(int argc, char **argv)
         umi_studio_toolchain_centre_destroy(centre);
         return 1;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_toolchain_centre_snapshot(centre, &snapshot) != UMI_STATUS_OK) {
         umi_studio_toolchain_centre_destroy(centre);
         return 1;
@@ -113,6 +136,7 @@ int main(int argc, char **argv)
                  snapshot.selected_capability.pkg_config_available ? "PASS" : "N/A");
     (void)printf("Child environment entries: %zu\n",
                  snapshot.environment_variable_count);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (snapshot.has_compilation_database)
         (void)printf("Compilation commands: %zu\n",
                      snapshot.compilation_database.command_count);

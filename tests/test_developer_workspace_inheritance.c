@@ -18,6 +18,10 @@
 
 #include "umicom/studio/project_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioProjectCentre *centre = NULL;
@@ -31,9 +35,14 @@ int main(void)
     UmiProjectWorkspaceResolvedSetting resolved;
     UmiProjectVariableSnapshot variable = {0};
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_project_centre_create(&centre) != UMI_STATUS_OK) return 1;
     workspace = umi_studio_project_centre_service(centre);
     model = umi_studio_project_centre_workspace_model(centre);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL || model == NULL) return 2;
     project.struct_size = (uint32_t)sizeof(project);
     project.api_version = UMI_PROJECT_DESCRIPTOR_API_VERSION;
@@ -41,6 +50,7 @@ int main(void)
     strcpy(project.name, "Studio");
     strcpy(project.root_uri, "/src/studio");
     project.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_project_descriptor_registry_upsert(
             umi_project_workspace_descriptor(workspace), &project) !=
         UMI_STATUS_OK) return 3;
@@ -49,6 +59,7 @@ int main(void)
     strcpy(root.id, "source");
     strcpy(root.path, "/src");
     root.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_workspace_root(centre, &root) !=
         UMI_STATUS_OK) return 4;
     group.struct_size = (uint32_t)sizeof(group);
@@ -56,6 +67,7 @@ int main(void)
     strcpy(group.id, "applications");
     strcpy(group.name, "Applications");
     group.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_project_group(centre, &group) !=
         UMI_STATUS_OK) return 5;
     member.struct_size = (uint32_t)sizeof(member);
@@ -65,6 +77,7 @@ int main(void)
     strcpy(member.project_id, "studio");
     strcpy(member.group_id, "applications");
     member.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_project_member(centre, &member) !=
         UMI_STATUS_OK) return 6;
 
@@ -74,14 +87,17 @@ int main(void)
     strcpy(setting.key, "generator");
     strcpy(setting.value, "Ninja");
     setting.scope = UMI_PROJECT_WORKSPACE_SETTING_WORKSPACE;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_workspace_setting(
             centre, &setting) != UMI_STATUS_OK) return 7;
     strcpy(setting.id, "group.generator");
     strcpy(setting.owner_id, "applications");
     strcpy(setting.value, "Ninja Multi-Config");
     setting.scope = UMI_PROJECT_WORKSPACE_SETTING_GROUP;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_workspace_setting(
             centre, &setting) != UMI_STATUS_OK) return 8;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_project_workspace_model_resolve_setting(
             model, "studio", "generator", &resolved) != UMI_STATUS_OK ||
         strcmp(resolved.value, "Ninja Multi-Config") != 0 ||
@@ -92,15 +108,18 @@ int main(void)
     strcpy(variable.id, "workspace.jobs");
     strcpy(variable.name, "jobs");
     strcpy(variable.value, "2");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_project_variable_registry_upsert(
             umi_project_workspace_variable(workspace), &variable) !=
         UMI_STATUS_OK) return 10;
     strcpy(variable.id, "studio.jobs");
     strcpy(variable.project_id, "studio");
     strcpy(variable.value, "8");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_project_variable_registry_upsert(
             umi_project_workspace_variable(workspace), &variable) !=
         UMI_STATUS_OK) return 11;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_project_workspace_model_resolve_variable(
             model, "studio", "jobs", &resolved) != UMI_STATUS_OK ||
         strcmp(resolved.value, "8") != 0) return 12;

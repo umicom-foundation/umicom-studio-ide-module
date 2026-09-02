@@ -21,5 +21,9 @@
 #define UMICOM_STUDIO_GUI_FRONTEND_PREVIEW_H
 #include <gtk/gtk.h>
 #include "umicom/studio/web_platform.h"
+/**
+ * Provide the studio frontend preview new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_frontend_preview_new(UmiStudioWebPlatform *platform);
 #endif

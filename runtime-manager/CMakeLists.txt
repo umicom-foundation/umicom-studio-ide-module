@@ -46,9 +46,11 @@ target_link_libraries(umicom-studio-apps PRIVATE
 umicom_apply_warnings(umicom-studio-apps)
 umicom_apply_sanitizers(umicom-studio-apps)
 
+# Create this optional product surface only when its build option is enabled.
 if(UMICOM_STUDIO_BUILD_GTK)
     find_package(PkgConfig REQUIRED)
 
+    # Load the dependency only when the parent build has not already provided its target.
     if(NOT TARGET PkgConfig::GTK4)
         pkg_check_modules(GTK4 REQUIRED IMPORTED_TARGET gtk4)
     endif()
@@ -79,7 +81,9 @@ install(TARGETS umicom-studio-apps
     RUNTIME DESTINATION bin
 )
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_RUNTIME_TEST
             runtime_manager
             runtime_find

@@ -15,5 +15,9 @@
 #ifndef UMICOM_STUDIO_WORKSPACE_GROUPS_H
 #define UMICOM_STUDIO_WORKSPACE_GROUPS_H
 #include "umicom/studio/professional_workspace.h"
+/**
+ * Provide the studio workspace groups seed operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workspace_groups_seed(UmiStudioProfessionalWorkspace *workspace);
 #endif

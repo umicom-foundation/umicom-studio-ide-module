@@ -22,12 +22,17 @@
 
 #include "umicom/studio/source_navigation_contribution.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     size_t index;
 
     assert(umi_studio_source_navigation_contribution_count() ==
            umi_editor_navigation_command_count());
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_source_navigation_contribution_count();
          ++index) {
@@ -46,6 +51,7 @@ int main(void)
         assert(strcmp(contribution->menu_id, "Navigate") == 0 ||
                strcmp(contribution->menu_id, "View") == 0);
         assert(contribution->show_in_command_centre);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison < umi_studio_source_navigation_contribution_count();
              ++comparison) {

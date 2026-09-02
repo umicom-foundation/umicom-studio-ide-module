@@ -28,4 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioDeclarative *service=NULL;UmiDeclDocument *document=NULL;UmiDeclDiagnosticList diagnostics;UmiDeclApplicationPlan plan;const char *source="application org.umicom.test\ncomponent root window -\n";assert(umi_studio_declarative_create(&service)==UMI_STATUS_OK);assert(umi_studio_declarative_parse(service,source,&document,&diagnostics)==UMI_STATUS_OK);assert(umi_studio_declarative_compile(service,document,&plan,&diagnostics)==UMI_STATUS_OK);assert(plan.component_count==1U);umi_decl_plan_dispose(&plan);umi_decl_document_destroy(document);umi_studio_declarative_destroy(service);return EXIT_SUCCESS;}

@@ -17,6 +17,10 @@
 
 #include <string.h>
 
+/*
+ * Provide the studio application surface policy snapshot operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_application_surface_policy_snapshot(
     const UmiStudioApplicationSurface *surface,
     UmiStudioApplicationSurfacePolicySnapshot *out_snapshot)
@@ -24,12 +28,21 @@ UmiStatus umi_studio_application_surface_policy_snapshot(
     UmiApplicationPresentationSurfaceSnapshot runtime_snapshot;
     const UmiApplicationPresentationWorkspaceRuntimePolicy *policy;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (surface == NULL || out_snapshot == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_studio_application_surface_snapshot(surface, &runtime_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     policy = runtime_snapshot.workspace_policy;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (policy == NULL) return UMI_STATUS_INVALID_STATE;
     (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     out_snapshot->recipe_id = runtime_snapshot.recipe_id;
@@ -59,6 +72,10 @@ UmiStatus umi_studio_application_surface_policy_snapshot(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio application surface policy advance operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_application_surface_policy_advance(
     UmiStudioApplicationSurface *surface,
     uint32_t elapsed_seconds)
@@ -71,6 +88,10 @@ UmiStatus umi_studio_application_surface_policy_advance(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio application surface policy set background operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_application_surface_policy_set_background(
     UmiStudioApplicationSurface *surface,
     int background)
@@ -83,6 +104,10 @@ UmiStatus umi_studio_application_surface_policy_set_background(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio application surface policy context changed operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_application_surface_policy_context_changed(
     UmiStudioApplicationSurface *surface,
     const char *component_id,
@@ -96,6 +121,10 @@ UmiStatus umi_studio_application_surface_policy_context_changed(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio application surface policy checkpoint due operation used by this
+ * module and its client applications.
+ */
 int umi_studio_application_surface_policy_checkpoint_due(
     const UmiStudioApplicationSurface *surface,
     uint32_t elapsed_since_checkpoint_seconds,
@@ -103,6 +132,10 @@ int umi_studio_application_surface_policy_checkpoint_due(
 {
     const UmiApplicationPresentationSurfaceRuntime *runtime =
         umi_studio_application_surface_runtime_const(surface);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return 0;
     return umi_application_presentation_surface_runtime_checkpoint_due(
         runtime, elapsed_since_checkpoint_seconds, changed);

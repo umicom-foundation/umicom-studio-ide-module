@@ -196,16 +196,28 @@ _Static_assert(
     sizeof(RUNTIME_WELCOME_CSS) <= 4096U,
     "Studio welcome CSS exceeds ISO C's portable string limit");
 
+/*
+ * Provide the runtime apply theme operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_apply_theme(UmiStudioGtkRuntimeChrome *runtime)
 {
     GdkDisplay *display;
     char *complete_css;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->outer_root == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
     runtime->css_provider = gtk_css_provider_new();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->css_provider == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     /* Join the bounded source fragments at runtime to avoid an overlength C
@@ -214,6 +226,10 @@ static UmiStatus runtime_apply_theme(UmiStudioGtkRuntimeChrome *runtime)
         RUNTIME_CHROME_CSS,
         RUNTIME_WELCOME_CSS,
         NULL);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (complete_css == NULL) {
         g_clear_object(&runtime->css_provider);
         return UMI_STATUS_OUT_OF_MEMORY;
@@ -225,6 +241,10 @@ static UmiStatus runtime_apply_theme(UmiStudioGtkRuntimeChrome *runtime)
     g_free(complete_css);
 
     display = gtk_widget_get_display(runtime->outer_root);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (display != NULL) {
         gtk_style_context_add_provider_for_display(
             display,

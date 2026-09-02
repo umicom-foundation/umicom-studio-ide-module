@@ -21,12 +21,17 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiAiAuthorEngineConfig config;
     const char *executable = argc > 1 ? argv[1] : "uaengine";
     const char *workspace = argc > 2 ? argv[2] : ".";
     UmiStatus status = umi_studio_authorengine_config(executable, workspace, &config);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         printf("AuthorEngine executable: %s\nWorkspace: %s\nProvider: %s\n",
                config.executable, config.workspace, config.provider);

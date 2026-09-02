@@ -14,6 +14,10 @@
 
 #include "umicom/studio/knowledge_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioAiPlatform *platform = NULL;
@@ -23,6 +27,7 @@ int main(int argc, char **argv)
     size_t count = 0U;
     const char *query = argc > 1 ? argv[1] : "native rag citations";
     UmiStatus status = umi_studio_ai_platform_create(&platform);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return 1;
     (void)snprintf(input.collection_id, sizeof(input.collection_id),
                    "%s", "documents");
@@ -41,13 +46,16 @@ int main(int argc, char **argv)
         platform, &input,
         "Umicom Native RAG provides offline retrieval, citations and exact "
         "source provenance without replacing AuthorEngine.", &report);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_knowledge_centre_search(
             platform, query, NULL, matches, 8U, &count);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)printf("Knowledge Centre: %zu result(s), %zu indexed chunk(s)\n",
                      count, report.chunks_created);
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (count > 0U) {
             (void)printf("Best source: %s (%.4f)\n",
                          matches[0].citation.title, matches[0].score);

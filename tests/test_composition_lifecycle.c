@@ -17,6 +17,10 @@
 
 #include <assert.h>
 
+/*
+ * Exercise run cycle and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void run_cycle(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;
@@ -31,6 +35,10 @@ static void run_cycle(void)
     umi_studio_bootstrap_destroy(bootstrap);
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     (void)umi_fs_remove_tree(".umicom");

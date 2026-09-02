@@ -30,6 +30,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio runtime filter data shared with callers of this public contract.
+ */
 typedef struct UmiStudioRuntimeFilter {
     char query[UMI_INTEGRATION_TEXT_CAPACITY];
     UmiStudioRuntimeCategory category;
@@ -38,8 +41,16 @@ typedef struct UmiStudioRuntimeFilter {
     bool installed_only;
 } UmiStudioRuntimeFilter;
 
+/**
+ * Initialise studio runtime filter from caller-provided values so later operations receive
+ * a known state.
+ */
 void umi_studio_runtime_filter_init(UmiStudioRuntimeFilter *filter);
 
+/**
+ * Provide the studio runtime filter match operation used by this module and its client
+ * applications.
+ */
 bool umi_studio_runtime_filter_match(
     const UmiStudioRuntimeFilter *filter,
     const UmiStudioRuntimeEntry *entry,

@@ -28,6 +28,10 @@
 
 #include "umicom/studio/editor_refactoring_contribution.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     size_t index;
@@ -35,6 +39,7 @@ int main(void)
 
     assert(umi_studio_editor_refactoring_command_contribution_count() ==
            umi_editor_refactoring_command_count());
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_refactoring_command_contribution_count();
          ++index) {
@@ -49,6 +54,7 @@ int main(void)
         assert(contribution->menu_id[0] != '\0');
         assert(contribution->menu_group[0] != '\0');
         assert(contribution->show_in_command_centre);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison <
                  umi_studio_editor_refactoring_command_contribution_count();
@@ -60,6 +66,7 @@ int main(void)
         }
     }
     assert(umi_studio_editor_refactoring_view_contribution_count() == 3U);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_refactoring_view_contribution_count();
          ++index) {

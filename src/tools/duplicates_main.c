@@ -21,11 +21,16 @@
  */
 #include "umicom/studio/duplicate_review.h"
 #include <stdio.h>
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioSourceGovernanceSummary summary;
     const char *root = argc > 1 ? argv[1] : ".";
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_source_governance_review(root, &summary) != UMI_STATUS_OK) {
         return 2;
     }

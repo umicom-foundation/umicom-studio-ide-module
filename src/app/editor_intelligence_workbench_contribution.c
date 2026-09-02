@@ -45,11 +45,19 @@ static const UmiStudioEditorIntelligenceWorkbenchViewContribution VIEWS[] = {
 
 #undef VIEW
 
+/*
+ * Return the number of records represented by studio editor intelligence workbench view
+ * without changing their state.
+ */
 size_t umi_studio_editor_intelligence_workbench_view_count(void)
 {
     return sizeof(VIEWS) / sizeof(VIEWS[0]);
 }
 
+/*
+ * Find studio editor intelligence workbench view while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioEditorIntelligenceWorkbenchViewContribution *
 umi_studio_editor_intelligence_workbench_view_at(size_t index)
 {
@@ -58,25 +66,43 @@ umi_studio_editor_intelligence_workbench_view_at(size_t index)
         : NULL;
 }
 
+/*
+ * Find studio editor intelligence workbench view while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioEditorIntelligenceWorkbenchViewContribution *
 umi_studio_editor_intelligence_workbench_view_find(const char *view_id)
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (view_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_intelligence_workbench_view_count();
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(VIEWS[index].view_id, view_id) == 0) return &VIEWS[index];
     }
     return NULL;
 }
 
+/*
+ * Initialise studio editor intelligence workbench from caller-provided values so later
+ * operations receive a known state.
+ */
 UmiStatus umi_studio_editor_intelligence_workbench_create(
     UmiEditorIntelWorkbenchRuntime **out_runtime)
 {
     UmiEditorWorkspaceSearchIndexConfig config;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_runtime == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     umi_editor_workspace_search_index_config_init(&config);
     config.maximum_documents = 8192U;

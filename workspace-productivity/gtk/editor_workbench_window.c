@@ -36,6 +36,7 @@ typedef struct WorkbenchUi {
     GtkWidget *quick_open;
 } WorkbenchUi;
 
+/* Provide the make editor operation used by this module and its client applications. */
 static GtkWidget *make_editor(void)
 {
 #if defined(UMICOM_STUDIO_HAS_SOURCEVIEW)
@@ -46,6 +47,10 @@ static GtkWidget *make_editor(void)
     GtkSourceLanguage *language =
         gtk_source_language_manager_get_language(languages, "c");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (language != NULL) {
         gtk_source_buffer_set_language(buffer, language);
         gtk_source_buffer_set_highlight_syntax(buffer, TRUE);
@@ -80,6 +85,7 @@ static GtkWidget *make_editor(void)
 #endif
 }
 
+/* Provide the update status operation used by this module and its client applications. */
 static void update_status(WorkbenchUi *ui)
 {
     UmiStudioEditorStatus status;
@@ -87,6 +93,10 @@ static void update_status(WorkbenchUi *ui)
     GtkTextIter insert_iter;
     GtkTextBuffer *buffer;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL || ui->editor == NULL) {
         return;
     }
@@ -103,6 +113,7 @@ static void update_status(WorkbenchUi *ui)
     status.column = (size_t)gtk_text_iter_get_line_offset(&insert_iter) + 1U;
     (void)snprintf(status.language, sizeof(status.language), "C");
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_editor_status_format(&status,
                                         text,
                                         sizeof(text)) == UMI_STATUS_OK) {
@@ -110,6 +121,7 @@ static void update_status(WorkbenchUi *ui)
     }
 }
 
+/* Copy on mark into module-owned storage so callers keep ownership of their input values. */
 static void on_mark_set(GtkTextBuffer *buffer,
                         GtkTextIter *location,
                         GtkTextMark *mark,
@@ -121,6 +133,7 @@ static void on_mark_set(GtkTextBuffer *buffer,
     update_status((WorkbenchUi *)user_data);
 }
 
+/* Provide the on find changed operation used by this module and its client applications. */
 static void on_find_changed(GtkEditable *editable, gpointer user_data)
 {
     WorkbenchUi *ui = (WorkbenchUi *)user_data;
@@ -137,6 +150,7 @@ static void on_find_changed(GtkEditable *editable, gpointer user_data)
     gtk_label_set_text(GTK_LABEL(ui->status), text);
 }
 
+/* Provide the build sidebar operation used by this module and its client applications. */
 static GtkWidget *build_sidebar(void)
 {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
@@ -166,6 +180,10 @@ static GtkWidget *build_sidebar(void)
     return box;
 }
 
+/*
+ * Provide the studio editor workbench window new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_editor_workbench_window_new(GtkApplication *application)
 {
     WorkbenchUi *ui;
@@ -179,6 +197,10 @@ GtkWidget *umi_studio_editor_workbench_window_new(GtkApplication *application)
     GtkWidget *replace_entry;
     GtkTextBuffer *buffer;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (application == NULL) {
         return NULL;
     }

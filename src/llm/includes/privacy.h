@@ -3,6 +3,22 @@
  * File: src/llm/includes/privacy.h
  *
  * PURPOSE:
+ *   Declare the privacy contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/llm/includes/privacy.h
+ *
+ * PURPOSE:
  *   Public interface for URL privacy checks used by LLM HTTP code. We validate
  *   that outgoing requests are safe to perform (e.g., only http/https schemes,
  *   not targeting loopback or private networks unless explicitly allowed).

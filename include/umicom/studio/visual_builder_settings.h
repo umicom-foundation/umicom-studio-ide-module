@@ -19,8 +19,20 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio visual builder config data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioVisualBuilderConfig {UmiDesignerSurfaceOptions surface;UmiDesignerPreviewProfile preview_profile;int show_generated_source;int auto_refresh_preview;} UmiStudioVisualBuilderConfig;
+/**
+ * Provide the studio visual builder config default operation used by this module and its
+ * client applications.
+ */
 UmiStudioVisualBuilderConfig umi_studio_visual_builder_config_default(void);
+/**
+ * Perform studio visual builder settings through the module contract so client
+ * applications do not duplicate its policy.
+ */
 UmiStatus umi_studio_visual_builder_settings_apply(const UmiSettings *settings,UmiStudioVisualBuilderConfig *config);
 #ifdef __cplusplus
 }

@@ -47,11 +47,19 @@ static const UmiStudioEditorCommandContribution CONTRIBUTIONS[] = {
 
 #undef CONTRIBUTION
 
+/*
+ * Return the number of records represented by studio editor command contribution without
+ * changing their state.
+ */
 size_t umi_studio_editor_command_contribution_count(void)
 {
     return sizeof(CONTRIBUTIONS) / sizeof(CONTRIBUTIONS[0]);
 }
 
+/*
+ * Find studio editor command contribution while leaving the underlying catalogue or model
+ * owned by this module.
+ */
 const UmiStudioEditorCommandContribution *
 umi_studio_editor_command_contribution_at(size_t index)
 {
@@ -60,15 +68,25 @@ umi_studio_editor_command_contribution_at(size_t index)
         : NULL;
 }
 
+/*
+ * Find studio editor command contribution while leaving the underlying catalogue or model
+ * owned by this module.
+ */
 const UmiStudioEditorCommandContribution *
 umi_studio_editor_command_contribution_find(const char *framework_command_id)
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (framework_command_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_command_contribution_count();
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(CONTRIBUTIONS[index].framework_command_id,
                    framework_command_id) == 0) {
             return &CONTRIBUTIONS[index];

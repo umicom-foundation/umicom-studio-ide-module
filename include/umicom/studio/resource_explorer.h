@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio resource explorer snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioResourceExplorerSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioResourceExplorerSnapshot {
     size_t item_count;
     int available;
 } UmiStudioResourceExplorerSnapshot;
+/**
+ * Provide the studio resource explorer snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_resource_explorer_snapshot(UmiStudioServices *services, UmiStudioResourceExplorerSnapshot *out_snapshot);
 #ifdef __cplusplus
 }

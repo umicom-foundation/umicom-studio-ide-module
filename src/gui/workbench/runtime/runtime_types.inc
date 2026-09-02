@@ -219,20 +219,52 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiAiAuthorEngineServiceSnapshot ai_snapshot;
 } UmiStudioGtkRuntimeChrome;
 
+/*
+ * Provide the runtime show command palette operation used by this module and its client
+ * applications.
+ */
 static void runtime_show_command_palette(UmiStudioGtkRuntimeChrome *runtime);
+/*
+ * Provide the runtime show layout browser operation used by this module and its client
+ * applications.
+ */
 static void runtime_show_layout_browser(UmiStudioGtkRuntimeChrome *runtime);
+/*
+ * Provide the runtime show window catalogue operation used by this module and its client
+ * applications.
+ */
 static void runtime_show_window_catalogue(UmiStudioGtkRuntimeChrome *runtime);
+/*
+ * Provide the runtime workspace apply geometry operation used by this module and its
+ * client applications.
+ */
 static void runtime_workspace_apply_geometry(
     UmiStudioGtkRuntimeChrome *runtime);
+/*
+ * Provide the runtime welcome update mode operation used by this module and its client
+ * applications.
+ */
 static void runtime_welcome_update_mode(
     UmiStudioGtkRuntimeChrome *runtime);
 
 
+/*
+ * Provide the runtime refresh services operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_refresh_services(UmiStudioGtkRuntimeChrome *runtime);
+/*
+ * Provide the runtime on palette close operation used by this module and its client
+ * applications.
+ */
 static gboolean runtime_on_palette_close(
     GtkWindow *window,
     gpointer user_data);
 
+/*
+ * Provide the runtime execute phase1 host command operation used by this module and its
+ * client applications.
+ */
 static UmiStatus runtime_execute_phase1_host_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,

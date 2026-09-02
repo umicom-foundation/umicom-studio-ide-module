@@ -33,10 +33,12 @@ static const char *default_pre(void) {
   const char *v = g_getenv("UMI_FIM_PRE");
   return (v && *v) ? v : "<PRE>";
 }
+/* Provide the default mid operation used by this module and its client applications. */
 static const char *default_mid(void) {
   const char *v = g_getenv("UMI_FIM_MID");
   return (v && *v) ? v : "<MID>";
 }
+/* Provide the default suf operation used by this module and its client applications. */
 static const char *default_suf(void) {
   const char *v = g_getenv("UMI_FIM_SUF");
   return (v && *v) ? v : "<SUF>";

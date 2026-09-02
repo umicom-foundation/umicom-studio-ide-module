@@ -17,4 +17,8 @@
 #include <string.h>
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/ui_catalogue.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioBootstrap*b=NULL;UmiStudioUiCatalogue c;char text[2048];assert(umi_studio_bootstrap_create(&b)==UMI_STATUS_OK);assert(umi_studio_ui_catalogue_snapshot(umi_studio_bootstrap_ui(b),&c)==UMI_STATUS_OK);assert(c.perspectives==8U);assert(umi_studio_ui_catalogue_format(&c,text,sizeof(text))==UMI_STATUS_OK);assert(strstr(text,"Studio UI Catalogue")!=NULL);umi_studio_bootstrap_destroy(b);return 0;}

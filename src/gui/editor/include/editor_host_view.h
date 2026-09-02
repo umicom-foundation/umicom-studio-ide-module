@@ -20,6 +20,10 @@
 #include <gtk/gtk.h>
 #include "umicom/studio/ui.h"
 
+/**
+ * Provide the studio editor host view new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_editor_host_view_new(UmiStudioUi *ui);
 
 #endif

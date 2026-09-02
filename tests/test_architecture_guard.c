@@ -18,4 +18,8 @@
  */
 #include <assert.h>
 #include "umicom/studio/architecture_guard.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioArchitectureGuard r;assert(umi_studio_architecture_guard_run(&r)==UMI_STATUS_OK);assert(r.profiles_checked==5U);return 0;}

@@ -28,4 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){char source[8192];UmiStudioDeclarative *decl=NULL;UmiDeclDocument *document=NULL;UmiDeclDiagnosticList diagnostics;assert(umi_studio_new_project_template(UMI_STUDIO_TEMPLATE_EDITOR,"org.umicom.example",source,sizeof(source))==UMI_STATUS_OK);assert(strstr(source,"component editor editor")!=NULL);assert(umi_studio_declarative_create(&decl)==UMI_STATUS_OK);assert(umi_studio_declarative_parse(decl,source,&document,&diagnostics)==UMI_STATUS_OK);umi_decl_document_destroy(document);umi_studio_declarative_destroy(decl);return EXIT_SUCCESS;}

@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 
+/* Provide the echo tool operation used by this module and its client applications. */
 static UmiStatus echo_tool(const char *arguments_json,
                            char *output,
                            size_t output_capacity,
@@ -34,13 +35,25 @@ static UmiStatus echo_tool(const char *arguments_json,
         ? UMI_STATUS_OK : UMI_STATUS_CAPACITY_EXCEEDED;
 }
 
+/*
+ * Provide the studio ai tools register defaults operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_ai_tools_register_defaults(UmiStudioAiPlatform *platform)
 {
     UmiAiTool tool;
     UmiAiRuntime *runtime;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     runtime = umi_studio_ai_platform_runtime(platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return UMI_STATUS_INVALID_STATE;
     status = umi_ai_tool_init(&tool,
                               "studio.echo",
@@ -48,10 +61,15 @@ UmiStatus umi_studio_ai_tools_register_defaults(UmiStudioAiPlatform *platform)
                               "studio.tools.echo",
                               echo_tool,
                               NULL);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return umi_ai_tool_registry_add(&runtime->tools, &tool);
 }
 
+/*
+ * Provide the studio ai tools echo operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ai_tools_echo(UmiStudioAiPlatform *platform,
                                    const char *arguments_json,
                                    int approved,
@@ -59,8 +77,16 @@ UmiStatus umi_studio_ai_tools_echo(UmiStudioAiPlatform *platform,
                                    size_t output_capacity)
 {
     UmiAiRuntime *runtime;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     runtime = umi_studio_ai_platform_runtime(platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return UMI_STATUS_INVALID_STATE;
     return umi_ai_runtime_invoke_tool(runtime,
                                       "studio.echo",

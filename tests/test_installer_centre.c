@@ -16,6 +16,10 @@
 #include <string.h>
 #include "umicom/studio/installer_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioInstallerCentre centre;

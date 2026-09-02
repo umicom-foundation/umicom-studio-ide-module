@@ -70,6 +70,7 @@ char **umi_rg_args_make_simple(const char *pattern, const char *path)
  *---------------------------------------------------------------------------*/
 void umi_rg_args_free(char **argvv)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (argvv) g_strfreev(argvv);
 }
 /*---------------------------------------------------------------------------*/

@@ -20,4 +20,8 @@
 #include "umicom/studio/web_platform.h"
 #include "umicom/studio/web.h"
 #include <stdio.h>
-int main(void){UmiStudioWebPlatform *p=NULL;char response[4096];UmiStatus s=umi_studio_web_platform_create(&p);if(s==UMI_STATUS_OK)s=umi_studio_web_process(p,"GET /api/health HTTP/1.1\r\nHost: local\r\n\r\n",response,sizeof(response));if(s==UMI_STATUS_OK)(void)puts(response);umi_studio_web_platform_destroy(p);return s==UMI_STATUS_OK?0:1;}
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
+int main(void){UmiStudioWebPlatform *p=NULL;char response[4096];UmiStatus s=umi_studio_web_platform_create(&p);/* Preserve the original failure result so the caller can respond to the correct cause. */ if(s==UMI_STATUS_OK)s=umi_studio_web_process(p,"GET /api/health HTTP/1.1\r\nHost: local\r\n\r\n",response,sizeof(response));/* Preserve the original failure result so the caller can respond to the correct cause. */ if(s==UMI_STATUS_OK)(void)puts(response);umi_studio_web_platform_destroy(p);return s==UMI_STATUS_OK?0:1;}

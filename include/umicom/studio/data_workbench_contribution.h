@@ -27,6 +27,10 @@ extern "C" {
 
 #define UMI_STUDIO_DATA_WORKBENCH_CONTRIBUTION_API_VERSION 1U
 
+/**
+ * Represent the studio data workbench command contribution data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioDataWorkbenchCommandContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioDataWorkbenchCommandContribution {
     int show_in_command_centre;
 } UmiStudioDataWorkbenchCommandContribution;
 
+/**
+ * Represent the studio data workbench view contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioDataWorkbenchViewContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -49,16 +57,44 @@ typedef struct UmiStudioDataWorkbenchViewContribution {
     int movable;
 } UmiStudioDataWorkbenchViewContribution;
 
+/**
+ * Return the number of records represented by studio data workbench command without
+ * changing their state.
+ */
 size_t umi_studio_data_workbench_command_count(void);
+/**
+ * Find studio data workbench command while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiStudioDataWorkbenchCommandContribution *
 umi_studio_data_workbench_command_at(size_t index);
+/**
+ * Find studio data workbench command while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiStudioDataWorkbenchCommandContribution *
 umi_studio_data_workbench_command_find(const char *framework_command_id);
+/**
+ * Return the number of records represented by studio data workbench view without changing
+ * their state.
+ */
 size_t umi_studio_data_workbench_view_count(void);
+/**
+ * Find studio data workbench view while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioDataWorkbenchViewContribution *
 umi_studio_data_workbench_view_at(size_t index);
+/**
+ * Find studio data workbench view while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioDataWorkbenchViewContribution *
 umi_studio_data_workbench_view_find(const char *view_id);
+/**
+ * Initialise studio data workbench from caller-provided values so later operations receive
+ * a known state.
+ */
 UmiStatus umi_studio_data_workbench_create(
     UmiDatabaseExplorer *explorer,
     UmiDataWorkbenchRuntime **out_runtime);

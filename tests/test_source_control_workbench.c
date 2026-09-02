@@ -23,6 +23,10 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/contributions.h"
 #include "umicom/ui/view_presentation.h"
+/*
+ * Exercise verify kind and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void verify_kind(UmiUiWorkbench *workbench, const char *view_type, const char *pane_id, const char *expected)
 {
     UmiUiViewPresentation *presentation = calloc(1U, sizeof(*presentation)); UmiUiPropertySnapshot kind;
@@ -32,6 +36,10 @@ static void verify_kind(UmiUiWorkbench *workbench, const char *view_type, const 
     assert(kind.value.kind == UMI_UI_VALUE_STRING); assert(strcmp(kind.value.string_value, expected) == 0);
     free(presentation);
 }
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL; UmiUiWorkbench *workbench;

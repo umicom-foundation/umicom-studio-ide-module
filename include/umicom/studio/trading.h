@@ -29,13 +29,32 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio trading service data shared with callers of this public contract.
+ */
 typedef struct UmiStudioTradingService UmiStudioTradingService;
 
+/**
+ * Initialise studio trading service from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_trading_service_create(
     UmiStudioTradingService **out_service);
+/**
+ * Release or reset state held by studio trading service so the same storage can be reused
+ * safely.
+ */
 void umi_studio_trading_service_destroy(UmiStudioTradingService *service);
+/**
+ * Provide the studio trading service workspace operation used by this module and its
+ * client applications.
+ */
 UmiTradingWorkspace *umi_studio_trading_service_workspace(
     UmiStudioTradingService *service);
+/**
+ * Provide the studio trading service snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_trading_service_snapshot(
     UmiStudioTradingService *service,
     UmiTradingWorkspaceSnapshot *out_snapshot);

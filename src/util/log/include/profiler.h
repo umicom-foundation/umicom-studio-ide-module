@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/util/log/include/profiler.h
+ *
+ * PURPOSE:
+ *   Declare the profiler contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/log/include/profiler.h
  * PURPOSE: Tiny GTimer-based profiling helpers (scoped + manual)
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
  *---------------------------------------------------------------------------*/

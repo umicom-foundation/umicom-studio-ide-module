@@ -20,14 +20,34 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio helix agent filesystem action operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_helix_agent_filesystem_action(
     const char *target, UmiHelixAction *out_action);
+/**
+ * Provide the studio helix agent build action operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_agent_build_action(
     const char *target, UmiHelixAction *out_action);
+/**
+ * Provide the studio helix agent test action operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_agent_test_action(
     const char *target, UmiHelixAction *out_action);
+/**
+ * Provide the studio helix agent review action operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_helix_agent_review_action(
     const char *target, UmiHelixAction *out_action);
+/**
+ * Provide the studio helix agent source control action operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_helix_agent_source_control_action(
     const char *target, UmiHelixAction *out_action);
 

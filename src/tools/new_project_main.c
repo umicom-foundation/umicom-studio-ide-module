@@ -23,10 +23,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc,char **argv)
 {
     UmiStudioProjectTemplate kind=UMI_STUDIO_TEMPLATE_DESKTOP;char source[8192];UmiStatus status;
+    /* Apply this branch only when its contract condition is satisfied. */
     if(argc<2){fprintf(stderr,"Usage: umicom-studio-new-project <application-id> [desktop|editor|dashboard]\n");return EXIT_FAILURE;}
-    if(argc>2&&strcmp(argv[2],"editor")==0)kind=UMI_STUDIO_TEMPLATE_EDITOR;else if(argc>2&&strcmp(argv[2],"dashboard")==0)kind=UMI_STUDIO_TEMPLATE_DASHBOARD;
-    status=umi_studio_new_project_template(kind,argv[1],source,sizeof(source));if(status==UMI_STATUS_OK)fputs(source,stdout);return status==UMI_STATUS_OK?EXIT_SUCCESS:EXIT_FAILURE;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if(argc>2&&strcmp(argv[2],"editor")==0)kind=UMI_STUDIO_TEMPLATE_EDITOR;else /* Use the stable identifier comparison to choose the matching record or policy. */ if(argc>2&&strcmp(argv[2],"dashboard")==0)kind=UMI_STUDIO_TEMPLATE_DASHBOARD;
+    status=umi_studio_new_project_template(kind,argv[1],source,sizeof(source));/* Preserve the original failure result so the caller can respond to the correct cause. */ if(status==UMI_STATUS_OK)fputs(source,stdout);return status==UMI_STATUS_OK?EXIT_SUCCESS:EXIT_FAILURE;
 }

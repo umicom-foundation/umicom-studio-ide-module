@@ -29,6 +29,10 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio runtime catalogue populate operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_runtime_catalogue_populate(
     UmiStudioRuntimeManager *manager
 );

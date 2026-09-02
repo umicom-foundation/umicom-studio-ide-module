@@ -22,6 +22,9 @@
 extern "C" {
 #endif
 
+/**
+ * List the named studio vibe coding state values accepted by this public contract.
+ */
 typedef enum UmiStudioVibeCodingState {
     UMI_STUDIO_VIBE_CODING_IDLE = 0,
     UMI_STUDIO_VIBE_CODING_CONTEXT_READY = 1,
@@ -33,6 +36,10 @@ typedef enum UmiStudioVibeCodingState {
     UMI_STUDIO_VIBE_CODING_FAILED = 7
 } UmiStudioVibeCodingState;
 
+/**
+ * Represent the studio vibe coding session data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioVibeCodingSession {
     uint32_t struct_size;
     uint32_t api_version;
@@ -50,12 +57,20 @@ typedef struct UmiStudioVibeCodingSession {
     uint64_t revision;
 } UmiStudioVibeCodingSession;
 
+/**
+ * Provide the studio vibe coding prepare operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_vibe_coding_prepare(
     UmiStudioAiPlatform *platform,
     const char *request_id,
     const char *goal,
     const char *active_path,
     UmiStudioVibeCodingSession *out_session);
+/**
+ * Provide the studio vibe coding state text operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_vibe_coding_state_text(
     UmiStudioVibeCodingState state);
 

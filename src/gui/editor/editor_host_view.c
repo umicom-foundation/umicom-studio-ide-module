@@ -18,6 +18,10 @@
 
 #include <stdio.h>
 
+/*
+ * Provide the studio editor host view new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_editor_host_view_new(UmiStudioUi *ui)
 {
     GtkWidget *box;
@@ -25,6 +29,10 @@ GtkWidget *umi_studio_editor_host_view_new(UmiStudioUi *ui)
     GtkWidget *summary;
     size_t open_documents;
     char text[256];
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return NULL;
     open_documents = umi_document_store_count(
         umi_studio_services_documents(umi_studio_ui_services(ui)));

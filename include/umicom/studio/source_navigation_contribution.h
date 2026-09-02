@@ -27,6 +27,10 @@ extern "C" {
 
 #define UMI_STUDIO_SOURCE_NAVIGATION_CONTRIBUTION_API_VERSION 1U
 
+/**
+ * Represent the studio source navigation contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioSourceNavigationContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,9 +41,21 @@ typedef struct UmiStudioSourceNavigationContribution {
     int show_in_command_centre;
 } UmiStudioSourceNavigationContribution;
 
+/**
+ * Return the number of records represented by studio source navigation contribution
+ * without changing their state.
+ */
 size_t umi_studio_source_navigation_contribution_count(void);
+/**
+ * Find studio source navigation contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioSourceNavigationContribution *
 umi_studio_source_navigation_contribution_at(size_t index);
+/**
+ * Find studio source navigation contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioSourceNavigationContribution *
 umi_studio_source_navigation_contribution_find(
     const char *framework_command_id);

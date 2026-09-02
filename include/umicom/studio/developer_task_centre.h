@@ -31,8 +31,16 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio developer task centre data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioDeveloperTaskCentre UmiStudioDeveloperTaskCentre;
 
+/**
+ * Represent the studio developer task centre snapshot data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioDeveloperTaskCentreSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -45,21 +53,45 @@ typedef struct UmiStudioDeveloperTaskCentreSnapshot {
     int available;
 } UmiStudioDeveloperTaskCentreSnapshot;
 
+/**
+ * Initialise studio developer task centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_developer_task_centre_create(
     UmiDeveloperRuntime *runtime,
     UmiStudioDeveloperTaskCentre **out_centre);
+/**
+ * Release or reset state held by studio developer task centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_developer_task_centre_destroy(UmiStudioDeveloperTaskCentre *centre);
+/**
+ * Provide the studio developer task centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_developer_task_centre_snapshot(
     UmiStudioDeveloperTaskCentre *centre,
     UmiStudioDeveloperTaskCentreSnapshot *out_snapshot);
+/**
+ * Find studio developer task centre while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 UmiStatus umi_studio_developer_task_centre_at(
     UmiStudioDeveloperTaskCentre *centre,
     size_t index,
     UmiProjectTaskSnapshot *out_task);
+/**
+ * Provide the studio developer task centre submit operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_developer_task_centre_submit(
     UmiStudioDeveloperTaskCentre *centre,
     const UmiDeveloperTaskPlanRequest *request,
     UmiDeveloperTaskPlanSnapshot *out_plan);
+/**
+ * Provide the studio developer task centre runtime operation used by this module and its
+ * client applications.
+ */
 UmiDeveloperRuntime *umi_studio_developer_task_centre_runtime(
     UmiStudioDeveloperTaskCentre *centre);
 

@@ -28,11 +28,16 @@
 
 #include "umicom/studio/workspace_search_contribution.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     size_t position;
     assert(umi_studio_workspace_search_command_contribution_count() ==
            umi_editor_workspace_search_command_count());
+    /* Visit each bounded item once so every record receives the same rule. */
     for (position = 0U;
          position < umi_studio_workspace_search_command_contribution_count();
          ++position) {

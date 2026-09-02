@@ -16,17 +16,49 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio visual builder centre data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioVisualBuilderCentre UmiStudioVisualBuilderCentre;
+/**
+ * Represent the studio visual builder snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioVisualBuilderSnapshot {
     UmiDesignerBuilderSessionSnapshot builder;
     char active_pane[UMI_DECL_ID_CAPACITY];
     uint64_t revision;
 } UmiStudioVisualBuilderSnapshot;
+/**
+ * Initialise studio visual builder centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_visual_builder_centre_create(const char *application_id,UmiStudioVisualBuilderCentre **out_centre);
+/**
+ * Release or reset state held by studio visual builder centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_visual_builder_centre_destroy(UmiStudioVisualBuilderCentre *centre);
+/**
+ * Provide the studio visual builder centre session operation used by this module and its
+ * client applications.
+ */
 UmiDesignerBuilderSession *umi_studio_visual_builder_centre_session(UmiStudioVisualBuilderCentre *centre);
+/**
+ * Provide the studio visual builder centre activate operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_visual_builder_centre_activate(UmiStudioVisualBuilderCentre *centre,const char *pane_id);
+/**
+ * Provide the studio visual builder centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_visual_builder_centre_snapshot(const UmiStudioVisualBuilderCentre *centre,UmiStudioVisualBuilderSnapshot *out_snapshot);
+/**
+ * Provide the studio visual builder capability id operation used by this module and its
+ * client applications.
+ */
 const char *umi_studio_visual_builder_capability_id(void);
 #ifdef __cplusplus
 }

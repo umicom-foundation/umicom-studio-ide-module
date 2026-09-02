@@ -23,7 +23,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Provide the studio browser open operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_browser_open(UmiStudioWebPlatform *platform,const char *url);
+/**
+ * Provide the studio browser current operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_browser_current(const UmiStudioWebPlatform *platform);
 #ifdef __cplusplus
 }

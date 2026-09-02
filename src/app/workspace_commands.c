@@ -17,18 +17,31 @@
 #include "umicom/studio/workspace_catalogue.h"
 #include "umicom/studio/workspace_groups.h"
 #include "umicom/studio/workspace_layouts.h"
+/*
+ * Provide the studio workspace seed operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workspace_seed(UmiStudioProfessionalWorkspace *workspace)
 {
     UmiStatus status;
-    status = umi_studio_workspace_catalogue_seed(workspace); if (status != UMI_STATUS_OK) return status;
-    status = umi_studio_workspace_layouts_seed(workspace); if (status != UMI_STATUS_OK) return status;
-    status = umi_studio_workspace_groups_seed(workspace); if (status != UMI_STATUS_OK) return status;
+    status = umi_studio_workspace_catalogue_seed(workspace); /* Preserve the original failure result so the caller can respond to the correct cause. */ if (status != UMI_STATUS_OK) return status;
+    status = umi_studio_workspace_layouts_seed(workspace); /* Preserve the original failure result so the caller can respond to the correct cause. */ if (status != UMI_STATUS_OK) return status;
+    status = umi_studio_workspace_groups_seed(workspace); /* Preserve the original failure result so the caller can respond to the correct cause. */ if (status != UMI_STATUS_OK) return status;
     return umi_studio_workspace_theme_apply(workspace,UMI_STUDIO_WORKSPACE_THEME_DARK,UMI_UI_DENSITY_COMPACT,1.0);
 }
+/*
+ * Perform studio workspace through the module contract so client applications do not
+ * duplicate its policy.
+ */
 UmiStatus umi_studio_workspace_execute(UmiStudioProfessionalWorkspace *workspace,UmiStudioWorkspaceCommand command)
 {
     UmiUiWorkspaceCustomisation *model = umi_studio_professional_workspace_model(workspace);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (model == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Select the behaviour associated with the requested command or state value. */
     switch (command) {
         case UMI_STUDIO_WORKSPACE_COMMAND_SEED: return umi_studio_workspace_seed(workspace);
         case UMI_STUDIO_WORKSPACE_COMMAND_ACTIVATE_DEVELOP: return umi_ui_workspace_customisation_activate(model,"develop");
@@ -55,6 +68,10 @@ UmiStatus umi_studio_workspace_apply_panel_settings(
 {
     UmiUiWorkspaceCustomisation *model =
         umi_studio_professional_workspace_model(workspace);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (model == NULL || settings == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

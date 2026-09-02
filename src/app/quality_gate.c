@@ -20,4 +20,8 @@
  * responsibility at a time and test it independently.
  */
 #include "umicom/studio/quality_gate.h"
-UmiStatus umi_studio_quality_gate(const char *root,int *passed,UmiCodeGuardSummary *summary){UmiStudioCodeGuard *g=NULL;UmiCodeGuardProfile p=umi_codeguard_profile_ci();UmiStatus s;if(root==NULL||passed==NULL||summary==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_studio_codeguard_create(root,&g);if(s==UMI_STATUS_OK)s=umi_studio_codeguard_scan(g,&p);if(s==UMI_STATUS_OK){*summary=umi_studio_codeguard_summary(g);*passed=!umi_codeguard_summary_failed(summary,p.fail_on)&&summary->architecture==0U;}umi_studio_codeguard_destroy(g);return s;}
+/*
+ * Provide the studio quality gate operation used by this module and its client
+ * applications.
+ */
+UmiStatus umi_studio_quality_gate(const char *root,int *passed,UmiCodeGuardSummary *summary){UmiStudioCodeGuard *g=NULL;UmiCodeGuardProfile p=umi_codeguard_profile_ci();UmiStatus s;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(root==NULL||passed==NULL||summary==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_studio_codeguard_create(root,&g);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(s==UMI_STATUS_OK)s=umi_studio_codeguard_scan(g,&p);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(s==UMI_STATUS_OK){*summary=umi_studio_codeguard_summary(g);*passed=!umi_codeguard_summary_failed(summary,p.fail_on)&&summary->architecture==0U;}umi_studio_codeguard_destroy(g);return s;}

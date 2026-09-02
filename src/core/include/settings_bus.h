@@ -1,5 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/include/settings_bus.h
+ *
+ * PURPOSE:
+ *   Declare the settings bus contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/settings_bus.h
  * PURPOSE: Lightweight settings signal bus
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

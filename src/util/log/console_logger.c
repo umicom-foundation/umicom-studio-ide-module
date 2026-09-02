@@ -27,6 +27,10 @@
  * NOTE: UI-thread ownership — do not touch from worker threads. */
 static GtkTextView *g_console_view = NULL;
 
+/*
+ * Provide the ustudio console log bind operation used by this module and its client
+ * applications.
+ */
 void
 ustudio_console_log_bind(GtkTextView *output_view)
 {
@@ -34,9 +38,14 @@ ustudio_console_log_bind(GtkTextView *output_view)
     g_console_view = output_view;  /* No ref taken; lifetime managed by UI code */
 }
 
+/*
+ * Provide the ustudio console log line operation used by this module and its client
+ * applications.
+ */
 void
 ustudio_console_log_line(const char *line)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!g_console_view || !line) {
         return;                    /* No view bound or no text to append: nothing to do */
     }

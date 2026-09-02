@@ -37,6 +37,7 @@ umi_profiler_start(UmiProfiler *p, const char *label)
     g_timer_start(p->timer);                        /* Ensure timer is running */
 }
 
+/* Provide the profiler stop ms operation used by this module and its client applications. */
 double
 umi_profiler_stop_ms(UmiProfiler *p)
 {

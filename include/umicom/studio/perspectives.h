@@ -32,7 +32,14 @@ extern "C" {
 #define UMI_STUDIO_PERSPECTIVE_DESIGNER "studio.perspective.designer"
 #define UMI_STUDIO_PERSPECTIVE_RELEASE "studio.perspective.release"
 
+/**
+ * Add studio perspectives only after its inputs and available capacity have been checked.
+ */
 UmiStatus umi_studio_perspectives_register(UmiUiWorkbench *workbench);
+/**
+ * Return the number of records represented by studio perspective definition without
+ * changing their state.
+ */
 size_t umi_studio_perspective_definition_count(void);
 
 #ifdef __cplusplus

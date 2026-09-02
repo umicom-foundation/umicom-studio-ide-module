@@ -16,6 +16,10 @@
 
 #include "umicom/studio/toolchain_centre.h"
 
+/*
+ * Exercise make profile and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void make_profile(UmiToolchainProfile *profile,
                          const char *id,
                          UmiToolKind compiler)
@@ -39,6 +43,10 @@ static void make_profile(UmiToolchainProfile *profile,
         UMI_TOOL_VALIDATED;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioToolchainCentre *centre = NULL;
@@ -49,8 +57,10 @@ int main(void)
 
     make_profile(&gcc_profile, "fixture-gcc", UMI_TOOL_GCC);
     make_profile(&clang_profile, "fixture-clang", UMI_TOOL_CLANG);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_toolchain_centre_create(&centre) != UMI_STATUS_OK)
         return EXIT_FAILURE;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_toolchain_catalogue_upsert_profile(
             umi_studio_toolchain_centre_catalogue(centre), &gcc_profile) !=
             UMI_STATUS_OK ||
@@ -66,6 +76,7 @@ int main(void)
     (void)strcpy(binding.profile_id, "fixture-gcc");
     (void)strcpy(binding.compilation_database,
                  "build/framework/compile_commands.json");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_toolchain_centre_bind_project(centre, &binding) !=
             UMI_STATUS_OK ||
         umi_studio_toolchain_centre_select_project(
@@ -74,6 +85,10 @@ int main(void)
         return EXIT_FAILURE;
     }
     selected = umi_studio_toolchain_centre_selected_profile(centre);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (selected == NULL || strcmp(selected->profile_id, "fixture-gcc") != 0) {
         umi_studio_toolchain_centre_destroy(centre);
         return EXIT_FAILURE;

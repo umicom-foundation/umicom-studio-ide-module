@@ -16,6 +16,10 @@
 #include <assert.h>
 #include <string.h>
 #include "operations_workspace_fixture.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioProfessionalWorkspace *workspace = umi_test_seeded_professional_workspace();

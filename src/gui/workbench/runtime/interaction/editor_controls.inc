@@ -26,15 +26,27 @@ static UmiDocumentCoordinator *runtime_documents(
         : NULL;
 }
 
+/*
+ * Provide the runtime editor update info operation used by this module and its client
+ * applications.
+ */
 static void runtime_editor_update_info(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiDocumentWorkingCopySnapshot active;
     char text[768];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->editor_info_label == NULL) return;
 
     (void)memset(&active, 0, sizeof(active));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime_documents(runtime) == NULL ||
         umi_document_coordinator_active_snapshot(
             runtime_documents(runtime),
@@ -62,6 +74,10 @@ static void runtime_editor_update_info(
         text);
 }
 
+/*
+ * Provide the runtime on editor undo operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_editor_undo(
     GtkButton *button,
     gpointer user_data)
@@ -72,12 +88,17 @@ static void runtime_on_editor_undo(
     (void)button;
 
     status = umi_document_coordinator_undo(runtime_documents(runtime));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
     }
     (void)runtime_refresh_services(runtime);
 }
 
+/*
+ * Provide the runtime on editor redo operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_editor_redo(
     GtkButton *button,
     gpointer user_data)
@@ -88,12 +109,17 @@ static void runtime_on_editor_redo(
     (void)button;
 
     status = umi_document_coordinator_redo(runtime_documents(runtime));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
     }
     (void)runtime_refresh_services(runtime);
 }
 
+/*
+ * Write runtime on editor in its stable representation and report capacity or input
+ * failures to the caller.
+ */
 static void runtime_on_editor_save(
     GtkButton *button,
     gpointer user_data)
@@ -104,12 +130,17 @@ static void runtime_on_editor_save(
     (void)button;
 
     status = runtime_document_save(runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
     }
     (void)runtime_refresh_services(runtime);
 }
 
+/*
+ * Find runtime on editor while leaving the underlying catalogue or model owned by this
+ * module.
+ */
 static void runtime_on_editor_find(
     GtkButton *button,
     gpointer user_data)
@@ -122,10 +153,18 @@ static void runtime_on_editor_find(
     UmiStatus status;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->editor_find_entry == NULL) return;
 
     needle = gtk_editable_get_text(
         GTK_EDITABLE(runtime->editor_find_entry));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (needle == NULL || needle[0] == '\0') return;
 
     status = umi_document_coordinator_find(
@@ -133,6 +172,7 @@ static void runtime_on_editor_find(
         needle,
         &offset);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)snprintf(
             message,
@@ -140,11 +180,15 @@ static void runtime_on_editor_find(
             "Found at document offset %zu.",
             offset);
         runtime_show_notification(runtime, message);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_show_notification(runtime, umi_status_text(status));
     }
 }
 
+/*
+ * Provide the runtime on editor replace operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_editor_replace(
     GtkButton *button,
     gpointer user_data)
@@ -158,6 +202,10 @@ static void runtime_on_editor_replace(
     UmiStatus status;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL ||
         runtime->editor_find_entry == NULL ||
         runtime->editor_replace_entry == NULL) {
@@ -169,6 +217,10 @@ static void runtime_on_editor_replace(
     replacement = gtk_editable_get_text(
         GTK_EDITABLE(runtime->editor_replace_entry));
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (needle == NULL || needle[0] == '\0' ||
         replacement == NULL) {
         return;
@@ -180,6 +232,7 @@ static void runtime_on_editor_replace(
         replacement,
         &offset);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)snprintf(
             message,
@@ -187,13 +240,17 @@ static void runtime_on_editor_replace(
             "Replaced occurrence at offset %zu.",
             offset);
         runtime_show_notification(runtime, message);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_show_notification(runtime, umi_status_text(status));
     }
 
     (void)runtime_refresh_services(runtime);
 }
 
+/*
+ * Provide the runtime on editor goto operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_editor_goto(
     GtkButton *button,
     gpointer user_data)
@@ -208,18 +265,28 @@ static void runtime_on_editor_goto(
     UmiStatus status;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->editor_goto_entry == NULL) return;
 
     line_text = gtk_editable_get_text(
         GTK_EDITABLE(runtime->editor_goto_entry));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (line_text == NULL || line_text[0] == '\0') return;
 
     line = strtoul(line_text, &end, 10);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (end == line_text || *end != '\0' || line == 0UL) {
         runtime_show_notification(runtime, "Enter a valid one-based line number.");
         return;
     }
 #if SIZE_MAX < ULONG_MAX
+    /* Apply this branch only when its contract condition is satisfied. */
     if (line > (unsigned long)SIZE_MAX) {
         runtime_show_notification(runtime, "Line number exceeds this platform's addressable range.");
         return;
@@ -231,6 +298,7 @@ static void runtime_on_editor_goto(
         (size_t)line,
         &offset);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)snprintf(
             message,
@@ -239,11 +307,15 @@ static void runtime_on_editor_goto(
             line,
             offset);
         runtime_show_notification(runtime, message);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_show_notification(runtime, umi_status_text(status));
     }
 }
 
+/*
+ * Provide the runtime on editor external check operation used by this module and its
+ * client applications.
+ */
 static void runtime_on_editor_external_check(
     GtkButton *button,
     gpointer user_data)
@@ -258,17 +330,22 @@ static void runtime_on_editor_external_check(
         runtime_documents(runtime),
         &changed);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         runtime_show_notification(
             runtime,
             changed
                 ? "The active file changed outside Studio."
                 : "No external file change detected.");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_show_notification(runtime, umi_status_text(status));
     }
 }
 
+/*
+ * Provide the runtime build editor command bar operation used by this module and its
+ * client applications.
+ */
 static GtkWidget *runtime_build_editor_command_bar(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -282,6 +359,10 @@ static GtkWidget *runtime_build_editor_command_bar(
     GtkWidget *external;
     GtkWidget *more;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return NULL;
 
     bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
@@ -299,6 +380,10 @@ static GtkWidget *runtime_build_editor_command_bar(
     external = gtk_button_new_with_label("External?");
     more = runtime_context_actions_expander(runtime, "editor");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bar == NULL ||
         runtime->editor_find_entry == NULL ||
         runtime->editor_replace_entry == NULL ||
@@ -362,6 +447,10 @@ static GtkWidget *runtime_build_editor_command_bar(
     gtk_box_append(GTK_BOX(bar), go_to);
     gtk_box_append(GTK_BOX(bar), external);
     gtk_box_append(GTK_BOX(bar), runtime->editor_info_label);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (more != NULL) gtk_box_append(GTK_BOX(bar), more);
 
     runtime_editor_update_info(runtime);

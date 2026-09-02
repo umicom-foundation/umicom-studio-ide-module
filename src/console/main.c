@@ -26,6 +26,10 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;
@@ -36,12 +40,14 @@ int main(void)
     char theme[UMI_SETTING_VALUE_CAPACITY];
     UmiStatus status = umi_studio_bootstrap_create(&bootstrap);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Create failed: %s\n", umi_status_text(status));
         return 1;
     }
 
     status = umi_studio_bootstrap_start(bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Start failed: %s\n", umi_status_text(status));
         umi_studio_bootstrap_destroy(bootstrap);
@@ -59,6 +65,7 @@ int main(void)
     (void)printf("Native command: umicom\n");
 
     status = umi_studio_workspace_layout_default(&layout);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)printf("Studio layout: %s\n", layout.name);
         (void)printf("Studio layout windows: %zu\n", layout.window_count);
@@ -66,6 +73,10 @@ int main(void)
 
     services = umi_studio_bootstrap_services(bootstrap);
     settings = umi_studio_services_settings(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (settings != NULL &&
         umi_settings_get_text(settings,
                               UMI_STUDIO_SETTING_UI_THEME,
@@ -77,6 +88,7 @@ int main(void)
 
     {
         UmiStudioMessageReport message_report;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (umi_studio_messages_report(services, &message_report) == UMI_STATUS_OK) {
             (void)printf("Message schemas: %zu\n", message_report.schemas);
             (void)printf("Message topics: %zu\n", message_report.topics);
@@ -87,6 +99,7 @@ int main(void)
 
     {
         UmiStudioWorkspaceSnapshot workspace;
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_studio_workspace_snapshot(
                 umi_studio_bootstrap_services(bootstrap),
                 &workspace) == UMI_STATUS_OK) {
@@ -101,6 +114,7 @@ int main(void)
         umi_studio_bootstrap_services(bootstrap),
         &summary
     );
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)printf("Retained diagnostics: %zu\n", summary.retained_count);
         (void)printf("Total diagnostics received: %" PRIu64 "\n",

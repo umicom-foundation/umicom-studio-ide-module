@@ -16,6 +16,10 @@
 
 #include "project_explorer_view.h"
 
+/*
+ * Provide the studio project explorer view new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_project_explorer_view_new(UmiStudioUi *ui)
 {
     GtkWidget *box;
@@ -27,6 +31,10 @@ GtkWidget *umi_studio_project_explorer_view_new(UmiStudioUi *ui)
     const char *root_text;
     gchar *summary_text;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) {
         return NULL;
     }

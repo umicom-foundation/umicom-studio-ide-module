@@ -22,19 +22,34 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio bundle designer data shared with callers of this public contract.
+ */
 typedef struct UmiStudioBundleDesigner {
     UmiPortableBundlePlan plan;
 } UmiStudioBundleDesigner;
 
+/**
+ * Initialise studio bundle designer from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_bundle_designer_init(
     UmiStudioBundleDesigner *designer,
     const UmiPackageManifest *manifest,
     const char *platform_id,
     const char *staging_root,
     const char *output_path);
+/**
+ * Provide the studio bundle designer apply dependencies operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_bundle_designer_apply_dependencies(
     UmiStudioBundleDesigner *designer,
     const UmiStudioDependencyCentre *dependencies);
+/**
+ * Provide the studio bundle designer ready operation used by this module and its client
+ * applications.
+ */
 int umi_studio_bundle_designer_ready(
     const UmiStudioBundleDesigner *designer);
 

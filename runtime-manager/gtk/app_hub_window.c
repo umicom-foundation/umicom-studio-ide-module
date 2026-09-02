@@ -46,15 +46,22 @@ typedef struct AppHubWindow {
     char selected_id[UMI_INTEGRATION_ID_CAPACITY];
 } AppHubWindow;
 
+/* Provide the refresh list operation used by this module and its client applications. */
 static void refresh_list(AppHubWindow *hub);
 
+/* Provide the set label operation used by this module and its client applications. */
 static void set_label(GtkWidget *widget, const char *text)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (widget != NULL) {
         gtk_label_set_text(GTK_LABEL(widget), text != NULL ? text : "");
     }
 }
 
+/* Provide the make title label operation used by this module and its client applications. */
 static GtkWidget *make_title_label(const char *text)
 {
     GtkWidget *label = gtk_label_new(text);
@@ -63,6 +70,7 @@ static GtkWidget *make_title_label(const char *text)
     return label;
 }
 
+/* Provide the make meta label operation used by this module and its client applications. */
 static GtkWidget *make_meta_label(const char *text)
 {
     GtkWidget *label = gtk_label_new(text);
@@ -72,15 +80,24 @@ static GtkWidget *make_meta_label(const char *text)
     return label;
 }
 
+/* Provide the clear list box operation used by this module and its client applications. */
 static void clear_list_box(GtkWidget *list_box)
 {
     GtkWidget *child;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (list_box == NULL) {
         return;
     }
 
     child = gtk_widget_get_first_child(list_box);
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (child != NULL) {
         GtkWidget *next = gtk_widget_get_next_sibling(child);
         gtk_list_box_remove(GTK_LIST_BOX(list_box), child);
@@ -88,11 +105,13 @@ static void clear_list_box(GtkWidget *list_box)
     }
 }
 
+/* Provide the update summary operation used by this module and its client applications. */
 static void update_summary(AppHubWindow *hub)
 {
     UmiStudioRuntimeSnapshot snapshot;
     char text[256];
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_runtime_snapshot_build(&hub->manager, &snapshot) !=
         UMI_STATUS_OK) {
         return;
@@ -108,6 +127,7 @@ static void update_summary(AppHubWindow *hub)
     set_label(hub->summary_label, text);
 }
 
+/* Provide the update details operation used by this module and its client applications. */
 static void update_details(AppHubWindow *hub,
                            const UmiStudioRuntimeEntry *entry)
 {
@@ -117,6 +137,10 @@ static void update_details(AppHubWindow *hub,
     size_t index;
     UmiIntegrationApplicationState state;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (hub == NULL || entry == NULL) {
         return;
     }
@@ -144,12 +168,14 @@ static void update_details(AppHubWindow *hub,
     set_label(hub->detail_description, entry->description);
 
     capabilities[0] = '\0';
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < entry->application.capability_count; ++index) {
         int written = snprintf(capabilities + used,
                                sizeof(capabilities) - used,
                                "%s%s",
                                index == 0U ? "" : "\n",
                                entry->application.capabilities[index]);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (written < 0 ||
             (size_t)written >= sizeof(capabilities) - used) {
             break;
@@ -161,6 +187,7 @@ static void update_details(AppHubWindow *hub,
     set_label(hub->plan_result, "Select Plan Launch to inspect readiness.");
 }
 
+/* Provide the on row activated operation used by this module and its client applications. */
 static void on_row_activated(GtkListBox *box,
                              GtkListBoxRow *row,
                              gpointer user_data)
@@ -172,6 +199,10 @@ static void on_row_activated(GtkListBox *box,
     (void)box;
 
     application_id = g_object_get_data(G_OBJECT(row), "umicom-application-id");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (application_id == NULL) {
         return;
     }
@@ -181,6 +212,10 @@ static void on_row_activated(GtkListBox *box,
     update_details(hub, entry);
 }
 
+/*
+ * Provide the make application row operation used by this module and its client
+ * applications.
+ */
 static GtkWidget *make_application_row(AppHubWindow *hub,
                                        const UmiStudioRuntimeEntry *entry)
 {
@@ -235,6 +270,7 @@ static GtkWidget *make_application_row(AppHubWindow *hub,
     return row;
 }
 
+/* Provide the refresh list operation used by this module and its client applications. */
 static void refresh_list(AppHubWindow *hub)
 {
     size_t index;
@@ -256,12 +292,14 @@ static void refresh_list(AppHubWindow *hub)
             ? (UmiStudioRuntimeCategory)selected_category
             : UMI_STUDIO_RUNTIME_CATEGORY_ALL;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < hub->manager.count; ++index) {
         const UmiStudioRuntimeEntry *entry = &hub->manager.entries[index];
         UmiIntegrationApplicationState state =
             umi_studio_runtime_manager_state(&hub->manager,
                                              entry->application.id);
 
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (umi_studio_runtime_filter_match(&hub->filter, entry, state)) {
             gtk_list_box_append(GTK_LIST_BOX(hub->list_box),
                                 make_application_row(hub, entry));
@@ -271,12 +309,17 @@ static void refresh_list(AppHubWindow *hub)
     update_summary(hub);
 }
 
+/* Provide the on filter changed operation used by this module and its client applications. */
 static void on_filter_changed(GtkWidget *widget, gpointer user_data)
 {
     (void)widget;
     refresh_list((AppHubWindow *)user_data);
 }
 
+/*
+ * Provide the on favourite clicked operation used by this module and its client
+ * applications.
+ */
 static void on_favourite_clicked(GtkButton *button, gpointer user_data)
 {
     AppHubWindow *hub = (AppHubWindow *)user_data;
@@ -284,12 +327,17 @@ static void on_favourite_clicked(GtkButton *button, gpointer user_data)
 
     (void)button;
 
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (hub->selected_id[0] == '\0') {
         set_label(hub->plan_result, "Select an application first.");
         return;
     }
 
     entry = umi_studio_runtime_manager_find(&hub->manager, hub->selected_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (entry == NULL) {
         return;
     }
@@ -301,6 +349,7 @@ static void on_favourite_clicked(GtkButton *button, gpointer user_data)
     refresh_list(hub);
 }
 
+/* Provide the on plan clicked operation used by this module and its client applications. */
 static void on_plan_clicked(GtkButton *button, gpointer user_data)
 {
     AppHubWindow *hub = (AppHubWindow *)user_data;
@@ -310,6 +359,7 @@ static void on_plan_clicked(GtkButton *button, gpointer user_data)
 
     (void)button;
 
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (hub->selected_id[0] == '\0') {
         set_label(hub->plan_result, "Select an application first.");
         return;
@@ -318,6 +368,7 @@ static void on_plan_clicked(GtkButton *button, gpointer user_data)
     status = umi_studio_runtime_plan_launch(&hub->manager,
                                             hub->selected_id,
                                             &plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) {
         set_label(hub->plan_result, "Unable to build launch plan.");
         return;
@@ -332,6 +383,7 @@ static void on_plan_clicked(GtkButton *button, gpointer user_data)
     set_label(hub->plan_result, text);
 }
 
+/* Provide the build details operation used by this module and its client applications. */
 static GtkWidget *build_details(AppHubWindow *hub)
 {
     GtkWidget *box;
@@ -384,6 +436,10 @@ static GtkWidget *build_details(AppHubWindow *hub)
     return box;
 }
 
+/*
+ * Provide the studio app hub window new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_app_hub_window_new(GtkApplication *application)
 {
     AppHubWindow *hub;
@@ -405,6 +461,10 @@ GtkWidget *umi_studio_app_hub_window_new(GtkApplication *application)
         NULL
     };
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (application == NULL) {
         return NULL;
     }
@@ -413,6 +473,7 @@ GtkWidget *umi_studio_app_hub_window_new(GtkApplication *application)
     umi_studio_runtime_manager_init(&hub->manager);
     umi_studio_runtime_filter_init(&hub->filter);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_runtime_catalogue_populate(&hub->manager) != UMI_STATUS_OK) {
         g_free(hub);
         return NULL;

@@ -21,16 +21,31 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio installer centre data shared with callers of this public contract.
+ */
 typedef struct UmiStudioInstallerCentre {
     UmiInstallerPlan windows;
     UmiInstallerPlan linux;
 } UmiStudioInstallerCentre;
 
+/**
+ * Initialise studio installer centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_installer_centre_init(UmiStudioInstallerCentre *centre,
                                                const char *version);
+/**
+ * Provide the studio installer centre plan operation used by this module and its client
+ * applications.
+ */
 UmiInstallerPlan *umi_studio_installer_centre_plan(
     UmiStudioInstallerCentre *centre,
     UmiInstallerPlatform platform);
+/**
+ * Provide the studio installer centre ready operation used by this module and its client
+ * applications.
+ */
 int umi_studio_installer_centre_ready(
     const UmiStudioInstallerCentre *centre);
 

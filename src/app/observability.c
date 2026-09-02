@@ -20,6 +20,10 @@
 
 #include "umicom/studio/operations.h"
 
+/*
+ * Provide the studio observability report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_observability_report(
     UmiStudioServices *services,
     UmiStudioObservabilityReport *out_report)
@@ -28,10 +32,18 @@ UmiStatus umi_studio_observability_report(
     UmiAuditLog *audit;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     operations = umi_studio_services_operations(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (operations == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -43,6 +55,7 @@ UmiStatus umi_studio_observability_report(
         umi_studio_operations_readiness(operations),
         umi_studio_operations_events(operations),
         &out_report->snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -61,6 +74,10 @@ UmiStatus umi_studio_observability_report(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio observability event operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_observability_event(UmiStudioServices *services,
                                          const char *category,
                                          const char *message,
@@ -72,10 +89,18 @@ UmiStatus umi_studio_observability_event(UmiStudioServices *services,
     UmiStatus status;
     uint64_t now;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || category == NULL || message == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     operations = umi_studio_services_operations(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (operations == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -88,6 +113,7 @@ UmiStatus umi_studio_observability_event(UmiStudioServices *services,
     status = umi_operational_event_log_append(
         umi_studio_operations_events(operations),
         &event);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_metrics_counter_add(
             umi_studio_operations_metrics(operations),
@@ -98,6 +124,10 @@ UmiStatus umi_studio_observability_event(UmiStudioServices *services,
     return status;
 }
 
+/*
+ * Provide the studio observability begin operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_observability_begin(UmiStudioServices *services,
                                          const char *name,
                                          uint64_t trace_id,
@@ -109,16 +139,25 @@ UmiStatus umi_studio_observability_begin(UmiStudioServices *services,
     UmiStatus status;
     uint64_t now;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || name == NULL || out_scope == NULL ||
         out_span_id == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     operations = umi_studio_services_operations(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (operations == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
     now = umi_studio_operations_now(operations);
     status = umi_profiler_begin(name, now, out_scope);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -130,6 +169,10 @@ UmiStatus umi_studio_observability_begin(UmiStudioServices *services,
                                 out_span_id);
 }
 
+/*
+ * Provide the studio observability end operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_observability_end(UmiStudioServices *services,
                                        const UmiProfileScope *scope,
                                        uint64_t span_id,
@@ -139,10 +182,18 @@ UmiStatus umi_studio_observability_end(UmiStudioServices *services,
     UmiStatus status;
     uint64_t now;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || scope == NULL || span_id == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     operations = umi_studio_services_operations(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (operations == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -150,6 +201,7 @@ UmiStatus umi_studio_observability_end(UmiStudioServices *services,
     status = umi_profiler_end(umi_studio_operations_profiler(operations),
                               scope,
                               now);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }

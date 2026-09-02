@@ -51,6 +51,7 @@ static void on_file_changed(GFileMonitor *mon,
                             GFileMonitorEvent event,
                             gpointer u);
 
+/* Provide the pathwatch new operation used by this module and its client applications. */
 UmiPathWatcher *umi_pathwatch_new(UmiPathEvt cb, gpointer user)
 {
   UmiPathWatcher *w = g_new0(UmiPathWatcher, 1);
@@ -60,8 +61,10 @@ UmiPathWatcher *umi_pathwatch_new(UmiPathEvt cb, gpointer user)
   return w;
 }
 
+/* Add pathwatch only after its inputs and available capacity have been checked. */
 gboolean umi_pathwatch_add(UmiPathWatcher *w, const char *dir_path)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!w || !dir_path || !*dir_path) return FALSE;
 
   g_autoptr(GFile) gf = g_file_new_for_path(dir_path);
@@ -71,7 +74,9 @@ gboolean umi_pathwatch_add(UmiPathWatcher *w, const char *dir_path)
   GFileMonitor *mon = g_file_monitor_directory(
       gf, G_FILE_MONITOR_WATCH_MOVES, NULL, &err);
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!mon) {
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (err) { g_warning("pathwatch: %s", err->message); g_error_free(err); }
     return FALSE;
   }
@@ -81,6 +86,7 @@ gboolean umi_pathwatch_add(UmiPathWatcher *w, const char *dir_path)
   return TRUE;
 }
 
+/* Provide the on file changed operation used by this module and its client applications. */
 static void on_file_changed(GFileMonitor *mon,
                             GFile *file,
                             GFile *other_file,
@@ -89,17 +95,23 @@ static void on_file_changed(GFileMonitor *mon,
 {
   (void)mon; (void)other_file; (void)event;
   UmiPathWatcher *w = (UmiPathWatcher*)u;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!w) return;
 
   g_autofree char *p = g_file_get_path(file);
+  /* Apply this branch only when its contract condition is satisfied. */
   if (w->cb) w->cb(w->user, p ? p : "(unknown)");
 }
 
+/* Provide the pathwatch stop operation used by this module and its client applications. */
 void umi_pathwatch_stop(UmiPathWatcher *w)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!w) return;
+  /* Visit each bounded item once so every record receives the same rule. */
   for (guint i = 0; i < w->monitors->len; ++i) {
     GFileMonitor *m = g_ptr_array_index(w->monitors, i);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!m) continue;
     g_signal_handlers_disconnect_by_data(m, w);
     /* element free func will unref in g_ptr_array_set_size below */
@@ -107,8 +119,10 @@ void umi_pathwatch_stop(UmiPathWatcher *w)
   g_ptr_array_set_size(w->monitors, 0);
 }
 
+/* Provide the pathwatch free operation used by this module and its client applications. */
 void umi_pathwatch_free(UmiPathWatcher *w)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!w) return;
   umi_pathwatch_stop(w);
   g_ptr_array_free(w->monitors, TRUE);

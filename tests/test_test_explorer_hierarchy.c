@@ -17,6 +17,10 @@
 
 #include "umicom/studio/test_explorer_centre.h"
 
+/*
+ * Exercise add item and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void add_item(UmiTestPlatformItemRegistry *items,
                      const char *id,
                      const char *parent,
@@ -33,6 +37,10 @@ static void add_item(UmiTestPlatformItemRegistry *items,
            UMI_STATUS_OK);
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioTestService *tests = NULL;

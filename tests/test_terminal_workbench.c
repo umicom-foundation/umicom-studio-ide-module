@@ -23,6 +23,10 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/contributions.h"
 
+/*
+ * Exercise assert view kind and return a clear result when the behaviour no longer matches
+ * its contract.
+ */
 static void assert_view_kind(UmiUiWorkbench *workbench,
                              const char *view_type,
                              const char *pane_id,
@@ -40,6 +44,10 @@ static void assert_view_kind(UmiUiWorkbench *workbench,
     umi_ui_view_model_destroy(view);
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;

@@ -15,5 +15,9 @@
 #ifndef UMICOM_STUDIO_WORKSPACE_CATALOGUE_H
 #define UMICOM_STUDIO_WORKSPACE_CATALOGUE_H
 #include "umicom/studio/professional_workspace.h"
+/**
+ * Provide the studio workspace catalogue seed operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workspace_catalogue_seed(UmiStudioProfessionalWorkspace *workspace);
 #endif

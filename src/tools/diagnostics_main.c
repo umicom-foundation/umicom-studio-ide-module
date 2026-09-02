@@ -27,6 +27,7 @@
 
 #define UMI_STUDIO_DIAGNOSTICS_DEFAULT_LIMIT 50U
 
+/* Provide the print usage operation used by this module and its client applications. */
 static void print_usage(const char *program)
 {
     (void)printf(
@@ -38,15 +39,28 @@ static void print_usage(const char *program)
     );
 }
 
+/*
+ * Provide the text equals ignore case operation used by this module and its client
+ * applications.
+ */
 static int text_equals_ignore_case(const char *left, const char *right)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (left == NULL || right == NULL) {
         return 0;
     }
 
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (*left != '\0' && *right != '\0') {
         unsigned char left_character = (unsigned char)*left;
         unsigned char right_character = (unsigned char)*right;
+        /* Apply this branch only when its contract condition is satisfied. */
         if (tolower(left_character) != tolower(right_character)) {
             return 0;
         }
@@ -57,42 +71,54 @@ static int text_equals_ignore_case(const char *left, const char *right)
     return *left == '\0' && *right == '\0';
 }
 
+/* Provide the parse severity operation used by this module and its client applications. */
 static int parse_severity(const char *text,
                           UmiDiagnosticSeverity *out_severity)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_severity == NULL) {
         return 0;
     }
 
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (text_equals_ignore_case(text, "trace")) {
         *out_severity = UMI_DIAGNOSTIC_TRACE;
-    } else if (text_equals_ignore_case(text, "info")) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (text_equals_ignore_case(text, "info")) {
         *out_severity = UMI_DIAGNOSTIC_INFO;
-    } else if (text_equals_ignore_case(text, "warning") ||
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (text_equals_ignore_case(text, "warning") ||
                text_equals_ignore_case(text, "warn")) {
         *out_severity = UMI_DIAGNOSTIC_WARNING;
-    } else if (text_equals_ignore_case(text, "error")) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (text_equals_ignore_case(text, "error")) {
         *out_severity = UMI_DIAGNOSTIC_ERROR;
-    } else if (text_equals_ignore_case(text, "fatal")) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (text_equals_ignore_case(text, "fatal")) {
         *out_severity = UMI_DIAGNOSTIC_FATAL;
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         return 0;
     }
 
     return 1;
 }
 
+/* Provide the parse limit operation used by this module and its client applications. */
 static int parse_limit(const char *text, size_t *out_limit)
 {
     char *end = NULL;
     unsigned long long value;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (text == NULL || out_limit == NULL || *text == '\0') {
         return 0;
     }
 
     errno = 0;
     value = strtoull(text, &end, 10);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (errno != 0 || end == text || *end != '\0' || value > SIZE_MAX) {
         return 0;
     }
@@ -101,12 +127,17 @@ static int parse_limit(const char *text, size_t *out_limit)
     return 1;
 }
 
+/*
+ * Provide the severity is at least operation used by this module and its client
+ * applications.
+ */
 static int severity_is_at_least(UmiDiagnosticSeverity severity,
                                 UmiDiagnosticSeverity minimum)
 {
     return (int)severity >= (int)minimum;
 }
 
+/* Provide the print summary operation used by this module and its client applications. */
 static void print_summary(const UmiDiagnosticStoreSummary *summary)
 {
     (void)printf(
@@ -128,6 +159,7 @@ static void print_summary(const UmiDiagnosticStoreSummary *summary)
     );
 }
 
+/* Provide the print records operation used by this module and its client applications. */
 static UmiStatus print_records(UmiStudioServices *services,
                                UmiDiagnosticSeverity minimum,
                                size_t limit)
@@ -137,6 +169,7 @@ static UmiStatus print_records(UmiStudioServices *services,
     size_t skip;
     size_t index;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < count; ++index) {
         UmiDiagnosticRecord record;
         UmiStatus status = umi_studio_diagnostics_record_at(
@@ -144,9 +177,11 @@ static UmiStatus print_records(UmiStudioServices *services,
             index,
             &record
         );
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (severity_is_at_least(record.severity, minimum)) {
             ++matching;
         }
@@ -154,6 +189,7 @@ static UmiStatus print_records(UmiStudioServices *services,
 
     skip = matching > limit ? matching - limit : 0U;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < count; ++index) {
         UmiDiagnosticRecord record;
         UmiStatus status = umi_studio_diagnostics_record_at(
@@ -161,12 +197,15 @@ static UmiStatus print_records(UmiStudioServices *services,
             index,
             &record
         );
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (!severity_is_at_least(record.severity, minimum)) {
             continue;
         }
+        /* Apply this branch only when its contract condition is satisfied. */
         if (skip > 0U) {
             --skip;
             continue;
@@ -185,6 +224,10 @@ static UmiStatus print_records(UmiStudioServices *services,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiDiagnosticSeverity minimum = UMI_DIAGNOSTIC_TRACE;
@@ -196,18 +239,23 @@ int main(int argc, char **argv)
     UmiDiagnosticStoreSummary summary;
     UmiStatus status;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 1; index < argc; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(argv[index], "--help") == 0 ||
             strcmp(argv[index], "-h") == 0) {
             print_usage(argv[0]);
             return 0;
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(argv[index], "--demo") == 0) {
             include_demo = 1;
             continue;
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(argv[index], "--min") == 0 && index + 1 < argc) {
             ++index;
+            /* Keep the operation inside its valid bounds before reading, writing or adding data. */
             if (!parse_severity(argv[index], &minimum)) {
                 (void)fprintf(stderr,
                               "Invalid severity: %s\n",
@@ -216,8 +264,10 @@ int main(int argc, char **argv)
             }
             continue;
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(argv[index], "--limit") == 0 && index + 1 < argc) {
             ++index;
+            /* Keep the operation inside its valid bounds before reading, writing or adding data. */
             if (!parse_limit(argv[index], &limit)) {
                 (void)fprintf(stderr,
                               "Invalid limit: %s\n",
@@ -233,6 +283,7 @@ int main(int argc, char **argv)
     }
 
     status = umi_studio_bootstrap_create(&bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "Studio create failed: %s\n",
@@ -241,6 +292,7 @@ int main(int argc, char **argv)
     }
 
     status = umi_studio_bootstrap_start(bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "Studio start failed: %s\n",
@@ -250,6 +302,7 @@ int main(int argc, char **argv)
     }
 
     services = umi_studio_bootstrap_services(bootstrap);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (include_demo) {
         (void)umi_studio_diagnostics_emit(
             services,
@@ -268,11 +321,13 @@ int main(int argc, char **argv)
     }
 
     status = umi_studio_diagnostics_summary(services, &summary);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         print_summary(&summary);
         status = print_records(services, minimum, limit);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "Diagnostics command failed: %s\n",

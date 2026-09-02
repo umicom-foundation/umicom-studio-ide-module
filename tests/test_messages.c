@@ -17,6 +17,10 @@
 
 #include <assert.h>
 
+/*
+ * Exercise receive and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static UmiStatus receive(const UmiMessageEnvelope *message, void *user_data)
 {
     size_t *count = (size_t *)user_data;
@@ -25,6 +29,10 @@ static UmiStatus receive(const UmiMessageEnvelope *message, void *user_data)
     return UMI_STATUS_OK;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;

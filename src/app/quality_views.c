@@ -146,7 +146,7 @@ UmiStatus umi_studio_quality_view_build(
             snapshot.documentation_failures,
             snapshot.documentation_function_percent,
             snapshot.documentation_decision_percent);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         length = snprintf(
             out_view->summary,
             sizeof(out_view->summary),

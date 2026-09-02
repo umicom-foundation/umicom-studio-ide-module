@@ -3,6 +3,22 @@
  * File: src/panes/problems/include/problem_list.h
  *
  * PURPOSE:
+ *   Declare the problem list contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/panes/problems/include/problem_list.h
+ *
+ * PURPOSE:
  *   Minimal model+view wrapper for displaying parsed diagnostics as a list.
  *   Kept UI-level but lightweight to avoid coupling parsers to widgets.
  *
@@ -39,11 +55,22 @@ typedef void (*UmiProblemActivateCb)(gpointer user, const char *file, int line, 
 
 /* Lifecycle */
 UmiProblemList *umi_problem_list_new(void);
+/**
+ * Provide the problem list new with cb operation used by this module and its client
+ * applications.
+ */
 UmiProblemList *umi_problem_list_new_with_cb(UmiProblemActivateCb cb, gpointer user);
+/**
+ * Provide the problem list free operation used by this module and its client applications.
+ */
 void            umi_problem_list_free(UmiProblemList *pl);
 
 /* Model / widget accessors */
 GtkWidget      *umi_problem_list_widget(UmiProblemList *pl);
+/**
+ * Provide the problem list model operation used by this module and its client
+ * applications.
+ */
 const void     *umi_problem_list_model(UmiProblemList *pl); /* for future: return underlying list */
 
 /* Data ops */

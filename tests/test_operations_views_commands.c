@@ -18,6 +18,10 @@
 #include <string.h>
 #include "operations_workspace_fixture.h"
 #include "umicom/studio/operations_views.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioOperationsCentre *centre = umi_test_seeded_operations_centre();

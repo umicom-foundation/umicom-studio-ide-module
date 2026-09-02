@@ -23,6 +23,10 @@
 extern "C" {
 #endif
 
+/**
+ * Add studio federated content only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_federated_content_register(
     UmiDesktopContentRuntime *runtime,
     UmiStudioServices *services);

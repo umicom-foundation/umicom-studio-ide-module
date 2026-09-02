@@ -20,6 +20,10 @@
 #include "umicom/studio/source_control.h"
 #include "umicom/vcs_ui/vcs_ui.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioSourceControlService *service = NULL;

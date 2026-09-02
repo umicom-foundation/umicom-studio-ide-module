@@ -21,6 +21,10 @@
 
 #include <assert.h>
 #include "umicom/studio/find_replace.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){
     UmiStudioFindReplace f;
     size_t count=0U;

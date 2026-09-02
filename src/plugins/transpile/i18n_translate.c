@@ -36,6 +36,7 @@
 static void
 set_err(char *errbuf, gsize errcap, const char *fmt, ...)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!errbuf || errcap == 0) return;
   va_list ap;
   va_start(ap, fmt);
@@ -43,6 +44,7 @@ set_err(char *errbuf, gsize errcap, const char *fmt, ...)
   va_end(ap);
 }
 
+/* Provide the translate text operation used by this module and its client applications. */
 gchar *
 umi_translate_text(const char *input_text,
                    const char *src_lang,
@@ -51,10 +53,13 @@ umi_translate_text(const char *input_text,
                    char *errbuf,
                    gsize errcap)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!cfg)           { set_err(errbuf, errcap, "cfg is NULL"); return NULL; }
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!dst_lang || !*dst_lang) {
     set_err(errbuf, errcap, "dst_lang is empty"); return NULL;
   }
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!input_text || !*input_text) {
     set_err(errbuf, errcap, "input text is empty"); return NULL;
   }
@@ -75,6 +80,7 @@ umi_translate_text(const char *input_text,
                                           input_text,              /* user text   */
                                           &out_text,               /* OUT: malloc'd */
                                           call_err, sizeof(call_err));
+  /* Preserve the original failure result so the caller can respond to the correct cause. */
   if (!ok) {
     set_err(errbuf, errcap, "%s", call_err[0] ? call_err : "translation failed");
     return NULL;

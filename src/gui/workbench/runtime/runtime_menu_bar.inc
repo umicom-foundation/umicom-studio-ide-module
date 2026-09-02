@@ -32,6 +32,10 @@ static void runtime_on_menu_item_clicked(
     UmiStudioRuntimeBindings *bindings;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || contribution_id == NULL ||
         runtime->runtime_bootstrap == NULL) {
         return;
@@ -39,6 +43,10 @@ static void runtime_on_menu_item_clicked(
 
     bindings = umi_studio_runtime_platform_bindings(
         runtime->runtime_bootstrap->platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bindings == NULL || bindings->shell_registry == NULL) return;
 
     /*
@@ -53,6 +61,7 @@ static void runtime_on_menu_item_clicked(
          ++index) {
         UmiApplicationShellContribution contribution;
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_application_shell_registry_at(
                 bindings->shell_registry,
                 index,
@@ -60,12 +69,14 @@ static void runtime_on_menu_item_clicked(
             continue;
         }
 
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (strcmp(
                 contribution.contribution_id,
                 contribution_id) != 0) {
             continue;
         }
 
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (contribution.command_id[0] == '\0') return;
         (void)runtime_route_command(
             runtime,
@@ -77,17 +88,29 @@ static void runtime_on_menu_item_clicked(
     runtime_show_notification(runtime, "Menu contribution was not found.");
 }
 
+/*
+ * Provide the runtime contribution has prefix operation used by this module and its client
+ * applications.
+ */
 static int runtime_contribution_has_prefix(
     const char *contribution_id,
     const char *prefix)
 {
     size_t prefix_length;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (contribution_id == NULL || prefix == NULL) return 0;
     prefix_length = strlen(prefix);
     return strncmp(contribution_id, prefix, prefix_length) == 0;
 }
 
+/*
+ * Provide the runtime build single menu operation used by this module and its client
+ * applications.
+ */
 static GtkWidget *runtime_build_single_menu(
     UmiStudioGtkRuntimeChrome *runtime,
     const UmiApplicationShellContribution *root)
@@ -101,6 +124,10 @@ static GtkWidget *runtime_build_single_menu(
     size_t prefix_length;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || root == NULL ||
         runtime->runtime_bootstrap == NULL) {
         return NULL;
@@ -108,12 +135,21 @@ static GtkWidget *runtime_build_single_menu(
 
     bindings = umi_studio_runtime_platform_bindings(
         runtime->runtime_bootstrap->platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bindings == NULL || bindings->shell_registry == NULL) return NULL;
 
     root_suffix = strstr(root->contribution_id, ".root");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (root_suffix == NULL) return NULL;
 
     prefix_length = (size_t)(root_suffix - root->contribution_id);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (prefix_length == 0U || prefix_length >= sizeof(prefix)) return NULL;
 
     (void)memcpy(prefix, root->contribution_id, prefix_length);
@@ -123,6 +159,10 @@ static GtkWidget *runtime_build_single_menu(
     popover = gtk_popover_new();
     items = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (menu_button == NULL || popover == NULL || items == NULL) {
         return menu_button;
     }
@@ -130,6 +170,7 @@ static GtkWidget *runtime_build_single_menu(
     gtk_menu_button_set_label(GTK_MENU_BUTTON(menu_button), root->title);
     gtk_widget_add_css_class(menu_button, "flat");
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_application_shell_registry_count(
              bindings->shell_registry);
@@ -137,6 +178,7 @@ static GtkWidget *runtime_build_single_menu(
         UmiApplicationShellContribution contribution;
         GtkWidget *button;
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_application_shell_registry_at(
                 bindings->shell_registry,
                 index,
@@ -144,6 +186,7 @@ static GtkWidget *runtime_build_single_menu(
             continue;
         }
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (contribution.role != UMI_APPLICATION_SHELL_ROLE_MENU_ITEM ||
             !runtime_contribution_has_prefix(
                 contribution.contribution_id,
@@ -152,6 +195,10 @@ static GtkWidget *runtime_build_single_menu(
         }
 
         button = gtk_button_new_with_label(contribution.title);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (button == NULL) continue;
 
         gtk_widget_set_halign(button, GTK_ALIGN_FILL);
@@ -185,6 +232,10 @@ static GtkWidget *runtime_build_single_menu(
     return menu_button;
 }
 
+/*
+ * Provide the runtime build menu bar operation used by this module and its client
+ * applications.
+ */
 static GtkWidget *runtime_build_menu_bar(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -192,15 +243,28 @@ static GtkWidget *runtime_build_menu_bar(
     GtkWidget *bar;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->runtime_bootstrap == NULL) return NULL;
 
     bindings = umi_studio_runtime_platform_bindings(
         runtime->runtime_bootstrap->platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bindings == NULL || bindings->shell_registry == NULL) return NULL;
 
     bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bar == NULL) return NULL;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_application_shell_registry_count(
              bindings->shell_registry);
@@ -208,6 +272,7 @@ static GtkWidget *runtime_build_menu_bar(
         UmiApplicationShellContribution contribution;
         GtkWidget *menu;
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_application_shell_registry_at(
                 bindings->shell_registry,
                 index,
@@ -215,12 +280,17 @@ static GtkWidget *runtime_build_menu_bar(
             continue;
         }
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (contribution.role != UMI_APPLICATION_SHELL_ROLE_MENU ||
             contribution.region != UMI_APPLICATION_SHELL_REGION_MENU_BAR) {
             continue;
         }
 
         menu = runtime_build_single_menu(runtime, &contribution);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (menu != NULL) gtk_box_append(GTK_BOX(bar), menu);
     }
 

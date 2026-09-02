@@ -21,6 +21,10 @@
 
 #include <assert.h>
 #include "umicom/studio/workspace_summary.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){
     UmiStudioDocumentSet d;
     UmiStudioRecentWorkspaceList r;

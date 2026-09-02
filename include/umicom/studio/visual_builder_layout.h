@@ -19,8 +19,20 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Provide the studio visual builder align operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_visual_builder_align(UmiStudioVisualBuilderCentre *centre,UmiDesignerAlignment alignment);
+/**
+ * Provide the studio visual builder distribute operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_visual_builder_distribute(UmiStudioVisualBuilderCentre *centre,UmiDesignerDistribution distribution);
+/**
+ * Provide the studio visual builder snap operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_visual_builder_snap(UmiStudioVisualBuilderCentre *centre,const UmiDesignerSurfaceOptions *options);
 #ifdef __cplusplus
 }

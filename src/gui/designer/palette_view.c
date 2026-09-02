@@ -26,10 +26,15 @@ typedef struct UmiStudioPaletteViewState {
     GtkWidget *list;
 } UmiStudioPaletteViewState;
 
+/* Provide the clear list operation used by this module and its client applications. */
 static void clear_list(GtkWidget *list)
 {
     GtkWidget *child = gtk_widget_get_first_child(list);
 
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (child != NULL) {
         GtkWidget *next = gtk_widget_get_next_sibling(child);
         gtk_list_box_remove(GTK_LIST_BOX(list), child);
@@ -37,6 +42,10 @@ static void clear_list(GtkWidget *list)
     }
 }
 
+/*
+ * Provide the append component row operation used by this module and its client
+ * applications.
+ */
 static void append_component_row(
     GtkWidget *list,
     const UmiDeclComponentDescriptor *component)
@@ -70,6 +79,7 @@ static void append_component_row(
     gtk_list_box_append(GTK_LIST_BOX(list), box);
 }
 
+/* Provide the rebuild operation used by this module and its client applications. */
 static void rebuild(
     UmiStudioPaletteViewState *state,
     const char *query)
@@ -79,28 +89,40 @@ static void rebuild(
 
     clear_list(state->list);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (query == NULL || query[0] == '\0') {
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < state->palette.count; ++index) {
             append_component_row(state->list, &state->palette.items[index]);
         }
         return;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_designer_palette_search(&state->palette,
                                     query,
                                     &results) != UMI_STATUS_OK) {
         return;
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < results.count; ++index) {
         const UmiDeclComponentDescriptor *component =
             umi_designer_palette_result(&state->palette, &results, index);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (component != NULL) {
             append_component_row(state->list, component);
         }
     }
 }
 
+/* Provide the on search changed operation used by this module and its client applications. */
 static void on_search_changed(GtkSearchEntry *entry, gpointer user_data)
 {
     UmiStudioPaletteViewState *state =
@@ -109,17 +131,26 @@ static void on_search_changed(GtkSearchEntry *entry, gpointer user_data)
     rebuild(state, gtk_editable_get_text(GTK_EDITABLE(entry)));
 }
 
+/* Provide the on state free operation used by this module and its client applications. */
 static void on_state_free(gpointer data)
 {
     UmiStudioPaletteViewState *state =
         (UmiStudioPaletteViewState *)data;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (state != NULL) {
         umi_designer_palette_dispose(&state->palette);
         g_free(state);
     }
 }
 
+/*
+ * Provide the studio designer palette view new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_designer_palette_view_new(
     UmiStudioDeclarative *declarative)
 {
@@ -146,6 +177,10 @@ GtkWidget *umi_studio_designer_palette_view_new(
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), state->list);
     gtk_widget_set_vexpand(scroll, TRUE);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (declarative != NULL &&
         umi_designer_palette_build(
             umi_studio_declarative_components(declarative),

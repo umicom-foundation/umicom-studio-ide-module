@@ -24,7 +24,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * List the named studio project template values accepted by this public contract.
+ */
 typedef enum UmiStudioProjectTemplate { UMI_STUDIO_TEMPLATE_DESKTOP=1, UMI_STUDIO_TEMPLATE_EDITOR=2, UMI_STUDIO_TEMPLATE_DASHBOARD=3 } UmiStudioProjectTemplate;
+/**
+ * Provide the studio new project template operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_new_project_template(UmiStudioProjectTemplate template_kind,const char *application_id,char *out_source,size_t capacity);
 #ifdef __cplusplus
 }

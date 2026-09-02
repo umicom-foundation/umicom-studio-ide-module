@@ -27,6 +27,10 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio source governance summary data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioSourceGovernanceSummary {
     size_t total_findings;
     size_t duplicate_findings;

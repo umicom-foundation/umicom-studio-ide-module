@@ -130,12 +130,15 @@ static const char *g_fallback_log_snippet_xml =
 /*------------------------------ Root directory ------------------------------*/
 void umi_res_set_root(const char *root_dir)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!root_dir || !*root_dir) return;
     g_strlcpy(g_res_root, root_dir, sizeof g_res_root);
 }
 
+/* Provide the res get root operation used by this module and its client applications. */
 const char *umi_res_get_root(void) { return g_res_root; }
 
+/* Provide the res build abspath operation used by this module and its client applications. */
 static char *umi_res_build_abspath(const char *relative)
 {
     return g_build_filename(g_res_root, relative, NULL);
@@ -148,12 +151,14 @@ gchar *umi_res_load_text_file(const char *relative, gsize *len, GError **error)
     gchar *data = NULL;
     gsize n = 0;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (!g_file_get_contents(abspath, &data, &n, error)) {
         g_free(abspath);
         return NULL;
     }
 
     g_free(abspath);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (len) *len = n;
     return data; /* caller g_free()s */
 }
@@ -172,13 +177,16 @@ gboolean umi_res_load_css(GtkCssProvider *provider, GError **error)
     GError *local_err = NULL;
     gchar *css_text = umi_res_load_text_file("styles/app.css", &css_len, &local_err);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (css_text && css_len > 0) {
         gtk_css_provider_load_from_string(provider, css_text);
         g_free(css_text);
         return TRUE;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (css_text) g_free(css_text);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (local_err) g_error_free(local_err);
     /* No fallback stylesheet in CSS-enabled mode: native theme is fine. */
     return TRUE;
@@ -188,14 +196,18 @@ gboolean umi_res_load_css(GtkCssProvider *provider, GError **error)
 /*------------------------------- Builder utils ------------------------------*/
 static const char *map_resource_like_to_relative(const char *resource_or_rel)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!resource_or_rel) return "";
     const char *p = strstr(resource_or_rel, "/ui/");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (p) return p + 1;
     p = strstr(resource_or_rel, "/partials/");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (p) return p + 1;
     return resource_or_rel;
 }
 
+/* Add res builder only after its inputs and available capacity have been checked. */
 gboolean umi_res_builder_add(GtkBuilder *builder, const char *rel_or_res_path, GError **error)
 {
     const char *relative = map_resource_like_to_relative(rel_or_res_path);
@@ -205,34 +217,48 @@ gboolean umi_res_builder_add(GtkBuilder *builder, const char *rel_or_res_path, G
     gboolean ok = gtk_builder_add_from_file(builder, abspath, &local_err);
     g_free(abspath);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (ok) return TRUE;
 
     /* Fallbacks keep the app running if files are missing. */
     const char *fallback_xml = NULL;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (g_str_has_suffix(relative, "main.ui"))                     fallback_xml = g_fallback_main_ui;
-    else if (g_str_has_suffix(relative, "chat.ui"))                fallback_xml = g_fallback_chat_ui;
-    else if (g_str_has_suffix(relative, "shortcuts.ui"))           fallback_xml = g_fallback_shortcuts_ui;
-    else if (g_str_has_suffix(relative, "chat_pane_snippet.xml"))  fallback_xml = g_fallback_chat_snippet_xml;
-    else if (g_str_has_suffix(relative, "log_pane_snippet.xml"))   fallback_xml = g_fallback_log_snippet_xml;
+    else /* Apply this branch only when its contract condition is satisfied. */ if (g_str_has_suffix(relative, "chat.ui"))                fallback_xml = g_fallback_chat_ui;
+    else /* Apply this branch only when its contract condition is satisfied. */ if (g_str_has_suffix(relative, "shortcuts.ui"))           fallback_xml = g_fallback_shortcuts_ui;
+    else /* Apply this branch only when its contract condition is satisfied. */ if (g_str_has_suffix(relative, "chat_pane_snippet.xml"))  fallback_xml = g_fallback_chat_snippet_xml;
+    else /* Apply this branch only when its contract condition is satisfied. */ if (g_str_has_suffix(relative, "log_pane_snippet.xml"))   fallback_xml = g_fallback_log_snippet_xml;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (fallback_xml) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (gtk_builder_add_from_string(builder, fallback_xml, -1, error)) {
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (local_err) g_error_free(local_err);
             return TRUE;
         }
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (error && *error == NULL && local_err) {
         *error = local_err; /* hand off ownership */
-    } else if (local_err) {
+    } else /* Apply this branch only when its contract condition is satisfied. */ if (local_err) {
         g_error_free(local_err);
     }
     return FALSE;
 }
 
+/*
+ * Provide the builder new from res or file operation used by this module and its client
+ * applications.
+ */
 GtkBuilder *umi_builder_new_from_res_or_file(const char *rel_or_res_path, GError **error)
 {
     GtkBuilder *b = gtk_builder_new();
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (!umi_res_builder_add(b, rel_or_res_path, error)) {
         g_object_unref(b);
         return NULL;

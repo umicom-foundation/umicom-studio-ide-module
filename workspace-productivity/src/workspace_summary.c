@@ -23,6 +23,10 @@
 
 #include <string.h>
 
+/*
+ * Provide the studio workspace summary build operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workspace_summary_build(
     const UmiStudioDocumentSet *documents,
     const UmiStudioRecentWorkspaceList *recent,
@@ -30,6 +34,10 @@ UmiStatus umi_studio_workspace_summary_build(
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (documents == NULL || recent == NULL || summary == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -39,10 +47,13 @@ UmiStatus umi_studio_workspace_summary_build(
     summary->dirty_documents = umi_studio_document_set_dirty_count(documents);
     summary->recent_workspaces = recent->count;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < documents->count; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (documents->documents[index].pinned) {
             ++summary->pinned_documents;
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (documents->documents[index].preview) {
             ++summary->preview_documents;
         }

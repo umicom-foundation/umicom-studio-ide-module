@@ -19,6 +19,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * List the named studio visual builder pane values accepted by this public contract.
+ */
 typedef enum UmiStudioVisualBuilderPane {
     UMI_STUDIO_VISUAL_BUILDER_PANE_CANVAS=1,
     UMI_STUDIO_VISUAL_BUILDER_PANE_HIERARCHY=2,
@@ -29,7 +32,15 @@ typedef enum UmiStudioVisualBuilderPane {
     UMI_STUDIO_VISUAL_BUILDER_PANE_PREVIEW=7,
     UMI_STUDIO_VISUAL_BUILDER_PANE_SOURCE=8
 } UmiStudioVisualBuilderPane;
+/**
+ * Initialise studio visual builder view from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_visual_builder_view_create(UmiStudioVisualBuilderCentre *centre,UmiStudioVisualBuilderPane pane,UmiUiViewModel **out_view);
+/**
+ * Provide the studio visual builder pane id operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_visual_builder_pane_id(UmiStudioVisualBuilderPane pane);
 #ifdef __cplusplus
 }

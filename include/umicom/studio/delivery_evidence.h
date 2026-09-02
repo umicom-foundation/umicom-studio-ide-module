@@ -27,11 +27,19 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio delivery build evidence operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_delivery_build_evidence(const char *source_revision,
                                                 uint32_t tests_passed,
                                                 uint32_t tests_failed,
                                                 uint32_t warnings,
                                                 UmiBuildEvidence *out_evidence);
+/**
+ * Provide the studio delivery sbom operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_delivery_sbom(UmiSbom *out_sbom,
                                    UmiLicenseInventory *out_licenses);
 

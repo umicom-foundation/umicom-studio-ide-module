@@ -22,10 +22,15 @@
 
 #include "umicom/studio/navigation_view_contribution.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     size_t index;
     assert(umi_studio_navigation_view_contribution_count() == 8U);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_navigation_view_contribution_count();
          ++index) {
@@ -42,6 +47,7 @@ int main(void)
                strcmp(contribution->default_region,
                       "secondary-sidebar") == 0);
         assert(contribution->closable && contribution->movable);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison < umi_studio_navigation_view_contribution_count();
              ++comparison) {

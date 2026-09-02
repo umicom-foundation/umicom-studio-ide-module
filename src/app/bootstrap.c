@@ -35,9 +35,17 @@ struct UmiStudioBootstrap {
     int started;
 };
 
+/*
+ * Provide the studio diagnostic sink operation used by this module and its client
+ * applications.
+ */
 static void studio_diagnostic_sink(const UmiDiagnostic *diagnostic, void *user_data)
 {
     (void)user_data;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (diagnostic == NULL) {
         return;
     }
@@ -48,54 +56,85 @@ static void studio_diagnostic_sink(const UmiDiagnostic *diagnostic, void *user_d
                   diagnostic->message != NULL ? diagnostic->message : "");
 }
 
+/*
+ * Provide the studio shell configure operation used by this module and its client
+ * applications.
+ */
 static UmiStatus studio_shell_configure(UmiModuleContext *context)
 {
     return context != NULL ? UMI_STATUS_OK : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio shell initialise operation used by this module and its client
+ * applications.
+ */
 static UmiStatus studio_shell_initialise(UmiModuleContext *context)
 {
     return context != NULL ? UMI_STATUS_OK : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio shell start operation used by this module and its client
+ * applications.
+ */
 static UmiStatus studio_shell_start(UmiModuleContext *context)
 {
     return context != NULL ? UMI_STATUS_OK : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio shell quiesce operation used by this module and its client
+ * applications.
+ */
 static UmiStatus studio_shell_quiesce(UmiModuleContext *context)
 {
     return context != NULL ? UMI_STATUS_OK : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/* Provide the studio shell stop operation used by this module and its client applications. */
 static UmiStatus studio_shell_stop(UmiModuleContext *context)
 {
     return context != NULL ? UMI_STATUS_OK : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/* Release or reset state held by studio shell so the same storage can be reused safely. */
 static void studio_shell_destroy(UmiModuleContext *context)
 {
     (void)context;
 }
 
+/*
+ * Initialise studio bootstrap from caller-provided values so later operations receive a
+ * known state.
+ */
 UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
 {
     UmiStudioBootstrap *bootstrap;
     UmiMasterControllerConfig config;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_bootstrap == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     *out_bootstrap = NULL;
 
     bootstrap = (UmiStudioBootstrap *)calloc(1U, sizeof(*bootstrap));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL) {
         return UMI_STATUS_OUT_OF_MEMORY;
     }
 
     status = umi_studio_services_create(studio_diagnostic_sink, bootstrap,
                                         &bootstrap->services);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         free(bootstrap);
         return status;
@@ -107,6 +146,7 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
         umi_studio_services_diagnostic_user_data(bootstrap->services);
 
     status = umi_master_controller_create(&config, &bootstrap->master);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_services_destroy(bootstrap->services);
         free(bootstrap);
@@ -115,6 +155,7 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
 
     status = umi_master_controller_install_application_authority(
         bootstrap->master, "org.umicom.studio");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_master_controller_destroy(bootstrap->master);
         umi_studio_services_destroy(bootstrap->services);
@@ -124,6 +165,7 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
 
     status = umi_master_controller_install_desktop_authority(
         bootstrap->master);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_master_controller_destroy(bootstrap->master);
         umi_studio_services_destroy(bootstrap->services);
@@ -133,6 +175,7 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
 
     status = umi_studio_services_publish(bootstrap->services,
                                          bootstrap->master);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_master_controller_destroy(bootstrap->master);
         umi_studio_services_destroy(bootstrap->services);
@@ -144,6 +187,7 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
         umi_master_controller_command_registry(bootstrap->master),
         bootstrap->services
     );
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_master_controller_destroy(bootstrap->master);
         umi_studio_services_destroy(bootstrap->services);
@@ -156,22 +200,26 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
         umi_master_controller_command_registry(bootstrap->master),
         &bootstrap->ui
     );
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_federated_content_register(
             umi_master_controller_desktop_content(bootstrap->master),
             bootstrap->services);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_federated_interactions_register(
             umi_master_controller_desktop_context_synchronizer(
                 bootstrap->master));
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_ui_publish(
             bootstrap->ui,
             umi_master_controller_services(bootstrap->master)
         );
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_ui_destroy(bootstrap->ui);
         umi_master_controller_destroy(bootstrap->master);
@@ -252,6 +300,7 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
         bootstrap->master,
         &bootstrap->studio_shell_module
     );
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_ui_destroy(bootstrap->ui);
         umi_master_controller_destroy(bootstrap->master);
@@ -264,41 +313,62 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio bootstrap start operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_bootstrap_start(UmiStudioBootstrap *bootstrap)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (bootstrap->started) {
         return UMI_STATUS_INVALID_STATE;
     }
     status = umi_master_controller_start(bootstrap->master);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_federated_workspace_session_begin(
             umi_master_controller_desktop_session_recovery(
                 bootstrap->master),
             umi_master_controller_desktop_monitor_interaction(
                 bootstrap->master));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             bootstrap->started = 1;
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)umi_master_controller_stop(bootstrap->master);
         }
     }
     return status;
 }
 
+/*
+ * Provide the studio bootstrap stop operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_bootstrap_stop(UmiStudioBootstrap *bootstrap)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!bootstrap->started) {
         return UMI_STATUS_OK;
     }
     status = umi_master_controller_stop(bootstrap->master);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         bootstrap->started = 0;
         status = umi_studio_federated_workspace_session_end(
@@ -308,8 +378,16 @@ UmiStatus umi_studio_bootstrap_stop(UmiStudioBootstrap *bootstrap)
     return status;
 }
 
+/*
+ * Release or reset state held by studio bootstrap so the same storage can be reused
+ * safely.
+ */
 void umi_studio_bootstrap_destroy(UmiStudioBootstrap *bootstrap)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL) {
         return;
     }
@@ -323,27 +401,51 @@ void umi_studio_bootstrap_destroy(UmiStudioBootstrap *bootstrap)
     free(bootstrap);
 }
 
+/*
+ * Provide the studio bootstrap application name operation used by this module and its
+ * client applications.
+ */
 const char *umi_studio_bootstrap_application_name(const UmiStudioBootstrap *bootstrap)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL || bootstrap->master == NULL) {
         return NULL;
     }
     return umi_master_controller_application_name(bootstrap->master);
 }
 
+/*
+ * Return the number of records represented by studio bootstrap module without changing
+ * their state.
+ */
 size_t umi_studio_bootstrap_module_count(const UmiStudioBootstrap *bootstrap)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL || bootstrap->master == NULL) {
         return 0U;
     }
     return umi_master_controller_module_count(bootstrap->master);
 }
 
+/*
+ * Provide the studio bootstrap services operation used by this module and its client
+ * applications.
+ */
 UmiStudioServices *umi_studio_bootstrap_services(UmiStudioBootstrap *bootstrap)
 {
     return bootstrap != NULL ? bootstrap->services : NULL;
 }
 
+/*
+ * Provide the studio bootstrap service registry operation used by this module and its
+ * client applications.
+ */
 UmiServiceRegistry *umi_studio_bootstrap_service_registry(
     UmiStudioBootstrap *bootstrap)
 {
@@ -352,6 +454,10 @@ UmiServiceRegistry *umi_studio_bootstrap_service_registry(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap command registry operation used by this module and its
+ * client applications.
+ */
 UmiCommandRegistry *umi_studio_bootstrap_command_registry(
     UmiStudioBootstrap *bootstrap)
 {
@@ -360,6 +466,10 @@ UmiCommandRegistry *umi_studio_bootstrap_command_registry(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap health registry operation used by this module and its
+ * client applications.
+ */
 UmiHealthRegistry *umi_studio_bootstrap_health_registry(
     UmiStudioBootstrap *bootstrap)
 {
@@ -368,11 +478,19 @@ UmiHealthRegistry *umi_studio_bootstrap_health_registry(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap ui operation used by this module and its client
+ * applications.
+ */
 UmiStudioUi *umi_studio_bootstrap_ui(UmiStudioBootstrap *bootstrap)
 {
     return bootstrap != NULL ? bootstrap->ui : NULL;
 }
 
+/*
+ * Provide the studio bootstrap desktop runtime operation used by this module and its
+ * client applications.
+ */
 UmiDesktopRuntime *umi_studio_bootstrap_desktop_runtime(
     UmiStudioBootstrap *bootstrap)
 {
@@ -381,6 +499,10 @@ UmiDesktopRuntime *umi_studio_bootstrap_desktop_runtime(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap desktop shell operation used by this module and its client
+ * applications.
+ */
 UmiDesktopShellModel *umi_studio_bootstrap_desktop_shell(
     UmiStudioBootstrap *bootstrap)
 {
@@ -389,6 +511,10 @@ UmiDesktopShellModel *umi_studio_bootstrap_desktop_shell(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap desktop content operation used by this module and its
+ * client applications.
+ */
 UmiDesktopContentRuntime *umi_studio_bootstrap_desktop_content(
     UmiStudioBootstrap *bootstrap)
 {
@@ -397,6 +523,10 @@ UmiDesktopContentRuntime *umi_studio_bootstrap_desktop_content(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap component host operation used by this module and its client
+ * applications.
+ */
 UmiUiComponentHostService *umi_studio_bootstrap_component_host(
     UmiStudioBootstrap *bootstrap)
 {
@@ -405,6 +535,10 @@ UmiUiComponentHostService *umi_studio_bootstrap_component_host(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap component drag drop operation used by this module and its
+ * client applications.
+ */
 UmiDesktopComponentDragDrop *umi_studio_bootstrap_component_drag_drop(
     UmiStudioBootstrap *bootstrap)
 {
@@ -413,6 +547,10 @@ UmiDesktopComponentDragDrop *umi_studio_bootstrap_component_drag_drop(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap context synchronizer operation used by this module and its
+ * client applications.
+ */
 UmiDesktopContextSynchronizer *umi_studio_bootstrap_context_synchronizer(
     UmiStudioBootstrap *bootstrap)
 {
@@ -421,6 +559,10 @@ UmiDesktopContextSynchronizer *umi_studio_bootstrap_context_synchronizer(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap layout history operation used by this module and its client
+ * applications.
+ */
 UmiDesktopLayoutHistory *umi_studio_bootstrap_layout_history(
     UmiStudioBootstrap *bootstrap)
 {
@@ -429,6 +571,10 @@ UmiDesktopLayoutHistory *umi_studio_bootstrap_layout_history(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap session recovery operation used by this module and its
+ * client applications.
+ */
 UmiDesktopSessionRecovery *umi_studio_bootstrap_session_recovery(
     UmiStudioBootstrap *bootstrap)
 {
@@ -437,6 +583,10 @@ UmiDesktopSessionRecovery *umi_studio_bootstrap_session_recovery(
         : NULL;
 }
 
+/*
+ * Provide the studio bootstrap monitor interaction operation used by this module and its
+ * client applications.
+ */
 UmiDesktopMonitorInteraction *umi_studio_bootstrap_monitor_interaction(
     UmiStudioBootstrap *bootstrap)
 {

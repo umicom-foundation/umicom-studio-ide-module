@@ -22,4 +22,8 @@
 #include <assert.h>
 #include <string.h>
 #include "umicom/studio/ai_tools.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioAiPlatform *p=NULL;char out[64];assert(umi_studio_ai_platform_create(&p)==UMI_STATUS_OK);assert(umi_studio_ai_tools_register_defaults(p)==UMI_STATUS_OK);assert(umi_studio_ai_tools_echo(p,"{}",0,out,sizeof(out))==UMI_STATUS_PERMISSION_DENIED);assert(umi_studio_ai_tools_echo(p,"{}",1,out,sizeof(out))==UMI_STATUS_OK);assert(strstr(out,"echo:")!=NULL);umi_studio_ai_platform_destroy(p);return 0;}

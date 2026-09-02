@@ -437,15 +437,21 @@ static const UmiStudioGtkKeyProfile RUNTIME_KEY_PROFILES[] = {
 };
 #undef UMI_STUDIO_GTK_KEY_PROFILE
 
+/*
+ * Provide the runtime surface profile operation used by this module and its client
+ * applications.
+ */
 static const UmiStudioGtkSurfaceProfile *runtime_surface_profile(
     UmiStudioRuntimeSurfaceKind kind)
 {
     size_t index;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(RUNTIME_SURFACE_PROFILES) /
                  sizeof(RUNTIME_SURFACE_PROFILES[0]);
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (RUNTIME_SURFACE_PROFILES[index].kind == kind) {
             return &RUNTIME_SURFACE_PROFILES[index];
         }
@@ -453,17 +459,27 @@ static const UmiStudioGtkSurfaceProfile *runtime_surface_profile(
     return NULL;
 }
 
+/*
+ * Provide the runtime command profile operation used by this module and its client
+ * applications.
+ */
 static const UmiStudioGtkCommandProfile *runtime_command_profile(
     const char *profile_id)
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (profile_id == NULL) return NULL;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(RUNTIME_COMMAND_PROFILES) /
                  sizeof(RUNTIME_COMMAND_PROFILES[0]);
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(RUNTIME_COMMAND_PROFILES[index].profile_id, profile_id) == 0) {
             return &RUNTIME_COMMAND_PROFILES[index];
         }
@@ -472,17 +488,27 @@ static const UmiStudioGtkCommandProfile *runtime_command_profile(
 }
 
 
+/*
+ * Provide the runtime operation profile operation used by this module and its client
+ * applications.
+ */
 static const UmiStudioGtkOperationProfile *runtime_operation_profile(
     const char *command_id)
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (command_id == NULL) return NULL;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(RUNTIME_OPERATION_PROFILES) /
                  sizeof(RUNTIME_OPERATION_PROFILES[0]);
          ++index) {
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (strcmp(
                 RUNTIME_OPERATION_PROFILES[index].command_id,
                 command_id) == 0) {
@@ -492,6 +518,10 @@ static const UmiStudioGtkOperationProfile *runtime_operation_profile(
     return NULL;
 }
 
+/*
+ * Return the number of records represented by runtime operation profile without changing
+ * their state.
+ */
 static size_t runtime_operation_profile_count(void)
 {
     return sizeof(RUNTIME_OPERATION_PROFILES) /
@@ -499,6 +529,10 @@ static size_t runtime_operation_profile_count(void)
 }
 
 
+/*
+ * Return the number of records represented by runtime context action profile without
+ * changing their state.
+ */
 static size_t runtime_context_action_profile_count(void)
 {
     return sizeof(RUNTIME_CONTEXT_ACTION_PROFILES) /

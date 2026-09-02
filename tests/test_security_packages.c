@@ -18,6 +18,10 @@
 #include "security_centre_fixture.h"
 #include "umicom/studio/security_packages.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioSecurityCentre *centre = umi_test_seeded_security_centre();

@@ -90,14 +90,18 @@ walk_dir(const char *root, gboolean include_hidden, UmiFsVisitCb cb, gpointer us
     /* Open the directory; bail if not readable. */
     GError *err = NULL;
     GDir   *dir = g_dir_open(root, 0, &err);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!dir) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (err) g_error_free(err);
         return;
     }
 
     /* Collect child names first for deterministic ordering. */
     GPtrArray *names = g_ptr_array_new_with_free_func(g_free);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (const char *name = g_dir_read_name(dir); name; name = g_dir_read_name(dir)) {
+        /* Apply this branch only when its contract condition is satisfied. */
         if (!include_hidden && is_hidden_name(name)) {
             continue;                                    /* skip hidden entries  */
         }
@@ -112,7 +116,9 @@ walk_dir(const char *root, gboolean include_hidden, UmiFsVisitCb cb, gpointer us
     for (guint i = 0; i < names->len; ++i) {
         const char *leaf = (const char *)names->pdata[i];
         char *full = join_canonical(root, leaf);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (g_file_test(full, G_FILE_TEST_IS_DIR)) {
+            /* Apply this branch only when its contract condition is satisfied. */
             if (cb) cb(full, TRUE, user);                /* notify: directory    */
         }
         g_free(full);
@@ -122,10 +128,12 @@ walk_dir(const char *root, gboolean include_hidden, UmiFsVisitCb cb, gpointer us
     for (guint i = 0; i < names->len; ++i) {
         const char *leaf = (const char *)names->pdata[i];
         char *full = join_canonical(root, leaf);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (g_file_test(full, G_FILE_TEST_IS_DIR)) {
             /* Recurse after parent dir was announced in the first pass. */
             walk_dir(full, include_hidden, cb, user);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
+            /* Apply this branch only when its contract condition is satisfied. */
             if (cb) cb(full, FALSE, user);               /* notify: regular file */
         }
         g_free(full);
@@ -143,12 +151,14 @@ gboolean
 umi_fs_walk(const char *root, gboolean include_hidden,
             UmiFsVisitCb cb, gpointer user)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!root || !*root) {
         return FALSE;                                    /* invalid argument     */
     }
 
     /* Normalize to an absolute, canonical path. */
     char *canon = g_canonicalize_filename(root, NULL);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!g_file_test(canon, G_FILE_TEST_IS_DIR)) {
         g_free(canon);
         return FALSE;                                    /* missing/unreadable   */

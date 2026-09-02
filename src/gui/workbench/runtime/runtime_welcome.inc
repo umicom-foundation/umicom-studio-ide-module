@@ -24,6 +24,10 @@ static GtkWidget *runtime_welcome_card(
     GtkWidget *heading = runtime_label(title, 0.0F);
     GtkWidget *detail = runtime_label(description, 0.0F);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (card == NULL || heading == NULL || detail == NULL) return card;
     gtk_widget_add_css_class(card, "umicom-welcome-card");
     gtk_widget_set_hexpand(card, TRUE);
@@ -49,8 +53,13 @@ static void runtime_welcome_add_action(
 {
     GtkWidget *button = runtime_make_command_button(
         runtime, label, command_id, description);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (button == NULL || card == NULL) return;
     gtk_widget_set_halign(button, GTK_ALIGN_FILL);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (primary) gtk_widget_add_css_class(button, "suggested-action");
     gtk_box_append(GTK_BOX(card), button);
 }
@@ -73,6 +82,10 @@ static GtkWidget *runtime_build_welcome_surface(
     GtkWidget *scroll;
     GtkWidget *empty_recent;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (page == NULL || runtime == NULL || runtime->owner == NULL ||
         header == NULL || heading == NULL || quick_tools == NULL ||
         title == NULL || card_flow == NULL) {
@@ -90,6 +103,10 @@ static GtkWidget *runtime_build_welcome_surface(
     gtk_widget_add_css_class(page, "umicom-welcome-page");
     gtk_widget_add_css_class(title, "umicom-welcome-title");
     gtk_box_append(GTK_BOX(heading), title);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (summary != NULL) {
         gtk_widget_add_css_class(summary, "umicom-welcome-summary");
         gtk_box_append(GTK_BOX(heading), summary);
@@ -142,6 +159,10 @@ static GtkWidget *runtime_build_welcome_surface(
         "Projects and folders you open will appear here for quick access.");
     empty_recent = runtime_label(
         "No recent project is recorded yet.", 0.0F);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (recent != NULL && empty_recent != NULL) {
         gtk_widget_add_css_class(empty_recent, "umicom-runtime-muted");
         gtk_box_append(GTK_BOX(recent), empty_recent);
@@ -163,18 +184,34 @@ static GtkWidget *runtime_build_welcome_surface(
         runtime, learn, "Keyboard Shortcuts", "help.shortcuts",
         "Review IDE keyboard shortcuts", 0);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (create != NULL) {
         gtk_flow_box_append(GTK_FLOW_BOX(card_flow), create);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (recent != NULL) {
         gtk_flow_box_append(GTK_FLOW_BOX(card_flow), recent);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (learn != NULL) {
         gtk_flow_box_append(GTK_FLOW_BOX(card_flow), learn);
     }
     gtk_box_append(GTK_BOX(page), card_flow);
 
     scroll = runtime_scroll(page);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (scroll != NULL) {
         gtk_widget_add_css_class(scroll, "umicom-welcome-scroll");
         return scroll;
@@ -189,12 +226,17 @@ static void runtime_welcome_update_mode(
     UmiUiWorkbenchState state;
     int show_welcome;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->centre_stack == NULL ||
         runtime->owner == NULL || runtime->owner->ui == NULL) {
         return;
     }
 
     umi_ui_workbench_state_init(&state);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_ui_workbench_state_snapshot(
             umi_studio_ui_workbench(runtime->owner->ui),
             &state) != UMI_STATUS_OK) {

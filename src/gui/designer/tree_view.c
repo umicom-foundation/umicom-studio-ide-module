@@ -20,6 +20,10 @@
  */
 #include "tree_view.h"
 
+/*
+ * Provide the studio designer tree view new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_designer_tree_view_new(
     UmiStudioDesigner *designer)
 {
@@ -29,6 +33,10 @@ GtkWidget *umi_studio_designer_tree_view_new(
     size_t index;
     size_t count;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (designer == NULL) {
         return scroll;
     }
@@ -37,11 +45,13 @@ GtkWidget *umi_studio_designer_tree_view_new(
         umi_studio_designer_document(designer));
     count = umi_decl_document_node_count(document);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < count; ++index) {
         UmiDeclNode node;
         gchar *label_text;
         GtkWidget *row;
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_decl_document_node_at(
                 document, index, &node) != UMI_STATUS_OK) {
             continue;
@@ -56,6 +66,10 @@ GtkWidget *umi_studio_designer_tree_view_new(
             "%s  [%s]",
             node.node_id,
             node.component_type);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (label_text == NULL) {
             continue;
         }

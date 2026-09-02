@@ -20,6 +20,10 @@ static UmiStatus runtime_document_new(
     char view_id[UMI_UI_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -31,6 +35,7 @@ static UmiStatus runtime_document_new(
         view_id,
         sizeof(view_id));
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_workbench_activate_document(
             umi_studio_ui_workbench(runtime->owner->ui),
@@ -41,25 +46,39 @@ static UmiStatus runtime_document_new(
     return status;
 }
 
+/*
+ * Write runtime document in its stable representation and report capacity or input
+ * failures to the caller.
+ */
 static UmiStatus runtime_document_save(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiDocumentWorkingCopySnapshot active;
     UmiDocumentCoordinator *documents;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
     documents = umi_studio_ui_documents(runtime->owner->ui);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (documents == NULL) return UMI_STATUS_UNAVAILABLE;
 
+    /* Apply this operation only while the related capability or state is available. */
     if (umi_document_coordinator_active_snapshot(
             documents,
             &active) != UMI_STATUS_OK) {
         return UMI_STATUS_NOT_FOUND;
     }
 
+    /* Apply this operation only while the related capability or state is available. */
     if (!active.has_path) {
         return runtime_choose_save_as(runtime);
     }
@@ -67,6 +86,10 @@ static UmiStatus runtime_document_save(
     return umi_document_coordinator_save_active(documents);
 }
 
+/*
+ * Provide the runtime document close force operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_document_close_force(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -79,6 +102,10 @@ static UmiStatus runtime_document_close_force(
     return status;
 }
 
+/*
+ * Provide the runtime document close operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_document_close(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -86,18 +113,28 @@ static UmiStatus runtime_document_close(
     UmiDocumentCoordinator *documents;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
     documents = umi_studio_ui_documents(runtime->owner->ui);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (documents == NULL) return UMI_STATUS_UNAVAILABLE;
 
     status = umi_document_coordinator_active_snapshot(
         documents,
         &active);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
+    /* Apply this operation only while the related capability or state is available. */
     if (active.dirty) {
         return runtime_confirm(
             runtime,

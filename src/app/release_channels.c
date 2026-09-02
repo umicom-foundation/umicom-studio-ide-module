@@ -15,41 +15,62 @@
 #include "umicom/studio/release_channels.h"
 #include <string.h>
 
+/*
+ * Initialise studio release channels from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_release_channels_init(
     UmiStudioReleaseChannels *channels)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (channels == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(channels, 0, sizeof(*channels));
     status = umi_update_channel_init(
         &channels->channels[0], "stable",
         "https://updates.umicom.org/studio/stable.json",
         UMI_RELEASE_STABLE, 100U);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_update_channel_init(
         &channels->channels[1], "beta",
         "https://updates.umicom.org/studio/beta.json",
         UMI_RELEASE_BETA, 50U);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_update_channel_init(
         &channels->channels[2], "development",
         "https://updates.umicom.org/studio/development.json",
         UMI_RELEASE_DEVELOPMENT, 100U);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     channels->count = UMI_STUDIO_MAX_RELEASE_CHANNELS;
     channels->selected = 0U;
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio release channels select operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_release_channels_select(
     UmiStudioReleaseChannels *channels,
     const char *channel_id)
 {
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (channels == NULL || channel_id == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < channels->count; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(channels->channels[index].channel_id, channel_id) == 0) {
             channels->selected = index;
             return UMI_STATUS_OK;
@@ -58,9 +79,17 @@ UmiStatus umi_studio_release_channels_select(
     return UMI_STATUS_NOT_FOUND;
 }
 
+/*
+ * Provide the studio release channels current operation used by this module and its client
+ * applications.
+ */
 const UmiUpdateChannel *umi_studio_release_channels_current(
     const UmiStudioReleaseChannels *channels)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (channels == NULL || channels->selected >= channels->count) return NULL;
     return &channels->channels[channels->selected];
 }

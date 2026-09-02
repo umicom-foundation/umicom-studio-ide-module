@@ -18,8 +18,13 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Provide the studio security view id operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_security_view_id(UmiStudioSecurityViewKind kind)
 {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (kind) {
         case UMI_STUDIO_SECURITY_VIEW_OVERVIEW: return "overview";
         case UMI_STUDIO_SECURITY_VIEW_IDENTITIES: return "identities";
@@ -33,8 +38,10 @@ const char *umi_studio_security_view_id(UmiStudioSecurityViewKind kind)
     }
 }
 
+/* Provide the view title operation used by this module and its client applications. */
 static const char *view_title(UmiStudioSecurityViewKind kind)
 {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (kind) {
         case UMI_STUDIO_SECURITY_VIEW_OVERVIEW: return "Security Overview";
         case UMI_STUDIO_SECURITY_VIEW_IDENTITIES: return "Identities";
@@ -48,9 +55,11 @@ static const char *view_title(UmiStudioSecurityViewKind kind)
     }
 }
 
+/* Provide the view items operation used by this module and its client applications. */
 static size_t view_items(const UmiStudioSecurityCentreSnapshot *snapshot,
                          UmiStudioSecurityViewKind kind)
 {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (kind) {
         case UMI_STUDIO_SECURITY_VIEW_OVERVIEW: return 8U;
         case UMI_STUDIO_SECURITY_VIEW_IDENTITIES: return snapshot->governance.identities;
@@ -64,6 +73,10 @@ static size_t view_items(const UmiStudioSecurityCentreSnapshot *snapshot,
     }
 }
 
+/*
+ * Provide the studio security view build operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_security_view_build(const UmiStudioSecurityCentre *centre,
                                          uint64_t now_ns,
                                          UmiStudioSecurityViewKind kind,
@@ -75,9 +88,14 @@ UmiStatus umi_studio_security_view_build(const UmiStudioSecurityCentre *centre,
     int first;
     int second;
     int third;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || out_view == NULL || id == NULL || title == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_security_centre_snapshot(centre,now_ns,&snapshot) != UMI_STATUS_OK) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -93,6 +111,7 @@ UmiStatus umi_studio_security_view_build(const UmiStudioSecurityCentre *centre,
                      snapshot.governance.denied_entries,
                      snapshot.pending_approvals,
                      snapshot.secrets_due_rotation);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (first < 0 || second < 0 || third < 0 ||
         (size_t)first >= sizeof(out_view->id) ||
         (size_t)second >= sizeof(out_view->title) ||

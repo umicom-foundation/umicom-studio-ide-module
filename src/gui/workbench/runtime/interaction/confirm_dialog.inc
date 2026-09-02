@@ -23,11 +23,19 @@ typedef struct UmiStudioGtkConfirmContext {
     UmiStudioGtkConfirmAccepted accepted;
 } UmiStudioGtkConfirmContext;
 
+/*
+ * Release or reset state held by runtime confirm context so the same storage can be reused
+ * safely.
+ */
 static void runtime_confirm_context_destroy(gpointer data)
 {
     free(data);
 }
 
+/*
+ * Provide the runtime confirm cancel operation used by this module and its client
+ * applications.
+ */
 static void runtime_confirm_cancel(
     GtkButton *button,
     gpointer user_data)
@@ -36,11 +44,19 @@ static void runtime_confirm_cancel(
         (UmiStudioGtkConfirmContext *)user_data;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (context != NULL && GTK_IS_WINDOW(context->window)) {
         gtk_window_destroy(GTK_WINDOW(context->window));
     }
 }
 
+/*
+ * Provide the runtime confirm accept operation used by this module and its client
+ * applications.
+ */
 static void runtime_confirm_accept(
     GtkButton *button,
     gpointer user_data)
@@ -50,17 +66,23 @@ static void runtime_confirm_accept(
     UmiStatus status;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (context == NULL || context->runtime == NULL ||
         context->accepted == NULL) {
         return;
     }
 
     status = context->accepted(context->runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK && GTK_IS_WINDOW(context->window)) {
         gtk_window_destroy(GTK_WINDOW(context->window));
     }
 }
 
+/* Provide the runtime confirm operation used by this module and its client applications. */
 static UmiStatus runtime_confirm(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *title,
@@ -75,6 +97,10 @@ static UmiStatus runtime_confirm(
     GtkWidget *cancel;
     GtkWidget *accept;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL || accepted == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -83,6 +109,10 @@ static UmiStatus runtime_confirm(
     context = (UmiStudioGtkConfirmContext *)calloc(
         1U,
         sizeof(*context));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (context == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     window = GTK_WIDGET(gtk_window_new());
@@ -92,6 +122,10 @@ static UmiStatus runtime_confirm(
     accept = gtk_button_new_with_label(
         accept_label != NULL ? accept_label : "Continue");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (window == NULL || root == NULL || buttons == NULL ||
         cancel == NULL || accept == NULL) {
         free(context);

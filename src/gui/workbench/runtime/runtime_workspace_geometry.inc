@@ -17,8 +17,11 @@
 /* Keep a saved panel size inside the range supported by the current monitor. */
 static int runtime_clamp_dimension(int value, int minimum, int maximum)
 {
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (maximum < minimum) return minimum;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (value < minimum) return minimum;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (value > maximum) return maximum;
     return value;
 }
@@ -27,6 +30,10 @@ static int runtime_clamp_dimension(int value, int minimum, int maximum)
 static void runtime_workspace_update_lock_button(
     UmiStudioGtkRuntimeChrome *runtime)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->layout_lock_button == NULL) return;
     gtk_button_set_label(
         GTK_BUTTON(runtime->layout_lock_button),
@@ -47,6 +54,10 @@ static void runtime_workspace_update_lock_button(
         runtime->layout_locked
             ? "umicom-layout-locked"
             : "umicom-layout-editing");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->layout_cancel_button != NULL) {
         gtk_widget_set_visible(
             runtime->layout_cancel_button,
@@ -68,6 +79,10 @@ static void runtime_workspace_apply_geometry(
     int secondary;
     int bottom;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->primary_paned == NULL ||
         runtime->secondary_paned == NULL ||
@@ -76,6 +91,7 @@ static void runtime_workspace_apply_geometry(
     }
 
     umi_ui_workbench_state_init(&state);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_ui_workbench_state_snapshot(
             umi_studio_ui_workbench(runtime->owner->ui),
             &state) != UMI_STATUS_OK) {
@@ -123,6 +139,7 @@ static void runtime_workspace_apply_geometry(
             GTK_PANED(runtime->secondary_paned),
             secondary_width - secondary);
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (height > bottom + UMI_STUDIO_GTK_RUNTIME_CENTRE_MIN_HEIGHT) {
         gtk_paned_set_position(
             GTK_PANED(runtime->workspace_paned), height - bottom);
@@ -154,16 +171,22 @@ static void runtime_on_workspace_position_changed(
     int position;
 
     (void)property;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->applying_workspace_geometry ||
         runtime->owner == NULL) {
         return;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime->layout_locked) {
         runtime_workspace_apply_geometry(runtime);
         return;
     }
 
     umi_ui_workbench_state_init(&state);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_ui_workbench_state_snapshot(
             umi_studio_ui_workbench(runtime->owner->ui),
             &state) != UMI_STATUS_OK) {
@@ -171,24 +194,25 @@ static void runtime_on_workspace_position_changed(
     }
 
     position = gtk_paned_get_position(GTK_PANED(paned));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (paned == runtime->primary_paned) {
         state.sidebar_size = runtime_clamp_dimension(
             position - UMI_STUDIO_GTK_RUNTIME_ACTIVITY_WIDTH,
             UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH,
             UMI_STUDIO_GTK_RUNTIME_TOOL_MAX_WIDTH);
-    } else if (paned == runtime->secondary_paned) {
+    } else /* Apply this branch only when its contract condition is satisfied. */ if (paned == runtime->secondary_paned) {
         available = gtk_widget_get_width(paned);
         state.auxiliary_sidebar_size = runtime_clamp_dimension(
             available - position,
             UMI_STUDIO_GTK_RUNTIME_TOOL_MIN_WIDTH,
             UMI_STUDIO_GTK_RUNTIME_TOOL_MAX_WIDTH);
-    } else if (paned == runtime->workspace_paned) {
+    } else /* Apply this branch only when its contract condition is satisfied. */ if (paned == runtime->workspace_paned) {
         available = gtk_widget_get_height(paned);
         state.bottom_panel_size = runtime_clamp_dimension(
             available - position,
             UMI_STUDIO_GTK_RUNTIME_BOTTOM_MIN_HEIGHT,
             UMI_STUDIO_GTK_RUNTIME_BOTTOM_MAX_HEIGHT);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         return;
     }
 
@@ -210,14 +234,21 @@ static void runtime_on_layout_lock_toggled(
         (UmiStudioGtkRuntimeChrome *)user_data;
     int was_locked;
     int kind;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
     was_locked = runtime->layout_locked;
     runtime->layout_locked = gtk_toggle_button_get_active(button) ? 1 : 0;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (was_locked && !runtime->layout_locked) {
         umi_ui_workbench_state_init(&runtime->layout_edit_baseline);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_ui_workbench_state_snapshot(
                 umi_studio_ui_workbench(runtime->owner->ui),
                 &runtime->layout_edit_baseline) == UMI_STATUS_OK) {
+            /* Visit each bounded item once so every record receives the same rule. */
             for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
                  kind <= (int)UMI_STUDIO_SURFACE_LAST;
                  ++kind) {
@@ -230,13 +261,14 @@ static void runtime_on_layout_lock_toggled(
             }
             runtime->layout_baseline_valid = 1;
         }
-    } else if (!was_locked && runtime->layout_locked) {
+    } else /* Apply this branch only when its contract condition is satisfied. */ if (!was_locked && runtime->layout_locked) {
         runtime->layout_baseline_valid = 0;
     }
     runtime_workspace_update_lock_button(runtime);
     /* Rebuild only presentation wrappers so panel-header buttons immediately
      * reflect the new edit lock while their Framework-backed content persists. */
     (void)runtime_rebuild_surface_panels(runtime);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime->layout_locked) runtime_workspace_apply_geometry(runtime);
 }
 
@@ -249,11 +281,16 @@ static void runtime_on_layout_cancel_clicked(
         (UmiStudioGtkRuntimeChrome *)user_data;
     int kind;
     (void)button;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || !runtime->layout_baseline_valid) return;
 
     (void)umi_ui_workbench_state_apply(
         umi_studio_ui_workbench(runtime->owner->ui),
         &runtime->layout_edit_baseline);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
          kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {
@@ -262,16 +299,19 @@ static void runtime_on_layout_cancel_clicked(
         UmiStudioGtkRuntimeRegion region =
             (UmiStudioGtkRuntimeRegion)
                 runtime->layout_surface_region_baseline[kind];
+        /* Apply this branch only when its contract condition is satisfied. */
         if (surface == UMI_STUDIO_SURFACE_EDITOR ||
             region < UMI_STUDIO_GTK_REGION_PRIMARY ||
             region > UMI_STUDIO_GTK_REGION_EDITOR) {
             continue;
         }
+        /* Apply this branch only when its contract condition is satisfied. */
         if (runtime->layout_surface_floating_baseline[kind]) {
             (void)runtime_surface_float(runtime, surface);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)runtime_surface_place(runtime, surface, region);
         }
+        /* Apply this operation only while the related capability or state is available. */
         if (!runtime->layout_surface_visible_baseline[kind]) {
             (void)runtime_surface_hide(runtime, surface);
         }

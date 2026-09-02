@@ -25,20 +25,26 @@
 
 static const char *RECENT_JSON = "config/recent.json";
 
+/* Read recent into validated module state and return a status when input cannot be used. */
 UmiRecent *umi_recent_load(void){
   UmiRecent *r = g_new0(UmiRecent,1);
   r->items = g_ptr_array_new_with_free_func(g_free);
   r->max_items = 20;
   gchar *txt=NULL; gsize len=0;
+  /* Apply this branch only when its contract condition is satisfied. */
   if(g_file_get_contents(RECENT_JSON,&txt,&len,NULL)){
     JsonParser *p=json_parser_new();
+    /* Apply this branch only when its contract condition is satisfied. */
     if(json_parser_load_from_data(p,txt,(gssize)len,NULL)){
       JsonArray *a = json_node_get_array(json_parser_get_root(p));
+      /* Apply this branch only when its contract condition is satisfied. */
       if(a){
         guint n = json_array_get_length(a);
+        /* Visit each bounded item once so every record receives the same rule. */
         for(guint i=0;i<n;i++){
           JsonNode *node = json_array_get_element(a,i);
           const char *s = json_node_get_string(node);
+          /* Apply this branch only when its contract condition is satisfied. */
           if(s && *s) g_ptr_array_add(r->items, g_strdup(s));
         }
       }
@@ -48,10 +54,16 @@ UmiRecent *umi_recent_load(void){
   return r;
 }
 
+/*
+ * Write recent in its stable representation and report capacity or input failures to the
+ * caller.
+ */
 gboolean umi_recent_save(const UmiRecent *r){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!r) return FALSE;
   g_mkdir_with_parents("config",0755);
   JsonBuilder *b=json_builder_new(); json_builder_begin_array(b);
+  /* Visit each bounded item once so every record receives the same rule. */
   for(guint i=0;i<r->items->len;i++){
     json_builder_add_string_value(b, (const char*)r->items->pdata[i]);
   }
@@ -63,23 +75,30 @@ gboolean umi_recent_save(const UmiRecent *r){
   return ok;
 }
 
+/* Add recent only after its inputs and available capacity have been checked. */
 void umi_recent_add(UmiRecent *r, const char *path){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!r || !path || !*path) return;
+  /* Visit each bounded item once so every record receives the same rule. */
   for(guint i=0;i<r->items->len;i++){
     const char *s = (const char*)r->items->pdata[i];
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if(g_strcmp0(s,path)==0){
       g_ptr_array_remove_index(r->items, i);
       break;
     }
   }
   g_ptr_array_insert(r->items, 0, g_strdup(path));
+  /* Apply this branch only when its contract condition is satisfied. */
   if(r->items->len > r->max_items){
     g_free((char*)r->items->pdata[r->items->len-1]);
     g_ptr_array_set_size(r->items, r->max_items);
   }
 }
 
+/* Provide the recent free operation used by this module and its client applications. */
 void umi_recent_free(UmiRecent *r){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!r) return;
   g_ptr_array_free(r->items, TRUE);
   g_free(r);

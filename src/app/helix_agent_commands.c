@@ -13,6 +13,10 @@
 
 #include <stdio.h>
 
+/*
+ * Provide the studio helix agent plan operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_agent_plan(UmiStudioHelixAgentCentre *centre,
                                       const char *operation_id,
                                       const char *objective,
@@ -22,14 +26,20 @@ UmiStatus umi_studio_helix_agent_plan(UmiStudioHelixAgentCentre *centre,
     UmiHelixOrchestrator *runtime =
         umi_studio_helix_agent_centre_runtime(centre);
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_helix_orchestrator_plan(
         runtime, operation_id, objective, plan_hash);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status =
         umi_helix_orchestrator_prepare_action(runtime, action);
     return status;
 }
 
+/* Provide the decide operation used by this module and its client applications. */
 static UmiStatus decide(UmiStudioHelixAgentCentre *centre,
                         UmiHelixApprovalDecision decision,
                         const char *approver,
@@ -43,6 +53,10 @@ static UmiStatus decide(UmiStudioHelixAgentCentre *centre,
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio helix agent approve operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_agent_approve(UmiStudioHelixAgentCentre *centre,
                                          const char *approver,
                                          const char *reason)
@@ -50,6 +64,10 @@ UmiStatus umi_studio_helix_agent_approve(UmiStudioHelixAgentCentre *centre,
     return decide(centre, UMI_HELIX_APPROVAL_APPROVED, approver, reason);
 }
 
+/*
+ * Provide the studio helix agent reject operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_agent_reject(UmiStudioHelixAgentCentre *centre,
                                         const char *approver,
                                         const char *reason)
@@ -57,6 +75,10 @@ UmiStatus umi_studio_helix_agent_reject(UmiStudioHelixAgentCentre *centre,
     return decide(centre, UMI_HELIX_APPROVAL_REJECTED, approver, reason);
 }
 
+/*
+ * Perform studio helix agent through the module contract so client applications do not
+ * duplicate its policy.
+ */
 UmiStatus umi_studio_helix_agent_run(UmiStudioHelixAgentCentre *centre,
                                      char *out_evidence,
                                      size_t capacity)
@@ -68,6 +90,10 @@ UmiStatus umi_studio_helix_agent_run(UmiStudioHelixAgentCentre *centre,
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio helix agent add compensation operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_helix_agent_add_compensation(
     UmiStudioHelixAgentCentre *centre,
     const UmiHelixAction *action)
@@ -79,6 +105,10 @@ UmiStatus umi_studio_helix_agent_add_compensation(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio helix agent begin rollback operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_helix_agent_begin_rollback(
     UmiStudioHelixAgentCentre *centre,
     int human_approved)
@@ -90,6 +120,10 @@ UmiStatus umi_studio_helix_agent_begin_rollback(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio helix agent run rollback operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_agent_run_rollback(
     UmiStudioHelixAgentCentre *centre,
     char *out_evidence,
@@ -103,6 +137,10 @@ UmiStatus umi_studio_helix_agent_run_rollback(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio helix agent status operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_agent_status(UmiStudioHelixAgentCentre *centre,
                                         char *out_text,
                                         size_t capacity)
@@ -110,6 +148,10 @@ UmiStatus umi_studio_helix_agent_status(UmiStudioHelixAgentCentre *centre,
     UmiHelixOrchestrator *runtime =
         umi_studio_helix_agent_centre_runtime(centre);
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || out_text == NULL || capacity == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

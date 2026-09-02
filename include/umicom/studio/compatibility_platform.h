@@ -22,11 +22,35 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio compatibility platform data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioCompatibilityPlatform UmiStudioCompatibilityPlatform;
+/**
+ * Initialise studio compatibility platform from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_compatibility_platform_create(UmiStudioCompatibilityPlatform **out_platform);
+/**
+ * Release or reset state held by studio compatibility platform so the same storage can be
+ * reused safely.
+ */
 void umi_studio_compatibility_platform_destroy(UmiStudioCompatibilityPlatform *platform);
+/**
+ * Return the number of records represented by studio compatibility product without
+ * changing their state.
+ */
 size_t umi_studio_compatibility_product_count(const UmiStudioCompatibilityPlatform *platform);
+/**
+ * Find studio compatibility product while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiProductProfile *umi_studio_compatibility_product_at(const UmiStudioCompatibilityPlatform *platform,size_t index);
+/**
+ * Provide the studio compatibility summary operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_compatibility_summary(const UmiStudioCompatibilityPlatform *platform,char *buffer,size_t capacity);
 #endif
 

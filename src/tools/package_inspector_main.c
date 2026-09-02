@@ -15,9 +15,14 @@
 #include <stdio.h>
 #include "umicom/studio/package_project.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioPackageProject project;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_package_project_init(&project, "0.23.0") !=
         UMI_STATUS_OK) return 1;
     printf("Umicom Studio Package Inspector\n");

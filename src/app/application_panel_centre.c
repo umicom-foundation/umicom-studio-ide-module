@@ -17,6 +17,10 @@
 
 #include "umicom/application/experience_catalogue.h"
 
+/*
+ * Provide the studio application panel row operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_application_panel_row(
     const char *application_id,
     size_t index,
@@ -29,6 +33,10 @@ UmiStatus umi_studio_application_panel_row(
         : UMI_STATUS_NOT_FOUND;
 }
 
+/*
+ * Provide the studio application layout row operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_application_layout_row(
     const char *application_id,
     size_t index,

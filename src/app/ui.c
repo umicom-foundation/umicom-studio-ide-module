@@ -37,8 +37,13 @@ struct UmiStudioUi {
     int published;
 };
 
+/* Provide the destroy partial operation used by this module and its client applications. */
 static void destroy_partial(UmiStudioUi *ui)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return;
     umi_studio_application_surface_destroy(ui->application_surface);
     ui->application_surface = NULL;
@@ -55,38 +60,63 @@ static void destroy_partial(UmiStudioUi *ui)
     free(ui);
 }
 
+/*
+ * Initialise studio ui from caller-provided values so later operations receive a known
+ * state.
+ */
 UmiStatus umi_studio_ui_create(UmiStudioServices *services,
                                UmiCommandRegistry *commands,
                                UmiStudioUi **out_ui)
 {
     UmiStudioUi *ui;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || commands == NULL || out_ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_ui = NULL;
     ui = (UmiStudioUi *)calloc(1U, sizeof(*ui));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     ui->services = services;
     ui->commands = commands;
     status = umi_ui_workbench_create(UMI_STUDIO_WORKBENCH_ID, commands, &ui->workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_workbench_populate(ui->workbench, services);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_document_coordinator_create(
         umi_studio_services_documents(services), ui->workbench, NULL,
         &ui->document_coordinator);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_workbench_commands_register(commands, ui);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_document_commands_register(
         commands, ui->document_coordinator);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_view_models_create(services, &ui->view_models);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_ui_application_shell_create(
         UMI_STUDIO_APPLICATION_ID, "Umicom Studio IDE", ui->workbench, &ui->shell);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_ui_application_shell_set_bounds(
         ui->shell, (UmiUiRect){ 80, 60, 1440, 900 });
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_ui_application_shell_set_visible(ui->shell, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_ui_headless_adapter_create(&ui->headless);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_ui_headless_adapter_present(ui->headless, ui->shell);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_application_surface_create(
         &ui->application_surface);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_workbench_restore_session(
         ui->workbench, umi_studio_services_session(services));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(ui);
         return status;
@@ -95,14 +125,20 @@ UmiStatus umi_studio_ui_create(UmiStudioServices *services,
     return UMI_STATUS_OK;
 }
 
+/* Release or reset state held by studio ui so the same storage can be reused safely. */
 void umi_studio_ui_destroy(UmiStudioUi *ui)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return;
     (void)umi_studio_workbench_save_session(ui->workbench,
                                             umi_studio_services_session(ui->services));
     destroy_partial(ui);
 }
 
+/* Provide the studio ui publish operation used by this module and its client applications. */
 UmiStatus umi_studio_ui_publish(UmiStudioUi *ui, UmiServiceRegistry *registry)
 {
     static const char *const IDS[] = {
@@ -118,7 +154,12 @@ UmiStatus umi_studio_ui_publish(UmiStudioUi *ui, UmiServiceRegistry *registry)
     size_t index;
     UmiServiceDescriptor descriptor;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL || registry == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (ui->published) return UMI_STATUS_INVALID_STATE;
     instances[0] = ui;
     instances[1] = ui->workbench;
@@ -127,6 +168,7 @@ UmiStatus umi_studio_ui_publish(UmiStudioUi *ui, UmiServiceRegistry *registry)
     instances[4] = ui->view_models;
     instances[5] = ui->document_coordinator;
     instances[6] = ui->application_surface;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < 7U; ++index) {
         (void)memset(&descriptor, 0, sizeof(descriptor));
         descriptor.structure_size = (uint32_t)sizeof(descriptor);
@@ -136,46 +178,79 @@ UmiStatus umi_studio_ui_publish(UmiStudioUi *ui, UmiServiceRegistry *registry)
         descriptor.service = instances[index];
         descriptor.flags = UMI_SERVICE_SINGLETON;
         status = umi_service_registry_register(registry, &descriptor);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     ui->published = 1;
     return UMI_STATUS_OK;
 }
 
+/* Provide the studio ui refresh operation used by this module and its client applications. */
 UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_studio_view_models_refresh(ui->view_models);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_application_surface_refresh(ui->application_surface);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return umi_ui_headless_adapter_refresh(ui->headless);
 }
 
+/* Provide the studio ui advance operation used by this module and its client applications. */
 UmiStatus umi_studio_ui_advance(UmiStudioUi *ui, uint32_t elapsed_seconds)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_studio_application_surface_policy_advance(
         ui->application_surface, elapsed_seconds);
 }
 
+/*
+ * Provide the studio ui set background operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ui_set_background(UmiStudioUi *ui, int background)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_studio_application_surface_policy_set_background(
         ui->application_surface, background);
 }
 
+/*
+ * Provide the studio ui context changed operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ui_context_changed(UmiStudioUi *ui,
                                         const char *component_id,
                                         const char *context_value)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_studio_application_surface_policy_context_changed(
         ui->application_surface, component_id, context_value);
 }
 
+/*
+ * Provide the studio ui checkpoint due operation used by this module and its client
+ * applications.
+ */
 int umi_studio_ui_checkpoint_due(const UmiStudioUi *ui,
                                  uint32_t elapsed_seconds,
                                  int changed)
@@ -186,6 +261,10 @@ int umi_studio_ui_checkpoint_due(const UmiStudioUi *ui,
         : 0;
 }
 
+/*
+ * Provide the studio ui snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
                                  UmiStudioUiSnapshot *out_snapshot)
 {
@@ -193,14 +272,21 @@ UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
     UmiUiHeadlessSnapshot render;
     UmiApplicationPresentationSurfaceSnapshot surface;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     status = umi_ui_workbench_snapshot(ui->workbench, &workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_headless_adapter_snapshot(ui->headless, &render);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_application_surface_snapshot(
         ui->application_surface, &surface);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     out_snapshot->perspectives = workbench.perspective_count;
     out_snapshot->panes = workbench.pane_count;
@@ -237,20 +323,54 @@ UmiStatus umi_studio_ui_snapshot(const UmiStudioUi *ui,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio ui render headless operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ui_render_headless(UmiStudioUi *ui,
                                         UmiUiHeadlessSnapshot *out_snapshot)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_studio_ui_refresh(ui);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return umi_ui_headless_adapter_snapshot(ui->headless, out_snapshot);
 }
 
+/*
+ * Provide the studio ui services operation used by this module and its client
+ * applications.
+ */
 UmiStudioServices *umi_studio_ui_services(UmiStudioUi *ui) { return ui != NULL ? ui->services : NULL; }
+/* Provide the studio ui shell operation used by this module and its client applications. */
 UmiUiApplicationShell *umi_studio_ui_shell(UmiStudioUi *ui) { return ui != NULL ? ui->shell : NULL; }
+/*
+ * Provide the studio ui workbench operation used by this module and its client
+ * applications.
+ */
 UmiUiWorkbench *umi_studio_ui_workbench(UmiStudioUi *ui) { return ui != NULL ? ui->workbench : NULL; }
+/*
+ * Provide the studio ui headless operation used by this module and its client
+ * applications.
+ */
 UmiUiHeadlessAdapter *umi_studio_ui_headless(UmiStudioUi *ui) { return ui != NULL ? ui->headless : NULL; }
+/*
+ * Provide the studio ui view models operation used by this module and its client
+ * applications.
+ */
 UmiStudioViewModels *umi_studio_ui_view_models(UmiStudioUi *ui) { return ui != NULL ? ui->view_models : NULL; }
+/*
+ * Provide the studio ui documents operation used by this module and its client
+ * applications.
+ */
 UmiDocumentCoordinator *umi_studio_ui_documents(UmiStudioUi *ui) { return ui != NULL ? ui->document_coordinator : NULL; }
+/*
+ * Provide the studio ui application surface operation used by this module and its client
+ * applications.
+ */
 UmiStudioApplicationSurface *umi_studio_ui_application_surface(UmiStudioUi *ui) { return ui != NULL ? ui->application_surface : NULL; }

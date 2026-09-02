@@ -19,16 +19,28 @@
 
 #include "umicom/studio/helix_agents.h"
 
+/*
+ * Return the number of records represented by studio helix agent without changing their
+ * state.
+ */
 size_t umi_studio_helix_agent_count(UmiStudioAiPlatform *platform)
 {
     UmiHelixRuntime *runtime = umi_studio_ai_platform_helix(platform);
     return runtime != NULL ? runtime->agents.count : 0U;
 }
 
+/*
+ * Find studio helix agent while leaving the underlying catalogue or model owned by this
+ * module.
+ */
 const UmiHelixAgent *umi_studio_helix_agent_at(UmiStudioAiPlatform *platform,
                                                size_t index)
 {
     UmiHelixRuntime *runtime = umi_studio_ai_platform_helix(platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || index >= runtime->agents.count) return NULL;
     return &runtime->agents.agents[index];
 }

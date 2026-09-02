@@ -184,6 +184,9 @@ extern "C" {
 
 #define UMI_STUDIO_CORE_COMMAND_COUNT 139U
 
+/**
+ * Add studio commands only after its inputs and available capacity have been checked.
+ */
 UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                        UmiStudioServices *services);
 

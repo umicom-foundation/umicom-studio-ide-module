@@ -22,6 +22,7 @@
 
 #include "options.h"
 
+/* Read options into validated module state and return a status when input cannot be used. */
 UmiOptions *umi_options_parse(int *argc, char ***argv, GError **err){
   UmiOptions *o = g_new0(UmiOptions,1);
   o->verbose = FALSE; o->log_level = 1; o->headless = FALSE; o->workspace = NULL;
@@ -37,11 +38,14 @@ UmiOptions *umi_options_parse(int *argc, char ***argv, GError **err){
   g_option_context_add_main_entries(ctx, entries, NULL);
   gboolean ok = g_option_context_parse(ctx, argc, argv, err);
   g_option_context_free(ctx);
+  /* Preserve the original failure result so the caller can respond to the correct cause. */
   if(!ok){ umi_options_free(o); return NULL; }
   return o;
 }
 
+/* Provide the options free operation used by this module and its client applications. */
 void umi_options_free(UmiOptions *o){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!o) return;
   g_free(o->workspace);
   g_free(o);

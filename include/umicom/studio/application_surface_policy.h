@@ -25,6 +25,10 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio application surface policy snapshot data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioApplicationSurfacePolicySnapshot {
     const char *recipe_id;
     const char *startup_policy;
@@ -41,19 +45,39 @@ typedef struct UmiStudioApplicationSurfacePolicySnapshot {
     int allow_background_commands;
 } UmiStudioApplicationSurfacePolicySnapshot;
 
+/**
+ * Provide the studio application surface policy snapshot operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_application_surface_policy_snapshot(
     const UmiStudioApplicationSurface *surface,
     UmiStudioApplicationSurfacePolicySnapshot *out_snapshot);
+/**
+ * Provide the studio application surface policy advance operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_application_surface_policy_advance(
     UmiStudioApplicationSurface *surface,
     uint32_t elapsed_seconds);
+/**
+ * Provide the studio application surface policy set background operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_application_surface_policy_set_background(
     UmiStudioApplicationSurface *surface,
     int background);
+/**
+ * Provide the studio application surface policy context changed operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_application_surface_policy_context_changed(
     UmiStudioApplicationSurface *surface,
     const char *component_id,
     const char *context_value);
+/**
+ * Provide the studio application surface policy checkpoint due operation used by this
+ * module and its client applications.
+ */
 int umi_studio_application_surface_policy_checkpoint_due(
     const UmiStudioApplicationSurface *surface,
     uint32_t elapsed_since_checkpoint_seconds,

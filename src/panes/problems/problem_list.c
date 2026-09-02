@@ -55,19 +55,24 @@ struct _UmiProblemList {
 static void on_row_activated(GtkListBox *box, GtkListBoxRow *row, gpointer user_data) {
     (void)box;
     UmiProblemList *pl = (UmiProblemList*)user_data;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!pl || !pl->on_activate) return;
     RowPayload *p = (RowPayload*)g_object_get_data(G_OBJECT(row), "umi.payload");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!p) return;
     pl->on_activate(pl->user, p->file ? p->file : "", p->line, p->col);
 }
 
+/* Provide the row payload free operation used by this module and its client applications. */
 static void row_payload_free(gpointer data) {
     RowPayload *p = (RowPayload*)data;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!p) return;
     g_free(p->file);
     g_free(p);
 }
 
+/* Provide the mk row operation used by this module and its client applications. */
 static GtkWidget *mk_row(const char *severity, const char *file, int line, int col, const char *msg) {
     GtkWidget *row  = gtk_list_box_row_new();
     GtkWidget *box  = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
@@ -95,6 +100,10 @@ UmiProblemList *umi_problem_list_new(void) {
     return umi_problem_list_new_with_cb(NULL, NULL);
 }
 
+/*
+ * Provide the problem list new with cb operation used by this module and its client
+ * applications.
+ */
 UmiProblemList *umi_problem_list_new_with_cb(UmiProblemActivateCb cb, gpointer user) {
     UmiProblemList *pl = g_new0(UmiProblemList, 1);
     pl->scroller = gtk_scrolled_window_new();
@@ -107,10 +116,17 @@ UmiProblemList *umi_problem_list_new_with_cb(UmiProblemActivateCb cb, gpointer u
     return pl;
 }
 
+/* Provide the problem list free operation used by this module and its client applications. */
 void umi_problem_list_free(UmiProblemList *pl) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!pl) return;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (pl->list) {
         GtkWidget *child = gtk_widget_get_first_child(pl->list);
+        /*
+         * Continue only while work remains available; the loop body advances the state on each
+         * pass.
+         */
         while (child) {
             GtkWidget *next = gtk_widget_get_next_sibling(child);
             gtk_list_box_remove(GTK_LIST_BOX(pl->list), child);
@@ -118,11 +134,14 @@ void umi_problem_list_free(UmiProblemList *pl) {
         }
         g_object_unref(pl->list);
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (pl->scroller) g_object_unref(pl->scroller);
     g_free(pl);
 }
 
+/* Add problem list only after its inputs and available capacity have been checked. */
 gboolean umi_problem_list_add(UmiProblemList *pl, const UmiDiag *diag) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!pl || !pl->list || !diag) return FALSE;
     const char *file = diag->file ? diag->file : "";
     const char *msg  = diag->message ? diag->message : "";
@@ -135,10 +154,16 @@ gboolean umi_problem_list_add(UmiProblemList *pl, const UmiDiag *diag) {
     return TRUE;
 }
 
+/* Release or reset state held by problem list so the same storage can be reused safely. */
 unsigned umi_problem_list_clear(UmiProblemList *pl) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!pl || !pl->list) return 0u;
     unsigned removed = 0;
     GtkWidget *child = gtk_widget_get_first_child(pl->list);
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (child) {
         GtkWidget *next = gtk_widget_get_next_sibling(child);
         gtk_list_box_remove(GTK_LIST_BOX(pl->list), child);
@@ -149,14 +174,23 @@ unsigned umi_problem_list_clear(UmiProblemList *pl) {
     return removed;
 }
 
+/* Return the number of records represented by problem list without changing their state. */
 unsigned umi_problem_list_count(UmiProblemList *pl) {
     return pl ? pl->count : 0u;
 }
 
+/*
+ * Provide the problem list model operation used by this module and its client
+ * applications.
+ */
 const void *umi_problem_list_model(UmiProblemList *pl) {
     return pl ? (const void*)pl->list : NULL;
 }
 
+/*
+ * Provide the problem list widget operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_problem_list_widget(UmiProblemList *pl) {
     return pl ? pl->scroller : NULL;
 }

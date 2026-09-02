@@ -19,11 +19,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio production command contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioProductionCommandContribution {
     const UmiApplicationProductionControlCommand *command;
     const char *menu_path;
     const char *view_id;
 } UmiStudioProductionCommandContribution;
+/**
+ * Represent the studio production command catalogue data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioProductionCommandCatalogue {
     UmiStudioProductionCommandContribution entries[32];
     size_t count;

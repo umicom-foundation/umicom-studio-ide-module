@@ -25,6 +25,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio platform report data shared with callers of this public contract.
+ */
 typedef struct UmiStudioPlatformReport {
     UmiToolchainDiscoveryReport discovery;
     UmiEnvironmentPlan environment;
@@ -32,13 +35,25 @@ typedef struct UmiStudioPlatformReport {
     int environment_ready;
 } UmiStudioPlatformReport;
 
+/**
+ * Provide the studio platform check operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_platform_check(
     UmiStudioServices *services,
     int require_gtk,
     int require_github_cli,
     UmiStudioPlatformReport *out_report
 );
+/**
+ * Release or reset state held by studio platform report so the same storage can be reused
+ * safely.
+ */
 void umi_studio_platform_report_dispose(UmiStudioPlatformReport *report);
+/**
+ * Provide the studio platform write environment operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_platform_write_environment(
     const UmiStudioPlatformReport *report,
     const char *path

@@ -21,6 +21,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio supply chain data shared with callers of this public contract.
+ */
 typedef struct UmiStudioSupplyChain {
     UmiReleaseEvidence evidence;
     char checksum_algorithm[32];
@@ -28,12 +31,28 @@ typedef struct UmiStudioSupplyChain {
     char signer[UMI_DELIVERY_ID_CAPACITY];
 } UmiStudioSupplyChain;
 
+/**
+ * Initialise studio supply chain from caller-provided values so later operations receive a
+ * known state.
+ */
 void umi_studio_supply_chain_init(UmiStudioSupplyChain *supply_chain);
+/**
+ * Provide the studio supply chain mark local complete operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_supply_chain_mark_local_complete(
     UmiStudioSupplyChain *supply_chain);
+/**
+ * Provide the studio supply chain approve signature operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_supply_chain_approve_signature(
     UmiStudioSupplyChain *supply_chain,
     const char *signer);
+/**
+ * Provide the studio supply chain ready operation used by this module and its client
+ * applications.
+ */
 int umi_studio_supply_chain_ready(
     const UmiStudioSupplyChain *supply_chain,
     UmiReleaseChannel channel);

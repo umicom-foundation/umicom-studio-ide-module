@@ -27,11 +27,19 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio update plan operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_update_plan(uint64_t current_generation,
                                     uint64_t available_generation,
                                     int compatible,
                                     int policy_allows,
                                     UmiUpdatePlan *out_plan);
+/**
+ * Provide the studio rollback plan operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_rollback_plan(uint64_t current_generation,
                                    uint64_t target_generation,
                                    const char *reason,

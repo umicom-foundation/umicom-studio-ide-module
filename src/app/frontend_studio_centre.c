@@ -24,9 +24,33 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/frontend_studio_centre.h"
 #include <string.h>
-UmiStatus umi_studio_frontend_centre_init(UmiStudioFrontendCentre *c,UmiStudioWebPlatform *p){UmiStatus s;if(c==NULL||p==NULL)return UMI_STATUS_INVALID_ARGUMENT;(void)memset(c,0,sizeof(*c));c->platform=p;s=umi_frontend_dev_copy_text(c->active_pane,sizeof(c->active_pane),"overview");c->revision=1U;return s;}
-UmiStatus umi_studio_frontend_centre_activate(UmiStudioFrontendCentre *c,const char *id){UmiStatus s;if(c==NULL||id==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_frontend_dev_copy_text(c->active_pane,sizeof(c->active_pane),id);if(s==UMI_STATUS_OK)c->revision+=1U;return s;}
-UmiStatus umi_studio_frontend_centre_open_document(UmiStudioFrontendCentre *c,const UmiFrontendDocument *d){UmiFrontendStudio *s;UmiStatus st;if(c==NULL||d==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_studio_web_platform_frontend_studio(c->platform);if(s==NULL)return UMI_STATUS_INVALID_STATE;st=umi_frontend_studio_open_document(s,d);if(st==UMI_STATUS_OK)c->revision+=1U;return st;}
-UmiStatus umi_studio_frontend_centre_publish(UmiStudioFrontendCentre *c,uint64_t *g){UmiFrontendStudio *s;UmiStatus st;if(c==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_studio_web_platform_frontend_studio(c->platform);st=umi_frontend_studio_publish_changes(s,g);if(st==UMI_STATUS_OK)c->revision+=1U;return st;}
-UmiStatus umi_studio_frontend_centre_audit(UmiStudioFrontendCentre *c,const UmiFrontendQualityMetrics *m){UmiFrontendStudio *s;UmiStatus st;if(c==NULL||m==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_studio_web_platform_frontend_studio(c->platform);st=s!=NULL?umi_frontend_quality_audit_run(&s->budget,m,&c->latest_audit):UMI_STATUS_INVALID_STATE;if(st==UMI_STATUS_OK)c->revision+=1U;return st;}
-UmiStatus umi_studio_frontend_centre_snapshot(const UmiStudioFrontendCentre *c,UmiStudioFrontendCentreSnapshot *out){UmiFrontendStudio *s;UmiStatus st;if(c==NULL||out==NULL)return UMI_STATUS_INVALID_ARGUMENT;(void)memset(out,0,sizeof(*out));s=umi_studio_web_platform_frontend_studio(c->platform);st=umi_frontend_studio_snapshot(s,&out->frontend);if(st==UMI_STATUS_OK)st=umi_frontend_dev_copy_text(out->active_pane,sizeof(out->active_pane),c->active_pane);out->latest_audit=c->latest_audit;out->revision=c->revision;return st;}
+/*
+ * Initialise studio frontend centre from caller-provided values so later operations
+ * receive a known state.
+ */
+UmiStatus umi_studio_frontend_centre_init(UmiStudioFrontendCentre *c,UmiStudioWebPlatform *p){UmiStatus s;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(c==NULL||p==NULL)return UMI_STATUS_INVALID_ARGUMENT;(void)memset(c,0,sizeof(*c));c->platform=p;s=umi_frontend_dev_copy_text(c->active_pane,sizeof(c->active_pane),"overview");c->revision=1U;return s;}
+/*
+ * Provide the studio frontend centre activate operation used by this module and its client
+ * applications.
+ */
+UmiStatus umi_studio_frontend_centre_activate(UmiStudioFrontendCentre *c,const char *id){UmiStatus s;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(c==NULL||id==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_frontend_dev_copy_text(c->active_pane,sizeof(c->active_pane),id);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(s==UMI_STATUS_OK)c->revision+=1U;return s;}
+/*
+ * Provide the studio frontend centre open document operation used by this module and its
+ * client applications.
+ */
+UmiStatus umi_studio_frontend_centre_open_document(UmiStudioFrontendCentre *c,const UmiFrontendDocument *d){UmiFrontendStudio *s;UmiStatus st;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(c==NULL||d==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_studio_web_platform_frontend_studio(c->platform);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(s==NULL)return UMI_STATUS_INVALID_STATE;st=umi_frontend_studio_open_document(s,d);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(st==UMI_STATUS_OK)c->revision+=1U;return st;}
+/*
+ * Provide the studio frontend centre publish operation used by this module and its client
+ * applications.
+ */
+UmiStatus umi_studio_frontend_centre_publish(UmiStudioFrontendCentre *c,uint64_t *g){UmiFrontendStudio *s;UmiStatus st;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(c==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_studio_web_platform_frontend_studio(c->platform);st=umi_frontend_studio_publish_changes(s,g);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(st==UMI_STATUS_OK)c->revision+=1U;return st;}
+/*
+ * Provide the studio frontend centre audit operation used by this module and its client
+ * applications.
+ */
+UmiStatus umi_studio_frontend_centre_audit(UmiStudioFrontendCentre *c,const UmiFrontendQualityMetrics *m){UmiFrontendStudio *s;UmiStatus st;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(c==NULL||m==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_studio_web_platform_frontend_studio(c->platform);st=s!=NULL?umi_frontend_quality_audit_run(&s->budget,m,&c->latest_audit):UMI_STATUS_INVALID_STATE;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(st==UMI_STATUS_OK)c->revision+=1U;return st;}
+/*
+ * Provide the studio frontend centre snapshot operation used by this module and its client
+ * applications.
+ */
+UmiStatus umi_studio_frontend_centre_snapshot(const UmiStudioFrontendCentre *c,UmiStudioFrontendCentreSnapshot *out){UmiFrontendStudio *s;UmiStatus st;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(c==NULL||out==NULL)return UMI_STATUS_INVALID_ARGUMENT;(void)memset(out,0,sizeof(*out));s=umi_studio_web_platform_frontend_studio(c->platform);st=umi_frontend_studio_snapshot(s,&out->frontend);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(st==UMI_STATUS_OK)st=umi_frontend_dev_copy_text(out->active_pane,sizeof(out->active_pane),c->active_pane);out->latest_audit=c->latest_audit;out->revision=c->revision;return st;}

@@ -47,6 +47,10 @@ extern "C" {
 #define UMI_STUDIO_CONTAINER_FRAMEWORK    "studio.container.framework"
 #define UMI_STUDIO_CONTAINER_AI           "studio.container.ai"
 
+/**
+ * Add studio workbench shell catalogue only after its inputs and available capacity have
+ * been checked.
+ */
 UmiStatus umi_studio_workbench_shell_catalogue_register(
     UmiUiWorkbench *workbench,
     UmiStudioServices *services

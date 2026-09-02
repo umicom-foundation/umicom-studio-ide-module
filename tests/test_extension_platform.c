@@ -18,6 +18,10 @@
 
 #include "umicom/studio/extension_platform.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiPluginHost *host = NULL;

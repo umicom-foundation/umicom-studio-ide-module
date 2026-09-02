@@ -27,17 +27,26 @@
 
 #include "editor_workbench_window.h"
 
+/* Provide the on activate operation used by this module and its client applications. */
 static void on_activate(GtkApplication *application, gpointer user_data)
 {
     GtkWidget *window;
 
     (void)user_data;
     window = umi_studio_editor_workbench_window_new(application);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (window != NULL) {
         gtk_window_present(GTK_WINDOW(window));
     }
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     GtkApplication *application;
@@ -51,6 +60,10 @@ int main(int argc, char **argv)
         "org.umicom.studio.workspace-productivity",
         G_APPLICATION_DEFAULT_FLAGS
     );
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (application == NULL) {
         return 1;
     }

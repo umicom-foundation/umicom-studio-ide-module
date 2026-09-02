@@ -15,6 +15,14 @@
 #ifndef UMICOM_STUDIO_SECURITY_AUDIT_VIEW_H
 #define UMICOM_STUDIO_SECURITY_AUDIT_VIEW_H
 #include "umicom/studio/security_centre.h"
+/**
+ * Find studio security audit while leaving the underlying catalogue or model owned by this
+ * module.
+ */
 const UmiSecurityAuditEntry *umi_studio_security_audit_at(const UmiStudioSecurityCentre *centre,size_t index);
+/**
+ * Provide the studio security audit denied operation used by this module and its client
+ * applications.
+ */
 size_t umi_studio_security_audit_denied(const UmiStudioSecurityCentre *centre);
 #endif

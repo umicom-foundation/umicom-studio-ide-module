@@ -18,6 +18,10 @@
 #include <assert.h>
 #include <stdatomic.h>
 
+/*
+ * Exercise work and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static UmiStatus work(UmiTaskContext *context, void *user_data)
 {
     atomic_int *counter = (atomic_int *)user_data;
@@ -25,6 +29,10 @@ static UmiStatus work(UmiTaskContext *context, void *user_data)
     return umi_task_context_report(context, 100U, "done");
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioServices *services = NULL;

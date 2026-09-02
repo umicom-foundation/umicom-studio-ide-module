@@ -35,8 +35,16 @@ extern "C" {
 
 #define UMI_STUDIO_TEST_EXPLORER_CENTRE_API_VERSION 4U
 
+/**
+ * Represent the studio test explorer centre data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioTestExplorerCentre UmiStudioTestExplorerCentre;
 
+/**
+ * Represent the studio test explorer command contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioTestExplorerCommandContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -47,6 +55,10 @@ typedef struct UmiStudioTestExplorerCommandContribution {
     int show_in_command_centre;
 } UmiStudioTestExplorerCommandContribution;
 
+/**
+ * Represent the studio test explorer view contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioTestExplorerViewContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -59,6 +71,10 @@ typedef struct UmiStudioTestExplorerViewContribution {
     int movable;
 } UmiStudioTestExplorerViewContribution;
 
+/**
+ * Represent the studio test explorer centre snapshot data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioTestExplorerCentreSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -78,63 +94,147 @@ typedef struct UmiStudioTestExplorerCentreSnapshot {
     int available;
 } UmiStudioTestExplorerCentreSnapshot;
 
+/**
+ * Initialise studio test explorer centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_test_explorer_centre_create(
     UmiStudioTestExplorerCentre **out_centre);
+/**
+ * Provide the studio test explorer centre create bound operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_create_bound(
     UmiStudioTestService *test_service,
     UmiStudioTestExplorerCentre **out_centre);
+/**
+ * Release or reset state held by studio test explorer centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_test_explorer_centre_destroy(
     UmiStudioTestExplorerCentre *centre);
+/**
+ * Provide the studio test explorer centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_snapshot(
     UmiStudioTestExplorerCentre *centre,
     UmiStudioTestExplorerCentreSnapshot *out_snapshot);
+/**
+ * Provide the studio test explorer centre service operation used by this module and its
+ * client applications.
+ */
 UmiTestPlatformService *umi_studio_test_explorer_centre_service(
     UmiStudioTestExplorerCentre *centre);
+/**
+ * Provide the studio test explorer centre workspace operation used by this module and its
+ * client applications.
+ */
 UmiTestWorkspace *umi_studio_test_explorer_centre_workspace(
     UmiStudioTestExplorerCentre *centre);
+/**
+ * Provide the studio test explorer centre experience operation used by this module and its
+ * client applications.
+ */
 UmiTestExplorerSession *umi_studio_test_explorer_centre_experience(
     UmiStudioTestExplorerCentre *centre);
+/**
+ * Provide the studio test explorer centre set workspace operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_set_workspace(
     UmiStudioTestExplorerCentre *centre,
     const char *workspace_root,
     const char *project_id,
     uint64_t workspace_revision);
+/**
+ * Provide the studio test explorer centre set filter operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_set_filter(
     UmiStudioTestExplorerCentre *centre,
     const char *search_text,
     const char *label,
     int outcome,
     int include_disabled);
+/**
+ * Provide the studio test explorer centre hierarchy operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_hierarchy(
     UmiStudioTestExplorerCentre *centre,
     UmiTestPlatformHierarchyNode *nodes,
     size_t capacity,
     size_t *out_count);
+/**
+ * Provide the studio test explorer centre plan all operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_plan_all(
     UmiStudioTestExplorerCentre *centre,
     uint32_t repeat_count,
     int stop_on_failure,
     UmiTestPlatformOperationPlan *out_plan);
+/**
+ * Provide the studio test explorer centre plan failed operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_plan_failed(
     UmiStudioTestExplorerCentre *centre,
     UmiTestPlatformOperationPlan *out_plan);
+/**
+ * Provide the studio test explorer centre begin operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_begin(
     UmiStudioTestExplorerCentre *centre,
     const UmiTestPlatformOperationPlan *plan);
+/**
+ * Provide the studio test explorer centre stop operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_test_explorer_centre_stop(
     UmiStudioTestExplorerCentre *centre);
+/**
+ * Provide the studio test explorer centre finish operation used by this module and its
+ * client applications.
+ */
 void umi_studio_test_explorer_centre_finish(
     UmiStudioTestExplorerCentre *centre);
 
+/**
+ * Return the number of records represented by studio test explorer command contribution
+ * without changing their state.
+ */
 size_t umi_studio_test_explorer_command_contribution_count(void);
+/**
+ * Find studio test explorer command contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioTestExplorerCommandContribution *
 umi_studio_test_explorer_command_contribution_at(size_t position);
+/**
+ * Find studio test explorer command contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioTestExplorerCommandContribution *
 umi_studio_test_explorer_command_contribution_find(
     const char *framework_command_id);
+/**
+ * Return the number of records represented by studio test explorer view contribution
+ * without changing their state.
+ */
 size_t umi_studio_test_explorer_view_contribution_count(void);
+/**
+ * Find studio test explorer view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioTestExplorerViewContribution *
 umi_studio_test_explorer_view_contribution_at(size_t position);
+/**
+ * Find studio test explorer view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioTestExplorerViewContribution *
 umi_studio_test_explorer_view_contribution_find(const char *view_id);
 

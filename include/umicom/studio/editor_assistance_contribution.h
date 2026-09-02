@@ -27,6 +27,10 @@ extern "C" {
 
 #define UMI_STUDIO_EDITOR_ASSISTANCE_CONTRIBUTION_API_VERSION 1U
 
+/**
+ * Represent the studio editor assistance command contribution data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioEditorAssistanceCommandContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioEditorAssistanceCommandContribution {
     int show_in_command_centre;
 } UmiStudioEditorAssistanceCommandContribution;
 
+/**
+ * Represent the studio editor assistance view contribution data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioEditorAssistanceViewContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -49,15 +57,39 @@ typedef struct UmiStudioEditorAssistanceViewContribution {
     int movable;
 } UmiStudioEditorAssistanceViewContribution;
 
+/**
+ * Return the number of records represented by studio editor assistance command
+ * contribution without changing their state.
+ */
 size_t umi_studio_editor_assistance_command_contribution_count(void);
+/**
+ * Find studio editor assistance command contribution while leaving the underlying
+ * catalogue or model owned by this module.
+ */
 const UmiStudioEditorAssistanceCommandContribution *
 umi_studio_editor_assistance_command_contribution_at(size_t index);
+/**
+ * Find studio editor assistance command contribution while leaving the underlying
+ * catalogue or model owned by this module.
+ */
 const UmiStudioEditorAssistanceCommandContribution *
 umi_studio_editor_assistance_command_contribution_find(
     const char *framework_command_id);
+/**
+ * Return the number of records represented by studio editor assistance view contribution
+ * without changing their state.
+ */
 size_t umi_studio_editor_assistance_view_contribution_count(void);
+/**
+ * Find studio editor assistance view contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioEditorAssistanceViewContribution *
 umi_studio_editor_assistance_view_contribution_at(size_t index);
+/**
+ * Find studio editor assistance view contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioEditorAssistanceViewContribution *
 umi_studio_editor_assistance_view_contribution_find(const char *view_id);
 

@@ -18,6 +18,10 @@
 static UmiCommandRegistry *runtime_registered_commands(
     UmiStudioGtkRuntimeChrome *runtime)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->ui == NULL) {
         return NULL;
@@ -26,6 +30,10 @@ static UmiCommandRegistry *runtime_registered_commands(
         umi_studio_ui_workbench(runtime->owner->ui));
 }
 
+/*
+ * Provide the runtime registered command enabled operation used by this module and its
+ * client applications.
+ */
 static int runtime_registered_command_enabled(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
@@ -39,6 +47,10 @@ static int runtime_registered_command_enabled(
         umi_command_registry_is_enabled(commands, command_id, argument);
 }
 
+/*
+ * Provide the runtime execute registered command capture operation used by this module and
+ * its client applications.
+ */
 static UmiStatus runtime_execute_registered_command_capture(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
@@ -52,23 +64,36 @@ static UmiStatus runtime_execute_registered_command_capture(
     size_t capacity = message_capacity;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || command_id == NULL ||
         command_id[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
     commands = runtime_registered_commands(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (commands == NULL ||
         !umi_command_registry_contains(commands, command_id)) {
         runtime_show_notification(runtime, "Command is not registered.");
         return UMI_STATUS_NOT_FOUND;
     }
 
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (!umi_command_registry_is_enabled(commands, command_id, argument)) {
         runtime_show_notification(runtime, "Command is currently disabled.");
         return UMI_STATUS_INVALID_STATE;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (message == NULL || capacity == 0U) {
         message = local_message;
         capacity = sizeof(local_message);
@@ -84,9 +109,10 @@ static UmiStatus runtime_execute_registered_command_capture(
         capacity);
     runtime->interaction_busy = 0;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (message[0] != '\0') {
         runtime_show_notification(runtime, message);
-    } else if (status != UMI_STATUS_OK) {
+    } else /* Preserve the original failure result so the caller can respond to the correct cause. */ if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
     }
 
@@ -94,6 +120,10 @@ static UmiStatus runtime_execute_registered_command_capture(
     return status;
 }
 
+/*
+ * Provide the runtime execute registered command operation used by this module and its
+ * client applications.
+ */
 static UmiStatus runtime_execute_registered_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,

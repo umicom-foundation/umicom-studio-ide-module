@@ -26,6 +26,18 @@ static const UmiStudioCompilerView VIEWS[] = {
     {"compiler.database","Compilation Database","x-office-spreadsheet","Polyglot compile commands and export preview.",UMI_STUDIO_COMPILER_VIEW_PRIMARY,true,true,false},
     {"compiler.templates","Project Templates","document-new","Language and polyglot project starters.",UMI_STUDIO_COMPILER_VIEW_SECONDARY,true,true,false}
 };
+/*
+ * Return the number of records represented by studio compiler views without changing their
+ * state.
+ */
 size_t umi_studio_compiler_views_count(void) { return sizeof(VIEWS) / sizeof(VIEWS[0]); }
+/*
+ * Find studio compiler views while leaving the underlying catalogue or model owned by this
+ * module.
+ */
 const UmiStudioCompilerView *umi_studio_compiler_views_at(size_t index) { return index < umi_studio_compiler_views_count() ? &VIEWS[index] : NULL; }
-const UmiStudioCompilerView *umi_studio_compiler_views_find(const char *view_id) { size_t index; if (view_id == NULL) return NULL; for (index = 0U; index < umi_studio_compiler_views_count(); ++index) if (strcmp(VIEWS[index].view_id,view_id) == 0) return &VIEWS[index]; return NULL; }
+/*
+ * Find studio compiler views while leaving the underlying catalogue or model owned by this
+ * module.
+ */
+const UmiStudioCompilerView *umi_studio_compiler_views_find(const char *view_id) { size_t index; /* Protect caller-owned memory by checking that required state is available before it is used. */ if (view_id == NULL) return NULL; /* Visit each bounded item once so every record receives the same rule. */ for (index = 0U; index < umi_studio_compiler_views_count(); ++index) /* Protect caller-owned memory by checking that required state is available before it is used. */ if (strcmp(VIEWS[index].view_id,view_id) == 0) return &VIEWS[index]; return NULL; }

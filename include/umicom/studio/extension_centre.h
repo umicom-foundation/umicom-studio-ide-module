@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio extension centre snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioExtensionCentreSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -48,13 +52,33 @@ typedef struct UmiStudioExtensionCentreSnapshot {
     char isolation_mode[64];
     int available;
 } UmiStudioExtensionCentreSnapshot;
+/**
+ * Provide the studio extension centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_centre_snapshot(UmiStudioServices *services, UmiStudioExtensionCentreSnapshot *out_snapshot);
+/**
+ * Provide the studio extension centre installed view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_centre_installed_view(
     UmiStudioServices *services, const char *view_id, UmiUiViewModel **out_view);
+/**
+ * Provide the studio extension centre catalogue view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_centre_catalogue_view(
     UmiStudioServices *services, const char *view_id, UmiUiViewModel **out_view);
+/**
+ * Provide the studio extension centre permissions view operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_extension_centre_permissions_view(
     UmiStudioServices *services, const char *view_id, UmiUiViewModel **out_view);
+/**
+ * Provide the studio extension centre audit view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_centre_audit_view(
     UmiStudioServices *services, const char *view_id, UmiUiViewModel **out_view);
 #ifdef __cplusplus

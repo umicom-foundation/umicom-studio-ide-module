@@ -24,6 +24,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Provide the studio designer state report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_designer_state_report(const UmiStudioDesigner *designer,char *out_text,size_t capacity);
 #ifdef __cplusplus
 }

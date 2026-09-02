@@ -11,6 +11,10 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/knowledge_views.h"
 
+/*
+ * Provide the studio knowledge overview view operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_knowledge_overview_view(
     UmiStudioAiPlatform *platform, const char *view_id,
     UmiUiViewModel **out_view)
@@ -19,6 +23,10 @@ UmiStatus umi_studio_knowledge_overview_view(
         view_id, umi_studio_ai_platform_knowledge(platform), out_view);
 }
 
+/*
+ * Provide the studio knowledge collections view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_knowledge_collections_view(
     UmiStudioAiPlatform *platform, const char *view_id,
     UmiUiViewModel **out_view)
@@ -27,6 +35,10 @@ UmiStatus umi_studio_knowledge_collections_view(
         view_id, umi_studio_ai_platform_knowledge(platform), out_view);
 }
 
+/*
+ * Provide the studio knowledge sources view operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_knowledge_sources_view(
     UmiStudioAiPlatform *platform, const char *view_id,
     UmiUiViewModel **out_view)
@@ -35,6 +47,10 @@ UmiStatus umi_studio_knowledge_sources_view(
         view_id, umi_studio_ai_platform_knowledge(platform), out_view);
 }
 
+/*
+ * Provide the studio knowledge search view operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_knowledge_search_view(
     UmiStudioAiPlatform *platform, const char *view_id,
     const char *query_text, UmiUiViewModel **out_view)
@@ -51,6 +67,10 @@ UmiStatus umi_studio_knowledge_search_view(
         : status;
 }
 
+/*
+ * Provide the studio knowledge source view operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_knowledge_source_view(
     const char *view_id, const UmiKnowledgeMatch *match,
     UmiUiViewModel **out_view)

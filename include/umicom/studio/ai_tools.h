@@ -26,7 +26,15 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio ai tools register defaults operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_ai_tools_register_defaults(UmiStudioAiPlatform *platform);
+/**
+ * Provide the studio ai tools echo operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ai_tools_echo(UmiStudioAiPlatform *platform,
                                    const char *arguments_json,
                                    int approved,

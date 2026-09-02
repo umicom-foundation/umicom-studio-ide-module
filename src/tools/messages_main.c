@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Provide the print message operation used by this module and its client applications. */
 static UmiStatus print_message(const UmiMessageEnvelope *message, void *user_data)
 {
     (void)user_data;
@@ -28,13 +29,19 @@ static UmiStatus print_message(const UmiMessageEnvelope *message, void *user_dat
     return UMI_STATUS_OK;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServices *services;
     UmiStatus status = umi_studio_bootstrap_create(&bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return 1;
     services = umi_studio_bootstrap_services(bootstrap);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (argc >= 4 && strcmp(argv[1], "publish") == 0) {
         UmiSubscription subscription = umi_subscription_all();
         UmiStudioPublishRequest request = umi_studio_publish_request_default();
@@ -47,6 +54,7 @@ int main(int argc, char **argv)
                                                print_message,
                                                NULL,
                                                &subscription_id);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = umi_studio_messages_publish(services,
                                                  &request,
@@ -54,12 +62,14 @@ int main(int argc, char **argv)
                                                  &deliveries);
         }
         (void)umi_studio_messages_unsubscribe(services, subscription_id);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)printf("Deliveries: %zu\n", deliveries);
         }
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         UmiStudioMessageReport report;
         status = umi_studio_messages_report(services, &report);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)printf("Schemas: %zu\nTopics: %zu\nJournal: %zu\nHistory: %zu\nOutbox pending: %zu\nDead letters: %zu\nDispatched: %llu\n",
                          report.schemas,

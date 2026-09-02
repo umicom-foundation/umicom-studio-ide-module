@@ -19,6 +19,10 @@
 
 #include "umicom/studio/helix_evidence.h"
 
+/*
+ * Provide the studio helix record evidence operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_record_evidence(UmiStudioAiPlatform *platform,
                                            const char *key,
                                            const char *summary)
@@ -29,6 +33,10 @@ UmiStatus umi_studio_helix_record_evidence(UmiStudioAiPlatform *platform,
         : UMI_STATUS_INVALID_STATE;
 }
 
+/*
+ * Provide the studio helix evidence operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_helix_evidence(UmiStudioAiPlatform *platform,
                                       const char *key)
 {

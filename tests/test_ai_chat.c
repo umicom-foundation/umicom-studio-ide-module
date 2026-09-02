@@ -22,4 +22,8 @@
 #include <assert.h>
 #include <string.h>
 #include "umicom/studio/ai_chat.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioAiPlatform *p=NULL;UmiAiResponse r;assert(umi_studio_ai_platform_create(&p)==UMI_STATUS_OK);assert(umi_studio_ai_chat(p,"hello",&r)==UMI_STATUS_OK);assert(strstr(r.text,"hello")!=NULL);umi_studio_ai_platform_destroy(p);return 0;}

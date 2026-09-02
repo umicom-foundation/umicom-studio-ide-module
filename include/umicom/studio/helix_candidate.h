@@ -26,6 +26,10 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio helix candidate operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_candidate(const char *candidate_id,
                                      const char *plan_id,
                                      const char *workspace,

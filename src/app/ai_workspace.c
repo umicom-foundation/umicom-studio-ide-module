@@ -19,12 +19,21 @@
  */
 #include "umicom/studio/ai_workspace.h"
 #include <string.h>
-static void copy_text(char *dst,size_t cap,const char *src){size_t len;if(dst==NULL||cap==0U)return;if(src==NULL)src="";len=strlen(src);if(len>=cap)len=cap-1U;if(len>0U)memcpy(dst,src,len);dst[len]='\0';}
+/* Provide the copy text operation used by this module and its client applications. */
+static void copy_text(char *dst,size_t cap,const char *src){size_t len;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(dst==NULL||cap==0U)return;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(src==NULL)src="";len=strlen(src);/* Protect caller-owned memory by checking that required state is available before it is used. */ if(len>=cap)len=cap-1U;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(len>0U)memcpy(dst,src,len);dst[len]='\0';}
+/*
+ * Provide the studio ai workspace snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ai_workspace_snapshot(UmiStudioServices *services,UmiStudioAiWorkspaceSnapshot *out)
 {
     UmiStudioAiPlatform *platform;
     UmiAiAuthorEngineServiceSnapshot integration;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if(services==NULL||out==NULL)return UMI_STATUS_INVALID_ARGUMENT;
     memset(out,0,sizeof(*out)); out->struct_size=(uint32_t)sizeof(*out); out->api_version=1U;
     copy_text(out->area_id,sizeof(out->area_id),"studio.ai-workspace");
@@ -32,8 +41,13 @@ UmiStatus umi_studio_ai_workspace_snapshot(UmiStudioServices *services,UmiStudio
     copy_text(out->title,sizeof(out->title),"AI Workspace");
     copy_text(out->summary,sizeof(out->summary),"AuthorEngine-orchestrated providers, governed project context, conversation sessions and privacy controls.");
     platform=umi_studio_services_ai_platform(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if(platform==NULL)return UMI_STATUS_INVALID_STATE;
     status=umi_studio_ai_platform_snapshot(platform,&integration);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status!=UMI_STATUS_OK)return status;
     out->revision=integration.revision;
     out->provider_count=integration.providers;

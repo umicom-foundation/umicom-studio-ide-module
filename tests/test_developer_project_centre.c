@@ -31,6 +31,10 @@
 #include "umicom/platform/path.h"
 #include "umicom/studio/project_centre.h"
 
+/*
+ * Exercise populate project and return a clear result when the behaviour no longer matches
+ * its contract.
+ */
 static int populate_project(UmiProjectWorkspace *workspace)
 {
     UmiProjectDescriptorSnapshot project = {0};
@@ -44,6 +48,7 @@ static int populate_project(UmiProjectWorkspace *workspace)
     project.api_version=UMI_PROJECT_DESCRIPTOR_API_VERSION;
     strcpy(project.id,"studio"); strcpy(project.name,"Umicom Studio");
     strcpy(project.root_uri,"."); project.enabled=1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if(umi_project_descriptor_registry_upsert(
         umi_project_workspace_descriptor(workspace),&project)!=UMI_STATUS_OK)return 1;
 
@@ -52,6 +57,7 @@ static int populate_project(UmiProjectWorkspace *workspace)
     strcpy(configuration.id,"debug"); strcpy(configuration.project_id,"studio");
     strcpy(configuration.name,"Debug"); strcpy(configuration.toolchain_id,"clang");
     configuration.active=1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if(umi_project_configuration_registry_upsert(
         umi_project_workspace_configuration(workspace),&configuration)!=UMI_STATUS_OK)return 2;
 
@@ -59,6 +65,7 @@ static int populate_project(UmiProjectWorkspace *workspace)
     target.api_version=UMI_PROJECT_TARGET_API_VERSION;
     strcpy(target.id,"studio-console"); strcpy(target.project_id,"studio");
     strcpy(target.name,"Studio Console"); target.enabled=1; target.default_target=1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if(umi_project_target_registry_upsert(
         umi_project_workspace_target(workspace),&target)!=UMI_STATUS_OK)return 3;
 
@@ -67,6 +74,7 @@ static int populate_project(UmiProjectWorkspace *workspace)
     strcpy(task.id,"build"); strcpy(task.project_id,"studio");
     strcpy(task.label,"Build"); strcpy(task.command,"cmake --build build");
     strcpy(task.group,"build"); task.enabled=1; task.default_task=1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if(umi_project_task_registry_upsert(
         umi_project_workspace_task(workspace),&task)!=UMI_STATUS_OK)return 4;
 
@@ -75,6 +83,7 @@ static int populate_project(UmiProjectWorkspace *workspace)
     strcpy(launch.id,"run"); strcpy(launch.project_id,"studio");
     strcpy(launch.name,"Run"); strcpy(launch.program,"umicom-studio-console");
     launch.default_profile=1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if(umi_project_launch_profile_registry_upsert(
         umi_project_workspace_launch_profile(workspace),&launch)!=UMI_STATUS_OK)return 5;
 
@@ -83,11 +92,16 @@ static int populate_project(UmiProjectWorkspace *workspace)
     strcpy(environment.id,"local"); strcpy(environment.project_id,"studio");
     strcpy(environment.name,"Local"); strcpy(environment.toolchain_id,"clang");
     environment.inherit_parent=1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if(umi_project_environment_registry_upsert(
         umi_project_workspace_environment(workspace),&environment)!=UMI_STATUS_OK)return 6;
     return 0;
 }
 
+/*
+ * Exercise test filesystem import and return a clear result when the behaviour no longer
+ * matches its contract.
+ */
 static int test_filesystem_import(void)
 {
     UmiStudioProjectCentre *centre = NULL;
@@ -99,22 +113,30 @@ static int test_filesystem_import(void)
     char cmake_file[UMI_PATH_CAPACITY];
     char source_file[UMI_PATH_CAPACITY];
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_fs_temp_directory(temp_directory, sizeof(temp_directory)) != UMI_STATUS_OK)
         return 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_path_join(temp_directory, "umicom-b31-studio-project-centre",
                       root, sizeof(root)) != UMI_STATUS_OK) return 2;
     (void)umi_fs_remove_tree(root);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_fs_make_directories(root) != UMI_STATUS_OK) return 3;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_path_join(root, "CMakeLists.txt", cmake_file,
                       sizeof(cmake_file)) != UMI_STATUS_OK) return 4;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_path_join(root, "main.c", source_file,
                       sizeof(source_file)) != UMI_STATUS_OK) return 5;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_fs_write_text(cmake_file,
         "cmake_minimum_required(VERSION 3.24)\nproject(studio_import C)\n") !=
         UMI_STATUS_OK) return 6;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_fs_write_text(source_file,
         "int main(void) { return 0; }\n") != UMI_STATUS_OK) return 7;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_project_centre_create(&centre) != UMI_STATUS_OK) return 8;
     request.struct_size = (uint32_t)sizeof(request);
     request.api_version = UMI_PROJECT_WORKSPACE_IMPORT_API_VERSION;
@@ -122,11 +144,14 @@ static int test_filesystem_import(void)
     request.project_id = "studio-import";
     request.create_test_task = 1;
     request.launch_program = "studio-import-app";
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_import_directory(
             centre, &request, &imported) != UMI_STATUS_OK) return 9;
+    /* Apply this operation only while the related capability or state is available. */
     if (!imported.has_cmake || !imported.validation.valid ||
         strcmp(imported.selection.project.id, "studio-import") != 0)
         return 10;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_project_centre_snapshot(centre, &snapshot) != UMI_STATUS_OK ||
         !snapshot.has_selection || snapshot.service.task_count != 3U ||
         snapshot.service.launch_profile_count != 1U ||
@@ -137,10 +162,15 @@ static int test_filesystem_import(void)
                "studio-import") != 0) return 11;
 
     umi_studio_project_centre_destroy(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_fs_remove_tree(root) != UMI_STATUS_OK) return 12;
     return 0;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioProjectCentre *centre=NULL;
@@ -149,19 +179,25 @@ int main(void)
     UmiProjectWorkspaceValidationReport validation;
     int result;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(umi_studio_project_centre_create(&centre)!=UMI_STATUS_OK)return 1;
     result=populate_project(umi_studio_project_centre_service(centre));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(result!=0)return 10+result;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if(umi_studio_project_centre_select_project(
         centre,"studio",&selection)!=UMI_STATUS_OK)return 20;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if(strcmp(selection.project.id,"studio")!=0||
        !selection.has_configuration||!selection.has_target||
        !selection.has_task||!selection.has_launch_profile||
        !selection.has_environment)return 21;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(umi_studio_project_centre_validate(centre,&validation)!=UMI_STATUS_OK||
        validation.valid==0)return 22;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(umi_studio_project_centre_snapshot(centre,&snapshot)!=UMI_STATUS_OK||
        !snapshot.available||!snapshot.has_selection||
        strcmp(snapshot.selection.project.id,"studio")!=0||
@@ -170,6 +206,7 @@ int main(void)
     umi_studio_project_centre_destroy(centre);
 
     result = test_filesystem_import();
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (result != 0) return 100 + result;
     return 0;
 }

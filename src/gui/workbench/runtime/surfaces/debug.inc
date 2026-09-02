@@ -28,11 +28,19 @@ static GtkWidget *runtime_build_surface_debug(
     GtkWidget *stop;
     GtkWidget *watch;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     runtime->debug_summary_label = runtime_label("", 0.0F);
     runtime->debug_thread_entry = gtk_entry_new();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->debug_summary_label != NULL) {
         gtk_widget_add_css_class(
             runtime->debug_summary_label,
@@ -43,6 +51,10 @@ static GtkWidget *runtime_build_surface_debug(
     }
 
     thread_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (thread_row != NULL && runtime->debug_thread_entry != NULL) {
         GtkWidget *label = runtime_label("Thread", 0.0F);
         gtk_editable_set_text(
@@ -52,6 +64,10 @@ static GtkWidget *runtime_build_surface_debug(
             GTK_ENTRY(runtime->debug_thread_entry),
             "Thread id");
         gtk_widget_set_hexpand(runtime->debug_thread_entry, TRUE);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (label != NULL) gtk_box_append(GTK_BOX(thread_row), label);
         gtk_box_append(
             GTK_BOX(thread_row),
@@ -69,6 +85,10 @@ static GtkWidget *runtime_build_surface_debug(
     stop = gtk_button_new_with_label("Stop");
     watch = gtk_button_new_with_label("Add Watch");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (controls != NULL && start != NULL &&
         continue_button != NULL && pause != NULL &&
         next != NULL && step_in != NULL &&
@@ -119,6 +139,10 @@ static GtkWidget *runtime_build_surface_debug(
 
     {
         GtkWidget *details = runtime_debug_details_notebook(runtime);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (details != NULL) {
             gtk_box_append(GTK_BOX(panel), details);
         }

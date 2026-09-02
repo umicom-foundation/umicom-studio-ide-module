@@ -18,4 +18,8 @@
  */
 #include <assert.h>
 #include "umicom/studio/conformance.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioCompatibilityPlatform *p=NULL;UmiStudioConformanceResult r;assert(umi_studio_compatibility_platform_create(&p)==UMI_STATUS_OK);assert(umi_studio_conformance_run(p,&r)==UMI_STATUS_OK);assert(r.products_checked==5U);umi_studio_compatibility_platform_destroy(p);return 0;}

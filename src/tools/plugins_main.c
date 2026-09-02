@@ -17,12 +17,17 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioPluginReport report;
     UmiStatus status = umi_studio_bootstrap_create(&bootstrap);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Plug-in command failed: %s\n", umi_status_text(status));
         return 1;
@@ -34,6 +39,7 @@ int main(int argc, char **argv)
                                       &report)
         : umi_studio_plugins_report(umi_studio_bootstrap_services(bootstrap),
                                     &report);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)printf("Registered: %zu\nEnabled: %zu\nFailed: %zu\n"
                      "Contributions: %zu\nFiles examined: %zu\n"
@@ -47,7 +53,7 @@ int main(int argc, char **argv)
                      report.extension_points, report.catalogue_entries,
                      report.audit_events, report.permission_grants,
                      report.default_isolation);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         (void)fprintf(stderr, "Plug-in command failed: %s\n", umi_status_text(status));
     }
     umi_studio_bootstrap_destroy(bootstrap);

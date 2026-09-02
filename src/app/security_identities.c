@@ -15,20 +15,42 @@
  *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Security identity administration v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/security_identities.h"
+/*
+ * Add studio security identity only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_security_identity_add(UmiStudioSecurityCentre *centre,const UmiSecurityIdentityProfile *identity)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_security_identity_directory_add(&centre->governance.identities,identity);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) { centre->governance.revision += 1U; centre->revision += 1U; }
     return status;
 }
+/*
+ * Provide the studio security identity set enabled operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_security_identity_set_enabled(UmiStudioSecurityCentre *centre,const char *identity_id,bool enabled)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_security_identity_directory_set_enabled(&centre->governance.identities,identity_id,enabled);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) { centre->governance.revision += 1U; centre->revision += 1U; }
     return status;
 }
+/*
+ * Find studio security identity while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiSecurityIdentityProfile *umi_studio_security_identity_find(const UmiStudioSecurityCentre *centre,const char *identity_id) { return centre == NULL ? NULL : umi_security_identity_directory_find(&centre->governance.identities,identity_id); }

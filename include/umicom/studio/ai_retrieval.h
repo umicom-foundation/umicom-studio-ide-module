@@ -27,6 +27,10 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio ai retrieve operation used by this module and its client
+ * applications.
+ */
 size_t umi_studio_ai_retrieve(const char *document_id,
                               const char *document_text,
                               const char *query,

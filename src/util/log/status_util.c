@@ -43,9 +43,11 @@ umi_status_new(GtkStatusbar *bar)
     return st;                                                 /* Return wrapper */
 }
 
+/* Provide the status push operation used by this module and its client applications. */
 void
 umi_status_push(UmiStatus *st, const char *msg)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!st || !st->bar) return;                               /* Nothing to do if not bound */
 
 #if defined(G_GNUC_BEGIN_IGNORE_DEPRECATIONS)
@@ -56,7 +58,7 @@ if (!msg || !*msg) {
 
        /* Empty: clear by pushing a blank or popping — push blank keeps behavior simple. */    
        gtk_statusbar_push(st->bar, st->ctx_id, "");           /* Show empty text */
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         gtk_statusbar_push(st->bar, st->ctx_id, msg);          /* Show provided message */
     }
 #if defined(G_GNUC_END_IGNORE_DEPRECATIONS)
@@ -64,6 +66,7 @@ if (!msg || !*msg) {
 #endif
 }
 
+/* Provide the status free operation used by this module and its client applications. */
 void
 umi_status_free(UmiStatus *st)
 {

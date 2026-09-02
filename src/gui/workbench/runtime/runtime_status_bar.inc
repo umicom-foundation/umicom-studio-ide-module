@@ -27,10 +27,15 @@ static GtkWidget *runtime_build_status_bar(
     GtkWidget *bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bar == NULL || runtime == NULL) return bar;
 
     gtk_widget_add_css_class(bar, "umicom-runtime-status");
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(RUNTIME_STATUS_PROFILES) /
                  sizeof(RUNTIME_STATUS_PROFILES[0]);
@@ -39,6 +44,10 @@ static GtkWidget *runtime_build_status_bar(
             &RUNTIME_STATUS_PROFILES[index];
         GtkWidget *label = gtk_label_new("");
 
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (label == NULL) continue;
 
         runtime->status_labels[profile->kind] = label;
@@ -50,13 +59,25 @@ static GtkWidget *runtime_build_status_bar(
     return bar;
 }
 
+/*
+ * Provide the runtime status override legacy services operation used by this module and
+ * its client applications.
+ */
 static void runtime_status_override_legacy_services(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     char text[192];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->status_labels[UMI_STUDIO_STATUS_PROBLEMS] != NULL) {
         (void)snprintf(
             text,
@@ -69,6 +90,10 @@ static void runtime_status_override_legacy_services(
             text);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->status_labels[UMI_STUDIO_STATUS_BRANCH] != NULL) {
         /*
          * Bound presentation only. The complete branch name and exact change
@@ -89,6 +114,10 @@ static void runtime_status_override_legacy_services(
             text);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->status_labels[UMI_STUDIO_STATUS_TESTS] != NULL) {
         (void)snprintf(
             text,
@@ -102,6 +131,10 @@ static void runtime_status_override_legacy_services(
             text);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->status_labels[UMI_STUDIO_STATUS_AI] != NULL &&
         runtime->owner != NULL && runtime->owner->ui != NULL) {
         UmiStudioAiPlatform *ai = umi_studio_services_ai_platform(
@@ -118,6 +151,10 @@ static void runtime_status_override_legacy_services(
             text);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->status_labels[UMI_STUDIO_STATUS_DEBUG] != NULL) {
         (void)snprintf(
             text,
@@ -132,6 +169,10 @@ static void runtime_status_override_legacy_services(
     }
 }
 
+/*
+ * Provide the runtime update status operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_update_status(
     void *context,
     const UmiStudioRuntimeStatusModel *status)
@@ -140,27 +181,38 @@ static UmiStatus runtime_update_status(
         (UmiStudioGtkRuntimeChrome *)context;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || status == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < status->item_count; ++index) {
         const UmiStudioRuntimeStatusItem *item = &status->items[index];
         GtkWidget *label;
 
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (item->kind < UMI_STUDIO_STATUS_WORKSPACE ||
             item->kind > UMI_STUDIO_STATUS_CURSOR) {
             continue;
         }
 
         label = runtime->status_labels[item->kind];
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (label == NULL) continue;
 
         gtk_label_set_text(GTK_LABEL(label), item->text);
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (item->important) {
             gtk_widget_add_css_class(label, "warning");
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             gtk_widget_remove_css_class(label, "warning");
         }
     }

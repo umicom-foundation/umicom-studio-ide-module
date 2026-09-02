@@ -242,21 +242,37 @@ static const char *const REQUIRED_SERVICE_IDS[] = {
 
 #define ARRAY_COUNT(values) (sizeof(values) / sizeof((values)[0]))
 
+/*
+ * Return the number of records represented by studio platform contract core command
+ * without changing their state.
+ */
 size_t umi_studio_platform_contract_core_command_count(void)
 {
     return ARRAY_COUNT(CORE_COMMAND_IDS);
 }
 
+/*
+ * Provide the studio platform contract core command id operation used by this module and
+ * its client applications.
+ */
 const char *umi_studio_platform_contract_core_command_id(size_t index)
 {
     return index < ARRAY_COUNT(CORE_COMMAND_IDS) ? CORE_COMMAND_IDS[index] : NULL;
 }
 
+/*
+ * Return the number of records represented by studio platform contract workbench command
+ * without changing their state.
+ */
 size_t umi_studio_platform_contract_workbench_command_count(void)
 {
     return ARRAY_COUNT(WORKBENCH_COMMAND_IDS);
 }
 
+/*
+ * Provide the studio platform contract workbench command id operation used by this module
+ * and its client applications.
+ */
 const char *umi_studio_platform_contract_workbench_command_id(size_t index)
 {
     return index < ARRAY_COUNT(WORKBENCH_COMMAND_IDS)
@@ -264,11 +280,19 @@ const char *umi_studio_platform_contract_workbench_command_id(size_t index)
         : NULL;
 }
 
+/*
+ * Return the number of records represented by studio platform contract contributed command
+ * without changing their state.
+ */
 size_t umi_studio_platform_contract_contributed_command_count(void)
 {
     return ARRAY_COUNT(CONTRIBUTED_COMMAND_IDS);
 }
 
+/*
+ * Provide the studio platform contract contributed command id operation used by this
+ * module and its client applications.
+ */
 const char *umi_studio_platform_contract_contributed_command_id(size_t index)
 {
     return index < ARRAY_COUNT(CONTRIBUTED_COMMAND_IDS)
@@ -276,11 +300,19 @@ const char *umi_studio_platform_contract_contributed_command_id(size_t index)
         : NULL;
 }
 
+/*
+ * Return the number of records represented by studio platform contract required service
+ * without changing their state.
+ */
 size_t umi_studio_platform_contract_required_service_count(void)
 {
     return ARRAY_COUNT(REQUIRED_SERVICE_IDS);
 }
 
+/*
+ * Provide the studio platform contract required service id operation used by this module
+ * and its client applications.
+ */
 const char *umi_studio_platform_contract_required_service_id(size_t index)
 {
     return index < ARRAY_COUNT(REQUIRED_SERVICE_IDS)
@@ -288,6 +320,10 @@ const char *umi_studio_platform_contract_required_service_id(size_t index)
         : NULL;
 }
 
+/*
+ * Provide the count missing commands operation used by this module and its client
+ * applications.
+ */
 static size_t count_missing_commands(const UmiCommandRegistry *commands,
                                      const char *const *ids,
                                      size_t count)
@@ -295,7 +331,9 @@ static size_t count_missing_commands(const UmiCommandRegistry *commands,
     size_t index;
     size_t missing = 0U;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < count; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (!umi_runtime_inventory_has_command(commands, ids[index])) {
             ++missing;
         }
@@ -303,12 +341,18 @@ static size_t count_missing_commands(const UmiCommandRegistry *commands,
     return missing;
 }
 
+/*
+ * Provide the count missing services operation used by this module and its client
+ * applications.
+ */
 static size_t count_missing_services(const UmiServiceRegistry *services)
 {
     size_t index;
     size_t missing = 0U;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < ARRAY_COUNT(REQUIRED_SERVICE_IDS); ++index) {
+        /* Apply this branch only when its contract condition is satisfied. */
         if (!umi_runtime_inventory_has_service(services,
                                                REQUIRED_SERVICE_IDS[index])) {
             ++missing;
@@ -317,6 +361,10 @@ static size_t count_missing_services(const UmiServiceRegistry *services)
     return missing;
 }
 
+/*
+ * Provide the studio platform contract capture operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_platform_contract_capture(
     const UmiCommandRegistry *commands,
     const UmiServiceRegistry *services,
@@ -324,6 +372,10 @@ UmiStatus umi_studio_platform_contract_capture(
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (commands == NULL || services == NULL || out_snapshot == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -336,6 +388,7 @@ UmiStatus umi_studio_platform_contract_capture(
                                             services,
                                             NULL,
                                             &out_snapshot->runtime);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -363,11 +416,13 @@ UmiStatus umi_studio_platform_contract_capture(
 
     status = umi_runtime_inventory_count_command_prefix(
         commands, "studio.", &out_snapshot->studio_namespace_command_count);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
     status = umi_runtime_inventory_count_service_prefix(
         services, "umicom.studio.", &out_snapshot->studio_namespace_service_count);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -391,10 +446,18 @@ UmiStatus umi_studio_platform_contract_capture(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio platform contract capture bootstrap operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_platform_contract_capture_bootstrap(
     UmiStudioBootstrap *bootstrap,
     UmiStudioPlatformContractSnapshot *out_snapshot)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL || out_snapshot == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -404,9 +467,17 @@ UmiStatus umi_studio_platform_contract_capture_bootstrap(
         out_snapshot);
 }
 
+/*
+ * Check that studio platform contract satisfies its contract before another service relies
+ * on it.
+ */
 UmiStatus umi_studio_platform_contract_validate(
     const UmiStudioPlatformContractSnapshot *snapshot)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (snapshot == NULL ||
         snapshot->structure_size < sizeof(*snapshot) ||
         snapshot->api_version != UMI_STUDIO_PLATFORM_CONTRACT_API_VERSION) {

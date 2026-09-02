@@ -22,6 +22,10 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio learning lesson snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioLearningLessonSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -39,6 +43,10 @@ typedef struct UmiStudioLearningLessonSnapshot {
     int requires_github_account;
 } UmiStudioLearningLessonSnapshot;
 
+/**
+ * Represent the studio learning centre snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioLearningCentreSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -51,11 +59,23 @@ typedef struct UmiStudioLearningCentreSnapshot {
     int interactive;
 } UmiStudioLearningCentreSnapshot;
 
+/**
+ * Provide the studio learning centre snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_learning_centre_snapshot(
     UmiStudioLearningCentreSnapshot *out_snapshot);
+/**
+ * Find studio learning centre lesson while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 UmiStatus umi_studio_learning_centre_lesson_at(
     size_t index,
     UmiStudioLearningLessonSnapshot *out_lesson);
+/**
+ * Provide the studio learning centre find lesson operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_learning_centre_find_lesson(
     const char *lesson_id,
     UmiStudioLearningLessonSnapshot *out_lesson);

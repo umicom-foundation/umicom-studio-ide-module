@@ -22,6 +22,10 @@
 #include <assert.h>
 #include <string.h>
 #include "umicom/studio/document_set.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){
     UmiStudioDocumentSet s;
     umi_studio_document_set_init(&s);

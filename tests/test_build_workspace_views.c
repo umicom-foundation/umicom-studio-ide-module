@@ -22,6 +22,10 @@
 #include "umicom/studio/contributions.h"
 #include "umicom/ui/command_view.h"
 
+/*
+ * Exercise add evidence and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void add_evidence(UmiStudioBuildService *build)
 {
     UmiBuildResult *result = NULL;
@@ -50,6 +54,10 @@ static void add_evidence(UmiStudioBuildService *build)
     umi_build_result_destroy(result);
 }
 
+/*
+ * Exercise verify view and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void verify_view(UmiUiWorkbench *workbench, const char *view_type,
                         const char *pane_id, const char *expected_kind)
 {
@@ -66,6 +74,10 @@ static void verify_view(UmiUiWorkbench *workbench, const char *view_type,
     umi_ui_view_model_destroy(view);
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;

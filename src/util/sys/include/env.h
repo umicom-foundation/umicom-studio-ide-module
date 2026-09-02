@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/util/sys/include/env.h
+ *
+ * PURPOSE:
+ *   Declare the env contract shared by Framework services and thin applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/sys/include/env.h
  * PURPOSE:
  *   Public, GLib-friendly helpers for getting/setting environment variables.
  *

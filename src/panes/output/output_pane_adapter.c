@@ -65,6 +65,7 @@ UmiOutputPaneAdapter *umi_output_pane_adapter_new(void)
  *---------------------------------------------------------------------------*/
 GtkWidget *umi_output_pane_adapter_widget(UmiOutputPaneAdapter *a)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!a || !a->console)
     return NULL;
 

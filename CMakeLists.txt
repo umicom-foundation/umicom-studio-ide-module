@@ -604,6 +604,7 @@ target_link_libraries(umicom-studio-quality PRIVATE Umicom::StudioCore)
 umicom_apply_warnings(umicom-studio-quality)
 umicom_apply_sanitizers(umicom-studio-quality)
 
+# Create this optional product surface only when its build option is enabled.
 if(UMICOM_STUDIO_BUILD_GTK)
     find_package(PkgConfig REQUIRED)
 
@@ -690,6 +691,7 @@ if(UMICOM_STUDIO_BUILD_GTK)
             PkgConfig::GRAPHENE
     )
 
+    # Configure the optional target only when its feature has created it.
     if(TARGET PkgConfig::SOURCEVIEW5)
         target_link_libraries(umicom_studio_product PRIVATE
             PkgConfig::SOURCEVIEW5
@@ -700,6 +702,7 @@ if(UMICOM_STUDIO_BUILD_GTK)
     # warning set here while new Framework and StudioCore code remains strict.
     if(MSVC)
         target_compile_options(umicom_studio_product PRIVATE /W4)
+    # Use this fallback path when the earlier condition does not apply.
     else()
         target_compile_options(umicom_studio_product PRIVATE
             -Wall
@@ -779,6 +782,7 @@ if(UMICOM_STUDIO_BUILD_GTK)
         src/ui/splash.c
     )
 
+    # Define the local fallback only when the parent build did not provide the shared helper.
     if(NOT COMMAND umicom_apply_application_branding)
         include(
             "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/cmake/UmicomApplicationBranding.cmake")
@@ -798,6 +802,7 @@ if(UMICOM_STUDIO_BUILD_GTK)
                 "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/resources"
             DESKTOP_ENTRY
             WINDOWS_GUI)
+    # Use this fallback path when the earlier condition does not apply.
     else()
         umicom_apply_application_branding(
             TARGET umicom-studio-ide
@@ -858,12 +863,14 @@ endif()
 # Studio adopts the Framework application-surface runtime as an additive
 # product layer. These focused tests do not require a graphical display.
 if(BUILD_TESTING)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_header_governance_test)
         umicom_register_header_governance_test(
             studio.sdk.public_headers
             "${CMAKE_CURRENT_SOURCE_DIR}/include"
             "Umicom Studio IDE")
     endif()
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_APPLICATION_SURFACE_TEST
             application_surface
             application_surface_commands
@@ -925,8 +932,10 @@ set(UMICOM_STUDIO_SIMPLE_TOOLS
     web browser chart frontend web_platform ai retrieval authorengine knowledge helix helix_evidence helix_generation
     delivery package release update distribution evidence rollback pipeline abi sdk products compatibility conformance architecture
     codeguard consolidation duplicates quality)
+# Visit each bounded item once so every record receives the same rule.
 foreach(tool IN LISTS UMICOM_STUDIO_SIMPLE_TOOLS)
     string(REPLACE "_" "-" exe "${tool}")
+    # Use the optional file only when it is present in this checkout.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tools/${tool}_main.c"
        AND NOT TARGET umicom-studio-${exe})
         add_executable(umicom-studio-${exe} src/tools/${tool}_main.c)
@@ -937,6 +946,7 @@ foreach(tool IN LISTS UMICOM_STUDIO_SIMPLE_TOOLS)
     endif()
 endforeach()
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
     add_executable(umicom-studio-framework-bootstrap-test
         tests/test_framework_bootstrap.c
@@ -990,6 +1000,7 @@ if(BUILD_TESTING)
             COMMAND umicom-studio-${UMICOM_STUDIO_PLATFORM_TEST}-test)
     endforeach()
 
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_INTEGRATION_DESIGNER_TEST
             integration_designer_centre
             integration_designer_connections_api
@@ -1234,6 +1245,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-editor-intelligence-workbench-contribution-test)
     add_test(NAME studio.editor_intelligence_workbench_contribution
         COMMAND umicom-studio-editor-intelligence-workbench-contribution-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-editor-intelligence-workbench-contribution-test)
@@ -1247,6 +1259,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-vcs-workbench-contribution-test)
     add_test(NAME studio.vcs_workbench_contribution
         COMMAND umicom-studio-vcs-workbench-contribution-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-vcs-workbench-contribution-test)
@@ -1260,6 +1273,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-data-workbench-contribution-test)
     add_test(NAME studio.data_workbench_contribution
         COMMAND umicom-studio-data-workbench-contribution-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-data-workbench-contribution-test)
@@ -1273,6 +1287,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-web-api-workbench-contribution-test)
     add_test(NAME studio.web_api_workbench_contribution
         COMMAND umicom-studio-web-api-workbench-contribution-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-web-api-workbench-contribution-test)
@@ -1286,6 +1301,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-test-readiness-contribution-test)
     add_test(NAME studio.test_readiness_contribution
         COMMAND umicom-studio-test-readiness-contribution-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-test-readiness-contribution-test)
@@ -1299,6 +1315,7 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-developer-ecosystem-contribution-test)
     add_test(NAME studio.developer_ecosystem_contribution
         COMMAND umicom-studio-developer-ecosystem-contribution-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-developer-ecosystem-contribution-test)
@@ -1385,6 +1402,7 @@ if(BUILD_TESTING)
     umicom_apply_warnings(umicom-studio-data-test)
     add_test(NAME studio.data COMMAND umicom-studio-data-test)
 
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_DATABASE_TEST
             database_explorer_centre
             database_explorer_connections
@@ -1440,6 +1458,7 @@ if(BUILD_TESTING)
     umicom_apply_warnings(umicom-studio-dead-letters-test)
     add_test(NAME studio.dead_letters COMMAND umicom-studio-dead-letters-test)
 
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_OPERATION_TEST
             operations
             security
@@ -1458,6 +1477,7 @@ if(BUILD_TESTING)
             COMMAND umicom-studio-${UMICOM_STUDIO_OPERATION_TEST}-test)
     endforeach()
 
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_UI_TEST
             ui
             learning_centre
@@ -1487,6 +1507,7 @@ if(BUILD_TESTING)
             COMMAND umicom-studio-${UMICOM_STUDIO_UI_TEST}-test)
     endforeach()
 
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_DEVELOPER_TEST
             build_service
             build_workbench
@@ -1521,6 +1542,7 @@ if(BUILD_TESTING)
             COMMAND umicom-studio-${UMICOM_STUDIO_DEVELOPER_TEST_TARGET}-test)
     endforeach()
 
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_DESIGNER_TEST
             declarative
             designer
@@ -1553,6 +1575,7 @@ if(BUILD_TESTING)
     endforeach()
 
 
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_WEB_TEST
             web_platform
             web
@@ -1584,6 +1607,7 @@ if(BUILD_TESTING)
     endforeach()
 
 
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_AI_TEST
             ai_platform
             ai_chat
@@ -1873,6 +1897,7 @@ install(TARGETS
     RUNTIME DESTINATION bin
 )
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
 add_executable(umicom-studio-codeguard-test tests/test_codeguard.c)
 target_link_libraries(umicom-studio-codeguard-test PRIVATE Umicom::StudioCore)
@@ -1890,6 +1915,7 @@ add_executable(umicom-studio-quality-gate-test tests/test_quality_gate.c)
 target_link_libraries(umicom-studio-quality-gate-test PRIVATE Umicom::StudioCore)
 umicom_apply_warnings(umicom-studio-quality-gate-test)
 add_test(NAME studio.quality_gate COMMAND umicom-studio-quality-gate-test)
+# Visit each bounded item once so every record receives the same rule.
 foreach(UMICOM_STUDIO_QUALITY_TEST
         quality_centre
         quality_evidence_navigation
@@ -1923,7 +1949,9 @@ umicom_add_application_productisation_contribution(
 target_link_libraries(umicom_studio_core PUBLIC
     umicom_studio_productisation)
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
+    # Visit each bounded item once so every record receives the same rule.
     foreach(UMICOM_STUDIO_PRODUCTION_TEST
             production_profile
             production_panels
@@ -1948,6 +1976,7 @@ if(BUILD_TESTING)
             NAME "studio.${UMICOM_STUDIO_PRODUCTION_TEST}"
             COMMAND
                 "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test")
+        # Use the shared build helper when it is available from the parent composition.
         if(COMMAND umicom_register_validation_target)
             umicom_register_validation_target(
                 "umicom-studio-${UMICOM_STUDIO_PRODUCTION_TEST_SUFFIX}-test")
@@ -1962,13 +1991,16 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-experience-acceptance-test)
     add_test(NAME studio.experience_acceptance
         COMMAND umicom-studio-experience-acceptance-test)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(
             umicom-studio-experience-acceptance-test)
     endif()
 endif()
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
+# Visit each bounded item once so every record receives the same rule.
 foreach(UMICOM_STUDIO_SECURITY_TEST
         security_centre
         security_identities_roles
@@ -1991,7 +2023,9 @@ foreach(UMICOM_STUDIO_SECURITY_TEST
 endforeach()
 endif()
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
+# Visit each bounded item once so every record receives the same rule.
 foreach(UMICOM_STUDIO_WORKSPACE_TEST
         operations_centre
         operations_views_commands
@@ -2022,7 +2056,9 @@ foreach(UMICOM_STUDIO_WORKSPACE_TEST
 endforeach()
 endif()
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
+# Visit each bounded item once so every record receives the same rule.
 foreach(UMICOM_STUDIO_COMPILER_TEST
         compiler_catalogue
         compiler_views_commands
@@ -2045,7 +2081,9 @@ foreach(UMICOM_STUDIO_COMPILER_TEST
 endforeach()
 endif()
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
+# Visit each bounded item once so every record receives the same rule.
 foreach(UMICOM_STUDIO_DISTRIBUTION_TEST
         sdk_centre
         package_project

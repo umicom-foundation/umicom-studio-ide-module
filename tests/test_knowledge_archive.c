@@ -14,6 +14,10 @@
 #include <string.h>
 #include "umicom/studio/knowledge_centre.h"
 
+/*
+ * Exercise create platform and return a clear result when the behaviour no longer matches
+ * its contract.
+ */
 static UmiStudioAiPlatform *create_platform(void)
 {
     UmiStudioAiPlatformConfig config = umi_studio_ai_platform_config_default();
@@ -25,6 +29,10 @@ static UmiStudioAiPlatform *create_platform(void)
     return platform;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     const char *path = "studio-knowledge-test.bin";

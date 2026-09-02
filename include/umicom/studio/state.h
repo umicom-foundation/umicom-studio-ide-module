@@ -25,6 +25,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio state report data shared with callers of this public contract.
+ */
 typedef struct UmiStudioStateReport {
     size_t module_count;
     size_t service_count;
@@ -47,8 +50,16 @@ typedef struct UmiStudioStateReport {
     UmiStudioOperationsReport operations;
 } UmiStudioStateReport;
 
+/**
+ * Provide the studio state capture operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_state_capture(UmiStudioBootstrap *bootstrap,
                                    UmiStudioStateReport *out_report);
+/**
+ * Provide the studio state format operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_state_format(const UmiStudioStateReport *report,
                                   char *out_text,
                                   size_t text_capacity);

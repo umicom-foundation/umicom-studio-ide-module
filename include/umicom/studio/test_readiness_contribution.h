@@ -20,6 +20,10 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio test readiness contribution data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioTestReadinessContribution {
     const char *product_id;
     const char *view_id;
@@ -28,6 +32,10 @@ typedef struct UmiStudioTestReadinessContribution {
     size_t command_count;
 } UmiStudioTestReadinessContribution;
 
+/**
+ * Provide the studio test readiness contribution operation used by this module and its
+ * client applications.
+ */
 const UmiStudioTestReadinessContribution *
 umi_studio_test_readiness_contribution(void);
 

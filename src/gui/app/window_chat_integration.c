@@ -43,6 +43,7 @@ static void toggle_chat(GSimpleAction *action, GVariant *parameter, gpointer use
 {
     (void)action; (void)parameter;
     GtkWidget *right_box = GTK_WIDGET(user_data);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!right_box) return;
 
     gboolean visible = gtk_widget_get_visible(right_box);

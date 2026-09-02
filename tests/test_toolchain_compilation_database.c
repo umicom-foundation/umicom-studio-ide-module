@@ -15,6 +15,10 @@
 #include "umicom/platform/path.h"
 #include "umicom/studio/toolchain_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioToolchainCentre *centre = NULL;
@@ -24,6 +28,7 @@ int main(void)
     char build_directory[UMI_TOOL_PATH_CAPACITY];
     char discovered_path[UMI_TOOL_PATH_CAPACITY];
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_fs_temp_directory(temporary, sizeof(temporary)) != UMI_STATUS_OK ||
         umi_path_join(temporary, "build", build_directory,
                       sizeof(build_directory)) != UMI_STATUS_OK ||
@@ -36,6 +41,7 @@ int main(void)
             "\"file\":\"/src/main.c\"}]") != UMI_STATUS_OK ||
         umi_studio_toolchain_centre_create(&centre) != UMI_STATUS_OK)
         return EXIT_FAILURE;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_toolchain_centre_discover_compilation_database(
             centre, temporary, NULL, 0U, discovered_path,
             sizeof(discovered_path)) !=
@@ -50,6 +56,7 @@ int main(void)
         return EXIT_FAILURE;
     }
     umi_studio_toolchain_centre_destroy(centre);
+    /* Create this optional product surface only when its build option is enabled. */
     if (umi_fs_remove_tree(build_directory) != UMI_STATUS_OK)
         return EXIT_FAILURE;
     return EXIT_SUCCESS;

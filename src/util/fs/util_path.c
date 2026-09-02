@@ -24,6 +24,7 @@
 
 /* --- Internal helper: collapse "." and ".." without touching symlinks --- */
 static gchar *norm_only(const char *p){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!p || !*p)                      /* If NULL or empty... */
     return g_strdup(".");            /* ...treat as "." (current directory). */
 
@@ -37,13 +38,14 @@ static gchar *norm_only(const char *p){
     if(!seg || !*seg || g_str_equal(seg, ".")){  /* Skip empty or "." segments. */
       continue;                                  /* No-op for "."; empty from leading/trailing "/" too. */
     }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if(g_str_equal(seg, "..")){                  /* Parent directory indicator. */
       if(out->len > 0){                          /* If we have something to back up over... */
         g_ptr_array_remove_index(out, out->len - 1); /* Pop the last segment. (Free func cleans it.) */
-      }else{
+      }/* Use this fallback path when the earlier condition does not apply. */ else{
         g_ptr_array_add(out, g_strdup(".."));    /* If at the beginning, keep ".." literally. */
       }
-    }else{
+    }/* Use this fallback path when the earlier condition does not apply. */ else{
       g_ptr_array_add(out, g_strdup(seg));       /* Regular name: keep as-is. */
     }
   }
@@ -65,6 +67,7 @@ static gchar *norm_only(const char *p){
 
 /* Normalize possibly-relative 'path' against 'base', then collapse segments. */
 gchar *umi_path_normalize(const char *path, const char *base){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!path || !*path)                /* NULL or empty path? */
     return g_strdup(".");            /* -> "." */
 
@@ -82,6 +85,7 @@ gchar *umi_path_normalize(const char *path, const char *base){
 
 /* TRUE if 'child' lies within 'parent' (after normalization). */
 gboolean umi_path_is_subpath(const char *parent, const char *child){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!parent || !child)              /* Defensive programming: NULL inputs => not a subpath. */
     return FALSE;
 
@@ -103,6 +107,7 @@ gboolean umi_path_is_subpath(const char *parent, const char *child){
 
 /* Make 'target' relative to 'base' if possible; else return a copy of 'target'. */
 gchar *umi_path_make_relative(const char *base, const char *target){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!base || !target)               /* NULL inputs: best effort. */
     return g_strdup(target ? target : ""); /* Return copy of target or empty string. */
 

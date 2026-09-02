@@ -24,8 +24,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio designer project data shared with callers of this public contract.
+ */
 typedef struct UmiStudioDesignerProject { UmiDesignerProject *project; } UmiStudioDesignerProject;
+/**
+ * Initialise studio designer project from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_designer_project_create(const char *project_id,UmiStudioDesignerProject *out_project);
+/**
+ * Release or reset state held by studio designer project so the same storage can be reused
+ * safely.
+ */
 void umi_studio_designer_project_dispose(UmiStudioDesignerProject *project);
 #ifdef __cplusplus
 }

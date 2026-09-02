@@ -18,4 +18,8 @@
  */
 #include <stdio.h>
 #include "umicom/studio/compatibility_platform.h"
-int main(void){UmiStudioCompatibilityPlatform *p=NULL;char b[256];if(umi_studio_compatibility_platform_create(&p)!=UMI_STATUS_OK)return 1;if(umi_studio_compatibility_summary(p,b,sizeof(b))==UMI_STATUS_OK)fputs(b,stdout);umi_studio_compatibility_platform_destroy(p);return 0;}
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
+int main(void){UmiStudioCompatibilityPlatform *p=NULL;char b[256];/* Preserve the original failure result so the caller can respond to the correct cause. */ if(umi_studio_compatibility_platform_create(&p)!=UMI_STATUS_OK)return 1;/* Preserve the original failure result so the caller can respond to the correct cause. */ if(umi_studio_compatibility_summary(p,b,sizeof(b))==UMI_STATUS_OK)fputs(b,stdout);umi_studio_compatibility_platform_destroy(p);return 0;}

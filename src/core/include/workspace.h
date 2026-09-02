@@ -1,5 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/include/workspace.h
+ *
+ * PURPOSE:
+ *   Declare the workspace contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/workspace.h
  * PURPOSE: Workspace root management and persistence
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
@@ -11,6 +27,9 @@
 #include <gtk/gtk.h>
 #include "file_tree.h"
 
+/**
+ * Represent the workspace data shared with callers of this public contract.
+ */
 typedef struct _UmiWorkspace {
   gchar *root_dir;
   UmiFileTree *tree;

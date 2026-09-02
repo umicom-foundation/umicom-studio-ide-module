@@ -33,6 +33,10 @@ static void runtime_on_tests_discover_button(
     }
 }
 
+/*
+ * Provide the runtime on tests all button operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_tests_all_button(
     GtkButton *button,
     gpointer user_data)
@@ -44,6 +48,10 @@ static void runtime_on_tests_all_button(
         NULL);
 }
 
+/*
+ * Provide the runtime on tests failed button operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_tests_failed_button(
     GtkButton *button,
     gpointer user_data)
@@ -55,6 +63,10 @@ static void runtime_on_tests_failed_button(
         NULL);
 }
 
+/*
+ * Provide the runtime on tests stop button operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_tests_stop_button(
     GtkButton *button,
     gpointer user_data)
@@ -66,6 +78,10 @@ static void runtime_on_tests_stop_button(
         NULL);
 }
 
+/*
+ * Provide the runtime build surface test explorer operation used by this module and its
+ * client applications.
+ */
 static GtkWidget *runtime_build_surface_test_explorer(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -76,12 +92,20 @@ static GtkWidget *runtime_build_surface_test_explorer(
     GtkWidget *rerun_failed;
     GtkWidget *stop;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     runtime->test_summary_label = runtime_label("", 0.0F);
     runtime->test_search_entry = gtk_search_entry_new();
     runtime->test_list = gtk_list_box_new();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->test_summary_label != NULL) {
         gtk_widget_add_css_class(
             runtime->test_summary_label,
@@ -97,6 +121,10 @@ static GtkWidget *runtime_build_surface_test_explorer(
     rerun_failed = gtk_button_new_with_label("Failed");
     stop = gtk_button_new_with_label("Stop");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (actions != NULL && discover != NULL &&
         run_all != NULL && rerun_failed != NULL && stop != NULL) {
         g_signal_connect(
@@ -119,6 +147,10 @@ static GtkWidget *runtime_build_surface_test_explorer(
         gtk_box_append(GTK_BOX(panel), actions);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->test_search_entry != NULL) {
         g_object_set(G_OBJECT(runtime->test_search_entry), "placeholder-text", "Filter tests, labels or ids", NULL);
         g_signal_connect(
@@ -131,6 +163,10 @@ static GtkWidget *runtime_build_surface_test_explorer(
             runtime->test_search_entry);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->test_list != NULL) {
         gtk_list_box_set_selection_mode(
             GTK_LIST_BOX(runtime->test_list),
@@ -142,6 +178,10 @@ static GtkWidget *runtime_build_surface_test_explorer(
 
     {
         GtkWidget *details = runtime_test_details_notebook(runtime);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (details != NULL) {
             gtk_box_append(GTK_BOX(panel), details);
         }

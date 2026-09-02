@@ -21,4 +21,8 @@
 #include "umicom/studio/web.h"
 #include <assert.h>
 #include <string.h>
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioWebPlatform *p=NULL;char out[4096];assert(umi_studio_web_platform_create(&p)==UMI_STATUS_OK);assert(umi_studio_web_process(p,"GET /api/health HTTP/1.1\r\nHost: x\r\n\r\n",out,sizeof(out))==UMI_STATUS_OK);assert(strstr(out,"ready")!=NULL);umi_studio_web_platform_destroy(p);return 0;}

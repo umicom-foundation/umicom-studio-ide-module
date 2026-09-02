@@ -19,6 +19,10 @@
 
 #include "umicom/studio/data_workbench_contribution.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiDataServer *server = NULL;
@@ -29,16 +33,19 @@ int main(void)
     size_t comparison;
     assert(umi_studio_data_workbench_command_count() ==
            umi_data_workbench_command_count());
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < umi_studio_data_workbench_command_count(); ++index) {
         assert(umi_data_workbench_command_find(
                    umi_studio_data_workbench_command_at(index)->
                        framework_command_id) != NULL);
     }
     assert(umi_studio_data_workbench_view_count() == 11U);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < umi_studio_data_workbench_view_count(); ++index) {
         const UmiStudioDataWorkbenchViewContribution *view =
             umi_studio_data_workbench_view_at(index);
         assert(view != NULL && view->framework_contract[0] != '\0');
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison < umi_studio_data_workbench_view_count(); ++comparison) {
             assert(strcmp(

@@ -3,6 +3,22 @@
  * File: src/util/fs/include/fs_walk.h
  *
  * PURPOSE:
+ *   Declare the fs walk contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/fs/include/fs_walk.h
+ *
+ * PURPOSE:
  *   Small, allocation-friendly filesystem walker built on GLib utilities.
  *   Provides deterministic traversal (name-sorted) and an easy callback shape.
  *
@@ -21,6 +37,9 @@
 
 #include <glib.h>
 
+/**
+ * Provide the void operation used by this module and its client applications.
+ */
 G_BEGIN_DECLS
 
 /* Callback signature: receive a discovered path.

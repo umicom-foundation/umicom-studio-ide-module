@@ -21,4 +21,8 @@
 #include "umicom/studio/browser.h"
 #include <assert.h>
 #include <string.h>
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioWebPlatform *p=NULL;assert(umi_studio_web_platform_create(&p)==UMI_STATUS_OK);assert(umi_studio_browser_open(p,"https://umicom.foundation")==UMI_STATUS_OK);assert(strcmp(umi_studio_browser_current(p),"https://umicom.foundation")==0);umi_studio_web_platform_destroy(p);return 0;}

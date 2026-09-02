@@ -19,6 +19,10 @@ static const char *runtime_debug_thread_argument(
 {
     const char *value;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->debug_thread_entry == NULL) {
         return "0";
     }
@@ -28,11 +32,19 @@ static const char *runtime_debug_thread_argument(
     return value != NULL && value[0] != '\0' ? value : "0";
 }
 
+/*
+ * Provide the runtime debug command operation used by this module and its client
+ * applications.
+ */
 static void runtime_debug_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
     int thread_scoped)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || command_id == NULL) return;
 
     (void)runtime_execute_registered_command(
@@ -43,6 +55,10 @@ static void runtime_debug_command(
             : NULL);
 }
 
+/*
+ * Provide the runtime on debug start operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_start(GtkButton *button, gpointer user_data)
 {
     (void)button;
@@ -52,6 +68,10 @@ static void runtime_on_debug_start(GtkButton *button, gpointer user_data)
         0);
 }
 
+/*
+ * Provide the runtime on debug continue operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_continue(GtkButton *button, gpointer user_data)
 {
     (void)button;
@@ -61,6 +81,10 @@ static void runtime_on_debug_continue(GtkButton *button, gpointer user_data)
         1);
 }
 
+/*
+ * Provide the runtime on debug pause operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_pause(GtkButton *button, gpointer user_data)
 {
     (void)button;
@@ -70,6 +94,10 @@ static void runtime_on_debug_pause(GtkButton *button, gpointer user_data)
         1);
 }
 
+/*
+ * Provide the runtime on debug next operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_next(GtkButton *button, gpointer user_data)
 {
     (void)button;
@@ -79,6 +107,10 @@ static void runtime_on_debug_next(GtkButton *button, gpointer user_data)
         1);
 }
 
+/*
+ * Provide the runtime on debug step in operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_step_in(GtkButton *button, gpointer user_data)
 {
     (void)button;
@@ -88,6 +120,10 @@ static void runtime_on_debug_step_in(GtkButton *button, gpointer user_data)
         1);
 }
 
+/*
+ * Provide the runtime on debug step out operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_step_out(GtkButton *button, gpointer user_data)
 {
     (void)button;
@@ -97,6 +133,10 @@ static void runtime_on_debug_step_out(GtkButton *button, gpointer user_data)
         1);
 }
 
+/*
+ * Provide the runtime on debug stop operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_stop(GtkButton *button, gpointer user_data)
 {
     (void)button;
@@ -106,6 +146,10 @@ static void runtime_on_debug_stop(GtkButton *button, gpointer user_data)
         0);
 }
 
+/*
+ * Provide the runtime debug watch accepted operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_debug_watch_accepted(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *expression)
@@ -116,6 +160,10 @@ static UmiStatus runtime_debug_watch_accepted(
         expression);
 }
 
+/*
+ * Provide the runtime on debug add watch operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_debug_add_watch(
     GtkButton *button,
     gpointer user_data)
@@ -130,11 +178,19 @@ static void runtime_on_debug_add_watch(
         runtime_debug_watch_accepted);
 }
 
+/*
+ * Provide the runtime debug update summary operation used by this module and its client
+ * applications.
+ */
 static void runtime_debug_update_summary(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     char text[256];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->debug_summary_label == NULL) return;
 
     (void)snprintf(

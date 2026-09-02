@@ -23,6 +23,10 @@ static GtkWidget *runtime_build_surface_ai_model_comparison(
     GtkWidget *results_title;
     UmiStudioAiPlatform *platform;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL || runtime->owner == NULL ||
         runtime->owner->ui == NULL) {
         return panel;
@@ -33,6 +37,10 @@ static GtkWidget *runtime_build_surface_ai_model_comparison(
         runtime_label("No comparison has run yet.", 0.0F);
     runtime->ai_model_prompt_view = gtk_text_view_new();
     runtime->ai_model_results_view = gtk_text_view_new();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->ai_model_summary_label != NULL) {
         gtk_widget_add_css_class(
             runtime->ai_model_summary_label, "umicom-runtime-muted");
@@ -49,9 +57,17 @@ static GtkWidget *runtime_build_surface_ai_model_comparison(
             "result keeps its own status so partial failures stay visible."));
 
     request_title = runtime_section_title("Comparison request");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (request_title != NULL) {
         gtk_box_append(GTK_BOX(panel), request_title);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->ai_model_prompt_view != NULL) {
         gtk_text_view_set_wrap_mode(
             GTK_TEXT_VIEW(runtime->ai_model_prompt_view),
@@ -61,6 +77,10 @@ static GtkWidget *runtime_build_surface_ai_model_comparison(
             GTK_BOX(panel), runtime_scroll(runtime->ai_model_prompt_view));
     }
     compare = gtk_button_new_with_label("Compare Models");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (compare != NULL) {
         gtk_widget_add_css_class(compare, "suggested-action");
         g_signal_connect(
@@ -72,9 +92,17 @@ static GtkWidget *runtime_build_surface_ai_model_comparison(
     }
 
     results_title = runtime_section_title("Provider results");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (results_title != NULL) {
         gtk_box_append(GTK_BOX(panel), results_title);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->ai_model_results_view != NULL) {
         gtk_text_view_set_editable(
             GTK_TEXT_VIEW(runtime->ai_model_results_view), FALSE);

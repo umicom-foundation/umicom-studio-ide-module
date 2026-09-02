@@ -2,6 +2,22 @@
  * Umicom Studio IDE
  * File: src/ui/include/resource.h
  *
+ * PURPOSE:
+ *   Declare the resource contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/ui/include/resource.h
+ *
  * PURPOSE (What is this file?):
  *   Central header for Windows resource identifiers used by the Umicom Studio
  *   IDE. These IDs are referenced by the resource script (win/umicom.rc) and

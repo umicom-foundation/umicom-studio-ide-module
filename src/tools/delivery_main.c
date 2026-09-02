@@ -20,10 +20,15 @@
 #include <stdio.h>
 #include "umicom/studio/services.h"
 #include "umicom/studio/delivery_platform.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void) {
     UmiStudioServices *services = NULL;
     UmiStudioDeliveryPlatform *platform;
     UmiDeliveryPipeline *pipeline;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_services_create(NULL, NULL, &services) != UMI_STATUS_OK) return 1;
     platform = umi_studio_services_delivery_platform(services);
     pipeline = umi_studio_delivery_pipeline(platform);

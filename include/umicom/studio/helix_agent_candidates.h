@@ -20,11 +20,19 @@
 extern "C" {
 #endif
 
+/**
+ * Add studio helix agent candidate only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_helix_agent_candidate_add(
     UmiStudioHelixAgentCentre *centre,
     const char *candidate_id,
     double fitness,
     const char *provenance_hash);
+/**
+ * Provide the studio helix agent candidate select operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_helix_agent_candidate_select(
     UmiStudioHelixAgentCentre *centre,
     UmiHelixCandidateScore *out_candidate);

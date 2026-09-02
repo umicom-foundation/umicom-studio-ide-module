@@ -24,12 +24,24 @@ struct UmiStudioProfessionalWorkspace {
     char active_view[UMI_UI_WORKSPACE_LAYOUT_ID_CAPACITY];
     uint64_t revision;
 };
+/*
+ * Initialise studio professional workspace from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_professional_workspace_create(UmiStudioServices *services,UmiStudioProfessionalWorkspace **out_workspace)
 {
     UmiStudioProfessionalWorkspace *workspace;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_workspace == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_workspace = NULL;
     workspace = (UmiStudioProfessionalWorkspace *)calloc(1U,sizeof(*workspace));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     workspace->services = services;
     umi_ui_workspace_customisation_init(&workspace->customisation);
@@ -38,18 +50,39 @@ UmiStatus umi_studio_professional_workspace_create(UmiStudioServices *services,U
     *out_workspace = workspace;
     return UMI_STATUS_OK;
 }
+/*
+ * Release or reset state held by studio professional workspace so the same storage can be
+ * reused safely.
+ */
 void umi_studio_professional_workspace_destroy(UmiStudioProfessionalWorkspace *workspace) { free(workspace); }
+/*
+ * Provide the studio professional workspace activate view operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_professional_workspace_activate_view(UmiStudioProfessionalWorkspace *workspace,const char *view_id)
 {
     int length;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL || view_id == NULL || view_id[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
     length = snprintf(workspace->active_view,sizeof(workspace->active_view),"%s",view_id);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length < 0 || (size_t)length >= sizeof(workspace->active_view)) return UMI_STATUS_CAPACITY_EXCEEDED;
     workspace->revision += 1U;
     return UMI_STATUS_OK;
 }
+/*
+ * Provide the studio professional workspace snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_professional_workspace_snapshot(const UmiStudioProfessionalWorkspace *workspace,UmiStudioProfessionalWorkspaceSnapshot *out_snapshot)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(out_snapshot,0,sizeof(*out_snapshot));
     umi_ui_workspace_customisation_snapshot(&workspace->customisation,&out_snapshot->customisation);
@@ -57,4 +90,8 @@ UmiStatus umi_studio_professional_workspace_snapshot(const UmiStudioProfessional
     out_snapshot->revision = workspace->revision + out_snapshot->customisation.revision;
     return UMI_STATUS_OK;
 }
+/*
+ * Provide the studio professional workspace model operation used by this module and its
+ * client applications.
+ */
 UmiUiWorkspaceCustomisation *umi_studio_professional_workspace_model(UmiStudioProfessionalWorkspace *workspace) { return workspace == NULL ? NULL : &workspace->customisation; }

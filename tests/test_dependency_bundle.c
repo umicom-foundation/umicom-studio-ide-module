@@ -15,6 +15,10 @@
 #include <assert.h>
 #include "umicom/studio/bundle_designer.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioPackageProject project;

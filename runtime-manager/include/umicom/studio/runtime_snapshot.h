@@ -31,6 +31,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio runtime snapshot data shared with callers of this public contract.
+ */
 typedef struct UmiStudioRuntimeSnapshot {
     size_t total;
     size_t installed;
@@ -41,6 +44,10 @@ typedef struct UmiStudioRuntimeSnapshot {
     size_t by_category[UMI_STUDIO_RUNTIME_CATEGORY_COUNT];
 } UmiStudioRuntimeSnapshot;
 
+/**
+ * Provide the studio runtime snapshot build operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_runtime_snapshot_build(
     const UmiStudioRuntimeManager *manager,
     UmiStudioRuntimeSnapshot *snapshot

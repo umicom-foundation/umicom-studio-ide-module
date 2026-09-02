@@ -23,17 +23,32 @@ extern "C" {
 
 #define UMI_STUDIO_MAX_RELEASE_CHANNELS 3U
 
+/**
+ * Represent the studio release channels data shared with callers of this public contract.
+ */
 typedef struct UmiStudioReleaseChannels {
     UmiUpdateChannel channels[UMI_STUDIO_MAX_RELEASE_CHANNELS];
     size_t count;
     size_t selected;
 } UmiStudioReleaseChannels;
 
+/**
+ * Initialise studio release channels from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_release_channels_init(
     UmiStudioReleaseChannels *channels);
+/**
+ * Provide the studio release channels select operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_release_channels_select(
     UmiStudioReleaseChannels *channels,
     const char *channel_id);
+/**
+ * Provide the studio release channels current operation used by this module and its client
+ * applications.
+ */
 const UmiUpdateChannel *umi_studio_release_channels_current(
     const UmiStudioReleaseChannels *channels);
 

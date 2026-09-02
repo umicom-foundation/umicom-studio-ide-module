@@ -39,6 +39,7 @@ gboolean umi_rg_run(char **argvv, GString *out, GString *err, int *exit_status) 
   GError *spawn_err = NULL;
   gint    status = 0;
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!g_spawn_sync(NULL,              /* working dir */
                     argvv,             /* argv */
                     NULL,              /* envp */
@@ -48,6 +49,7 @@ gboolean umi_rg_run(char **argvv, GString *out, GString *err, int *exit_status) 
                     &stderr_str,       /* capture stderr */
                     &status,           /* exit status */
                     &spawn_err)) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (spawn_err) {
       g_string_append(err, spawn_err->message);
       g_error_free(spawn_err);
@@ -57,15 +59,18 @@ gboolean umi_rg_run(char **argvv, GString *out, GString *err, int *exit_status) 
     return FALSE;
   }
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (stdout_str) {
     g_string_append(out, stdout_str);
     g_free(stdout_str);
   }
+  /* Apply this branch only when its contract condition is satisfied. */
   if (stderr_str) {
     g_string_append(err, stderr_str);
     g_free(stderr_str);
   }
 
+  /* Preserve the original failure result so the caller can respond to the correct cause. */
   if (exit_status) *exit_status = status;
   return TRUE;
 }

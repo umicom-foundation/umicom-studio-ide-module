@@ -61,6 +61,7 @@ write_err(char *errbuf, unsigned errcap, const char *msg)
 static gboolean
 is_loopback_host(const char *host)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!host || !*host)
     return FALSE;                           /* empty host => handled elsewhere     */
 
@@ -83,6 +84,7 @@ is_loopback_host(const char *host)
 static gboolean
 is_private_ipv4_host(const char *host)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!host)
     return FALSE;
 
@@ -101,7 +103,12 @@ is_private_ipv4_host(const char *host)
     const char *p = host + 4;               /* points just after "172."              */
     /* Read number until next '.' */
     int oct2 = 0;
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (*p >= '0' && *p <= '9') { oct2 = oct2 * 10 + (*p - '0'); p++; }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (*p == '.' && oct2 >= 16 && oct2 <= 31)
       return TRUE;
   }
@@ -128,6 +135,7 @@ umi_privacy_allow_url(const char *url, char *errbuf, unsigned errcap)
   {
     /* Parsing failed: provide GLib’s diagnostic if available. */
     write_err(errbuf, errcap, perr && perr->message ? perr->message : "invalid URL");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (perr) g_error_free(perr);            /* free parse error                    */
     return FALSE;                            /* reject                              */
   }

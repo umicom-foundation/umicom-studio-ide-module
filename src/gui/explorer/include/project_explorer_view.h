@@ -19,6 +19,10 @@
 #include <gtk/gtk.h>
 #include "umicom/studio/ui.h"
 
+/**
+ * Provide the studio project explorer view new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_project_explorer_view_new(UmiStudioUi *ui);
 
 #endif

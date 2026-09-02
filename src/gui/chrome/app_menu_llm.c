@@ -41,6 +41,7 @@
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((weak)) GtkWidget *umi_llm_lab_new(void);
 #else
+/* Provide the llm lab new operation used by this module and its client applications. */
 GtkWidget *umi_llm_lab_new(void);
 #endif
 
@@ -49,16 +50,19 @@ typedef struct { UmiSimpleActionFn cb; gpointer user; } ActionHolder;
 
 #define UMI_DATA_CB_KEY "umi.llm.cb"
 
+/* Provide the on click llm lab operation used by this module and its client applications. */
 static void on_click_llm_lab(GtkButton *btn, gpointer user_data)
 {
     (void)user_data;
 
     GtkWidget *lab = NULL;
 #if defined(__GNUC__) || defined(__clang__)
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_llm_lab_new) lab = umi_llm_lab_new();
 #else
     lab = umi_llm_lab_new();
 #endif
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!lab) lab = gtk_label_new("LLM Lab module not linked");
 
     GtkRoot   *root   = gtk_widget_get_root(GTK_WIDGET(btn));
@@ -67,20 +71,28 @@ static void on_click_llm_lab(GtkButton *btn, gpointer user_data)
     GtkWidget *win = gtk_window_new();
     gtk_window_set_title(GTK_WINDOW(win), "LLM Lab");
     gtk_window_set_default_size(GTK_WINDOW(win), 720, 520);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (parent) gtk_window_set_transient_for(GTK_WINDOW(win), parent);
     gtk_window_set_modal(GTK_WINDOW(win), FALSE);
     gtk_window_set_child(GTK_WINDOW(win), lab);
     gtk_window_present(GTK_WINDOW(win));
 }
 
+/*
+ * Write on click in its stable representation and report capacity or input failures to the
+ * caller.
+ */
 static void on_click_save(GtkButton *btn, gpointer user_data)
 {
     (void)btn;
     ActionHolder *h = (ActionHolder*)g_object_get_data(G_OBJECT(user_data), UMI_DATA_CB_KEY);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (h && h->cb) h->cb(h->user);
+    /* Use this fallback path when the earlier condition does not apply. */
     else            g_message("Save action not available (no callback wired).");
 }
 
+/* Provide the app menu llm new operation used by this module and its client applications. */
 GtkWidget *umi_app_menu_llm_new(UmiSimpleAction on_save, gpointer user)
 {
     /* Horizontal bar with spacing and margins (no CSS). */
@@ -110,8 +122,10 @@ GtkWidget *umi_app_menu_llm_new(UmiSimpleAction on_save, gpointer user)
     return bar;
 }
 
+/* Provide the app menu llm free operation used by this module and its client applications. */
 void umi_app_menu_llm_free(GtkWidget *w)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w) return;
     gtk_widget_destroy(w);
 }

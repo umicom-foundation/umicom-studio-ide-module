@@ -40,21 +40,26 @@
  *   Newly allocated UTF-8 string (g_free when done), or NULL on failure.
  *---------------------------------------------------------------------------*/
 #ifdef _WIN32
+/* Provide the utf16 to utf8 operation used by this module and its client applications. */
 static char *utf16_to_utf8(const wchar_t *w)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w) return NULL;                                                   /* Guard: null input -> null output */
 
     /* Query required size (in bytes) for the UTF-8 buffer, not including the
        terminating NUL (pass 0 length to get the size) */
     int needed = WideCharToMultiByte(CP_UTF8, 0, w, -1, NULL, 0, NULL, NULL);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (needed <= 0) return NULL;                                          /* Conversion size query failed */
 
     /* Allocate output buffer using GLib allocator so callers can g_free() */
     char *out = g_malloc((gsize)needed);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!out) return NULL;                                                 /* Allocation failed (unlikely) */
 
     /* Perform the actual conversion including the trailing NUL */
     int written = WideCharToMultiByte(CP_UTF8, 0, w, -1, out, needed, NULL, NULL);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (written <= 0) {                                                    /* Conversion failed */
         g_free(out);
         return NULL;
@@ -87,6 +92,7 @@ static char **argv_from_windows(int *argc_out)
     /* Allocate UTF-8 argv array: +1 for trailing NULL sentinel */
     char **argv = g_new0(char*, (gsize)argcW + 1);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (int i = 0; i < argcW; ++i) {
         /* Convert each wide string to UTF-8 (empty string if conversion fails) */
         char *u8 = utf16_to_utf8(argvW[i]);
@@ -120,6 +126,7 @@ GSubprocess *umi_win_spawn_with_msys_env(const char *cwd,
     g_autoptr(GSubprocessLauncher) launcher =
         g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (cwd && *cwd) {                                                     /* If caller requests a cwd, set it */
         g_subprocess_launcher_set_cwd(launcher, cwd);
     }

@@ -23,12 +23,20 @@
 
 #include "umicom/studio/ai_platform.h"
 
+/*
+ * Exercise second provider generate and return a clear result when the behaviour no longer
+ * matches its contract.
+ */
 static UmiStatus second_provider_generate(
     void *instance,
     const UmiAiRequest *request,
     UmiAiResponse *response)
 {
     (void)instance;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (request == NULL || response == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -43,6 +51,10 @@ static UmiStatus second_provider_generate(
     return umi_ai_response_set_text(response, "A second provider answer");
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioAiPlatform *platform = NULL;

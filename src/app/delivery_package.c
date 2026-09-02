@@ -19,6 +19,10 @@
 
 #include "umicom/studio/delivery_package.h"
 
+/*
+ * Provide the studio package spec operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_package_spec(const char *staging_root,
                                   const char *output_path,
                                   UmiPackageSpec *out_spec)
@@ -30,11 +34,16 @@ UmiStatus umi_studio_package_spec(const char *staging_root,
                                  output_path);
 }
 
+/*
+ * Provide the studio package directory operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_package_directory(const UmiPackageSpec *spec,
                                        UmiPackageResult *out_result)
 {
     UmiPackageProvider provider;
     UmiStatus status = umi_directory_package_provider(&provider);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return umi_package_provider_create(&provider, spec, out_result);
 }

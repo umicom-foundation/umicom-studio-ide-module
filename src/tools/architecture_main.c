@@ -18,4 +18,8 @@
  */
 #include <stdio.h>
 #include "umicom/studio/architecture_guard.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioArchitectureGuard r;(void)umi_studio_architecture_guard_run(&r);printf("Profiles: %zu\nInvalid: %zu\nIncompatible: %zu\nArchitecture guard: %s\n",r.profiles_checked,r.invalid_profiles,r.incompatible_profiles,r.passed?"PASS":"FAIL");return r.passed?0:2;}

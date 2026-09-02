@@ -18,6 +18,10 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioBootstrap *bootstrap = NULL;
@@ -25,16 +29,18 @@ int main(int argc, char **argv)
     UmiStatus status = umi_studio_bootstrap_create(&bootstrap);
     int exit_code = 0;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Security command failed: %s\n", umi_status_text(status));
         return 1;
     }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (argc >= 3 && strcmp(argv[1], "trust") == 0) {
         status = umi_studio_security_set_workspace_trust(
             umi_studio_bootstrap_services(bootstrap),
             argv[2],
             UMI_WORKSPACE_TRUSTED);
-    } else if (argc >= 3 && strcmp(argv[1], "check") == 0) {
+    } else /* Keep the operation inside its valid bounds before reading, writing or adding data. */ if (argc >= 3 && strcmp(argv[1], "check") == 0) {
         UmiAuthorisationDecision decision;
         status = umi_studio_security_authorise(
             umi_studio_bootstrap_services(bootstrap),
@@ -43,15 +49,17 @@ int main(int argc, char **argv)
             argv[2],
             argc >= 4 ? argv[3] : "studio",
             &decision);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)printf("Allowed: %s\nReason: %s\n",
                          decision.allowed ? "yes" : "no",
                          decision.reason);
         }
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         status = umi_studio_security_report(
             umi_studio_bootstrap_services(bootstrap),
             &report);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)printf("Identities: %zu\nRoles: %zu\nSessions: %zu\n"
                          "Trusted workspaces: %zu\nSecurity events: %zu\n"
@@ -61,6 +69,7 @@ int main(int argc, char **argv)
                          report.denied_events, report.policy_rules);
         }
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Security command failed: %s\n", umi_status_text(status));
         exit_code = 1;

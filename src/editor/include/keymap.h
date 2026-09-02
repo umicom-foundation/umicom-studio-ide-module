@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/editor/include/keymap.h
+ *
+ * PURPOSE:
+ *   Declare the keymap contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/editor/include/keymap.h
  * PURPOSE:
  *   Centralized keybinding table + callbacks for window-scoped actions.
  *
@@ -19,6 +35,9 @@
 
 #include <gtk/gtk.h>
 
+/**
+ * Represent the keymap callbacks data shared with callers of this public contract.
+ */
 typedef struct UmiKeymapCallbacks {
   gpointer user;
   void (*palette)(gpointer user);

@@ -19,6 +19,10 @@
 #include "umicom/studio/experience_centre.h"
 #include "umicom/studio/experience_projection.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioExperienceRow row;

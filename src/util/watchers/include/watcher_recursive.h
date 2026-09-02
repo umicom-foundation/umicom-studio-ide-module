@@ -3,6 +3,22 @@
  * File: src/util/watchers/include/watcher_recursive.h
  *
  * PURPOSE:
+ *   Declare the watcher recursive contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/watchers/include/watcher_recursive.h
+ *
+ * PURPOSE:
  *   Public API for a simple, RECURSIVE filesystem watcher built on GIO.
  *   We scan roots, attach a monitor to every subdirectory, and invoke the
  *   user callback with a best-effort UTF-8 path on any change.
@@ -31,11 +47,26 @@
 #include "path_watcher.h" /* UmiPathWatch descriptor for interoperability */
 
 typedef void (*UmiWatchCb)(gpointer user, const char *path);
+/**
+ * Represent the watcher rec data shared with callers of this public contract.
+ */
 typedef struct _UmiWatcherRec UmiWatcherRec;
 
+/**
+ * Provide the watchrec new operation used by this module and its client applications.
+ */
 UmiWatcherRec *umi_watchrec_new(const char *root, UmiWatchCb cb, gpointer user);
+/**
+ * Add watchrec only after its inputs and available capacity have been checked.
+ */
 gboolean       umi_watchrec_add(UmiWatcherRec *w, const char *path_or_dir);
+/**
+ * Provide the watchrec rescan operation used by this module and its client applications.
+ */
 void           umi_watchrec_rescan(UmiWatcherRec *w);
+/**
+ * Provide the watchrec free operation used by this module and its client applications.
+ */
 void           umi_watchrec_free(UmiWatcherRec *w);
 
 #endif /* UMICOM_WATCHER_RECURSIVE_H */

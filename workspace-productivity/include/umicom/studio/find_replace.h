@@ -32,6 +32,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio find replace data shared with callers of this public contract.
+ */
 typedef struct UmiStudioFindReplace {
     char search[UMI_STUDIO_WORKSPACE_NAME_CAPACITY];
     char replacement[UMI_STUDIO_WORKSPACE_NAME_CAPACITY];
@@ -41,20 +44,35 @@ typedef struct UmiStudioFindReplace {
     bool selection_only;
 } UmiStudioFindReplace;
 
+/**
+ * Initialise studio find replace from caller-provided values so later operations receive a
+ * known state.
+ */
 void umi_studio_find_replace_init(UmiStudioFindReplace *operation);
 
+/**
+ * Copy studio find replace into module-owned storage so callers keep ownership of their
+ * input values.
+ */
 UmiStatus umi_studio_find_replace_set(
     UmiStudioFindReplace *operation,
     const char *search,
     const char *replacement
 );
 
+/**
+ * Return the number of records represented by studio find without changing their state.
+ */
 UmiStatus umi_studio_find_count(
     const char *text,
     const UmiStudioFindReplace *operation,
     size_t *count
 );
 
+/**
+ * Provide the studio replace all operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_replace_all(
     const char *text,
     const UmiStudioFindReplace *operation,

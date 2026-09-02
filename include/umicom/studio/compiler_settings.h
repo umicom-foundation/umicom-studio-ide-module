@@ -15,7 +15,18 @@
 #ifndef UMICOM_STUDIO_COMPILER_SETTINGS_H
 #define UMICOM_STUDIO_COMPILER_SETTINGS_H
 #include "umicom/compiler/compiler.h"
+/**
+ * Represent the studio compiler settings data shared with callers of this public contract.
+ */
 typedef struct UmiStudioCompilerSettings { char default_profile[UMI_COMPILER_ID_CAPACITY]; char build_directory[UMI_COMPILER_PATH_CAPACITY]; char compile_database_path[UMI_COMPILER_PATH_CAPACITY]; bool auto_detect; bool auto_save_lockfile; bool reveal_diagnostics; bool parallel_build; uint32_t parallel_jobs; uint64_t revision; } UmiStudioCompilerSettings;
+/**
+ * Provide the studio compiler settings defaults operation used by this module and its
+ * client applications.
+ */
 void umi_studio_compiler_settings_defaults(UmiStudioCompilerSettings *settings);
+/**
+ * Check that studio compiler settings satisfies its contract before another service relies
+ * on it.
+ */
 UmiStatus umi_studio_compiler_settings_validate(const UmiStudioCompilerSettings *settings,char *out_reason,size_t capacity);
 #endif

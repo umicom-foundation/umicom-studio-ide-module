@@ -20,17 +20,36 @@
 
 #include "umicom/studio/ui.h"
 
+/**
+ * Represent the studio gtk workbench data shared with callers of this public contract.
+ */
 typedef struct UmiStudioGtkWorkbench UmiStudioGtkWorkbench;
 
+/**
+ * Initialise studio gtk workbench from caller-provided values so later operations receive
+ * a known state.
+ */
 UmiStatus umi_studio_gtk_workbench_create(
     GtkApplication *application,
     UmiStudioUi *ui,
     UmiDesktopShellModel *desktop_shell,
     UmiStudioGtkWorkbench **out_workbench);
+/**
+ * Release or reset state held by studio gtk workbench so the same storage can be reused
+ * safely.
+ */
 void umi_studio_gtk_workbench_destroy(
     UmiStudioGtkWorkbench *workbench);
+/**
+ * Provide the studio gtk workbench window operation used by this module and its client
+ * applications.
+ */
 GtkWindow *umi_studio_gtk_workbench_window(
     UmiStudioGtkWorkbench *workbench);
+/**
+ * Provide the studio gtk workbench refresh operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_gtk_workbench_refresh(
     UmiStudioGtkWorkbench *workbench);
 

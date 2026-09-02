@@ -41,14 +41,23 @@ struct UmiStudioAiPlatform {
     uint64_t model_comparison_sequence;
 };
 
+/* Provide the copy text operation used by this module and its client applications. */
 static int copy_text(char *destination, size_t capacity, const char *source)
 {
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (destination == NULL || capacity == 0U || source == NULL) return 0;
     written = snprintf(destination, capacity, "%s", source);
     return written >= 0 && (size_t)written < capacity;
 }
 
+/*
+ * Provide the studio local generate operation used by this module and its client
+ * applications.
+ */
 static UmiStatus studio_local_generate(void *instance,
                                        const UmiAiRequest *request,
                                        UmiAiResponse *response)
@@ -56,6 +65,10 @@ static UmiStatus studio_local_generate(void *instance,
     const UmiAiMessage *last;
     int written;
     (void)instance;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (request == NULL || response == NULL || request->message_count == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -63,17 +76,20 @@ static UmiStatus studio_local_generate(void *instance,
     umi_ai_response_init(response);
     written = snprintf(response->provider_id, sizeof(response->provider_id),
                        "%s", "studio.local");
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (written < 0 || (size_t)written >= sizeof(response->provider_id)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
     written = snprintf(response->model_id, sizeof(response->model_id),
                        "%s", request->model_id[0] != '\0'
                            ? request->model_id : "studio-reference");
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (written < 0 || (size_t)written >= sizeof(response->model_id)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
     written = snprintf(response->text, sizeof(response->text),
                        "Studio local reference provider received: %s", last->text);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (written < 0 || (size_t)written >= sizeof(response->text)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
@@ -85,9 +101,17 @@ static UmiStatus studio_local_generate(void *instance,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio local health operation used by this module and its client
+ * applications.
+ */
 static UmiStatus studio_local_health(void *instance, UmiAiHealth *health)
 {
     (void)instance;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (health == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)umi_ai_health_init(health);
     (void)snprintf(health->provider_id, sizeof(health->provider_id),
@@ -98,6 +122,10 @@ static UmiStatus studio_local_health(void *instance, UmiAiHealth *health)
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio ai platform config default operation used by this module and its
+ * client applications.
+ */
 UmiStudioAiPlatformConfig umi_studio_ai_platform_config_default(void)
 {
     UmiStudioAiPlatformConfig config;
@@ -146,6 +174,10 @@ UmiStudioAiPlatformConfig umi_studio_ai_platform_config_default(void)
     return config;
 }
 
+/*
+ * Provide the create knowledge centre operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_knowledge_centre(
     UmiStudioAiPlatform *platform,
     const UmiStudioAiPlatformConfig *config)
@@ -163,29 +195,35 @@ static UmiStatus create_knowledge_centre(
                                              : config->knowledge_chunk_bytes;
     status = umi_knowledge_service_create(
         &service_config, &platform->knowledge);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_knowledge_collection_init(
             &collection, "project", "Active Project",
             "Project metadata, requirements and workspace documents.");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_knowledge_service_add_collection(
             platform->knowledge, &collection);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_knowledge_collection_init(
             &collection, "code", "Project Code",
             "Repository source code indexed with line provenance.");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_knowledge_service_add_collection(
             platform->knowledge, &collection);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_knowledge_collection_init(
             &collection, "documents", "Technical Documents",
             "Offline manuals, architecture records and technical references.");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_knowledge_service_add_collection(
             platform->knowledge, &collection);
@@ -193,6 +231,10 @@ static UmiStatus create_knowledge_centre(
     return status;
 }
 
+/*
+ * Provide the create helix agent centre operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_helix_agent_centre(
     UmiStudioAiPlatform *platform,
     const UmiStudioAiPlatformConfig *config)
@@ -211,6 +253,10 @@ static UmiStatus create_helix_agent_centre(
         &centre_config, &platform->helix_agent_centre);
 }
 
+/*
+ * Provide the register catalogue runtime operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_catalogue_runtime(
     UmiStudioAiPlatform *platform,
     const char *runtime_id,
@@ -229,6 +275,7 @@ static UmiStatus register_catalogue_runtime(
 {
     UmiAiRuntimeDescriptor descriptor;
     (void)memset(&descriptor, 0, sizeof(descriptor));
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (!copy_text(descriptor.runtime_id, sizeof(descriptor.runtime_id),
                    runtime_id) ||
         !copy_text(descriptor.provider_id, sizeof(descriptor.provider_id),
@@ -257,6 +304,7 @@ static UmiStatus register_catalogue_runtime(
         platform->authorengine, &descriptor);
 }
 
+/* Provide the register context operation used by this module and its client applications. */
 static UmiStatus register_context(UmiStudioAiPlatform *platform,
                                   const char *source_id,
                                   const char *label,
@@ -270,6 +318,7 @@ static UmiStatus register_context(UmiStudioAiPlatform *platform,
 {
     UmiAiContextSource source;
     (void)memset(&source, 0, sizeof(source));
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (!copy_text(source.source_id, sizeof(source.source_id), source_id) ||
         !copy_text(source.label, sizeof(source.label), label) ||
         !copy_text(source.uri, sizeof(source.uri), uri)) {
@@ -285,6 +334,10 @@ static UmiStatus register_context(UmiStudioAiPlatform *platform,
         umi_ai_authorengine_service_context(platform->authorengine), &source);
 }
 
+/*
+ * Provide the register coding file operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_coding_file(UmiStudioAiPlatform *platform,
                                       const char *path,
                                       const char *language_id,
@@ -295,6 +348,7 @@ static UmiStatus register_coding_file(UmiStudioAiPlatform *platform,
 {
     UmiAiCodingContextFile file;
     (void)memset(&file, 0, sizeof(file));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!copy_text(file.path, sizeof(file.path), path) ||
         !copy_text(file.language_id, sizeof(file.language_id), language_id) ||
         !copy_text(file.summary, sizeof(file.summary), summary)) {
@@ -309,6 +363,10 @@ static UmiStatus register_coding_file(UmiStudioAiPlatform *platform,
         umi_ai_coding_assistant_context(platform->coding_assistant), &file);
 }
 
+/*
+ * Provide the studio ai platform create configured operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_ai_platform_create_configured(
     const UmiStudioAiPlatformConfig *config,
     UmiStudioAiPlatform **out_platform)
@@ -324,6 +382,10 @@ UmiStatus umi_studio_ai_platform_create_configured(
     remote_requested = config != NULL && config->allow_remote &&
         config->remote_endpoint[0] != '\0';
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (config == NULL || out_platform == NULL ||
         config->authorengine_executable[0] == '\0' ||
         config->workspace[0] == '\0' || config->context_tokens == 0U ||
@@ -353,9 +415,14 @@ UmiStatus umi_studio_ai_platform_create_configured(
     }
     *out_platform = NULL;
     platform = (UmiStudioAiPlatform *)calloc(1U, sizeof(*platform));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     platform->coding_context_tokens = config->coding_context_tokens;
     platform->knowledge_result_limit = config->knowledge_result_limit;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!copy_text(platform->knowledge_archive_path,
                    sizeof(platform->knowledge_archive_path),
                    config->knowledge_archive_path)) {
@@ -365,6 +432,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
     platform->workbench_profile.struct_size =
         (uint32_t)sizeof(platform->workbench_profile);
     platform->workbench_profile.api_version = 1U;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (!copy_text(platform->workbench_profile.preferred_runtime_id,
                    sizeof(platform->workbench_profile.preferred_runtime_id),
                    config->preferred_runtime_id) ||
@@ -397,6 +465,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
     umi_ai_runtime_init(&platform->ai);
     status = umi_ai_model_ensemble_report_initialize(
         &platform->model_comparison);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         free(platform);
         return status;
@@ -407,6 +476,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
     umi_helix_runtime_init(&platform->helix, "studio.helix");
     status = umi_helix_runtime_register_default_agents(&platform->helix,
                                                        "studio.local");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         free(platform);
         return status;
@@ -421,6 +491,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
     provider.health = studio_local_health;
 
     status = umi_ai_provider_registry_add(&platform->ai.providers, &provider);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         free(platform);
         return status;
@@ -430,6 +501,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
                    "%s", provider.provider_id);
 
     (void)memset(&authorengine_config, 0, sizeof(authorengine_config));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!copy_text(authorengine_config.executable,
                    sizeof(authorengine_config.executable),
                    config->authorengine_executable) ||
@@ -447,11 +519,13 @@ UmiStatus umi_studio_ai_platform_create_configured(
     privacy_policy = umi_ai_privacy_policy_default();
     privacy_policy.persist_sessions = config->persist_sessions != 0;
     privacy_policy.persist_prompt_text = config->persist_sessions != 0;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ai_authorengine_service_set_policy(
             platform->authorengine, &provider_policy, &privacy_policy,
             config->context_tokens, config->reserved_output_tokens);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = register_catalogue_runtime(
             platform, "studio.local.reference", "studio.local",
@@ -459,6 +533,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
             UMI_AI_PROVIDER_TEST, UMI_AI_RUNTIME_IN_PROCESS, 8192U, 1024U,
             1, 1, 1, "Reference provider is available");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = register_catalogue_runtime(
             platform, "authorengine.local.chat", "authorengine.local",
@@ -467,6 +542,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
             config->context_tokens, config->reserved_output_tokens,
             1, 1, 0, "AuthorEngine health probe pending");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = register_catalogue_runtime(
             platform, "authorengine.remote.chat", "authorengine.remote",
@@ -477,6 +553,7 @@ UmiStatus umi_studio_ai_platform_create_configured(
             config->allow_remote ? "Remote health probe pending"
                                  : "Remote providers disabled by policy");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK &&
         platform->workbench_profile.remote_configured) {
         status = register_catalogue_runtime(
@@ -487,29 +564,34 @@ UmiStatus umi_studio_ai_platform_create_configured(
             config->context_tokens, config->reserved_output_tokens,
             1, 0, 0, "Remote provider health probe pending");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = register_context(
             platform, "studio.workspace", "Active workspace",
             config->workspace, UMI_AI_CONTEXT_WORKSPACE, UMI_AI_DATA_INTERNAL,
             2048U, 100U, 1, 1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = register_context(
             platform, "studio.project", "Active project metadata",
             "workspace://project", UMI_AI_CONTEXT_PROJECT,
             UMI_AI_DATA_INTERNAL, 4096U, 80U, 0, 1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = register_context(
             platform, "studio.diagnostics", "Current diagnostics",
             "workspace://diagnostics", UMI_AI_CONTEXT_DIAGNOSTICS,
             UMI_AI_DATA_CONFIDENTIAL, 1024U, 60U, 0, 0);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ai_authorengine_service_begin_session(
             platform->authorengine, "studio.session.default", "studio.local",
             "studio-reference", "studio.workspace", "Studio AI Workspace", 0U);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         UmiAiCodingPatchPolicy patch_policy =
             umi_ai_coding_patch_policy_default();
@@ -520,29 +602,37 @@ UmiStatus umi_studio_ai_platform_create_configured(
         patch_policy.allow_create = config->allow_patch_create != 0;
         patch_policy.allow_delete = config->allow_patch_delete != 0;
         patch_policy.require_approval = config->require_patch_approval != 0;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = umi_ai_coding_assistant_set_patch_policy(
                 platform->coding_assistant, &patch_policy);
         }
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_coding_file(
         platform, "CMakeLists.txt", "cmake", "Studio root build composition",
         900U, 80U, 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_coding_file(
         platform, "applications/studio/CMakeLists.txt", "cmake",
         "Studio targets and focused tests", 1800U, 90U, 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_coding_file(
         platform, "applications/studio/src/app/ai_platform.c", "c23",
         "Active AI and AuthorEngine product composition", 2200U, 100U, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_coding_file(
         platform, "framework/include/umicom/ai/ai.h", "c23",
         "Framework AI public aggregate", 500U, 70U, 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = create_knowledge_centre(platform, config);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = create_helix_agent_centre(platform, config);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_ai_platform_destroy(platform);
         return status;
@@ -551,14 +641,26 @@ UmiStatus umi_studio_ai_platform_create_configured(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Initialise studio ai platform from caller-provided values so later operations receive a
+ * known state.
+ */
 UmiStatus umi_studio_ai_platform_create(UmiStudioAiPlatform **out_platform)
 {
     UmiStudioAiPlatformConfig config = umi_studio_ai_platform_config_default();
     return umi_studio_ai_platform_create_configured(&config, out_platform);
 }
 
+/*
+ * Release or reset state held by studio ai platform so the same storage can be reused
+ * safely.
+ */
 void umi_studio_ai_platform_destroy(UmiStudioAiPlatform *platform)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return;
     umi_studio_helix_agent_centre_destroy(platform->helix_agent_centre);
     umi_knowledge_service_destroy(platform->knowledge);
@@ -569,15 +671,27 @@ void umi_studio_ai_platform_destroy(UmiStudioAiPlatform *platform)
     free(platform);
 }
 
+/*
+ * Provide the studio ai platform runtime operation used by this module and its client
+ * applications.
+ */
 UmiAiRuntime *umi_studio_ai_platform_runtime(UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? &platform->ai : NULL;
 }
 
+/*
+ * Provide the studio ai platform register provider operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_ai_platform_register_provider(
     UmiStudioAiPlatform *platform,
     const UmiAiProvider *provider)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL || provider == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -585,63 +699,107 @@ UmiStatus umi_studio_ai_platform_register_provider(
     return umi_ai_provider_registry_add(&platform->ai.providers, provider);
 }
 
+/*
+ * Provide the studio ai platform helix operation used by this module and its client
+ * applications.
+ */
 UmiHelixRuntime *umi_studio_ai_platform_helix(UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? &platform->helix : NULL;
 }
 
+/*
+ * Provide the studio ai platform authorengine operation used by this module and its client
+ * applications.
+ */
 UmiAiAuthorEngineService *umi_studio_ai_platform_authorengine(
     UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->authorengine : NULL;
 }
 
+/*
+ * Provide the studio ai platform coding assistant operation used by this module and its
+ * client applications.
+ */
 UmiAiCodingAssistantService *umi_studio_ai_platform_coding_assistant(
     UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->coding_assistant : NULL;
 }
 
+/*
+ * Provide the studio ai platform knowledge operation used by this module and its client
+ * applications.
+ */
 UmiKnowledgeService *umi_studio_ai_platform_knowledge(
     UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->knowledge : NULL;
 }
 
+/*
+ * Provide the studio ai platform helix agent centre operation used by this module and its
+ * client applications.
+ */
 UmiStudioHelixAgentCentre *umi_studio_ai_platform_helix_agent_centre(
     UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->helix_agent_centre : NULL;
 }
 
+/*
+ * Provide the studio ai platform knowledge result limit operation used by this module and
+ * its client applications.
+ */
 size_t umi_studio_ai_platform_knowledge_result_limit(
     const UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->knowledge_result_limit : 0U;
 }
 
+/*
+ * Provide the studio ai platform knowledge archive path operation used by this module and
+ * its client applications.
+ */
 const char *umi_studio_ai_platform_knowledge_archive_path(
     const UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->knowledge_archive_path : NULL;
 }
 
+/*
+ * Provide the studio ai platform coding context tokens operation used by this module and
+ * its client applications.
+ */
 uint32_t umi_studio_ai_platform_coding_context_tokens(
     const UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->coding_context_tokens : 0U;
 }
 
+/*
+ * Provide the studio ai platform default provider operation used by this module and its
+ * client applications.
+ */
 const char *umi_studio_ai_platform_default_provider(
     const UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? platform->default_provider : NULL;
 }
 
+/*
+ * Provide the studio ai platform workbench profile operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_ai_platform_workbench_profile(
     const UmiStudioAiPlatform *platform,
     UmiStudioAiWorkbenchProfile *out_profile)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL || out_profile == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -649,47 +807,83 @@ UmiStatus umi_studio_ai_platform_workbench_profile(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio ai platform refresh health operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_ai_platform_refresh_health(
     UmiStudioAiPlatform *platform,
     uint64_t timestamp_ns,
     size_t *out_healthy_runtimes)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_authorengine_service_refresh_health(
         platform->authorengine, timestamp_ns, out_healthy_runtimes);
 }
 
+/*
+ * Provide the studio ai platform begin session operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_ai_platform_begin_session(
     UmiStudioAiPlatform *platform,
     const char *session_id,
     const char *title,
     uint64_t timestamp_ns)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_authorengine_service_begin_session(
         platform->authorengine, session_id, "studio.local", "studio-reference",
         "studio.workspace", title, timestamp_ns);
 }
 
+/*
+ * Provide the studio ai platform save session operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ai_platform_save_session(
     UmiStudioAiPlatform *platform,
     const char *session_id,
     const char *path)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_authorengine_service_save_session(
         platform->authorengine, session_id, path);
 }
 
+/*
+ * Provide the studio ai platform snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ai_platform_snapshot(
     UmiStudioAiPlatform *platform,
     UmiAiAuthorEngineServiceSnapshot *out_snapshot)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_authorengine_service_snapshot(
         platform->authorengine, out_snapshot);
 }
 
+/*
+ * Provide the studio ai platform compare models operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_ai_platform_compare_models(
     UmiStudioAiPlatform *platform,
     const char *prompt,
@@ -700,6 +894,10 @@ UmiStatus umi_studio_ai_platform_compare_models(
     UmiAiMessage message;
     UmiStatus status;
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL || prompt == NULL || prompt[0] == '\0' ||
         targets == NULL || target_count == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -711,13 +909,16 @@ UmiStatus umi_studio_ai_platform_compare_models(
     written = snprintf(request.request_id, sizeof(request.request_id),
                        "studio.model-comparison.%" PRIu64,
                        platform->model_comparison_sequence);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (written < 0 || (size_t)written >= sizeof(request.request_id)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
     status = umi_ai_message_set(&message, UMI_AI_ROLE_USER, "user", prompt);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ai_request_add_message(&request, &message);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ai_model_ensemble_query(
             &platform->ai, &request, targets, target_count,
@@ -726,6 +927,10 @@ UmiStatus umi_studio_ai_platform_compare_models(
     return status;
 }
 
+/*
+ * Provide the studio ai platform model comparison operation used by this module and its
+ * client applications.
+ */
 const UmiAiModelEnsembleReport *umi_studio_ai_platform_model_comparison(
     const UmiStudioAiPlatform *platform)
 {

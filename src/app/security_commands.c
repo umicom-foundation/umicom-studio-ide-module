@@ -21,6 +21,7 @@
 #include "umicom/studio/security_secrets.h"
 #include <string.h>
 
+/* Provide the seed identity operation used by this module and its client applications. */
 static UmiStatus seed_identity(UmiStudioSecurityCentre *centre)
 {
     const UmiSecurityIdentityProfile identity = {
@@ -35,6 +36,7 @@ static UmiStatus seed_identity(UmiStudioSecurityCentre *centre)
     return umi_studio_security_identity_add(centre,&identity);
 }
 
+/* Provide the seed permissions operation used by this module and its client applications. */
 static UmiStatus seed_permissions(UmiStudioSecurityCentre *centre)
 {
     const UmiSecurityPermissionDescriptor build = {
@@ -52,13 +54,18 @@ static UmiStatus seed_permissions(UmiStudioSecurityCentre *centre)
         .approval_required = true
     };
     UmiStatus status = umi_studio_security_permission_add(centre,&build);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_security_permission_add(centre,&plugin);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_security_role_define(centre,"developer","Trusted Studio developer");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_security_role_grant(centre,"developer","project.build");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_security_role_grant(centre,"developer","plugin.install");
     return status;
 }
 
+/* Provide the seed assignment operation used by this module and its client applications. */
 static UmiStatus seed_assignment(UmiStudioSecurityCentre *centre)
 {
     const UmiSecurityRoleAssignment assignment = {
@@ -72,6 +79,7 @@ static UmiStatus seed_assignment(UmiStudioSecurityCentre *centre)
     return umi_studio_security_role_assign(centre,&assignment);
 }
 
+/* Provide the seed secret operation used by this module and its client applications. */
 static UmiStatus seed_secret(UmiStudioSecurityCentre *centre)
 {
     const UmiSecuritySecretMetadata metadata = {
@@ -83,6 +91,7 @@ static UmiStatus seed_secret(UmiStudioSecurityCentre *centre)
     return umi_studio_security_secret_add(centre,&metadata);
 }
 
+/* Provide the seed signer operation used by this module and its client applications. */
 static UmiStatus seed_signer(UmiStudioSecurityCentre *centre)
 {
     const UmiSecurityTrustedSigner signer = {
@@ -93,6 +102,7 @@ static UmiStatus seed_signer(UmiStudioSecurityCentre *centre)
     return umi_studio_security_signer_add(centre,&signer);
 }
 
+/* Provide the seed approval operation used by this module and its client applications. */
 static UmiStatus seed_approval(UmiStudioSecurityCentre *centre)
 {
     const UmiSecurityApproval approval = {
@@ -106,6 +116,7 @@ static UmiStatus seed_approval(UmiStudioSecurityCentre *centre)
         .reason = "Review plug-in installation"
     };
     UmiStatus status = umi_studio_security_approval_request(centre,&approval);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_security_approval_decide(centre,
                                                      "approve-plugin-install",
@@ -116,19 +127,33 @@ static UmiStatus seed_approval(UmiStudioSecurityCentre *centre)
     return status;
 }
 
+/*
+ * Provide the studio security seed operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_security_seed(UmiStudioSecurityCentre *centre)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = seed_identity(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = seed_permissions(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = seed_assignment(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = seed_secret(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = seed_signer(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = seed_approval(centre);
     return status;
 }
 
+/* Provide the authorise operation used by this module and its client applications. */
 static UmiStatus authorise(UmiStudioSecurityCentre *centre,
                            const char *permission,
                            const char *approval_id,
@@ -144,24 +169,45 @@ static UmiStatus authorise(UmiStudioSecurityCentre *centre,
         .correlation_id = 56U
     };
     (void)memcpy(request.permission,permission,strlen(permission) + 1U);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (approval_id != NULL) {
         (void)memcpy(request.approval_id,approval_id,strlen(approval_id) + 1U);
     }
     return umi_studio_security_centre_authorise(centre,&request,out_decision);
 }
 
+/*
+ * Perform studio security through the module contract so client applications do not
+ * duplicate its policy.
+ */
 UmiStatus umi_studio_security_execute(UmiStudioSecurityCentre *centre,
                                       UmiStudioSecurityCommand command,
                                       UmiSecurityGovernanceDecision *out_decision)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Select the behaviour associated with the requested command or state value. */
     switch (command) {
         case UMI_STUDIO_SECURITY_COMMAND_SEED:
             return umi_studio_security_seed(centre);
         case UMI_STUDIO_SECURITY_COMMAND_AUTHORISE_BUILD:
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (out_decision == NULL) return UMI_STATUS_INVALID_ARGUMENT;
             return authorise(centre,"project.build",NULL,out_decision);
         case UMI_STUDIO_SECURITY_COMMAND_AUTHORISE_PLUGIN:
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (out_decision == NULL) return UMI_STATUS_INVALID_ARGUMENT;
             return authorise(centre,"plugin.install","approve-plugin-install",out_decision);
         default:

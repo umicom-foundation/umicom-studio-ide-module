@@ -1,5 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/include/recent_files.h
+ *
+ * PURPOSE:
+ *   Declare the recent files contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/core/recent_files.h
  * PURPOSE: Public API for the MRU (recent files) list, JSON-backed.
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-08 | MIT

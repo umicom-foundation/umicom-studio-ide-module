@@ -23,26 +23,46 @@
 extern "C" {
 #endif
 
+/**
+ * Initialise studio debug call stack view from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_debug_call_stack_view_create(
     const char *view_id,
     UmiStudioDebuggerService *debugger,
     UmiUiViewModel **out_view
 );
+/**
+ * Initialise studio debug variables view from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_debug_variables_view_create(
     const char *view_id,
     UmiStudioDebuggerService *debugger,
     UmiUiViewModel **out_view
 );
+/**
+ * Initialise studio debug watches view from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_debug_watches_view_create(
     const char *view_id,
     UmiStudioDebuggerService *debugger,
     UmiUiViewModel **out_view
 );
+/**
+ * Initialise studio debug breakpoints view from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_debug_breakpoints_view_create(
     const char *view_id,
     UmiStudioDebuggerService *debugger,
     UmiUiViewModel **out_view
 );
+/**
+ * Initialise studio debug console view from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_debug_console_view_create(
     const char *view_id,
     UmiStudioDebuggerService *debugger,

@@ -27,9 +27,17 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio package spec operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_package_spec(const char *staging_root,
                                     const char *output_path,
                                     UmiPackageSpec *out_spec);
+/**
+ * Provide the studio package directory operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_package_directory(const UmiPackageSpec *spec,
                                        UmiPackageResult *out_result);
 

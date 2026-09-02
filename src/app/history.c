@@ -20,6 +20,7 @@
 
 #include "umicom/studio/messages.h"
 
+/* Add studio history only after its inputs and available capacity have been checked. */
 UmiStatus umi_studio_history_append(UmiStudioServices *services,
                                     const char *category,
                                     UmiStatus status,
@@ -30,6 +31,10 @@ UmiStatus umi_studio_history_append(UmiStudioServices *services,
     UmiMessageEnvelope envelope;
     char payload[768];
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || category == NULL || message == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -39,6 +44,7 @@ UmiStatus umi_studio_history_append(UmiStudioServices *services,
                        category,
                        (int)status,
                        message);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (written < 0 || (size_t)written >= sizeof(payload)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
@@ -59,6 +65,7 @@ UmiStatus umi_studio_history_append(UmiStudioServices *services,
                                     out_sequence);
 }
 
+/* Return the number of records represented by studio history without changing their state. */
 size_t umi_studio_history_count(UmiStudioServices *services)
 {
     return services != NULL
@@ -66,6 +73,10 @@ size_t umi_studio_history_count(UmiStudioServices *services)
         : 0U;
 }
 
+/*
+ * Read studio history into validated module state and return a status when input cannot be
+ * used.
+ */
 UmiStatus umi_studio_history_read(UmiStudioServices *services,
                                   size_t index,
                                   UmiStudioHistoryRecord *out_record)
@@ -77,28 +88,42 @@ UmiStatus umi_studio_history_read(UmiStudioServices *services,
     char *end = NULL;
     long parsed;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_record == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_message_store_read(umi_studio_services_message_store(services),
                                     index,
                                     &message);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     (void)memset(out_record, 0, sizeof(*out_record));
     text = message.payload_storage;
     line2 = strchr(text, '\n');
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (line2 == NULL) {
         umi_message_dispose(&message);
         return UMI_STATUS_PARSE_ERROR;
     }
     *line2++ = '\0';
     line3 = strchr(line2, '\n');
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (line3 == NULL) {
         umi_message_dispose(&message);
         return UMI_STATUS_PARSE_ERROR;
     }
     *line3++ = '\0';
     parsed = strtol(line2, &end, 10);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (end == line2 || *end != '\0') {
         umi_message_dispose(&message);
         return UMI_STATUS_PARSE_ERROR;

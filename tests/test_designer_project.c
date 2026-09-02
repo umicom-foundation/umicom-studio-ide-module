@@ -28,4 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioDesignerProject project;assert(umi_studio_designer_project_create("studio.designs",&project)==UMI_STATUS_OK);assert(project.project!=NULL);umi_studio_designer_project_dispose(&project);return EXIT_SUCCESS;}

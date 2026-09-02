@@ -24,6 +24,10 @@ static void runtime_on_vcs_refresh_button(
         NULL);
 }
 
+/*
+ * Provide the runtime on vcs stage all button operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_vcs_stage_all_button(
     GtkButton *button,
     gpointer user_data)
@@ -35,6 +39,10 @@ static void runtime_on_vcs_stage_all_button(
         NULL);
 }
 
+/*
+ * Provide the runtime on vcs pull button operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_vcs_pull_button(
     GtkButton *button,
     gpointer user_data)
@@ -46,6 +54,10 @@ static void runtime_on_vcs_pull_button(
         NULL);
 }
 
+/*
+ * Provide the runtime on vcs push button operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_vcs_push_button(
     GtkButton *button,
     gpointer user_data)
@@ -57,6 +69,10 @@ static void runtime_on_vcs_push_button(
         NULL);
 }
 
+/*
+ * Provide the runtime build surface source control operation used by this module and its
+ * client applications.
+ */
 static GtkWidget *runtime_build_surface_source_control(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -70,6 +86,10 @@ static GtkWidget *runtime_build_surface_source_control(
     GtkWidget *commit;
     GtkWidget *notebook;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     runtime->source_control_summary_label = runtime_label("", 0.0F);
@@ -82,6 +102,10 @@ static GtkWidget *runtime_build_surface_source_control(
     runtime->source_control_list = gtk_list_box_new();
     runtime->source_control_commit_entry = gtk_entry_new();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->source_control_summary_label != NULL) {
         gtk_widget_add_css_class(
             runtime->source_control_summary_label,
@@ -97,6 +121,10 @@ static GtkWidget *runtime_build_surface_source_control(
     pull = gtk_button_new_with_label("Pull");
     push = gtk_button_new_with_label("Push");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (actions != NULL && refresh != NULL &&
         stage_all != NULL && pull != NULL && push != NULL) {
         g_signal_connect(
@@ -121,6 +149,10 @@ static GtkWidget *runtime_build_surface_source_control(
 
     commit_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     commit = gtk_button_new_with_label("Commit");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (commit_row != NULL &&
         runtime->source_control_commit_entry != NULL &&
         commit != NULL) {
@@ -142,11 +174,19 @@ static GtkWidget *runtime_build_surface_source_control(
         gtk_box_append(GTK_BOX(panel), commit_row);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->source_control_list != NULL) {
         gtk_list_box_set_selection_mode(
             GTK_LIST_BOX(runtime->source_control_list),
             GTK_SELECTION_NONE);
         notebook = runtime_source_control_notebook(runtime);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (notebook != NULL) {
             gtk_box_append(GTK_BOX(panel), notebook);
         }

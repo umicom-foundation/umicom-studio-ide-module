@@ -34,6 +34,9 @@ extern "C" {
 #define UMI_STUDIO_QUICK_OPEN_MAX_CANDIDATES 256U
 #define UMI_STUDIO_QUICK_OPEN_MAX_RESULTS 32U
 
+/**
+ * List the named studio quick open kind values accepted by this public contract.
+ */
 typedef enum UmiStudioQuickOpenKind {
     UMI_STUDIO_QUICK_OPEN_DOCUMENT = 0,
     UMI_STUDIO_QUICK_OPEN_FILE,
@@ -41,6 +44,10 @@ typedef enum UmiStudioQuickOpenKind {
     UMI_STUDIO_QUICK_OPEN_SYMBOL
 } UmiStudioQuickOpenKind;
 
+/**
+ * Represent the studio quick open candidate data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioQuickOpenCandidate {
     char label[UMI_STUDIO_WORKSPACE_NAME_CAPACITY];
     char detail[UMI_STUDIO_WORKSPACE_PATH_CAPACITY];
@@ -48,13 +55,25 @@ typedef struct UmiStudioQuickOpenCandidate {
     int score;
 } UmiStudioQuickOpenCandidate;
 
+/**
+ * Represent the studio quick open results data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioQuickOpenResults {
     UmiStudioQuickOpenCandidate items[UMI_STUDIO_QUICK_OPEN_MAX_RESULTS];
     size_t count;
 } UmiStudioQuickOpenResults;
 
+/**
+ * Provide the studio quick open score operation used by this module and its client
+ * applications.
+ */
 int umi_studio_quick_open_score(const char *query, const char *candidate);
 
+/**
+ * Provide the studio quick open search operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_quick_open_search(
     const char *query,
     const UmiStudioQuickOpenCandidate *candidates,

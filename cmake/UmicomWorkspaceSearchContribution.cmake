@@ -22,15 +22,18 @@ endif()
 target_sources(umicom_studio_core PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/../src/app/workspace_search_contribution.c")
 
+# Register verification targets only when the developer has enabled testing.
 if(BUILD_TESTING)
     add_executable(umicom_test_studio_workspace_search_contribution
         "${CMAKE_CURRENT_LIST_DIR}/../tests/test_workspace_search_contribution.c")
     target_link_libraries(umicom_test_studio_workspace_search_contribution
         PRIVATE Umicom::StudioCore Umicom::editor)
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_apply_warnings)
         umicom_apply_warnings(
             umicom_test_studio_workspace_search_contribution)
     endif()
+    # Use the shared build helper when it is available from the parent composition.
     if(COMMAND umicom_apply_sanitizers)
         umicom_apply_sanitizers(
             umicom_test_studio_workspace_search_contribution)

@@ -20,6 +20,9 @@
 extern "C" {
 #endif
 
+/**
+ * List the named studio helix agent pane values accepted by this public contract.
+ */
 typedef enum UmiStudioHelixAgentPane {
     UMI_STUDIO_HELIX_PANE_OVERVIEW = 1,
     UMI_STUDIO_HELIX_PANE_AGENTS = 2,
@@ -29,10 +32,18 @@ typedef enum UmiStudioHelixAgentPane {
     UMI_STUDIO_HELIX_PANE_ROLLBACK = 6
 } UmiStudioHelixAgentPane;
 
+/**
+ * Initialise studio helix agent view from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_helix_agent_view_create(
     UmiStudioHelixAgentCentre *centre,
     UmiStudioHelixAgentPane pane,
     UmiUiViewModel **out_view);
+/**
+ * Provide the studio helix agent capability id operation used by this module and its
+ * client applications.
+ */
 const char *umi_studio_helix_agent_capability_id(void);
 
 #ifdef __cplusplus

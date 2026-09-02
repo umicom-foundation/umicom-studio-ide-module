@@ -27,6 +27,10 @@ static GtkWidget *runtime_build_surface_ai_chat(
     UmiStudioAiPlatform *ai;
     char summary[256];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL || runtime->owner == NULL) {
         return panel;
     }
@@ -50,6 +54,10 @@ static GtkWidget *runtime_build_surface_ai_chat(
             ? umi_studio_ai_platform_knowledge_result_limit(ai)
             : 0U);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->ai_summary_label != NULL) {
         gtk_label_set_text(
             GTK_LABEL(runtime->ai_summary_label),
@@ -88,8 +96,16 @@ static GtkWidget *runtime_build_surface_ai_chat(
             "developer actions."));
 
     prompt_label = runtime_section_title("Request");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (prompt_label != NULL) gtk_box_append(GTK_BOX(panel), prompt_label);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->ai_prompt_view != NULL) {
         gtk_text_view_set_wrap_mode(
             GTK_TEXT_VIEW(runtime->ai_prompt_view),
@@ -109,6 +125,10 @@ static GtkWidget *runtime_build_surface_ai_chat(
     refactor = gtk_button_new_with_label("Refactor");
     tests = gtk_button_new_with_label("Generate Tests");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (actions != NULL && chat != NULL &&
         explain != NULL && refactor != NULL && tests != NULL) {
         g_signal_connect(
@@ -132,8 +152,16 @@ static GtkWidget *runtime_build_surface_ai_chat(
     }
 
     result_label = runtime_section_title("Framework response / plan");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (result_label != NULL) gtk_box_append(GTK_BOX(panel), result_label);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->ai_result_view != NULL) {
         gtk_text_view_set_editable(
             GTK_TEXT_VIEW(runtime->ai_result_view),

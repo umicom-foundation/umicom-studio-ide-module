@@ -29,6 +29,9 @@ extern "C" {
 #define UMI_STUDIO_SCHEMA_HISTORY "umicom.studio.history.v1"
 #define UMI_STUDIO_SCHEMA_WORKFLOW "umicom.studio.workflow.v1"
 
+/**
+ * Represent the studio publish request data shared with callers of this public contract.
+ */
 typedef struct UmiStudioPublishRequest {
     UmiMessageKind kind;
     const char *schema_id;
@@ -41,6 +44,9 @@ typedef struct UmiStudioPublishRequest {
     uint64_t causation_id;
 } UmiStudioPublishRequest;
 
+/**
+ * Represent the studio message report data shared with callers of this public contract.
+ */
 typedef struct UmiStudioMessageReport {
     size_t schemas;
     size_t topics;
@@ -53,22 +59,46 @@ typedef struct UmiStudioMessageReport {
     UmiMessageMetrics metrics;
 } UmiStudioMessageReport;
 
+/**
+ * Provide the studio publish request default operation used by this module and its client
+ * applications.
+ */
 UmiStudioPublishRequest umi_studio_publish_request_default(void);
+/**
+ * Provide the studio messages subscribe operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_subscribe(UmiStudioServices *services,
                                         const UmiSubscription *subscription,
                                         UmiMessageHandler handler,
                                         void *user_data,
                                         uint64_t *out_subscription_id);
+/**
+ * Provide the studio messages unsubscribe operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_unsubscribe(UmiStudioServices *services,
                                           uint64_t subscription_id);
+/**
+ * Provide the studio messages publish operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_publish(UmiStudioServices *services,
                                       const UmiStudioPublishRequest *request,
                                       uint64_t *out_sequence,
                                       size_t *out_deliveries);
+/**
+ * Provide the studio messages flush outbox operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_flush_outbox(UmiStudioServices *services,
                                            size_t maximum_records,
                                            size_t *out_delivered,
                                            size_t *out_failed);
+/**
+ * Provide the studio messages report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_report(UmiStudioServices *services,
                                      UmiStudioMessageReport *out_report);
 

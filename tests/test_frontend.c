@@ -21,4 +21,8 @@
 #include "umicom/studio/frontend.h"
 #include <assert.h>
 #include <string.h>
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioWebPlatform *p=NULL;char out[2048];assert(umi_studio_web_platform_create(&p)==UMI_STATUS_OK);assert(umi_studio_frontend_reset(p,UMI_FRONTEND_KIND_WEB)==UMI_STATUS_OK);assert(umi_studio_frontend_generate_html(p,out,sizeof(out))==UMI_STATUS_OK);assert(strstr(out,"org.umicom.studio")!=NULL);umi_studio_web_platform_destroy(p);return 0;}

@@ -24,6 +24,10 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio distribution centre data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioDistributionCentre {
     UmiStudioPackageProject packages;
     UmiStudioInstallerCentre installers;
@@ -32,14 +36,30 @@ typedef struct UmiStudioDistributionCentre {
     UmiProductRelease release;
 } UmiStudioDistributionCentre;
 
+/**
+ * Initialise studio distribution centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_distribution_centre_init(
     UmiStudioDistributionCentre *centre,
     const char *release_id,
     const char *version);
+/**
+ * Provide the studio distribution centre refresh operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_distribution_centre_refresh(
     UmiStudioDistributionCentre *centre);
+/**
+ * Provide the studio distribution centre blockers operation used by this module and its
+ * client applications.
+ */
 size_t umi_studio_distribution_centre_blockers(
     const UmiStudioDistributionCentre *centre);
+/**
+ * Provide the studio distribution centre ready operation used by this module and its
+ * client applications.
+ */
 int umi_studio_distribution_centre_ready(
     const UmiStudioDistributionCentre *centre);
 

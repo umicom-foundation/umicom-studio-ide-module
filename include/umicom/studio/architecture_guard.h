@@ -19,7 +19,15 @@
 #ifndef UMICOM_STUDIO_ARCHITECTURE_GUARD_H
 #define UMICOM_STUDIO_ARCHITECTURE_GUARD_H
 #include "umicom/studio/compatibility_platform.h"
+/**
+ * Represent the studio architecture guard data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioArchitectureGuard { size_t profiles_checked; size_t invalid_profiles; size_t incompatible_profiles; int passed; } UmiStudioArchitectureGuard;
+/**
+ * Perform studio architecture guard through the module contract so client applications do
+ * not duplicate its policy.
+ */
 UmiStatus umi_studio_architecture_guard_run(UmiStudioArchitectureGuard *out_result);
 #endif
 

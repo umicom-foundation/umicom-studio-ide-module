@@ -21,4 +21,8 @@
  */
 #include <assert.h>
 #include "umicom/studio/quality_gate.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){int p=0;UmiCodeGuardSummary s;UmiStatus st=umi_studio_quality_gate(".",&p,&s);assert(st==UMI_STATUS_OK||st==UMI_STATUS_IO_ERROR);return 0;}

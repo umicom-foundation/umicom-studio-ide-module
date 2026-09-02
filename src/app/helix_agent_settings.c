@@ -13,6 +13,10 @@
 
 #include <stdint.h>
 
+/*
+ * Perform studio helix agent settings through the module contract so client applications
+ * do not duplicate its policy.
+ */
 UmiStatus umi_studio_helix_agent_settings_apply(
     const UmiSettings *settings,
     UmiStudioAiPlatformConfig *config)
@@ -23,19 +27,29 @@ UmiStatus umi_studio_helix_agent_settings_apply(
     int allow_build = 0;
     int allow_source_control = 0;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (settings == NULL || config == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_settings_get_integer(
         settings, UMI_STUDIO_SETTING_HELIX_MAXIMUM_ATTEMPTS, &attempts);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
         settings, UMI_STUDIO_SETTING_HELIX_REQUIRE_APPROVAL, &require_approval);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
         settings, UMI_STUDIO_SETTING_HELIX_ALLOW_FILESYSTEM, &allow_filesystem);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
         settings, UMI_STUDIO_SETTING_HELIX_ALLOW_BUILD, &allow_build);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
         settings, UMI_STUDIO_SETTING_HELIX_ALLOW_SOURCE_CONTROL,
         &allow_source_control);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (attempts <= 0 || attempts > UINT32_MAX) return UMI_STATUS_INVALID_STATE;
     config->helix_maximum_attempts = (uint32_t)attempts;
     config->helix_require_human_approval = require_approval;

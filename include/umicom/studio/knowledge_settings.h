@@ -20,6 +20,10 @@
 extern "C" {
 #endif
 
+/**
+ * Perform studio knowledge settings through the module contract so client applications do
+ * not duplicate its policy.
+ */
 UmiStatus umi_studio_knowledge_settings_apply(
     const UmiSettings *settings,
     UmiStudioAiPlatformConfig *config);

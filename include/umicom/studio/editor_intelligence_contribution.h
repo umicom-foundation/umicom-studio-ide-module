@@ -31,6 +31,10 @@ extern "C" {
 
 #define UMI_STUDIO_EDITOR_INTELLIGENCE_CONTRIBUTION_API_VERSION 3U
 
+/**
+ * List the named studio editor contribution domain values accepted by this public
+ * contract.
+ */
 typedef enum UmiStudioEditorContributionDomain {
     UMI_STUDIO_EDITOR_CONTRIBUTION_INTELLIGENCE = 1,
     UMI_STUDIO_EDITOR_CONTRIBUTION_WORKSPACE_SEARCH = 2,
@@ -38,6 +42,10 @@ typedef enum UmiStudioEditorContributionDomain {
     UMI_STUDIO_EDITOR_CONTRIBUTION_DIAGNOSTICS = 4
 } UmiStudioEditorContributionDomain;
 
+/**
+ * Represent the studio editor intelligence command contribution data shared with callers
+ * of this public contract.
+ */
 typedef struct UmiStudioEditorIntelligenceCommandContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -49,6 +57,10 @@ typedef struct UmiStudioEditorIntelligenceCommandContribution {
     UmiStudioEditorContributionDomain domain;
 } UmiStudioEditorIntelligenceCommandContribution;
 
+/**
+ * Represent the studio editor intelligence view contribution data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioEditorIntelligenceViewContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -62,15 +74,39 @@ typedef struct UmiStudioEditorIntelligenceViewContribution {
     UmiStudioEditorContributionDomain domain;
 } UmiStudioEditorIntelligenceViewContribution;
 
+/**
+ * Return the number of records represented by studio editor intelligence command
+ * contribution without changing their state.
+ */
 size_t umi_studio_editor_intelligence_command_contribution_count(void);
+/**
+ * Find studio editor intelligence command contribution while leaving the underlying
+ * catalogue or model owned by this module.
+ */
 const UmiStudioEditorIntelligenceCommandContribution *
 umi_studio_editor_intelligence_command_contribution_at(size_t index);
+/**
+ * Find studio editor intelligence command contribution while leaving the underlying
+ * catalogue or model owned by this module.
+ */
 const UmiStudioEditorIntelligenceCommandContribution *
 umi_studio_editor_intelligence_command_contribution_find(
     const char *framework_command_id);
+/**
+ * Return the number of records represented by studio editor intelligence view contribution
+ * without changing their state.
+ */
 size_t umi_studio_editor_intelligence_view_contribution_count(void);
+/**
+ * Find studio editor intelligence view contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioEditorIntelligenceViewContribution *
 umi_studio_editor_intelligence_view_contribution_at(size_t index);
+/**
+ * Find studio editor intelligence view contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioEditorIntelligenceViewContribution *
 umi_studio_editor_intelligence_view_contribution_find(const char *view_id);
 

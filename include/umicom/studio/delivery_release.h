@@ -27,11 +27,18 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio release prepare operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_release_prepare(UmiStudioDeliveryPlatform *platform,
                                       const char *release_id,
                                       const char *source_revision,
                                       UmiReleaseChannel channel,
                                       UmiReleaseCandidate *out_candidate);
+/**
+ * Add studio release only after its inputs and available capacity have been checked.
+ */
 UmiStatus umi_studio_release_register(UmiStudioDeliveryPlatform *platform,
                                       const UmiReleaseCandidate *candidate,
                                       uint64_t generation);

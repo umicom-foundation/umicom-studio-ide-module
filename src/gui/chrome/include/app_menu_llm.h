@@ -3,6 +3,22 @@
  * File: src/gui/chrome/include/app_menu_llm.h
  *
  * PURPOSE:
+ *   Declare the app menu llm contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/chrome/include/app_menu_llm.h
+ *
+ * PURPOSE:
  *   Public factory for a minimal “menu bar” row dedicated to LLM controls.
  *
  * API:

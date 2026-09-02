@@ -19,6 +19,10 @@
 
 #include "umicom/studio/helix_fitness.h"
 
+/*
+ * Provide the studio helix fitness operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_fitness(double correctness,
                                    double security,
                                    double performance,

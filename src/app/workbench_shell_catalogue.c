@@ -54,6 +54,10 @@ static const StudioActivityDefinition ACTIVITIES[] = {
       "AI / AuthorEngine", "mail-message-new-symbolic", 90 }
 };
 
+/*
+ * Provide the register container operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_container(UmiUiWorkbench *workbench,
                                     const char *id,
                                     const char *title,
@@ -75,13 +79,16 @@ static UmiStatus register_container(UmiUiWorkbench *workbench,
     item.visible = 1;
     item.view_count = view_count;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (view_count > UMI_UI_VIEW_CONTAINER_MAX_VIEWS) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < view_count; ++index) {
         (void)snprintf(item.view_ids[index], sizeof(item.view_ids[index]),
                        "%s", views[index]);
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (view_count > 0U) {
         (void)snprintf(item.active_view_id, sizeof(item.active_view_id),
                        "%s", views[0]);
@@ -90,6 +97,10 @@ static UmiStatus register_container(UmiUiWorkbench *workbench,
         umi_ui_workbench_view_containers(workbench), &item);
 }
 
+/*
+ * Provide the register view containers operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_view_containers(UmiUiWorkbench *workbench)
 {
     static const char *const EXPLORER[] = {
@@ -184,10 +195,15 @@ static UmiStatus register_view_containers(UmiUiWorkbench *workbench)
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the register activities operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_activities(UmiUiWorkbench *workbench)
 {
     size_t index;
     UmiStatus status;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(ACTIVITIES) / sizeof(ACTIVITIES[0]); ++index) {
         UmiUiActivitySnapshot activity = {0};
         (void)snprintf(activity.activity_id, sizeof(activity.activity_id),
@@ -204,29 +220,36 @@ static UmiStatus register_activities(UmiUiWorkbench *workbench)
         activity.active = index == 0U;
         status = umi_ui_activity_model_upsert(
             umi_ui_workbench_activities(workbench), &activity);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return UMI_STATUS_OK;
 }
 
+/* Provide the register context operation used by this module and its client applications. */
 static UmiStatus register_context(UmiUiWorkbench *workbench)
 {
     UmiUiContextStore *context = umi_ui_workbench_context(workbench);
     UmiStatus status;
 
     status = umi_ui_context_set_boolean(context, "studio.workspace.open", 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_context_set_string(context, "studio.mode", "develop");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_context_set_boolean(context, "studio.ui.sidebar.visible", 1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_context_set_boolean(context, "studio.ui.bottom.visible", 1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_context_set_boolean(context, "studio.ui.auxiliary.visible", 0);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         /*
          * Presentation adapters consume semantic preferences from the shared
@@ -237,23 +260,31 @@ static UmiStatus register_context(UmiUiWorkbench *workbench)
                                            "studio.ui.theme",
                                            "umicom-dark");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_context_set_string(context,
                                            "studio.ui.density",
                                            "compact");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_context_set_boolean(context, "studio.designer.available", 1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_context_set_boolean(context, "studio.applications.available", 1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_context_set_boolean(context, "studio.ai.available", 1);
     }
     return status;
 }
 
+/*
+ * Provide the register keybinding operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_keybinding(UmiUiWorkbench *workbench,
                                      const char *id,
                                      const char *command,
@@ -276,6 +307,10 @@ static UmiStatus register_keybinding(UmiUiWorkbench *workbench,
         umi_ui_workbench_keybindings(workbench), &item);
 }
 
+/*
+ * Provide the register keybindings operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
 {
     static const struct {
@@ -307,6 +342,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
     size_t index;
     UmiStatus status;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(ACTIVATION_KEYS) / sizeof(ACTIVATION_KEYS[0]);
          ++index) {
@@ -318,6 +354,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
             ACTIVATION_KEYS[index].chord,
             ACTIVATION_KEYS[index].when_expression,
             ACTIVATION_KEYS[index].order);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
 
@@ -328,6 +365,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+B",
                                  "",
                                  100);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -337,6 +375,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+J",
                                  "",
                                  110);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -346,6 +385,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+Alt+B",
                                  "",
                                  120);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -355,6 +395,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+Shift+P",
                                  "",
                                  130);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -364,6 +405,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+Tab",
                                  "",
                                  140);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -373,6 +415,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+Shift+Tab",
                                  "",
                                  150);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -382,6 +425,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+\\",
                                  "",
                                  160);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -391,6 +435,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+Shift+\\",
                                  "",
                                  170);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -400,6 +445,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+Alt+Right",
                                  "",
                                  180);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -409,6 +455,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+Alt+Left",
                                  "",
                                  190);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_keybinding(workbench,
@@ -418,6 +465,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                  "Ctrl+Alt+G",
                                  "",
                                  200);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return register_keybinding(workbench,
@@ -429,6 +477,7 @@ static UmiStatus register_keybindings(UmiUiWorkbench *workbench)
                                210);
 }
 
+/* Provide the seed explorer operation used by this module and its client applications. */
 static UmiStatus seed_explorer(UmiUiWorkbench *workbench)
 {
     static const struct {
@@ -453,6 +502,7 @@ static UmiStatus seed_explorer(UmiUiWorkbench *workbench)
     size_t index;
     UmiStatus status;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(NODES) / sizeof(NODES[0]); ++index) {
         UmiUiExplorerNode node = {0};
         (void)snprintf(node.node_id, sizeof(node.node_id), "%s", NODES[index].id);
@@ -464,29 +514,44 @@ static UmiStatus seed_explorer(UmiUiWorkbench *workbench)
         node.expanded = node.kind != UMI_UI_EXPLORER_FILE;
         status = umi_ui_explorer_model_upsert(
             umi_ui_workbench_explorer(workbench), &node);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return umi_ui_explorer_model_select(umi_ui_workbench_explorer(workbench),
                                         "studio.workspace.studio");
 }
 
+/*
+ * Add studio workbench shell catalogue only after its inputs and available capacity have
+ * been checked.
+ */
 UmiStatus umi_studio_workbench_shell_catalogue_register(
     UmiUiWorkbench *workbench,
     UmiStudioServices *services)
 {
     UmiStatus status;
     (void)services;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
 
     status = register_view_containers(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_activities(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_context(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_keybindings(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = seed_explorer(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_workbench_set_breadcrumb_path(
             workbench, "Umicom Studio IDE/applications/studio");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_workbench_activate_activity(workbench,
                                                     UMI_STUDIO_ACTIVITY_EXPLORER);

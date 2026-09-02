@@ -19,6 +19,10 @@
 
 #include <assert.h>
 #include "umicom/studio/delivery_platform.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void) {
     UmiStudioDeliveryPlatform *platform = NULL;
     assert(umi_studio_delivery_platform_create(&platform) == UMI_STATUS_OK);

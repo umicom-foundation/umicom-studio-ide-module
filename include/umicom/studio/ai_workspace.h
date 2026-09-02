@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio ai workspace snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioAiWorkspaceSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -47,6 +51,10 @@ typedef struct UmiStudioAiWorkspaceSnapshot {
     char active_session_id[UMI_AI_ID_CAPACITY];
     int available;
 } UmiStudioAiWorkspaceSnapshot;
+/**
+ * Provide the studio ai workspace snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ai_workspace_snapshot(UmiStudioServices *services, UmiStudioAiWorkspaceSnapshot *out_snapshot);
 #ifdef __cplusplus
 }

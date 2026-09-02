@@ -19,9 +19,14 @@
 
 #include "umicom/studio/editor_intelligence_contribution.h"
 
+/*
+ * Exercise framework command exists and return a clear result when the behaviour no longer
+ * matches its contract.
+ */
 static int framework_command_exists(
     const UmiStudioEditorIntelligenceCommandContribution *contribution)
 {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (contribution->domain) {
         case UMI_STUDIO_EDITOR_CONTRIBUTION_INTELLIGENCE:
             return umi_editor_intelligence_command_find(
@@ -40,6 +45,10 @@ static int framework_command_exists(
     }
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     const size_t expected_commands =
@@ -54,6 +63,7 @@ int main(void)
 
     assert(umi_studio_editor_intelligence_command_contribution_count() ==
            expected_commands);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_intelligence_command_contribution_count();
          ++index) {
@@ -67,12 +77,14 @@ int main(void)
         assert(contribution->menu_id[0] != '\0');
         assert(contribution->menu_group[0] != '\0');
         assert(contribution->show_in_command_centre);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (contribution->domain == UMI_STUDIO_EDITOR_CONTRIBUTION_COMPLETION) {
             ++completion_commands;
-        } else if (contribution->domain ==
+        } else /* Apply this branch only when its contract condition is satisfied. */ if (contribution->domain ==
                    UMI_STUDIO_EDITOR_CONTRIBUTION_DIAGNOSTICS) {
             ++diagnostic_commands;
         }
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison <
                  umi_studio_editor_intelligence_command_contribution_count();
@@ -86,6 +98,7 @@ int main(void)
     assert(completion_commands == umi_editor_completion_command_count());
     assert(diagnostic_commands == umi_diagnostic_command_count());
     assert(umi_studio_editor_intelligence_view_contribution_count() == 16U);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_intelligence_view_contribution_count();
          ++index) {

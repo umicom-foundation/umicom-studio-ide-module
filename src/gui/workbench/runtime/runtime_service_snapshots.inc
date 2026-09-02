@@ -28,6 +28,10 @@ static UmiStatus runtime_refresh_service_snapshots(
     UmiStatus first_error = UMI_STATUS_OK;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->ui == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -36,13 +40,19 @@ static UmiStatus runtime_refresh_service_snapshots(
     services = umi_studio_ui_services(runtime->owner->ui);
     models = umi_studio_ui_view_models(runtime->owner->ui);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (models != NULL) {
         status = umi_studio_view_models_refresh(models);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = umi_studio_view_models_snapshot(
                 models,
                 &runtime->view_model_snapshot);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK && first_error == UMI_STATUS_OK) {
             first_error = status;
         }
@@ -51,10 +61,15 @@ static UmiStatus runtime_refresh_service_snapshots(
     tests = services != NULL
         ? umi_studio_services_tests(services)
         : NULL;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (tests != NULL) {
         status = umi_studio_test_service_snapshot(
             tests,
             &runtime->test_snapshot);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK && first_error == UMI_STATUS_OK) {
             first_error = status;
         }
@@ -63,10 +78,15 @@ static UmiStatus runtime_refresh_service_snapshots(
     source_control = services != NULL
         ? umi_studio_services_source_control(services)
         : NULL;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (source_control != NULL) {
         status = umi_studio_source_control_service_snapshot(
             source_control,
             &runtime->source_control_snapshot);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK && first_error == UMI_STATUS_OK) {
             first_error = status;
         }
@@ -75,10 +95,15 @@ static UmiStatus runtime_refresh_service_snapshots(
     debugger = services != NULL
         ? umi_studio_services_debugger(services)
         : NULL;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (debugger != NULL) {
         status = umi_studio_debugger_service_snapshot(
             debugger,
             &runtime->debugger_snapshot);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK && first_error == UMI_STATUS_OK) {
             first_error = status;
         }
@@ -87,10 +112,15 @@ static UmiStatus runtime_refresh_service_snapshots(
     terminal = services != NULL
         ? umi_studio_services_terminal(services)
         : NULL;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (terminal != NULL) {
         status = umi_studio_terminal_service_snapshot(
             terminal,
             &runtime->terminal_snapshot);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK && first_error == UMI_STATUS_OK) {
             first_error = status;
         }
@@ -99,10 +129,15 @@ static UmiStatus runtime_refresh_service_snapshots(
     ai = services != NULL
         ? umi_studio_services_ai_platform(services)
         : NULL;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ai != NULL) {
         status = umi_studio_ai_platform_snapshot(
             ai,
             &runtime->ai_snapshot);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK && first_error == UMI_STATUS_OK) {
             first_error = status;
         }

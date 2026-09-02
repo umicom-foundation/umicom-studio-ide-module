@@ -17,4 +17,8 @@
 #include <assert.h>
 #include <string.h>
 #include "umicom/studio/database_explorer_commands.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioServices *services;UmiStudioDatabaseExplorerCentre *c=NULL;char m[512];assert(umi_studio_database_commands_count()==UMI_STUDIO_DATABASE_COMMAND_COUNT);assert(umi_studio_services_create(NULL,NULL,&services)==UMI_STATUS_OK);assert(umi_studio_database_explorer_create(services,&c)==UMI_STATUS_OK);assert(umi_studio_database_command_execute(c,"database.write-mode.enable",NULL,m,sizeof(m))==UMI_STATUS_OK);assert(umi_studio_database_command_execute(c,"database.transaction.begin",NULL,m,sizeof(m))==UMI_STATUS_OK);assert(umi_studio_database_command_execute(c,"database.query.execute","SET project umicom",m,sizeof(m))==UMI_STATUS_OK);assert(strstr(m,"OK")!=NULL);assert(umi_studio_database_command_execute(c,"database.transaction.commit",NULL,m,sizeof(m))==UMI_STATUS_OK);umi_studio_database_explorer_destroy(c);umi_studio_services_destroy(services);return 0;}

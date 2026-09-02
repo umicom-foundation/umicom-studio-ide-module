@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/search/include/rg_runner.h
+ *
+ * PURPOSE:
+ *   Declare the rg runner contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/search/include/rg_runner.h
  * PURPOSE: Thin wrapper to run ripgrep with our argument builder
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
  *---------------------------------------------------------------------------*/
@@ -9,6 +25,10 @@
 
 #include <glib.h>
 
+/**
+ * Perform rg through the module contract so client applications do not duplicate its
+ * policy.
+ */
 G_BEGIN_DECLS
 
 /* Execute ripgrep with the provided argv vector (NULL-terminated).

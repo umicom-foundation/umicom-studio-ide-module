@@ -18,6 +18,7 @@
 
 #include "umicom/studio/messages.h"
 
+/* Provide the add schema operation used by this module and its client applications. */
 static UmiStatus add_schema(UmiSchemaRegistry *registry,
                             const char *schema_id,
                             UmiMessageKind kind,
@@ -34,6 +35,7 @@ static UmiStatus add_schema(UmiSchemaRegistry *registry,
     return umi_schema_registry_register(registry, &descriptor);
 }
 
+/* Provide the add topic operation used by this module and its client applications. */
 static UmiStatus add_topic(UmiTopicRegistry *registry,
                            const char *topic,
                            const char *schema_id,
@@ -49,11 +51,19 @@ static UmiStatus add_topic(UmiTopicRegistry *registry,
     return umi_topic_registry_register(registry, &descriptor);
 }
 
+/*
+ * Provide the studio fabric register defaults operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_fabric_register_defaults(UmiStudioServices *services)
 {
     UmiSchemaRegistry *schemas;
     UmiTopicRegistry *topics;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     schemas = umi_studio_services_schema_registry(services);
     topics = umi_studio_services_topics(services);
@@ -80,8 +90,13 @@ UmiStatus umi_studio_fabric_register_defaults(UmiStudioServices *services)
     return UMI_STATUS_OK;
 }
 
+/* Check that studio fabric satisfies its contract before another service relies on it. */
 UmiStatus umi_studio_fabric_validate(UmiStudioServices *services)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL ||
         umi_schema_registry_count(umi_studio_services_schema_registry(services)) < 4U ||
         umi_topic_registry_count(umi_studio_services_topics(services)) < 4U ||

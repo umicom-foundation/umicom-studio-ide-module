@@ -24,8 +24,16 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio extension platform data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioExtensionPlatform UmiStudioExtensionPlatform;
 
+/**
+ * Represent the studio extension platform snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioExtensionPlatformSnapshot {
     uint64_t revision;
     size_t installed;
@@ -42,15 +50,35 @@ typedef struct UmiStudioExtensionPlatformSnapshot {
     UmiPluginIsolationMode default_untrusted_isolation;
 } UmiStudioExtensionPlatformSnapshot;
 
+/**
+ * Initialise studio extension platform from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_extension_platform_create(
     UmiPluginHost *host,
     UmiStudioExtensionPlatform **out_platform);
+/**
+ * Release or reset state held by studio extension platform so the same storage can be
+ * reused safely.
+ */
 void umi_studio_extension_platform_destroy(UmiStudioExtensionPlatform *platform);
+/**
+ * Provide the studio extension platform manager operation used by this module and its
+ * client applications.
+ */
 UmiPluginManager *umi_studio_extension_platform_manager(
     UmiStudioExtensionPlatform *platform);
+/**
+ * Provide the studio extension platform snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_platform_snapshot(
     const UmiStudioExtensionPlatform *platform,
     UmiStudioExtensionPlatformSnapshot *out_snapshot);
+/**
+ * Provide the studio extension platform set enabled operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_platform_set_enabled(
     UmiStudioExtensionPlatform *platform,
     const char *plugin_id,

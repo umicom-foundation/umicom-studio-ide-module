@@ -3,6 +3,22 @@
  * File: src/include/umi_diag_types.h
  *
  * PURPOSE:
+ *   Declare the umi diag types contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/include/umi_diag_types.h
+ *
+ * PURPOSE:
  *   Canonical diagnostic record shared across build runners, parsers,
  *   and UI problem lists. Keeps a single, minimal struct that other
  *   modules can copy or reference without circular includes.
@@ -34,6 +50,7 @@ typedef struct UmiDiag {
 
 /* Header-only safe free; OK even if parser also provides a non-static version */
 static inline void umi_diag_free(UmiDiag *d) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!d) return;
     g_free(d->file);
     g_free(d->message);

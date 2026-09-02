@@ -24,14 +24,26 @@ static void runtime_on_context_action(
     const char *command_id;
     const UmiStudioGtkOperationProfile *operation;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     command_id = (const char *)g_object_get_data(
         G_OBJECT(button),
         "umicom-context-command");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (command_id == NULL) return;
 
     operation = runtime_operation_profile(command_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (operation == NULL) {
         runtime_show_notification(
             runtime,
@@ -42,6 +54,10 @@ static void runtime_on_context_action(
     (void)runtime_execute_operation_profile(runtime, operation);
 }
 
+/*
+ * Provide the runtime context actions expander operation used by this module and its
+ * client applications.
+ */
 static GtkWidget *runtime_context_actions_expander(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *panel_id)
@@ -52,13 +68,25 @@ static GtkWidget *runtime_context_actions_expander(
     size_t index;
     size_t added = 0U;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || panel_id == NULL) return NULL;
 
     commands = runtime_registered_commands(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (commands == NULL) return NULL;
 
     expander = gtk_expander_new("Advanced Actions");
     flow = gtk_flow_box_new();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (expander == NULL || flow == NULL) return expander;
 
     gtk_flow_box_set_selection_mode(
@@ -70,6 +98,7 @@ static GtkWidget *runtime_context_actions_expander(
         GTK_FLOW_BOX(flow),
         4U);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < runtime_context_action_profile_count();
          ++index) {
@@ -79,7 +108,9 @@ static GtkWidget *runtime_context_actions_expander(
         GtkWidget *button;
         int sensitive;
 
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (strcmp(context->panel_id, panel_id) != 0) continue;
+        /* Apply this branch only when its contract condition is satisfied. */
         if (!umi_command_registry_contains(
                 commands,
                 context->command_id)) {
@@ -87,9 +118,17 @@ static GtkWidget *runtime_context_actions_expander(
         }
 
         operation = runtime_operation_profile(context->command_id);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (operation == NULL) continue;
 
         button = gtk_button_new_with_label(operation->title);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (button == NULL) continue;
 
         gtk_widget_set_tooltip_text(
@@ -122,6 +161,7 @@ static GtkWidget *runtime_context_actions_expander(
         ++added;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (added == 0U) {
         gtk_widget_set_visible(expander, FALSE);
     }
@@ -130,6 +170,10 @@ static GtkWidget *runtime_context_actions_expander(
     return expander;
 }
 
+/*
+ * Provide the runtime append context actions operation used by this module and its client
+ * applications.
+ */
 static void runtime_append_context_actions(
     UmiStudioGtkRuntimeChrome *runtime,
     GtkWidget *panel,
@@ -137,9 +181,17 @@ static void runtime_append_context_actions(
 {
     GtkWidget *expander;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || panel == NULL || panel_id == NULL) return;
 
     expander = runtime_context_actions_expander(runtime, panel_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (expander != NULL) {
         gtk_box_append(GTK_BOX(panel), expander);
     }

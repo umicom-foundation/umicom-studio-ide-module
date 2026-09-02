@@ -610,6 +610,10 @@ static const UmiUiContributionSnapshot STUDIO_CONTRIBUTIONS[] = {
     ,{ "studio.contribution.knowledge-source", "org.umicom.studio.shell", "umicom.ui.panes", UMI_STUDIO_PANE_KNOWLEDGE_SOURCE, 184, 1 }
 };
 
+/*
+ * Provide the studio contributions register layout operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_contributions_register_layout(UmiUiWorkbench *workbench)
 {
     static const UmiUiLayoutNode NODES[] = {
@@ -632,10 +636,16 @@ UmiStatus umi_studio_contributions_register_layout(UmiUiWorkbench *workbench)
     UmiStatus status;
     UmiUiLayout *layout;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     layout = umi_ui_workbench_layout(workbench);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(NODES) / sizeof(NODES[0]); ++index) {
         status = umi_ui_layout_upsert(layout, &NODES[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     {
@@ -645,39 +655,60 @@ UmiStatus umi_studio_contributions_register_layout(UmiUiWorkbench *workbench)
     }
 }
 
+/* Add studio contributions only after its inputs and available capacity have been checked. */
 UmiStatus umi_studio_contributions_register(UmiUiWorkbench *workbench)
 {
     size_t index;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(STUDIO_PANES) / sizeof(STUDIO_PANES[0]); ++index) {
         status = umi_ui_pane_model_upsert(umi_ui_workbench_panes(workbench), &STUDIO_PANES[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(STUDIO_ACTIONS) / sizeof(STUDIO_ACTIONS[0]); ++index) {
         status = umi_ui_action_model_upsert(umi_ui_workbench_actions(workbench), &STUDIO_ACTIONS[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(STUDIO_MENUS) / sizeof(STUDIO_MENUS[0]); ++index) {
         status = umi_ui_menu_model_upsert(umi_ui_workbench_menus(workbench), &STUDIO_MENUS[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(STUDIO_TOOLBAR) / sizeof(STUDIO_TOOLBAR[0]); ++index) {
         status = umi_ui_toolbar_model_upsert(umi_ui_workbench_toolbars(workbench), &STUDIO_TOOLBAR[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(STUDIO_STATUS) / sizeof(STUDIO_STATUS[0]); ++index) {
         status = umi_ui_status_model_upsert(umi_ui_workbench_status(workbench), &STUDIO_STATUS[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(STUDIO_CONTRIBUTIONS) / sizeof(STUDIO_CONTRIBUTIONS[0]); ++index) {
         status = umi_ui_contribution_model_upsert(umi_ui_workbench_contributions(workbench), &STUDIO_CONTRIBUTIONS[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return umi_studio_contributions_register_layout(workbench);
 }
 
+/*
+ * Return the number of records represented by studio contribution definition without
+ * changing their state.
+ */
 size_t umi_studio_contribution_definition_count(void)
 {
     return sizeof(STUDIO_CONTRIBUTIONS) / sizeof(STUDIO_CONTRIBUTIONS[0]);

@@ -14,6 +14,10 @@
 #include "umicom/studio/helix_agent_commands.h"
 #include "umicom/studio/helix_agent_journal.h"
 #include "umicom/studio/helix_agent_operations.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioHelixAgentCentre *centre = NULL;

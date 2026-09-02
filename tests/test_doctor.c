@@ -19,10 +19,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * Exercise test console sink and return a clear result when the behaviour no longer
+ * matches its contract.
+ */
 static void test_console_sink(const UmiDiagnostic *diagnostic, void *user_data)
 {
     (void)user_data;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (diagnostic == NULL) {
         return;
     }
@@ -32,6 +40,10 @@ static void test_console_sink(const UmiDiagnostic *diagnostic, void *user_data)
                  diagnostic->message != NULL ? diagnostic->message : "");
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioDoctorReport report = {0U, 0U};
@@ -42,6 +54,7 @@ int main(void)
                                    NULL,
                                    &report);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "Studio Doctor test could not run: %s\n",
@@ -52,6 +65,7 @@ int main(void)
     (void)printf("Checks passed: %zu\n", report.checks_passed);
     (void)printf("Checks failed: %zu\n", report.checks_failed);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (report.checks_failed != 0U) {
         (void)fprintf(stderr,
                       "Studio Doctor found %zu failed repository check(s).\n",
@@ -59,6 +73,7 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (report.checks_passed < 10U) {
         (void)fprintf(stderr,
                       "Studio Doctor completed too few checks: %zu.\n",

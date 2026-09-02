@@ -27,7 +27,15 @@
 extern "C" {
 #endif
 
+/**
+ * Return the number of records represented by studio helix agent without changing their
+ * state.
+ */
 size_t umi_studio_helix_agent_count(UmiStudioAiPlatform *platform);
+/**
+ * Find studio helix agent while leaving the underlying catalogue or model owned by this
+ * module.
+ */
 const UmiHelixAgent *umi_studio_helix_agent_at(UmiStudioAiPlatform *platform,
                                                size_t index);
 

@@ -18,6 +18,10 @@
 
 #include <string.h>
 
+/*
+ * Provide the studio platform check operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_platform_check(
     UmiStudioServices *services,
     int require_gtk,
@@ -27,6 +31,10 @@ UmiStatus umi_studio_platform_check(
     UmiToolchainDiscoveryRequest request;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -47,6 +55,7 @@ UmiStatus umi_studio_platform_check(
         umi_studio_services_diagnostic_user_data(services);
 
     status = umi_toolchain_discover(&request, &out_report->discovery);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -55,6 +64,7 @@ UmiStatus umi_studio_platform_check(
     status = umi_environment_plan_from_toolchain(
         &out_report->discovery.profile,
         &out_report->environment);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -65,17 +75,33 @@ UmiStatus umi_studio_platform_check(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio platform report so the same storage can be reused
+ * safely.
+ */
 void umi_studio_platform_report_dispose(UmiStudioPlatformReport *report)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (report != NULL) {
         (void)memset(report, 0, sizeof(*report));
     }
 }
 
+/*
+ * Provide the studio platform write environment operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_platform_write_environment(
     const UmiStudioPlatformReport *report,
     const char *path)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (report == NULL || path == NULL || !report->environment_ready) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

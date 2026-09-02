@@ -18,6 +18,10 @@ struct UmiStudioHelixAgentCentre {
     UmiStudioHelixAgentAdapterState adapter_state;
 };
 
+/*
+ * Provide the studio helix agent centre config default operation used by this module and
+ * its client applications.
+ */
 UmiStudioHelixAgentCentreConfig umi_studio_helix_agent_centre_config_default(void)
 {
     UmiStudioHelixAgentCentreConfig config;
@@ -32,6 +36,10 @@ UmiStudioHelixAgentCentreConfig umi_studio_helix_agent_centre_config_default(voi
     return config;
 }
 
+/*
+ * Initialise studio helix agent centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_helix_agent_centre_create(
     const UmiStudioHelixAgentCentreConfig *config,
     UmiStudioHelixAgentCentre **out_centre)
@@ -40,12 +48,20 @@ UmiStatus umi_studio_helix_agent_centre_create(
     UmiHelixOrchestratorConfig runtime_config;
     UmiHelixExecutionAdapter adapter;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (config == NULL || out_centre == NULL || config->maximum_attempts == 0U ||
         config->minimum_fitness < 0.0 || config->minimum_fitness > 1.0) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     *out_centre = NULL;
     centre = calloc(1U, sizeof(*centre));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     runtime_config = umi_helix_orchestrator_config_default();
     runtime_config.maximum_attempts = config->maximum_attempts;
@@ -58,10 +74,13 @@ UmiStatus umi_studio_helix_agent_centre_create(
     centre->adapter_state.allow_test = config->allow_test;
     centre->adapter_state.allow_review = config->allow_review;
     centre->adapter_state.allow_source_control = config->allow_source_control;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_helix_agent_adapters_create(
         &centre->adapter_state, &adapter);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_helix_orchestrator_set_adapter(
         &centre->runtime, &adapter);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         free(centre);
         return status;
@@ -70,17 +89,29 @@ UmiStatus umi_studio_helix_agent_centre_create(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio helix agent centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_helix_agent_centre_destroy(UmiStudioHelixAgentCentre *centre)
 {
     free(centre);
 }
 
+/*
+ * Provide the studio helix agent centre runtime operation used by this module and its
+ * client applications.
+ */
 UmiHelixOrchestrator *umi_studio_helix_agent_centre_runtime(
     UmiStudioHelixAgentCentre *centre)
 {
     return centre != NULL ? &centre->runtime : NULL;
 }
 
+/*
+ * Provide the studio helix agent centre adapter state operation used by this module and
+ * its client applications.
+ */
 const UmiStudioHelixAgentAdapterState *umi_studio_helix_agent_centre_adapter_state(
     const UmiStudioHelixAgentCentre *centre)
 {

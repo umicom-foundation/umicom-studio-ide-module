@@ -21,13 +21,21 @@
 #include "umicom/studio/delivery_platform.h"
 #include "umicom/studio/delivery_release.h"
 #include "umicom/studio/delivery_evidence.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void) {
     UmiStudioDeliveryPlatform *platform = NULL;
     UmiReleaseCandidate candidate;
     UmiDeliveryArtifact artifact;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_delivery_platform_create(&platform) != UMI_STATUS_OK) return 1;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_release_prepare(platform, "studio-local", "working-tree", UMI_RELEASE_DEVELOPMENT, &candidate) != UMI_STATUS_OK) return 2;
+    /* Create this optional product surface only when its build option is enabled. */
     if (umi_studio_delivery_build_evidence("working-tree", 1U, 0U, 0U, &candidate.build) != UMI_STATUS_OK) return 3;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_delivery_artifact_init(&artifact, "studio", UMI_ARTIFACT_EXECUTABLE, "bin/umicom-studio-ide") != UMI_STATUS_OK) return 4;
     (void)umi_artifact_set_add(&candidate.artifacts, &artifact);
     (void)umi_verification_report_add(&candidate.verification, "local", UMI_EVIDENCE_PASS);

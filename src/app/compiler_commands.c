@@ -29,6 +29,18 @@ static const UmiStudioCompilerCommand COMMANDS[] = {
     {"compiler.umicc.open","Open Umicc Integration","Compiler","",false,false,false},
     {"compiler.output.clear","Clear Compiler Output","View","",false,false,true}
 };
+/*
+ * Return the number of records represented by studio compiler commands without changing
+ * their state.
+ */
 size_t umi_studio_compiler_commands_count(void) { return sizeof(COMMANDS) / sizeof(COMMANDS[0]); }
+/*
+ * Find studio compiler commands while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioCompilerCommand *umi_studio_compiler_commands_at(size_t index) { return index < umi_studio_compiler_commands_count() ? &COMMANDS[index] : NULL; }
-const UmiStudioCompilerCommand *umi_studio_compiler_commands_find(const char *command_id) { size_t index; if (command_id == NULL) return NULL; for (index = 0U; index < umi_studio_compiler_commands_count(); ++index) if (strcmp(COMMANDS[index].command_id,command_id) == 0) return &COMMANDS[index]; return NULL; }
+/*
+ * Find studio compiler commands while leaving the underlying catalogue or model owned by
+ * this module.
+ */
+const UmiStudioCompilerCommand *umi_studio_compiler_commands_find(const char *command_id) { size_t index; /* Protect caller-owned memory by checking that required state is available before it is used. */ if (command_id == NULL) return NULL; /* Visit each bounded item once so every record receives the same rule. */ for (index = 0U; index < umi_studio_compiler_commands_count(); ++index) /* Protect caller-owned memory by checking that required state is available before it is used. */ if (strcmp(COMMANDS[index].command_id,command_id) == 0) return &COMMANDS[index]; return NULL; }

@@ -77,8 +77,11 @@ struct _UmiFileTree {
 
 /* Forward declarations of local helpers. */
 static void         clear_store (UmiFileTree *t);
+/* Provide the add dir operation used by this module and its client applications. */
 static void         add_dir     (UmiFileTree *t, GtkTreeIter *parent_iter, const char *dir);
+/* Provide the rebuild operation used by this module and its client applications. */
 static void         rebuild     (UmiFileTree *t);
+/* Provide the on row activated operation used by this module and its client applications. */
 static void         on_row_activated(GtkTreeView *v, GtkTreePath *tp, GtkTreeViewColumn *col, gpointer user);
 
 /* Comparator wrapper matching GCompareDataFunc for strings. */
@@ -138,6 +141,7 @@ GtkWidget *umi_file_tree_widget(UmiFileTree *t){
 
 /* Replace root directory and rebuild. */
 void umi_file_tree_set_root(UmiFileTree *t, const char *path){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!t) return;
   g_free(t->root);
   t->root = path ? g_strdup(path) : NULL;
@@ -146,17 +150,21 @@ void umi_file_tree_set_root(UmiFileTree *t, const char *path){
 
 /* Rebuild from current root. */
 void umi_file_tree_refresh(UmiFileTree *t){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!t) return;
   rebuild(t);
 }
 
 /* Destroy widget/model and free memory. */
 void umi_file_tree_free(UmiFileTree *t){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!t) return;
 #if defined(G_GNUC_BEGIN_IGNORE_DEPRECATIONS)
   G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #endif
+  /* Apply this branch only when its contract condition is satisfied. */
   if(t->store) g_object_unref(t->store);
+  /* Apply this branch only when its contract condition is satisfied. */
   if(t->view)  g_object_unref(t->view);
 #if defined(G_GNUC_END_IGNORE_DEPRECATIONS)
   G_GNUC_END_IGNORE_DEPRECATIONS
@@ -168,10 +176,12 @@ void umi_file_tree_free(UmiFileTree *t){
 /*------------------------------- Internals -----------------------------------*/
 /* Append a directory’s children (files + subdirs) under parent_iter (or root). */
 static void add_dir(UmiFileTree *t, GtkTreeIter *parent_iter, const char *dir){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!t || !dir) return;
 
   GError *err = NULL;
   GDir   *d   = g_dir_open(dir, 0, &err);
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!d){
     g_clear_error(&err);
     return;
@@ -180,7 +190,12 @@ static void add_dir(UmiFileTree *t, GtkTreeIter *parent_iter, const char *dir){
   /* Read all names, sort for deterministic ordering, then emit rows. */
   GPtrArray *names = g_ptr_array_new_with_free_func(g_free);
   const gchar *name;
+  /*
+   * Continue only while work remains available; the loop body advances the state on each
+   * pass.
+   */
   while((name = g_dir_read_name(d))){
+    /* Apply this branch only when its contract condition is satisfied. */
     if(name[0]=='.') continue;              /* hide dot‑files in tree view */
     g_ptr_array_add(names, g_strdup(name)); /* keep a copy for sorting     */
   }
@@ -191,6 +206,7 @@ static void add_dir(UmiFileTree *t, GtkTreeIter *parent_iter, const char *dir){
 #if defined(G_GNUC_BEGIN_IGNORE_DEPRECATIONS)
   G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #endif
+  /* Visit each bounded item once so every record receives the same rule. */
   for(guint i=0;i<names->len;i++){
     const char *leaf = (const char*)names->pdata[i];
     gchar *full      = g_build_filename(dir, leaf, NULL);
@@ -204,6 +220,7 @@ static void add_dir(UmiFileTree *t, GtkTreeIter *parent_iter, const char *dir){
                        COL_IS_DIR, is_dir,
                        -1);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if(is_dir){
       /* Avoid naive symlink loops. */
       if(!g_file_test(full, G_FILE_TEST_IS_SYMLINK))
@@ -230,9 +247,12 @@ static void clear_store(UmiFileTree *t){
 
 /* Clear + rebuild the model from t->root (directories only for now). */
 static void rebuild(UmiFileTree *t){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!t) return;
   clear_store(t);
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!t->root || !*t->root) return;
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!g_file_test(t->root, G_FILE_TEST_IS_DIR)) return;
   add_dir(t, NULL, t->root);
 }
@@ -247,6 +267,7 @@ static void on_row_activated(GtkTreeView *v, GtkTreePath *tp, GtkTreeViewColumn 
 #endif
   GtkTreeModel *m = gtk_tree_view_get_model(v);
   GtkTreeIter it;
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!gtk_tree_model_get_iter(m, &it, tp))
     return;
 
@@ -260,6 +281,7 @@ static void on_row_activated(GtkTreeView *v, GtkTreePath *tp, GtkTreeViewColumn 
   G_GNUC_END_IGNORE_DEPRECATIONS
 #endif
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if(t->on_activate)
     t->on_activate(t->user, path, is_dir);
 

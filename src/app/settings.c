@@ -379,6 +379,10 @@ static const UmiSettingDefinition STUDIO_SETTINGS_SCHEMA[] = {
     }
 };
 
+/*
+ * Initialise studio settings from caller-provided values so later operations receive a
+ * known state.
+ */
 UmiStatus umi_studio_settings_create(UmiSettings **out_settings)
 {
     return umi_settings_create(
@@ -388,19 +392,29 @@ UmiStatus umi_studio_settings_create(UmiSettings **out_settings)
     );
 }
 
+/*
+ * Provide the studio settings load if present operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_settings_load_if_present(UmiSettings *settings,
                                               const char *path,
                                               int *out_loaded)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (settings == NULL || path == NULL || out_loaded == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
     *out_loaded = 0;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_fs_exists(path) == 0) {
         return UMI_STATUS_OK;
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_settings_load_file(settings, path) != UMI_STATUS_OK) {
         return UMI_STATUS_PARSE_ERROR;
     }
@@ -409,12 +423,20 @@ UmiStatus umi_studio_settings_load_if_present(UmiSettings *settings,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Write studio settings in its stable representation and report capacity or input failures
+ * to the caller.
+ */
 UmiStatus umi_studio_settings_save(const UmiSettings *settings,
                                    const char *path)
 {
     return umi_settings_save_file(settings, path);
 }
 
+/*
+ * Provide the studio settings default path operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_settings_default_path(void)
 {
     return UMI_STUDIO_SETTINGS_DEFAULT_PATH;

@@ -29,6 +29,10 @@
 #include "umicom/studio/contributions.h"
 #include "umicom/studio/workspace_layouts.h"
 
+/*
+ * Provide the is debug workspace pane operation used by this module and its client
+ * applications.
+ */
 static int is_debug_workspace_pane(const char *pane_id)
 {
     return strcmp(pane_id, UMI_STUDIO_PANE_RUN_DEBUG) == 0 ||
@@ -39,6 +43,10 @@ static int is_debug_workspace_pane(const char *pane_id)
            strcmp(pane_id, UMI_STUDIO_PANE_DEBUG_CONSOLE) == 0;
 }
 
+/*
+ * Provide the is source control workspace pane operation used by this module and its
+ * client applications.
+ */
 static int is_source_control_workspace_pane(const char *pane_id)
 {
     return strcmp(pane_id, UMI_STUDIO_PANE_SOURCE_CONTROL) == 0 ||
@@ -51,6 +59,10 @@ static int is_source_control_workspace_pane(const char *pane_id)
            strcmp(pane_id, UMI_STUDIO_PANE_VCS_OPERATIONS) == 0;
 }
 
+/*
+ * Provide the is testing workspace pane operation used by this module and its client
+ * applications.
+ */
 static int is_testing_workspace_pane(const char *pane_id)
 {
     return strcmp(pane_id, UMI_STUDIO_PANE_TESTING) == 0 ||
@@ -61,6 +73,10 @@ static int is_testing_workspace_pane(const char *pane_id)
            strcmp(pane_id, UMI_STUDIO_PANE_TEST_RUNS) == 0;
 }
 
+/*
+ * Provide the is build workspace pane operation used by this module and its client
+ * applications.
+ */
 static int is_build_workspace_pane(const char *pane_id)
 {
     return strcmp(pane_id, UMI_STUDIO_PANE_BUILD_DASHBOARD) == 0 ||
@@ -71,6 +87,10 @@ static int is_build_workspace_pane(const char *pane_id)
            strcmp(pane_id, UMI_STUDIO_PANE_BUILD_TASKS) == 0;
 }
 
+/*
+ * Provide the is trading workspace pane operation used by this module and its client
+ * applications.
+ */
 static int is_trading_workspace_pane(const char *pane_id)
 {
     return strcmp(pane_id, UMI_STUDIO_PANE_TRADING_DASHBOARD) == 0 ||
@@ -96,6 +116,7 @@ size_t umi_studio_workspace_profile_count(void)
         (experience != NULL ? experience->layout_count : 0U);
 }
 
+/* Provide the register profile operation used by this module and its client applications. */
 static UmiStatus register_profile(UmiUiWorkbench *workbench,
                                   const char *profile_id,
                                   const char *label,
@@ -113,6 +134,10 @@ static UmiStatus register_profile(UmiUiWorkbench *workbench,
     UmiUiWorkspaceProfileModel *model;
     size_t pane_index;
     (void)memset(&profile, 0, sizeof(profile));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     model = umi_ui_workbench_workspace_profiles(workbench);
     (void)snprintf(profile.profile_id, sizeof(profile.profile_id), "%s",
@@ -150,6 +175,7 @@ static UmiStatus register_profile(UmiUiWorkbench *workbench,
         int build_pane;
         int trading_pane;
         int profile_pane;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
         debug_pane = strcmp(profile_id,
                             UMI_STUDIO_WORKSPACE_PROFILE_DEBUG) == 0 &&
@@ -169,11 +195,13 @@ static UmiStatus register_profile(UmiUiWorkbench *workbench,
             is_trading_workspace_pane(pane.pane_id);
         profile_pane = debug_pane || source_control_pane || testing_pane ||
                        build_pane || trading_pane;
+        /* Apply this operation only while the related capability or state is available. */
         if ((!pane.visible && !profile_pane) ||
             pane.placement == UMI_UI_PLACEMENT_CENTRE ||
             pane.placement == UMI_UI_PLACEMENT_FLOATING) {
             continue;
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (profile.pane_count >= UMI_UI_WORKSPACE_PROFILE_MAX_PANES) {
             return UMI_STATUS_CAPACITY_EXCEEDED;
         }
@@ -187,63 +215,81 @@ static UmiStatus register_profile(UmiUiWorkbench *workbench,
     return umi_ui_workspace_profile_model_upsert(model, &profile);
 }
 
+/*
+ * Add studio workspace profiles only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_workspace_profiles_register(UmiUiWorkbench *workbench)
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
 
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_DEVELOP, "Develop",
         "Editor-first coding with project tools and a compact bottom panel",
         "applications-development-symbolic", 1, 0, 1, 288, 360, 240, 10);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_FOCUS, "Focus",
         "Distraction-free editor with all tool regions temporarily hidden",
         "view-fullscreen-symbolic", 0, 0, 0, 288, 360, 240, 20);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_DEBUG, "Debug",
         "Source, variables, call stack and an expanded debugging console",
         "applications-engineering-symbolic", 1, 1, 1, 300, 380, 300, 30);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_SOURCE_CONTROL,
         "Source Control",
         "Changes, commit composition, history, branches, remotes, conflicts, diffs and operations",
         "org.gnome.Builder-vcs-symbolic", 1, 1, 1, 340, 420, 320, 40);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_TESTING, "Testing",
         "Test Explorer, results, failures, output, coverage and run history",
         "emblem-ok-symbolic", 1, 1, 1, 340, 420, 320, 45);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_BUILD, "Build",
         "Build dashboard, dependency graph, history, output, artifacts and tasks",
         "system-run-symbolic", 1, 1, 1, 360, 440, 340, 47);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_REVIEW, "Review",
         "Code review and comparison with navigation and auxiliary context",
         "document-properties-symbolic", 1, 1, 1, 260, 420, 260, 50);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_OPERATIONS, "Operations",
         "Monitoring, diagnostics, tasks and operational evidence",
         "utilities-system-monitor-symbolic", 1, 1, 1, 280, 420, 320, 60);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_TRADING, "Trading",
         "Professional market, chart, order, risk and activity workspace",
         "view-statistics-symbolic", 1, 1, 1, 260, 390, 300, 70);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     /* Add the canonical Application Suite profiles to the same live workbench.
      * The resolver maps Framework experience panel IDs to Studio's existing
      * pane identities; no new Studio layout engine is introduced. */
     status = umi_studio_workspace_layout_register_workbench(workbench, 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     return umi_ui_workbench_activate_workspace_profile(

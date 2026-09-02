@@ -37,6 +37,10 @@ extern "C" {
 #define UMI_STUDIO_WORKSPACE_LANGUAGE_CAPACITY 64U
 #define UMI_STUDIO_WORKSPACE_MAX_DOCUMENTS 96U
 
+/**
+ * Represent the studio workspace document data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioWorkspaceDocument {
     char path[UMI_STUDIO_WORKSPACE_PATH_CAPACITY];
     char display_name[UMI_STUDIO_WORKSPACE_NAME_CAPACITY];
@@ -50,18 +54,34 @@ typedef struct UmiStudioWorkspaceDocument {
     bool active;
 } UmiStudioWorkspaceDocument;
 
+/**
+ * Initialise studio workspace document from caller-provided values so later operations
+ * receive a known state.
+ */
 void umi_studio_workspace_document_init(UmiStudioWorkspaceDocument *document);
 
+/**
+ * Provide the studio workspace document set path operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_workspace_document_set_path(
     UmiStudioWorkspaceDocument *document,
     const char *path
 );
 
+/**
+ * Provide the studio workspace document set language operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_workspace_document_set_language(
     UmiStudioWorkspaceDocument *document,
     const char *language
 );
 
+/**
+ * Provide the studio workspace document set cursor operation used by this module and its
+ * client applications.
+ */
 void umi_studio_workspace_document_set_cursor(
     UmiStudioWorkspaceDocument *document,
     size_t line,

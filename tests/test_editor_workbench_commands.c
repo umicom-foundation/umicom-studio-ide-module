@@ -21,6 +21,10 @@
 #include <assert.h>
 #include <string.h>
 
+/*
+ * Exercise add document and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void add_document(UmiUiWorkbench *workbench,
                          const char *view_id,
                          int dirty)
@@ -38,6 +42,10 @@ static void add_document(UmiUiWorkbench *workbench,
                &document) == UMI_STATUS_OK);
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;

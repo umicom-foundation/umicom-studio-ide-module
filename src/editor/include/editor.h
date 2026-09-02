@@ -1,5 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/editor/include/editor.h
+ *
+ * PURPOSE:
+ *   Declare the editor contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/editor/editor.h
  *
  * PURPOSE:
@@ -31,7 +47,13 @@ G_BEGIN_DECLS  /* allow clean inclusion from C++ units if needed */
 
 /* Forward declarations to keep this header light */
 typedef struct _UmiOutputPane  UmiOutputPane;
+/**
+ * Represent the problem list data shared with callers of this public contract.
+ */
 typedef struct _UmiProblemList UmiProblemList;
+/**
+ * Represent the status data shared with callers of this public contract.
+ */
 typedef struct _UmiStatus      UmiStatus;
 
 /* Public editor state used across the app. */
@@ -45,13 +67,29 @@ typedef struct _UmiEditor {
   UmiStatus      *status;       /* optional status object                         */
 } UmiEditor;
 
+/**
+ * Provide the editor new operation used by this module and its client applications.
+ */
 UmiEditor *umi_editor_new(void);
+/**
+ * Provide the editor widget operation used by this module and its client applications.
+ */
 GtkWidget *umi_editor_widget(UmiEditor *ed);
+/**
+ * Provide the editor free operation used by this module and its client applications.
+ */
 void       umi_editor_free(UmiEditor *ed);
 
 /* File ops used elsewhere in the app (see editor_actions.c) */
 gboolean umi_editor_open_file(UmiEditor *ed, const char *path, GError **err);
+/**
+ * Write editor in its stable representation and report capacity or input failures to the
+ * caller.
+ */
 gboolean umi_editor_save     (UmiEditor *ed, GError **err);
+/**
+ * Provide the editor save as operation used by this module and its client applications.
+ */
 gboolean umi_editor_save_as  (UmiEditor *ed, GError **err); /* wrapper (no dialog yet) */
 
 G_END_DECLS

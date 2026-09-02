@@ -31,15 +31,27 @@
 extern "C" {
 #endif
 
+/**
+ * Add studio workbench views only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_workbench_views_register(
     UmiUiWorkbench *workbench,
     UmiStudioServices *services
 );
+/**
+ * Provide the studio workbench views register registry operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_workbench_views_register_registry(
     UmiUiViewFactoryRegistry *registry,
     UmiStudioServices *services
 );
 
+/**
+ * Return the number of records represented by studio workbench view definition without
+ * changing their state.
+ */
 size_t umi_studio_workbench_view_definition_count(void);
 
 #ifdef __cplusplus

@@ -19,6 +19,10 @@
 
 #include "umicom/studio/helix_generation.h"
 
+/*
+ * Provide the studio helix can promote operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_can_promote(UmiStudioAiPlatform *platform,
                                        const UmiHelixFitness *fitness,
                                        uint32_t required_checks,
@@ -28,6 +32,10 @@ UmiStatus umi_studio_helix_can_promote(UmiStudioAiPlatform *platform,
 {
     UmiHelixRuntime *runtime = umi_studio_ai_platform_helix(platform);
     UmiHelixReleaseGate gate;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || fitness == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     gate.required_checks = required_checks;
     gate.passed_checks = passed_checks;

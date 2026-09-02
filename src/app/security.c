@@ -20,22 +20,35 @@
 
 #include "umicom/studio/operations.h"
 
+/* Provide the studio operations operation used by this module and its client applications. */
 static UmiStudioOperations *studio_operations(UmiStudioServices *services)
 {
     return umi_studio_services_operations(services);
 }
 
+/*
+ * Provide the studio security report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_security_report(UmiStudioServices *services,
                                      UmiStudioSecurityReport *out_report)
 {
     UmiStudioOperations *operations;
     UmiSecurityContext *security;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     operations = studio_operations(services);
     security = umi_studio_operations_security(operations);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (security == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -57,6 +70,10 @@ UmiStatus umi_studio_security_report(UmiStudioServices *services,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio security set workspace trust operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_security_set_workspace_trust(
     UmiStudioServices *services,
     const char *path,
@@ -68,11 +85,19 @@ UmiStatus umi_studio_security_set_workspace_trust(
     UmiStatus status;
     uint64_t now;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || path == NULL || path[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     operations = studio_operations(services);
     security = umi_studio_operations_security(operations);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (security == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -83,6 +108,7 @@ UmiStatus umi_studio_security_set_workspace_trust(
         level,
         "studio.local-user",
         now);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -106,6 +132,10 @@ UmiStatus umi_studio_security_set_workspace_trust(
         &event);
 }
 
+/*
+ * Provide the studio security authorise operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_security_authorise(UmiStudioServices *services,
                                        const char *principal,
                                        const char *role_id,
@@ -120,12 +150,20 @@ UmiStatus umi_studio_security_authorise(UmiStudioServices *services,
     UmiStatus status;
     uint64_t now;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || principal == NULL || permission == NULL ||
         resource == NULL || out_decision == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     operations = studio_operations(services);
     security = umi_studio_operations_security(operations);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (security == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -137,6 +175,7 @@ UmiStatus umi_studio_security_authorise(UmiStudioServices *services,
         permission,
         resource,
         out_decision);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -158,6 +197,7 @@ UmiStatus umi_studio_security_authorise(UmiStudioServices *services,
     status = umi_security_event_log_append(
         umi_security_context_events(security),
         &security_event);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -170,6 +210,7 @@ UmiStatus umi_studio_security_authorise(UmiStudioServices *services,
         ? UMI_AUDIT_SUCCEEDED : UMI_AUDIT_DENIED;
     status = umi_audit_log_append(umi_studio_operations_audit(operations),
                                   &audit);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_metrics_counter_add(
             umi_studio_operations_metrics(operations),

@@ -18,6 +18,10 @@ static GtkWidget *runtime_build_surface_search(UmiStudioGtkRuntimeChrome *runtim
     GtkWidget *panel = runtime_panel_new("Search");
     GtkWidget *button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     gtk_box_append(
@@ -32,6 +36,10 @@ static GtkWidget *runtime_build_surface_search(UmiStudioGtkRuntimeChrome *runtim
         "Open Command Search",
         "Search commands and menu contributions",
         0);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (button != NULL) gtk_box_append(GTK_BOX(panel), button);
 
     return runtime_scroll(panel);

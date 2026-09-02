@@ -19,4 +19,8 @@
 
 #include "umicom/studio/web_platform.h"
 #include <assert.h>
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioWebPlatform *p=NULL;UmiStudioWebPlatformSnapshot s;assert(umi_studio_web_platform_create(&p)==UMI_STATUS_OK);assert(umi_studio_web_platform_snapshot(p,&s)==UMI_STATUS_OK);assert(s.routes==2U);assert(s.endpoints==2U);umi_studio_web_platform_destroy(p);return 0;}

@@ -3,6 +3,22 @@
  * File: src/core/include/problem_router.h
  *
  * PURPOSE:
+ *   Declare the problem router contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/include/problem_router.h
+ *
+ * PURPOSE:
  *   Small coordinator that resets the problems list at the start of a run,
  *   feeds build output lines into the parser, and emits basic notifications
  *   to the output sink.
@@ -43,11 +59,23 @@ typedef struct UmiProblemRouter {
 
 /* Lifecycle */
 UmiProblemRouter* umi_problem_router_new (UmiProblemList *list, UmiOutputSink *sink);
+/**
+ * Provide the problem router free operation used by this module and its client
+ * applications.
+ */
 void              umi_problem_router_free(UmiProblemRouter *r);
 
 /* Flow */
 void umi_problem_router_begin(UmiProblemRouter *r);
+/**
+ * Provide the problem router feed operation used by this module and its client
+ * applications.
+ */
 void umi_problem_router_feed (UmiProblemRouter *r, const char *line_utf8);
+/**
+ * Provide the problem router end operation used by this module and its client
+ * applications.
+ */
 void umi_problem_router_end  (UmiProblemRouter *r);
 
 #ifdef __cplusplus

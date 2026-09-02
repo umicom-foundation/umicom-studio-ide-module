@@ -26,6 +26,10 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio ai evaluation operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ai_evaluation(double score, double threshold, UmiAiEvaluation *evaluation);
 
 #ifdef __cplusplus

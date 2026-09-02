@@ -3,6 +3,22 @@
  * File: src/gui/app/include/keymap.h
  *
  * PURPOSE:
+ *   Declare the keymap contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/app/include/keymap.h
+ *
+ * PURPOSE:
  *   Central header defining the keymap callback structure. This avoids
  *   duplicate struct definitions across modules and provides a single
  *   source of truth for how actions are wired up.
@@ -20,6 +36,9 @@
 
 #include <glib.h>
 
+/**
+ * Provide the void operation used by this module and its client applications.
+ */
 G_BEGIN_DECLS
 
 /*-----------------------------------------------------------------------------

@@ -24,6 +24,10 @@
 
 #include <gtk/gtk.h>
 
+/**
+ * Provide the studio editor workbench window new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_editor_workbench_window_new(GtkApplication *application);
 
 #endif

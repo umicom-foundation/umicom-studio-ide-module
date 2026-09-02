@@ -22,6 +22,10 @@ static gboolean runtime_on_floating_surface_close(
     GtkWindow *window,
     gpointer user_data);
 
+/*
+ * Provide the runtime surface place operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_surface_place(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind,
@@ -35,12 +39,17 @@ static UmiStatus runtime_surface_place(
     UmiStudioGtkRuntimeRegion previous_region;
     int was_floating;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
         kind > UMI_STUDIO_SURFACE_LAST ||
         region < UMI_STUDIO_GTK_REGION_PRIMARY ||
         region > UMI_STUDIO_GTK_REGION_EDITOR) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (runtime->layout_locked) return UMI_STATUS_PERMISSION_DENIED;
     panel = runtime->surface_panels[kind];
     previous_region =
@@ -48,20 +57,30 @@ static UmiStatus runtime_surface_place(
     was_floating = runtime->surface_floating[kind];
     target = runtime_region_stack(runtime, region);
     name = umi_studio_runtime_surface_kind_text(kind);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || target == NULL || name == NULL)
         return UMI_STATUS_NOT_FOUND;
 
     parent = gtk_widget_get_parent(panel);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (parent != target) {
         g_object_ref(panel);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (GTK_IS_STACK(parent)) {
             gtk_stack_remove(GTK_STACK(parent), panel);
-        } else if (GTK_IS_WINDOW(parent)) {
+        } else /* Apply this branch only when its contract condition is satisfied. */ if (GTK_IS_WINDOW(parent)) {
             gtk_window_set_child(GTK_WINDOW(parent), NULL);
         }
         runtime_stack_add(target, panel, name);
         g_object_unref(panel);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->surface_windows[kind] != NULL) {
         /* A programmatic redock owns the transfer and must not also run the
          * user-close callback, which would attempt to redock the same panel. */
@@ -78,9 +97,14 @@ static UmiStatus runtime_surface_place(
     gtk_widget_set_visible(panel, TRUE);
     gtk_stack_set_visible_child_name(GTK_STACK(target), name);
     revealer = runtime_region_revealer(runtime, region);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (revealer != NULL) {
         gtk_revealer_set_reveal_child(GTK_REVEALER(revealer), TRUE);
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (was_floating || previous_region != region) {
         runtime_region_visibility_refresh(runtime, previous_region);
     }
@@ -88,22 +112,36 @@ static UmiStatus runtime_surface_place(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the runtime surface hide operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_surface_hide(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind)
 {
     GtkWidget *panel;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
         kind > UMI_STUDIO_SURFACE_LAST) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (runtime->layout_locked) return UMI_STATUS_PERMISSION_DENIED;
     panel = runtime->surface_panels[kind];
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL) return UMI_STATUS_NOT_FOUND;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime->surface_floating[kind] &&
         runtime->surface_windows[kind] != NULL) {
         gtk_widget_set_visible(runtime->surface_windows[kind], FALSE);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         gtk_widget_set_visible(panel, FALSE);
     }
     runtime->surface_visible[kind] = 0;
@@ -125,13 +163,19 @@ static gboolean runtime_on_floating_surface_close(
     GtkWidget *panel;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return FALSE;
     kind = (UmiStudioRuntimeSurfaceKind)GPOINTER_TO_INT(
         g_object_get_data(G_OBJECT(window), "umicom-surface-kind"));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (kind < UMI_STUDIO_SURFACE_EXPLORER ||
         kind > UMI_STUDIO_SURFACE_LAST) {
         return FALSE;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime->layout_locked) {
         runtime_show_notification(
             runtime,
@@ -139,6 +183,10 @@ static gboolean runtime_on_floating_surface_close(
         return TRUE;
     }
     panel = runtime->surface_panels[kind];
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL) return FALSE;
 
     /* Hold the panel while removing it from the top-level window; otherwise
@@ -152,6 +200,7 @@ static gboolean runtime_on_floating_surface_close(
         kind,
         (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]);
     g_object_unref(panel);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(
             runtime, "The panel could not be returned to its dock region.");
@@ -170,12 +219,18 @@ static UmiStatus runtime_surface_float(
     GtkWidget *window;
     const UmiStudioGtkSurfaceProfile *profile;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || kind < UMI_STUDIO_SURFACE_EXPLORER ||
         kind > UMI_STUDIO_SURFACE_LAST ||
         kind == UMI_STUDIO_SURFACE_EDITOR) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (runtime->layout_locked) return UMI_STATUS_PERMISSION_DENIED;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime->surface_floating[kind] &&
         runtime->surface_windows[kind] != NULL) {
         gtk_widget_set_visible(runtime->surface_windows[kind], TRUE);
@@ -184,13 +239,22 @@ static UmiStatus runtime_surface_float(
     }
     panel = runtime->surface_panels[kind];
     profile = runtime_surface_profile(kind);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || profile == NULL) return UMI_STATUS_NOT_FOUND;
     window = GTK_WIDGET(gtk_window_new());
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (window == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     /* Keep the panel alive while ownership moves from a stack to a window. */
     g_object_ref(panel);
     parent = gtk_widget_get_parent(panel);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (GTK_IS_STACK(parent)) {
         gtk_stack_remove(GTK_STACK(parent), panel);
     }
@@ -222,6 +286,10 @@ static UmiStatus runtime_surface_float(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the runtime on surface place operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_surface_place(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime =
@@ -233,6 +301,7 @@ static void runtime_on_surface_place(GtkButton *button, gpointer user_data)
         (UmiStudioGtkRuntimeRegion)GPOINTER_TO_INT(
             g_object_get_data(G_OBJECT(button), "umicom-surface-region"));
     UmiStatus status = runtime_surface_place(runtime, kind, region);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_PERMISSION_DENIED) {
         runtime_show_notification(
             runtime,
@@ -240,6 +309,10 @@ static void runtime_on_surface_place(GtkButton *button, gpointer user_data)
     }
 }
 
+/*
+ * Provide the runtime on surface hide operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_surface_hide(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime =
@@ -248,6 +321,7 @@ static void runtime_on_surface_hide(GtkButton *button, gpointer user_data)
         (UmiStudioRuntimeSurfaceKind)GPOINTER_TO_INT(
             g_object_get_data(G_OBJECT(button), "umicom-surface-kind"));
     UmiStatus status = runtime_surface_hide(runtime, kind);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_PERMISSION_DENIED) {
         runtime_show_notification(
             runtime,
@@ -265,12 +339,17 @@ static void runtime_on_surface_float(GtkButton *button, gpointer user_data)
         (UmiStudioRuntimeSurfaceKind)GPOINTER_TO_INT(
             g_object_get_data(G_OBJECT(button), "umicom-surface-kind"));
     UmiStatus status = runtime_surface_float(runtime, kind);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_PERMISSION_DENIED) {
         runtime_show_notification(
             runtime, "Unlock the layout before floating a panel.");
     }
 }
 
+/*
+ * Provide the runtime on window catalogue search operation used by this module and its
+ * client applications.
+ */
 static void runtime_on_window_catalogue_search(
     GtkSearchEntry *entry,
     gpointer user_data)
@@ -281,10 +360,18 @@ static void runtime_on_window_catalogue_search(
     GtkWidget *row;
     char *query_folded;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->window_catalogue_list == NULL) return;
     query = gtk_editable_get_text(GTK_EDITABLE(entry));
     query_folded = g_utf8_casefold(query != NULL ? query : "", -1);
     row = gtk_widget_get_first_child(runtime->window_catalogue_list);
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (row != NULL) {
         GtkWidget *content = gtk_list_box_row_get_child(GTK_LIST_BOX_ROW(row));
         const char *search_text = content != NULL
@@ -303,6 +390,10 @@ static void runtime_on_window_catalogue_search(
     g_free(query_folded);
 }
 
+/*
+ * Provide the runtime surface place button operation used by this module and its client
+ * applications.
+ */
 static GtkWidget *runtime_surface_place_button(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind,
@@ -310,6 +401,10 @@ static GtkWidget *runtime_surface_place_button(
     const char *label)
 {
     GtkWidget *button = gtk_button_new_with_label(label);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (button == NULL) return NULL;
     gtk_widget_add_css_class(button, "flat");
     g_object_set_data(
@@ -321,6 +416,10 @@ static GtkWidget *runtime_surface_place_button(
     return button;
 }
 
+/*
+ * Provide the runtime build window catalogue operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_build_window_catalogue(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -330,6 +429,10 @@ static UmiStatus runtime_build_window_catalogue(
     GtkWidget *scroll;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -344,6 +447,10 @@ static UmiStatus runtime_build_window_catalogue(
         "windows. Unlock the current layout before changing its arrangement.",
         0.0F);
     scroll = gtk_scrolled_window_new();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->window_catalogue_window == NULL ||
         runtime->window_catalogue_search == NULL ||
         runtime->window_catalogue_list == NULL || root == NULL ||
@@ -369,6 +476,7 @@ static UmiStatus runtime_build_window_catalogue(
     gtk_list_box_set_selection_mode(
         GTK_LIST_BOX(runtime->window_catalogue_list), GTK_SELECTION_NONE);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(RUNTIME_SURFACE_PROFILES) /
                  sizeof(RUNTIME_SURFACE_PROFILES[0]);
@@ -388,6 +496,7 @@ static UmiStatus runtime_build_window_catalogue(
         GtkWidget *hide;
         char search_text[512];
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (profile->region == UMI_STUDIO_GTK_REGION_EDITOR) continue;
         row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
         identity = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
@@ -405,6 +514,10 @@ static UmiStatus runtime_build_window_catalogue(
             runtime, profile->kind, UMI_STUDIO_GTK_REGION_EDITOR, "Centre");
         floating = gtk_button_new_with_label("Float");
         hide = gtk_button_new_with_label("Hide");
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (row == NULL || identity == NULL || title == NULL ||
             location == NULL || actions == NULL || left == NULL ||
             right == NULL || bottom == NULL || centre == NULL ||
@@ -477,10 +590,19 @@ static UmiStatus runtime_build_window_catalogue(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the runtime show window catalogue operation used by this module and its client
+ * applications.
+ */
 static void runtime_show_window_catalogue(UmiStudioGtkRuntimeChrome *runtime)
 {
     int kind;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->window_catalogue_window == NULL) return;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
          kind <= (int)UMI_STUDIO_SURFACE_LAST;
          ++kind) {

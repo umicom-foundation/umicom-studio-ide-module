@@ -26,16 +26,32 @@ static const ViewDefinition VIEWS[] = {
     {UMI_STUDIO_WORKSPACE_VIEW_THEMES,"themes","Appearance","Theme, colour tokens, density, font scale and accessibility"},
     {UMI_STUDIO_WORKSPACE_VIEW_PERSISTENCE,"persistence","Save and Restore","Versioned local file or Data Server persistence with recovery"}
 };
+/*
+ * Return the number of records represented by studio workspace view without changing their
+ * state.
+ */
 size_t umi_studio_workspace_view_count(void) { return sizeof(VIEWS) / sizeof(VIEWS[0]); }
+/*
+ * Provide the studio workspace view resolve operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workspace_view_resolve(const UmiStudioProfessionalWorkspace *workspace,const char *view_id,UmiStudioWorkspaceView *out_view)
 {
     UmiStudioProfessionalWorkspaceSnapshot snapshot;
     size_t index;
     size_t item_count;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL || view_id == NULL || out_view == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_professional_workspace_snapshot(workspace,&snapshot) != UMI_STATUS_OK) return UMI_STATUS_INVALID_STATE;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < umi_studio_workspace_view_count(); ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(VIEWS[index].id,view_id) != 0) continue;
+        /* Select the behaviour associated with the requested command or state value. */
         switch (VIEWS[index].kind) {
             case UMI_STUDIO_WORKSPACE_VIEW_LAYOUTS: item_count = snapshot.customisation.layouts; break;
             case UMI_STUDIO_WORKSPACE_VIEW_NEW_WINDOW: item_count = snapshot.customisation.available_windows; break;

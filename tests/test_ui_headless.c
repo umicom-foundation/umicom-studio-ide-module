@@ -16,4 +16,8 @@
 #include <assert.h>
 #include <string.h>
 #include "umicom/studio/bootstrap.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioBootstrap*b=NULL;UmiUiHeadlessSnapshot s;assert(umi_studio_bootstrap_create(&b)==UMI_STATUS_OK);assert(umi_studio_ui_render_headless(umi_studio_bootstrap_ui(b),&s)==UMI_STATUS_OK);assert(strstr(s.text,"Umicom Studio IDE")!=NULL);assert(s.pane_count>=8U);umi_studio_bootstrap_destroy(b);return 0;}

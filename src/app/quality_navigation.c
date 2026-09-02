@@ -18,12 +18,24 @@
 #include "umicom/studio/quality_evidence.h"
 #include <stdio.h>
 #include <string.h>
+/*
+ * Provide the studio quality navigation resolve operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_quality_navigation_resolve(const UmiStudioQualityCentre *centre,const char *evidence_id,UmiStudioQualityNavigationTarget *out_target)
 {
     const UmiCodeGuardEvidence *evidence;
     int length;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || evidence_id == NULL || out_target == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     evidence = umi_studio_quality_find_evidence(centre,evidence_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (evidence == NULL || evidence->path[0] == '\0') return UMI_STATUS_NOT_FOUND;
     (void)memset(out_target,0,sizeof(*out_target));
     (void)umi_codeguard_quality_copy(out_target->evidence_id,sizeof(out_target->evidence_id),evidence->id);

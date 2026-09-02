@@ -33,6 +33,10 @@
 #define UMI_STUDIO_WORKSPACE_PROFILE_KEY_PREFIX \
     "studio.ui.workspace-profile."
 
+/*
+ * Provide the append manifest id operation used by this module and its client
+ * applications.
+ */
 static UmiStatus append_manifest_id(char *manifest,
                                     size_t capacity,
                                     const char *profile_id)
@@ -40,14 +44,20 @@ static UmiStatus append_manifest_id(char *manifest,
     size_t length = strlen(manifest);
     size_t id_length = strlen(profile_id);
     size_t separator = length == 0U ? 0U : 1U;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length + separator + id_length >= capacity) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (separator != 0U) manifest[length++] = '|';
     (void)memcpy(manifest + length, profile_id, id_length + 1U);
     return UMI_STATUS_OK;
 }
 
+/*
+ * Write studio workspace profile session in its stable representation and report capacity
+ * or input failures to the caller.
+ */
 UmiStatus umi_studio_workspace_profile_session_save(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session)
@@ -57,10 +67,15 @@ UmiStatus umi_studio_workspace_profile_session_save(
     size_t index;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL || session == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     model = umi_ui_workbench_workspace_profiles(workbench);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < umi_ui_workspace_profile_model_count(model);
          ++index) {
         UmiUiWorkspaceProfileSnapshot profile;
@@ -69,28 +84,38 @@ UmiStatus umi_studio_workspace_profile_session_save(
         int written;
 
         status = umi_ui_workspace_profile_model_at(model, index, &profile);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
+        /* Apply this branch only when its contract condition is satisfied. */
         if (profile.built_in) continue;
         status = umi_ui_workspace_profile_encode(
             &profile, encoded, sizeof(encoded));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
         written = snprintf(key, sizeof(key), "%s%s",
                            UMI_STUDIO_WORKSPACE_PROFILE_KEY_PREFIX,
                            profile.profile_id);
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (written < 0 || (size_t)written >= sizeof(key)) {
             return UMI_STATUS_CAPACITY_EXCEEDED;
         }
         status = umi_session_store_set(session, key, encoded);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
         status = append_manifest_id(manifest,
                                     sizeof(manifest),
                                     profile.profile_id);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return umi_session_store_set(
         session, UMI_STUDIO_WORKSPACE_PROFILE_MANIFEST_KEY, manifest);
 }
 
+/*
+ * Provide the studio workspace profile session restore operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_workspace_profile_session_restore(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session)
@@ -99,6 +124,10 @@ UmiStatus umi_studio_workspace_profile_session_restore(
     char *cursor;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL || session == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -107,38 +136,58 @@ UmiStatus umi_studio_workspace_profile_session_restore(
         UMI_STUDIO_WORKSPACE_PROFILE_MANIFEST_KEY,
         manifest,
         sizeof(manifest));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_NOT_FOUND) return UMI_STATUS_OK;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     cursor = manifest;
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (cursor[0] != '\0') {
         char *separator = strchr(cursor, '|');
         char key[UMI_SESSION_KEY_CAPACITY];
         char encoded[UMI_SESSION_VALUE_CAPACITY];
         UmiUiWorkspaceProfileSnapshot profile;
         int written;
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (separator != NULL) *separator = '\0';
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (strncmp(cursor, "custom-", strlen("custom-")) != 0) {
             return UMI_STATUS_PARSE_ERROR;
         }
         written = snprintf(key, sizeof(key), "%s%s",
                            UMI_STUDIO_WORKSPACE_PROFILE_KEY_PREFIX,
                            cursor);
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (written < 0 || (size_t)written >= sizeof(key)) {
             return UMI_STATUS_CAPACITY_EXCEEDED;
         }
         status = umi_session_store_get(
             session, key, encoded, sizeof(encoded));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
         status = umi_ui_workspace_profile_decode(encoded, &profile);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (strcmp(profile.profile_id, cursor) != 0 || profile.built_in) {
             return UMI_STATUS_PARSE_ERROR;
         }
         profile.active = 0;
         status = umi_ui_workspace_profile_model_upsert(
             umi_ui_workbench_workspace_profiles(workbench), &profile);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (separator == NULL) break;
         cursor = separator + 1;
     }

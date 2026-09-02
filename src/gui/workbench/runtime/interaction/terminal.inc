@@ -19,6 +19,10 @@ static UmiStudioTerminalService *runtime_terminal_service(
 {
     UmiStudioServices *services;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL) return NULL;
     services = umi_studio_ui_services(runtime->owner->ui);
     return services != NULL
@@ -26,6 +30,10 @@ static UmiStudioTerminalService *runtime_terminal_service(
         : NULL;
 }
 
+/*
+ * Provide the runtime terminal refresh transcript operation used by this module and its
+ * client applications.
+ */
 static void runtime_terminal_refresh_transcript(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -39,6 +47,10 @@ static void runtime_terminal_refresh_transcript(
     size_t index;
     char summary[256];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->terminal_text_view == NULL) return;
 
     service = runtime_terminal_service(runtime);
@@ -50,6 +62,10 @@ static void runtime_terminal_refresh_transcript(
         : NULL;
 
     text = g_string_sized_new(4096U);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (text == NULL) return;
 
     count = transcript != NULL
@@ -59,11 +75,13 @@ static void runtime_terminal_refresh_transcript(
         ? count - UMI_STUDIO_GTK_TRANSCRIPT_ROW_LIMIT
         : 0U;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = start; index < count; ++index) {
         UmiTerminalTranscriptLine line;
         const char *prefix = "";
 
         (void)memset(&line, 0, sizeof(line));
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_terminal_transcript_at(
                 transcript,
                 index,
@@ -71,6 +89,7 @@ static void runtime_terminal_refresh_transcript(
             continue;
         }
 
+        /* Select the behaviour associated with the requested command or state value. */
         switch (line.stream) {
             case UMI_TERMINAL_STREAM_INPUT: prefix = "> "; break;
             case UMI_TERMINAL_STREAM_ERROR: prefix = "! "; break;
@@ -81,6 +100,7 @@ static void runtime_terminal_refresh_transcript(
 
         g_string_append(text, prefix);
         g_string_append(text, line.text);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (text->len == 0U ||
             text->str[text->len - 1U] != '\n') {
             g_string_append_c(text, '\n');
@@ -101,6 +121,10 @@ static void runtime_terminal_refresh_transcript(
         count == 1U ? "" : "s",
         runtime->terminal_snapshot.primary.last_exit_code);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->terminal_summary_label != NULL) {
         gtk_label_set_text(
             GTK_LABEL(runtime->terminal_summary_label),
@@ -110,15 +134,24 @@ static void runtime_terminal_refresh_transcript(
     g_string_free(text, TRUE);
 }
 
+/*
+ * Provide the runtime terminal execute entry operation used by this module and its client
+ * applications.
+ */
 static void runtime_terminal_execute_entry(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     const char *command;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->terminal_entry == NULL) return;
 
     command = gtk_editable_get_text(
         GTK_EDITABLE(runtime->terminal_entry));
+    /* Use the shared build helper when it is available from the parent composition. */
     if (command == NULL || command[0] == '\0') return;
 
     runtime_copy_selection(
@@ -126,6 +159,7 @@ static void runtime_terminal_execute_entry(
         sizeof(runtime->last_terminal_command),
         command);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime_execute_registered_command(
             runtime,
             UMI_STUDIO_COMMAND_TERMINAL_EXECUTE,
@@ -138,6 +172,10 @@ static void runtime_terminal_execute_entry(
     runtime_terminal_refresh_transcript(runtime);
 }
 
+/*
+ * Provide the runtime on terminal entry activate operation used by this module and its
+ * client applications.
+ */
 static void runtime_on_terminal_entry_activate(
     GtkEntry *entry,
     gpointer user_data)
@@ -147,6 +185,10 @@ static void runtime_on_terminal_entry_activate(
         (UmiStudioGtkRuntimeChrome *)user_data);
 }
 
+/*
+ * Perform runtime on terminal through the module contract so client applications do not
+ * duplicate its policy.
+ */
 static void runtime_on_terminal_run(
     GtkButton *button,
     gpointer user_data)
@@ -157,6 +199,10 @@ static void runtime_on_terminal_run(
 }
 
 
+/*
+ * Provide the runtime on terminal new operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_terminal_new(
     GtkButton *button,
     gpointer user_data)
@@ -168,6 +214,10 @@ static void runtime_on_terminal_new(
         NULL);
 }
 
+/*
+ * Release or reset state held by runtime on terminal so the same storage can be reused
+ * safely.
+ */
 static void runtime_on_terminal_clear(
     GtkButton *button,
     gpointer user_data)
@@ -176,6 +226,10 @@ static void runtime_on_terminal_clear(
         (UmiStudioGtkRuntimeChrome *)user_data;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     (void)runtime_execute_registered_command(

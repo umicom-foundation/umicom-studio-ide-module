@@ -24,6 +24,7 @@ struct UmiStudioTradingService {
     UmiTradingWorkspace *workspace;
 };
 
+/* Provide the make instrument operation used by this module and its client applications. */
 static UmiInstrument make_instrument(const char *instrument_id,
                                      const char *symbol,
                                      const char *venue,
@@ -60,6 +61,7 @@ static UmiStatus seed_market(UmiTradingWorkspace *workspace,
     UmiStatus status = umi_trading_workspace_add_instrument(
         workspace, instrument);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     quote.instrument = *instrument;
     quote.bid = bid;
@@ -69,6 +71,7 @@ static UmiStatus seed_market(UmiTradingWorkspace *workspace,
     quote.event_time_ms = event_time_ms;
     status = umi_trading_workspace_update_quote(workspace, &quote);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         bar.instrument = *instrument;
         bar.open = open;
@@ -81,6 +84,7 @@ static UmiStatus seed_market(UmiTradingWorkspace *workspace,
         status = umi_trading_workspace_update_bar(workspace, &bar,
                                                   previous_close);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         depth.instrument = *instrument;
         depth.bid_count = 3U;
@@ -100,10 +104,12 @@ static UmiStatus seed_market(UmiTradingWorkspace *workspace,
         depth.event_time_ms = event_time_ms;
         status = umi_trading_workspace_update_depth(workspace, &depth);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_trading_workspace_set_market_state(
             workspace, instrument->instrument_id.value, UMI_MARKET_PREOPEN);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_trading_workspace_set_market_state(
             workspace, instrument->instrument_id.value, UMI_MARKET_OPEN);
@@ -111,6 +117,10 @@ static UmiStatus seed_market(UmiTradingWorkspace *workspace,
     return status;
 }
 
+/*
+ * Initialise studio trading service from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_trading_service_create(
     UmiStudioTradingService **out_service)
 {
@@ -121,9 +131,17 @@ UmiStatus umi_studio_trading_service_create(
     UmiInstrument eurusd;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_service = NULL;
     service = (UmiStudioTradingService *)calloc(1U, sizeof(*service));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     config = umi_trading_workspace_config_default();
@@ -138,27 +156,32 @@ UmiStatus umi_studio_trading_service_create(
                          20.0, 0);
     eurusd = make_instrument("FX.EURUSD.SPOT", "EURUSD", "FX", "USD",
                              1.0, 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = seed_market(service->workspace, &es,
             5624.75, 5625.00, 5610.25, 5612.00, 5631.50, 5608.25,
             5624.75, 128450.0, 1000000);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = seed_market(service->workspace, &nq,
             20324.25, 20324.75, 20270.50, 20282.00, 20351.25, 20261.75,
             20324.50, 86420.0, 1000000);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = seed_market(service->workspace, &eurusd,
             1.09120, 1.09124, 1.08980, 1.09010, 1.09205, 1.08972,
             1.09122, 42150.0, 1000000);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         /* Simulation needs market and risk readiness only. Broker readiness
          * remains false, keeping paper/live submission unavailable. */
         status = umi_trading_workspace_set_health(service->workspace,
                                                    1, 0, 1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_trading_service_destroy(service);
         return status;
@@ -167,23 +190,43 @@ UmiStatus umi_studio_trading_service_create(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio trading service so the same storage can be reused
+ * safely.
+ */
 void umi_studio_trading_service_destroy(UmiStudioTradingService *service)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return;
     umi_trading_workspace_destroy(service->workspace);
     free(service);
 }
 
+/*
+ * Provide the studio trading service workspace operation used by this module and its
+ * client applications.
+ */
 UmiTradingWorkspace *umi_studio_trading_service_workspace(
     UmiStudioTradingService *service)
 {
     return service != NULL ? service->workspace : NULL;
 }
 
+/*
+ * Provide the studio trading service snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_trading_service_snapshot(
     UmiStudioTradingService *service,
     UmiTradingWorkspaceSnapshot *out_snapshot)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_trading_workspace_snapshot(service->workspace, out_snapshot);
 }

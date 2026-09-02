@@ -19,6 +19,10 @@
 #include "integration_designer_fixture.h"
 #include "umicom/studio/integration_designer_api.h"
 #include "umicom/studio/integration_designer_connections.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioIntegrationDesignerCentre *centre = umi_test_seeded_integration_designer();

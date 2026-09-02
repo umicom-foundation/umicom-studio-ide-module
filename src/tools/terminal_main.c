@@ -19,6 +19,10 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioBootstrap *bootstrap = NULL;
@@ -29,7 +33,9 @@ int main(int argc, char **argv)
     int exit_code = 0;
 
     status = umi_studio_bootstrap_create(&bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_bootstrap_start(bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Studio terminal startup failed: %s\n",
                       umi_status_text(status));
@@ -38,6 +44,7 @@ int main(int argc, char **argv)
     }
     service = umi_studio_services_terminal(
         umi_studio_bootstrap_services(bootstrap));
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (argc == 3 && strcmp(argv[1], "--execute") == 0) {
         status = umi_studio_terminal_service_execute(service,
                                                      argv[2],
@@ -47,8 +54,9 @@ int main(int argc, char **argv)
         (void)printf("Command exit code: %d\nStatus: %s\n",
                      command_exit, umi_status_text(status));
         exit_code = status == UMI_STATUS_OK ? 0 : 1;
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         status = umi_studio_terminal_service_snapshot(service, &snapshot);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)printf("Sessions: %zu\nPrimary: %s\nWorking directory: %s\n"
                          "Commands executed: %llu\nTranscript lines: %zu\n",
@@ -57,7 +65,7 @@ int main(int argc, char **argv)
                          snapshot.primary.working_directory,
                          (unsigned long long)snapshot.primary.commands_executed,
                          snapshot.primary.transcript_lines);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             exit_code = 1;
         }
     }

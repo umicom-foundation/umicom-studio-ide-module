@@ -11,6 +11,10 @@
  *---------------------------------------------------------------------------*/
 #include <assert.h>
 #include "umicom/studio/helix_agent_centre.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioHelixAgentCentre *centre = NULL;

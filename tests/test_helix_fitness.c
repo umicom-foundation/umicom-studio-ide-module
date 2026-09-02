@@ -21,4 +21,8 @@
 
 #include <assert.h>
 #include "umicom/studio/helix_fitness.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiHelixFitness f;assert(umi_studio_helix_fitness(0.95,0.95,0.9,0.9,0.95,&f)==UMI_STATUS_OK);assert(f.passed);return 0;}

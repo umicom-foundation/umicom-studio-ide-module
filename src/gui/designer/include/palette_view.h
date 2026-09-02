@@ -22,5 +22,9 @@
 #define UMICOM_STUDIO_DESIGNER_PALETTE_VIEW_H
 #include <gtk/gtk.h>
 #include "umicom/studio/designer.h"
+/**
+ * Provide the studio designer palette view new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_designer_palette_view_new(UmiStudioDeclarative *declarative);
 #endif

@@ -1,5 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/include/task_runner.h
+ *
+ * PURPOSE:
+ *   Declare the task runner contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/build/include/task_runner.h
  * PURPOSE:
  *   Minimal, thread-pool-based task runner for running small background jobs
@@ -27,6 +43,9 @@
 
 G_BEGIN_DECLS
 
+/**
+ * Represent the task runner data shared with callers of this public contract.
+ */
 typedef struct UmiTaskRunner UmiTaskRunner;
 
 typedef void (*UmiTaskFn)(gpointer user_data);

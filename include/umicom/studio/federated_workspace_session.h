@@ -23,9 +23,17 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio federated workspace session begin operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_federated_workspace_session_begin(
     UmiDesktopSessionRecovery *recovery,
     UmiDesktopMonitorInteraction *monitor_interaction);
+/**
+ * Provide the studio federated workspace session end operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_federated_workspace_session_end(
     UmiDesktopSessionRecovery *recovery);
 

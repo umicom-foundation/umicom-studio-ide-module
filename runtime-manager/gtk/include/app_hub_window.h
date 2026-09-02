@@ -24,6 +24,10 @@
 
 #include <gtk/gtk.h>
 
+/**
+ * Provide the studio app hub window new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_app_hub_window_new(GtkApplication *application);
 
 #endif

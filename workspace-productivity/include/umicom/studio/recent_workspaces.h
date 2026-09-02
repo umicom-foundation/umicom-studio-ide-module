@@ -35,6 +35,9 @@ extern "C" {
 
 #define UMI_STUDIO_RECENT_WORKSPACE_MAX 32U
 
+/**
+ * Represent the studio recent workspace data shared with callers of this public contract.
+ */
 typedef struct UmiStudioRecentWorkspace {
     char path[UMI_STUDIO_WORKSPACE_PATH_CAPACITY];
     char name[UMI_STUDIO_WORKSPACE_NAME_CAPACITY];
@@ -42,26 +45,46 @@ typedef struct UmiStudioRecentWorkspace {
     bool pinned;
 } UmiStudioRecentWorkspace;
 
+/**
+ * Represent the studio recent workspace list data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioRecentWorkspaceList {
     UmiStudioRecentWorkspace items[UMI_STUDIO_RECENT_WORKSPACE_MAX];
     size_t count;
     uint64_t tick;
 } UmiStudioRecentWorkspaceList;
 
+/**
+ * Initialise studio recent workspaces from caller-provided values so later operations
+ * receive a known state.
+ */
 void umi_studio_recent_workspaces_init(UmiStudioRecentWorkspaceList *list);
 
+/**
+ * Provide the studio recent workspaces touch operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_recent_workspaces_touch(
     UmiStudioRecentWorkspaceList *list,
     const char *path,
     const char *name
 );
 
+/**
+ * Provide the studio recent workspaces pin operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_recent_workspaces_pin(
     UmiStudioRecentWorkspaceList *list,
     const char *path,
     bool pinned
 );
 
+/**
+ * Find studio recent workspaces while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioRecentWorkspace *umi_studio_recent_workspaces_at(
     const UmiStudioRecentWorkspaceList *list,
     size_t index

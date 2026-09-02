@@ -119,6 +119,10 @@
 #define VIEW_PRODUCT_TRANSACTIONS "studio.product-transactions"
 #define VIEW_PRODUCT_EVIDENCE "studio.product-evidence"
 
+/*
+ * Provide the add action enabled operation used by this module and its client
+ * applications.
+ */
 static UmiStatus add_action_enabled(UmiUiViewModel *view,
                                     size_t index,
                                     const char *action_id,
@@ -134,6 +138,7 @@ static UmiStatus add_action_enabled(UmiUiViewModel *view,
     return umi_ui_command_view_set_action(view, index, &action);
 }
 
+/* Provide the add action operation used by this module and its client applications. */
 static UmiStatus add_action(UmiUiViewModel *view,
                             size_t index,
                             const char *action_id,
@@ -149,6 +154,7 @@ typedef UmiStatus (*StudioViewCreateFn)(
     UmiUiViewModel **out_view
 );
 
+/* Provide the property string operation used by this module and its client applications. */
 static UmiStatus property_string(UmiUiViewModel *view,
                                  const char *key,
                                  const char *text)
@@ -160,6 +166,7 @@ static UmiStatus property_string(UmiUiViewModel *view,
         : status;
 }
 
+/* Provide the property integer operation used by this module and its client applications. */
 static UmiStatus property_integer(UmiUiViewModel *view,
                                   const char *key,
                                   int64_t number)
@@ -171,6 +178,7 @@ static UmiStatus property_integer(UmiUiViewModel *view,
         : status;
 }
 
+/* Provide the property boolean operation used by this module and its client applications. */
 static UmiStatus property_boolean(UmiUiViewModel *view,
                                   const char *key,
                                   int enabled)
@@ -182,6 +190,7 @@ static UmiStatus property_boolean(UmiUiViewModel *view,
         : status;
 }
 
+/* Provide the create base view operation used by this module and its client applications. */
 static UmiStatus create_base_view(const char *view_id,
                                   const char *view_type,
                                   const char *title,
@@ -192,12 +201,15 @@ static UmiStatus create_base_view(const char *view_id,
 
     status = umi_ui_view_model_create(
         view_id, view_type, UMI_UI_ROLE_PANE, out_view);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = property_string(*out_view, "title", title);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_string(*out_view, "summary", summary);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_ui_view_model_destroy(*out_view);
         *out_view = NULL;
@@ -205,6 +217,7 @@ static UmiStatus create_base_view(const char *view_id,
     return status;
 }
 
+/* Provide the create explorer operation used by this module and its client applications. */
 static UmiStatus create_explorer(const char *view_id,
                                  void *user_data,
                                  UmiUiViewModel **out_view)
@@ -219,19 +232,27 @@ static UmiStatus create_explorer(const char *view_id,
         "Workspace files indexed by the reusable Framework file-index service.",
         out_view);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     index = umi_studio_services_file_index(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (index == NULL) return property_boolean(*out_view, "available", 0);
     stats = umi_file_index_stats(index);
 
     status = property_boolean(*out_view, "available", 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_string(*out_view, "workspace", stats.root);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_integer(*out_view, "indexed-files",
                                   (int64_t)stats.files);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_integer(*out_view, "index-revision",
                                   (int64_t)stats.revision);
@@ -239,6 +260,7 @@ static UmiStatus create_explorer(const char *view_id,
     return status;
 }
 
+/* Provide the create search operation used by this module and its client applications. */
 static UmiStatus create_search(const char *view_id,
                                void *user_data,
                                UmiUiViewModel **out_view)
@@ -253,22 +275,33 @@ static UmiStatus create_search(const char *view_id,
         "Search the same indexed workspace used by Explorer and Quick Open.",
         out_view);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     index = umi_studio_services_file_index(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (index == NULL) return property_boolean(*out_view, "available", 0);
     stats = umi_file_index_stats(index);
 
     status = property_boolean(*out_view, "available", 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_integer(*out_view, "searchable-files",
                               (int64_t)stats.files);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_string(*out_view, "root", stats.root);
     }
     return status;
 }
 
+/*
+ * Provide the create source control operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_source_control(const char *view_id,
                                        void *user_data,
                                        UmiUiViewModel **out_view)
@@ -284,6 +317,10 @@ static UmiStatus create_source_control(const char *view_id,
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/*
+ * Provide the source control coordinator operation used by this module and its client
+ * applications.
+ */
 static UmiVcsWorkspaceCoordinator *source_control_coordinator(void *user_data)
 {
     UmiStudioSourceControlService *service = umi_studio_services_source_control(
@@ -292,27 +329,62 @@ static UmiVcsWorkspaceCoordinator *source_control_coordinator(void *user_data)
         ? umi_studio_source_control_service_coordinator(service) : NULL;
 }
 
+/* Provide the create vcs commit operation used by this module and its client applications. */
 static UmiStatus create_vcs_commit(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { UmiVcsWorkspaceCoordinator *coordinator = source_control_coordinator(user_data); return coordinator != NULL ? umi_vcs_ui_workspace_commit_view_create(view_id, coordinator, out_view) : UMI_STATUS_UNAVAILABLE; }
+/*
+ * Provide the create vcs history operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_vcs_history(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { UmiVcsWorkspaceCoordinator *coordinator = source_control_coordinator(user_data); return coordinator != NULL ? umi_vcs_ui_workspace_history_view_create(view_id, coordinator, out_view) : UMI_STATUS_UNAVAILABLE; }
+/*
+ * Provide the create vcs branches operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_vcs_branches(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { UmiVcsWorkspaceCoordinator *coordinator = source_control_coordinator(user_data); return coordinator != NULL ? umi_vcs_ui_workspace_branches_view_create(view_id, coordinator, out_view) : UMI_STATUS_UNAVAILABLE; }
+/*
+ * Provide the create vcs remotes operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_vcs_remotes(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { UmiVcsWorkspaceCoordinator *coordinator = source_control_coordinator(user_data); return coordinator != NULL ? umi_vcs_ui_workspace_remotes_view_create(view_id, coordinator, out_view) : UMI_STATUS_UNAVAILABLE; }
+/*
+ * Provide the create vcs conflicts operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_vcs_conflicts(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { UmiVcsWorkspaceCoordinator *coordinator = source_control_coordinator(user_data); return coordinator != NULL ? umi_vcs_ui_workspace_conflicts_view_create(view_id, coordinator, out_view) : UMI_STATUS_UNAVAILABLE; }
+/* Provide the create vcs diff operation used by this module and its client applications. */
 static UmiStatus create_vcs_diff(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { UmiVcsWorkspaceCoordinator *coordinator = source_control_coordinator(user_data); return coordinator != NULL ? umi_vcs_ui_workspace_diff_view_create(view_id, coordinator, out_view) : UMI_STATUS_UNAVAILABLE; }
+/*
+ * Provide the create vcs operations operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_vcs_operations(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { UmiVcsWorkspaceCoordinator *coordinator = source_control_coordinator(user_data); return coordinator != NULL ? umi_vcs_ui_workspace_operations_view_create(view_id, coordinator, out_view) : UMI_STATUS_UNAVAILABLE; }
 
+/* Provide the create extensions operation used by this module and its client applications. */
 static UmiStatus create_extensions(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { return umi_studio_extension_centre_installed_view((UmiStudioServices *)user_data, view_id, out_view); }
+/*
+ * Provide the create extension catalogue operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_extension_catalogue(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { return umi_studio_extension_centre_catalogue_view((UmiStudioServices *)user_data, view_id, out_view); }
+/*
+ * Provide the create extension permissions operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_extension_permissions(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { return umi_studio_extension_centre_permissions_view((UmiStudioServices *)user_data, view_id, out_view); }
+/*
+ * Provide the create extension audit operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_extension_audit(const char *view_id, void *user_data, UmiUiViewModel **out_view)
 { return umi_studio_extension_centre_audit_view((UmiStudioServices *)user_data, view_id, out_view); }
 
@@ -327,6 +399,10 @@ static UmiStudioProductCentre *product_centre(void *user_data)
         (UmiStudioServices *)user_data);
 }
 
+/*
+ * Provide the create product marketplace operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_product_marketplace(
     const char *view_id,
     void *user_data,
@@ -336,6 +412,10 @@ static UmiStatus create_product_marketplace(
         product_centre(user_data), view_id, out_view);
 }
 
+/*
+ * Provide the create products installed operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_products_installed(
     const char *view_id,
     void *user_data,
@@ -345,6 +425,10 @@ static UmiStatus create_products_installed(
         product_centre(user_data), view_id, out_view);
 }
 
+/*
+ * Provide the create product updates operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_product_updates(
     const char *view_id,
     void *user_data,
@@ -354,6 +438,10 @@ static UmiStatus create_product_updates(
         product_centre(user_data), view_id, out_view);
 }
 
+/*
+ * Provide the create product transactions operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_product_transactions(
     const char *view_id,
     void *user_data,
@@ -363,6 +451,10 @@ static UmiStatus create_product_transactions(
         product_centre(user_data), view_id, out_view);
 }
 
+/*
+ * Provide the create product evidence operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_product_evidence(
     const char *view_id,
     void *user_data,
@@ -372,6 +464,7 @@ static UmiStatus create_product_evidence(
         product_centre(user_data), view_id, out_view);
 }
 
+/* Provide the create run debug operation used by this module and its client applications. */
 static UmiStatus create_run_debug(const char *view_id,
                                   void *user_data,
                                   UmiUiViewModel **out_view)
@@ -388,6 +481,7 @@ static UmiStatus create_run_debug(const char *view_id,
         "Build-state and Debug Adapter Protocol state presented together.",
         out_view);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     build = umi_studio_services_build(services);
@@ -395,141 +489,178 @@ static UmiStatus create_run_debug(const char *view_id,
     (void)memset(&build_snapshot, 0, sizeof(build_snapshot));
     (void)memset(&debug_snapshot, 0, sizeof(debug_snapshot));
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (build != NULL &&
         umi_studio_build_service_snapshot(build, &build_snapshot) ==
             UMI_STATUS_OK) {
         status = property_string(*out_view, "build-directory",
                                  build_snapshot.build_directory);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "build-history",
                                       (int64_t)build_snapshot.history_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "build-diagnostics",
                                       (int64_t)build_snapshot.diagnostic_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (debugger != NULL &&
         umi_studio_debugger_service_snapshot(debugger, &debug_snapshot) ==
             UMI_STATUS_OK) {
         status = property_boolean(*out_view, "debugger-initialized",
                                   debug_snapshot.initialized);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "breakpoints",
                                       (int64_t)debug_snapshot.breakpoint_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "debug-messages-received",
                                       (int64_t)debug_snapshot.received_messages);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_string(*out_view, "debug-state",
                                      debug_snapshot.controller_state);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "debug-sessions",
                                       (int64_t)debug_snapshot.session_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "debug-threads",
                                       (int64_t)debug_snapshot.thread_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "debug-stack-frames",
                                       (int64_t)debug_snapshot.stack_frame_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "debug-variables",
                                       (int64_t)debug_snapshot.variable_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "debug-watches",
                                       (int64_t)debug_snapshot.watch_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_integer(*out_view, "debug-events",
                                       (int64_t)debug_snapshot.event_count);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_boolean(*out_view, "can-start",
                                       debug_snapshot.workspace.can_start);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_boolean(*out_view, "can-continue",
                                       debug_snapshot.workspace.can_continue);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_boolean(*out_view, "can-pause",
                                       debug_snapshot.workspace.can_pause);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_boolean(*out_view, "can-step",
                                       debug_snapshot.workspace.can_step);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = property_boolean(*out_view, "can-stop",
                                       debug_snapshot.workspace.can_stop);
         }
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action(*out_view, 0U, "studio.action.build.configure",
                             "Configure", "Configure the active CMake profile");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action(*out_view, 1U, "studio.action.build.compile",
                             "Build", "Compile the active workspace");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action(*out_view, 2U, "studio.action.build.run",
                             "Start", "Start the configured Studio executable");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action(*out_view, 3U, "studio.action.build.install",
                             "Deploy", "Install into the local staging prefix");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action_enabled(
             *out_view, 4U, "studio.action.debug.start", "Debug",
             "Start the configured debug target",
             debug_snapshot.workspace.can_start);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action_enabled(
             *out_view, 5U, "studio.action.debug.continue", "Continue",
             "Continue the selected debug thread",
             debug_snapshot.workspace.can_continue);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action_enabled(
             *out_view, 6U, "studio.action.debug.pause", "Pause",
             "Pause the selected debug thread",
             debug_snapshot.workspace.can_pause);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action_enabled(
             *out_view, 7U, "studio.action.debug.next", "Step Over",
             "Step over the next statement", debug_snapshot.workspace.can_step);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action_enabled(
             *out_view, 8U, "studio.action.debug.step-in", "Step Into",
             "Step into the next function call",
             debug_snapshot.workspace.can_step);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action_enabled(
             *out_view, 9U, "studio.action.debug.step-out", "Step Out",
             "Step out of the current function",
             debug_snapshot.workspace.can_step);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action_enabled(
             *out_view, 10U, "studio.action.debug.stop", "Stop",
             "Terminate the active debug session",
             debug_snapshot.workspace.can_stop);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_action(*out_view, 11U,
                             "studio.action.debug.add-breakpoint",
@@ -538,6 +669,10 @@ static UmiStatus create_run_debug(const char *view_id,
     return status;
 }
 
+/*
+ * Provide the create debug call stack operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_debug_call_stack(const char *view_id,
                                          void *user_data,
                                          UmiUiViewModel **out_view)
@@ -547,6 +682,10 @@ static UmiStatus create_debug_call_stack(const char *view_id,
                      (UmiStudioServices *)user_data), out_view);
 }
 
+/*
+ * Provide the create debug variables operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_debug_variables(const char *view_id,
                                         void *user_data,
                                         UmiUiViewModel **out_view)
@@ -556,6 +695,10 @@ static UmiStatus create_debug_variables(const char *view_id,
                      (UmiStudioServices *)user_data), out_view);
 }
 
+/*
+ * Provide the create debug watches operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_debug_watches(const char *view_id,
                                       void *user_data,
                                       UmiUiViewModel **out_view)
@@ -565,6 +708,10 @@ static UmiStatus create_debug_watches(const char *view_id,
                      (UmiStudioServices *)user_data), out_view);
 }
 
+/*
+ * Provide the create debug breakpoints operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_debug_breakpoints(const char *view_id,
                                           void *user_data,
                                           UmiUiViewModel **out_view)
@@ -574,6 +721,10 @@ static UmiStatus create_debug_breakpoints(const char *view_id,
                      (UmiStudioServices *)user_data), out_view);
 }
 
+/*
+ * Provide the create debug console operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_debug_console(const char *view_id,
                                       void *user_data,
                                       UmiUiViewModel **out_view)
@@ -583,6 +734,7 @@ static UmiStatus create_debug_console(const char *view_id,
                      (UmiStudioServices *)user_data), out_view);
 }
 
+/* Provide the create testing operation used by this module and its client applications. */
 static UmiStatus create_testing(const char *view_id,
                                 void *user_data,
                                 UmiUiViewModel **out_view)
@@ -595,6 +747,7 @@ static UmiStatus create_testing(const char *view_id,
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/* Provide the test workspace operation used by this module and its client applications. */
 static UmiTestWorkspace *test_workspace(void *user_data)
 {
     UmiStudioTestService *service = umi_studio_services_tests(
@@ -603,6 +756,10 @@ static UmiTestWorkspace *test_workspace(void *user_data)
         ? umi_studio_test_service_workspace(service) : NULL;
 }
 
+/*
+ * Provide the create test results operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_test_results(const char *view_id, void *user_data,
                                      UmiUiViewModel **out_view)
 {
@@ -612,6 +769,10 @@ static UmiStatus create_test_results(const char *view_id, void *user_data,
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/*
+ * Provide the create test failures operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_test_failures(const char *view_id, void *user_data,
                                       UmiUiViewModel **out_view)
 {
@@ -621,6 +782,10 @@ static UmiStatus create_test_failures(const char *view_id, void *user_data,
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/*
+ * Provide the create test output operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_test_output(const char *view_id, void *user_data,
                                     UmiUiViewModel **out_view)
 {
@@ -630,6 +795,10 @@ static UmiStatus create_test_output(const char *view_id, void *user_data,
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/*
+ * Provide the create test coverage operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_test_coverage(const char *view_id, void *user_data,
                                       UmiUiViewModel **out_view)
 {
@@ -639,6 +808,7 @@ static UmiStatus create_test_coverage(const char *view_id, void *user_data,
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/* Provide the create test runs operation used by this module and its client applications. */
 static UmiStatus create_test_runs(const char *view_id, void *user_data,
                                   UmiUiViewModel **out_view)
 {
@@ -648,6 +818,10 @@ static UmiStatus create_test_runs(const char *view_id, void *user_data,
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/*
+ * Provide the build workspace for view operation used by this module and its client
+ * applications.
+ */
 static UmiBuildWorkspace *build_workspace_for_view(void *user_data)
 {
     UmiStudioBuildService *service = umi_studio_services_build(
@@ -680,6 +854,10 @@ DEFINE_BUILD_VIEW_FACTORY(create_build_tasks,
                           umi_build_ui_tasks_view_create)
 #undef DEFINE_BUILD_VIEW_FACTORY
 
+/*
+ * Provide the trading workspace for view operation used by this module and its client
+ * applications.
+ */
 static UmiTradingWorkspace *trading_workspace_for_view(void *user_data)
 {
     UmiStudioTradingService *service = umi_studio_services_trading(
@@ -717,6 +895,7 @@ DEFINE_TRADING_VIEW_FACTORY(create_trading_portfolio_risk,
                             umi_trading_ui_portfolio_risk_view_create)
 #undef DEFINE_TRADING_VIEW_FACTORY
 
+/* Provide the create output operation used by this module and its client applications. */
 static UmiStatus create_output(const char *view_id,
                                void *user_data,
                                UmiUiViewModel **out_view)
@@ -727,6 +906,7 @@ static UmiStatus create_output(const char *view_id,
         out_view);
 }
 
+/* Provide the create problems operation used by this module and its client applications. */
 static UmiStatus create_problems(const char *view_id,
                                  void *user_data,
                                  UmiUiViewModel **out_view)
@@ -736,6 +916,7 @@ static UmiStatus create_problems(const char *view_id,
         view_id, umi_studio_services_diagnostic_pipeline(services), out_view);
 }
 
+/* Provide the create terminal operation used by this module and its client applications. */
 static UmiStatus create_terminal(const char *view_id,
                                  void *user_data,
                                  UmiUiViewModel **out_view)
@@ -745,6 +926,7 @@ static UmiStatus create_terminal(const char *view_id,
         view_id, umi_studio_services_terminal_controller(services), out_view);
 }
 
+/* Provide the create processes operation used by this module and its client applications. */
 static UmiStatus create_processes(const char *view_id,
                                   void *user_data,
                                   UmiUiViewModel **out_view)
@@ -754,6 +936,7 @@ static UmiStatus create_processes(const char *view_id,
         view_id, umi_studio_services_terminal_controller(services), out_view);
 }
 
+/* Provide the create tasks operation used by this module and its client applications. */
 static UmiStatus create_tasks(const char *view_id,
                               void *user_data,
                               UmiUiViewModel **out_view)
@@ -763,6 +946,10 @@ static UmiStatus create_tasks(const char *view_id,
         view_id, umi_studio_services_terminal_controller(services), out_view);
 }
 
+/*
+ * Provide the create terminal history operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_terminal_history(const char *view_id,
                                          void *user_data,
                                          UmiUiViewModel **out_view)
@@ -772,6 +959,7 @@ static UmiStatus create_terminal_history(const char *view_id,
         view_id, umi_studio_services_terminal_controller(services), out_view);
 }
 
+/* Provide the create designer operation used by this module and its client applications. */
 static UmiStatus create_designer(const char *view_id,
                                  void *user_data,
                                  UmiUiViewModel **out_view)
@@ -786,28 +974,37 @@ static UmiStatus create_designer(const char *view_id,
         "Framework declarative designer state, selection and history.",
         out_view);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     designer = umi_studio_services_designer(services);
     (void)memset(&snapshot, 0, sizeof(snapshot));
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (designer == NULL ||
         umi_studio_designer_snapshot(designer, &snapshot) != UMI_STATUS_OK) {
         return property_boolean(*out_view, "available", 0);
     }
 
     status = property_boolean(*out_view, "available", 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_integer(*out_view, "palette-items",
                                   (int64_t)snapshot.palette_items);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_integer(*out_view, "selected-items",
                                   (int64_t)snapshot.selected_items);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_integer(*out_view, "undo",
                                   (int64_t)snapshot.undo_count);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_integer(*out_view, "redo",
                                   (int64_t)snapshot.redo_count);
@@ -815,6 +1012,10 @@ static UmiStatus create_designer(const char *view_id,
     return status;
 }
 
+/*
+ * Provide the create applications operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_applications(const char *view_id,
                                      void *user_data,
                                      UmiUiViewModel **out_view)
@@ -824,6 +1025,10 @@ static UmiStatus create_applications(const char *view_id,
         view_id, "org.umicom.studio", out_view);
 }
 
+/*
+ * Provide the create application components operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_application_components(const char *view_id,
                                                 void *user_data,
                                                 UmiUiViewModel **out_view)
@@ -833,6 +1038,10 @@ static UmiStatus create_application_components(const char *view_id,
         view_id, "development", out_view);
 }
 
+/*
+ * Provide the create gtk4 coverage operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_gtk4_coverage(const char *view_id,
                                       void *user_data,
                                       UmiUiViewModel **out_view)
@@ -841,6 +1050,10 @@ static UmiStatus create_gtk4_coverage(const char *view_id,
     return umi_application_ui_gtk4_coverage_view_create(view_id, out_view);
 }
 
+/*
+ * Provide the create architecture audit operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_architecture_audit(const char *view_id,
                                            void *user_data,
                                            UmiUiViewModel **out_view)
@@ -849,6 +1062,7 @@ static UmiStatus create_architecture_audit(const char *view_id,
     return umi_application_ui_boundary_audit_view_create(view_id, out_view);
 }
 
+/* Provide the create framework operation used by this module and its client applications. */
 static UmiStatus create_framework(const char *view_id,
                                   void *user_data,
                                   UmiUiViewModel **out_view)
@@ -862,17 +1076,21 @@ static UmiStatus create_framework(const char *view_id,
         "Umicom Framework",
         "Reusable C23 platform capabilities consumed by Studio and other products.",
         out_view);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_string(*out_view, "version",
                                  UMICOM_FRAMEWORK_VERSION_STRING);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_integer(*out_view, "abi",
                                   (int64_t)UMICOM_FRAMEWORK_ABI_VERSION);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_string(*out_view, "language", "C23");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_string(*out_view, "ui-contract",
                                  "toolkit-neutral + GTK4 reference adapter");
@@ -880,6 +1098,7 @@ static UmiStatus create_framework(const char *view_id,
     return status;
 }
 
+/* Provide the create ai operation used by this module and its client applications. */
 static UmiStatus create_ai(const char *view_id,
                            void *user_data,
                            UmiUiViewModel **out_view)
@@ -887,6 +1106,10 @@ static UmiStatus create_ai(const char *view_id,
     UmiStudioServices *services = (UmiStudioServices *)user_data;
     UmiStudioAiPlatform *platform = umi_studio_services_ai_platform(services);
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_STATE;
     status = umi_ai_ui_authorengine_overview_view_create(
         view_id, umi_studio_ai_platform_authorengine(platform), out_view);
@@ -895,11 +1118,13 @@ static UmiStatus create_ai(const char *view_id,
     if (status == UMI_STATUS_OK) {
         status = property_boolean(*out_view, "available", 1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_string(
             *out_view, "default-provider",
             umi_studio_ai_platform_default_provider(platform));
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = property_boolean(
             *out_view, "helix-runtime",
@@ -908,6 +1133,7 @@ static UmiStatus create_ai(const char *view_id,
     return status;
 }
 
+/* Provide the create chat operation used by this module and its client applications. */
 static UmiStatus create_chat(const char *view_id,
                              void *user_data,
                              UmiUiViewModel **out_view)
@@ -920,6 +1146,10 @@ static UmiStatus create_chat(const char *view_id,
         : UMI_STATUS_INVALID_STATE;
 }
 
+/*
+ * Provide the create ai runtimes operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_ai_runtimes(const char *view_id,
                                     void *user_data,
                                     UmiUiViewModel **out_view)
@@ -932,6 +1162,7 @@ static UmiStatus create_ai_runtimes(const char *view_id,
         : UMI_STATUS_INVALID_STATE;
 }
 
+/* Provide the create ai context operation used by this module and its client applications. */
 static UmiStatus create_ai_context(const char *view_id,
                                    void *user_data,
                                    UmiUiViewModel **out_view)
@@ -944,6 +1175,10 @@ static UmiStatus create_ai_context(const char *view_id,
         : UMI_STATUS_INVALID_STATE;
 }
 
+/*
+ * Provide the create ai sessions operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_ai_sessions(const char *view_id,
                                     void *user_data,
                                     UmiUiViewModel **out_view)
@@ -956,6 +1191,7 @@ static UmiStatus create_ai_sessions(const char *view_id,
         : UMI_STATUS_INVALID_STATE;
 }
 
+/* Provide the create ai privacy operation used by this module and its client applications. */
 static UmiStatus create_ai_privacy(const char *view_id,
                                    void *user_data,
                                    UmiUiViewModel **out_view)
@@ -968,6 +1204,7 @@ static UmiStatus create_ai_privacy(const char *view_id,
         : UMI_STATUS_INVALID_STATE;
 }
 
+/* Provide the create ai coding operation used by this module and its client applications. */
 static UmiStatus create_ai_coding(const char *view_id,
                                   void *user_data,
                                   UmiUiViewModel **out_view)
@@ -981,6 +1218,10 @@ static UmiStatus create_ai_coding(const char *view_id,
         : UMI_STATUS_INVALID_STATE;
 }
 
+/*
+ * Provide the create ai coding context operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_ai_coding_context(const char *view_id,
                                           void *user_data,
                                           UmiUiViewModel **out_view)
@@ -994,6 +1235,10 @@ static UmiStatus create_ai_coding_context(const char *view_id,
         : UMI_STATUS_INVALID_STATE;
 }
 
+/*
+ * Provide the create ai patch review operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_ai_patch_review(const char *view_id,
                                         void *user_data,
                                         UmiUiViewModel **out_view)
@@ -1002,6 +1247,10 @@ static UmiStatus create_ai_patch_review(const char *view_id,
         (UmiStudioServices *)user_data);
     UmiAiCodingAssistantSnapshot snapshot;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_STATE;
     status = umi_ai_coding_assistant_snapshot(
         umi_studio_ai_platform_coding_assistant(platform), &snapshot);
@@ -1012,6 +1261,10 @@ static UmiStatus create_ai_patch_review(const char *view_id,
         : status;
 }
 
+/*
+ * Provide the create ai model comparison operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_ai_model_comparison(
     const char *view_id,
     void *user_data,
@@ -1026,6 +1279,7 @@ static UmiStatus create_ai_model_comparison(
         : UMI_STATUS_INVALID_STATE;
 }
 
+/* Provide the create knowledge operation used by this module and its client applications. */
 static UmiStatus create_knowledge(const char *view_id,
                                   void *user_data,
                                   UmiUiViewModel **out_view)
@@ -1035,6 +1289,10 @@ static UmiStatus create_knowledge(const char *view_id,
         view_id, out_view);
 }
 
+/*
+ * Provide the create knowledge collections operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_knowledge_collections(
     const char *view_id, void *user_data, UmiUiViewModel **out_view)
 {
@@ -1043,6 +1301,10 @@ static UmiStatus create_knowledge_collections(
         view_id, out_view);
 }
 
+/*
+ * Provide the create knowledge sources operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_knowledge_sources(
     const char *view_id, void *user_data, UmiUiViewModel **out_view)
 {
@@ -1051,6 +1313,10 @@ static UmiStatus create_knowledge_sources(
         view_id, out_view);
 }
 
+/*
+ * Provide the create knowledge search operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_knowledge_search(
     const char *view_id, void *user_data, UmiUiViewModel **out_view)
 {
@@ -1059,6 +1325,10 @@ static UmiStatus create_knowledge_search(
         view_id, "Umicom Framework architecture", out_view);
 }
 
+/*
+ * Provide the create knowledge source operation used by this module and its client
+ * applications.
+ */
 static UmiStatus create_knowledge_source(
     const char *view_id, void *user_data, UmiUiViewModel **out_view)
 {
@@ -1155,10 +1425,18 @@ static const StudioViewDefinition DEFINITIONS[] = {
     { VIEW_PRODUCT_EVIDENCE, create_product_evidence }
 };
 
+/*
+ * Add studio workbench views only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_workbench_views_register(
     UmiUiWorkbench *workbench,
     UmiStudioServices *services)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL || services == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -1166,13 +1444,22 @@ UmiStatus umi_studio_workbench_views_register(
         umi_ui_workbench_view_factories(workbench), services);
 }
 
+/*
+ * Provide the studio workbench views register registry operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_workbench_views_register_registry(
     UmiUiViewFactoryRegistry *registry,
     UmiStudioServices *services)
 {
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (registry == NULL || services == NULL)
         return UMI_STATUS_INVALID_ARGUMENT;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(DEFINITIONS) / sizeof(DEFINITIONS[0]);
          ++index) {
         UmiUiViewFactoryDescriptor descriptor = {0};
@@ -1186,11 +1473,16 @@ UmiStatus umi_studio_workbench_views_register_registry(
         descriptor.user_data = services;
 
         status = umi_ui_view_factory_register(registry, &descriptor);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return UMI_STATUS_OK;
 }
 
+/*
+ * Return the number of records represented by studio workbench view definition without
+ * changing their state.
+ */
 size_t umi_studio_workbench_view_definition_count(void)
 {
     return sizeof(DEFINITIONS) / sizeof(DEFINITIONS[0]);

@@ -140,6 +140,7 @@ static const CatalogueDefinition DEFINITIONS[] = {
     }
 };
 
+/* Provide the add definition operation used by this module and its client applications. */
 static UmiStatus add_definition(UmiStudioRuntimeManager *manager,
                                 const CatalogueDefinition *definition)
 {
@@ -153,6 +154,7 @@ static UmiStatus add_definition(UmiStudioRuntimeManager *manager,
         definition->id,
         definition->name
     );
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -164,6 +166,7 @@ static UmiStatus add_definition(UmiStudioRuntimeManager *manager,
 
     application.enabled = false;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (capability_index = 0U;
          definition->capabilities[capability_index] != NULL;
          ++capability_index) {
@@ -171,6 +174,7 @@ static UmiStatus add_definition(UmiStudioRuntimeManager *manager,
             &application,
             definition->capabilities[capability_index]
         );
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
@@ -182,19 +186,29 @@ static UmiStatus add_definition(UmiStudioRuntimeManager *manager,
                                                definition->description);
 }
 
+/*
+ * Provide the studio runtime catalogue populate operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_runtime_catalogue_populate(
     UmiStudioRuntimeManager *manager)
 {
     size_t index;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (manager == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(DEFINITIONS) / sizeof(DEFINITIONS[0]);
          ++index) {
         status = add_definition(manager, &DEFINITIONS[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
@@ -206,6 +220,7 @@ UmiStatus umi_studio_runtime_catalogue_populate(
         "umicom.studio-ide",
         UMI_INTEGRATION_APP_RUNNING
     );
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -213,6 +228,10 @@ UmiStatus umi_studio_runtime_catalogue_populate(
     {
         UmiStudioRuntimeEntry *studio =
             umi_studio_runtime_manager_find(manager, "umicom.studio-ide");
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (studio != NULL) {
             studio->installed = true;
             studio->favourite = true;

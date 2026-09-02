@@ -24,6 +24,10 @@ static GtkWidget *runtime_build_surface_problems(
     GtkWidget *next;
     GtkWidget *clear;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     runtime->problems_summary_label = runtime_label("", 0.0F);
@@ -46,6 +50,10 @@ static GtkWidget *runtime_build_surface_problems(
         "Navigate to the next problem");
     clear = gtk_button_new_with_label("Clear");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->problems_summary_label != NULL) {
         gtk_widget_add_css_class(
             runtime->problems_summary_label,
@@ -55,6 +63,10 @@ static GtkWidget *runtime_build_surface_problems(
             runtime->problems_summary_label);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (actions != NULL && open != NULL &&
         previous != NULL && next != NULL && clear != NULL) {
         g_signal_connect(
@@ -69,6 +81,10 @@ static GtkWidget *runtime_build_surface_problems(
         gtk_box_append(GTK_BOX(panel), actions);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->problems_list != NULL) {
         gtk_list_box_set_selection_mode(
             GTK_LIST_BOX(runtime->problems_list),

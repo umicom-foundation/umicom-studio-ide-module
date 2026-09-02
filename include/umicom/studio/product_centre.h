@@ -27,8 +27,15 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio product centre data shared with callers of this public contract.
+ */
 typedef struct UmiStudioProductCentre UmiStudioProductCentre;
 
+/**
+ * Represent the studio product centre snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioProductCentreSnapshot {
     uint64_t revision;
     size_t marketplace_releases;

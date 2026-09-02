@@ -24,10 +24,18 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio editor layout session restore operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_editor_layout_session_restore(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session,
     UmiUiDocumentLayoutApplyResult *out_result);
+/**
+ * Write studio editor layout session in its stable representation and report capacity or
+ * input failures to the caller.
+ */
 UmiStatus umi_studio_editor_layout_session_save(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session);

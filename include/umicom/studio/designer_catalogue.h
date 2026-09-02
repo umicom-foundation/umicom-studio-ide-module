@@ -24,6 +24,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Provide the studio designer catalogue report operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_designer_catalogue_report(UmiStudioDeclarative *service,const char *category_filter,char *out_text,size_t capacity);
 #ifdef __cplusplus
 }

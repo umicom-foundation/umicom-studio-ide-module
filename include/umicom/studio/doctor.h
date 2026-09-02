@@ -24,11 +24,18 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio doctor report data shared with callers of this public contract.
+ */
 typedef struct UmiStudioDoctorReport {
     size_t checks_passed;
     size_t checks_failed;
 } UmiStudioDoctorReport;
 
+/**
+ * Perform studio doctor through the module contract so client applications do not
+ * duplicate its policy.
+ */
 UmiStatus umi_studio_doctor_run(const char *repository_root,
                                 UmiDiagnosticSink sink,
                                 void *user_data,

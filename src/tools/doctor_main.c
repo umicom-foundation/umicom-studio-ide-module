@@ -21,9 +21,14 @@
 
 #include <stdio.h>
 
+/* Provide the console sink operation used by this module and its client applications. */
 static void console_sink(const UmiDiagnostic *diagnostic, void *user_data)
 {
     (void)user_data;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (diagnostic == NULL) {
         return;
     }
@@ -32,11 +37,16 @@ static void console_sink(const UmiDiagnostic *diagnostic, void *user_data)
                  diagnostic->message != NULL ? diagnostic->message : "");
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     const char *root = argc > 1 ? argv[1] : ".";
     UmiStudioDoctorReport report;
     UmiStatus status = umi_studio_doctor_run(root, console_sink, NULL, &report);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Doctor failed to run: %s\n", umi_status_text(status));
         return 2;

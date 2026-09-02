@@ -18,12 +18,20 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio experience acceptance data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioExperienceAcceptance {
     UmiApplicationJourneyCatalogue catalogue;
     UmiApplicationJourneyAudit audit;
     UmiApplicationJourneyReport report;
     int product_ready;
 } UmiStudioExperienceAcceptance;
+/**
+ * Provide the studio experience acceptance build operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_experience_acceptance_build(
     const UmiApplicationJourneyEvidenceRegistry *evidence,
     UmiStudioExperienceAcceptance *out_acceptance);

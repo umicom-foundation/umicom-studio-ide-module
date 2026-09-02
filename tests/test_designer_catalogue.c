@@ -28,4 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){UmiStudioDeclarative *decl=NULL;char report[8192];assert(umi_studio_declarative_create(&decl)==UMI_STATUS_OK);assert(umi_studio_designer_catalogue_report(decl,"Development",report,sizeof(report))==UMI_STATUS_OK);assert(strstr(report,"editor")!=NULL);assert(strstr(report,"terminal")!=NULL);umi_studio_declarative_destroy(decl);return EXIT_SUCCESS;}

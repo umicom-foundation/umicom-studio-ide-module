@@ -18,6 +18,10 @@ static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtim
     GtkWidget *panel = runtime_panel_new("Output");
     char value[64];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     (void)snprintf(value, sizeof(value), "%zu",

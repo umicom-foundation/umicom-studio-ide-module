@@ -22,18 +22,22 @@
 static UmiStudioBootstrap *GLOBAL_BOOTSTRAP = NULL;
 static UmiStudioGtkWorkbench *GLOBAL_WORKBENCH = NULL;
 
+/* Provide the on activate operation used by this module and its client applications. */
 static void on_activate(GtkApplication *application, gpointer user_data)
 {
     UmiStatus status;
     (void)user_data;
     status = umi_studio_bootstrap_create(&GLOBAL_BOOTSTRAP);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_bootstrap_start(GLOBAL_BOOTSTRAP);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_gtk_workbench_create(application,
                                                   umi_studio_bootstrap_ui(GLOBAL_BOOTSTRAP),
                                                   umi_studio_bootstrap_desktop_shell(GLOBAL_BOOTSTRAP),
                                                   &GLOBAL_WORKBENCH);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         g_warning("Umicom Studio workbench failed: %s", umi_status_text(status));
         return;
@@ -41,6 +45,7 @@ static void on_activate(GtkApplication *application, gpointer user_data)
     gtk_window_present(umi_studio_gtk_workbench_window(GLOBAL_WORKBENCH));
 }
 
+/* Provide the on shutdown operation used by this module and its client applications. */
 static void on_shutdown(GApplication *application, gpointer user_data)
 {
     (void)application;
@@ -51,6 +56,10 @@ static void on_shutdown(GApplication *application, gpointer user_data)
     GLOBAL_BOOTSTRAP = NULL;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     GtkApplication *application = gtk_application_new(

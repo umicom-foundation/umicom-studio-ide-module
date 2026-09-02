@@ -19,11 +19,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio production panel contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioProductionPanelContribution {
     const UmiApplicationProductionPanelBinding *binding;
     const char *workspace_area;
     int visible_by_default;
 } UmiStudioProductionPanelContribution;
+/**
+ * Represent the studio production panel catalogue data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioProductionPanelCatalogue {
     UmiStudioProductionPanelContribution
         entries[UMI_APPLICATION_PRODUCTION_MAX_PANELS];

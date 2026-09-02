@@ -22,9 +22,25 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio watcher start operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_watcher_start(UmiStudioServices *services);
+/**
+ * Provide the studio watcher stop operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_watcher_stop(UmiStudioServices *services);
+/**
+ * Provide the studio watcher scan once operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_watcher_scan_once(UmiStudioServices *services);
+/**
+ * Provide the studio watcher stats operation used by this module and its client
+ * applications.
+ */
 UmiWatcherStats umi_studio_watcher_stats(UmiStudioServices *services);
 
 #ifdef __cplusplus

@@ -22,6 +22,10 @@
 #include "umicom/studio/workbench_views.h"
 #include "umicom/ui/view_presentation.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;

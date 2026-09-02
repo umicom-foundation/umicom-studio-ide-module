@@ -19,6 +19,10 @@
 #include <gtk/gtk.h>
 #include "umicom/studio/ui.h"
 
+/**
+ * Provide the studio status strip new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_status_strip_new(UmiStudioUi *ui);
 
 #endif

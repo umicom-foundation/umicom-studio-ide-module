@@ -19,6 +19,9 @@
 #ifndef UMICOM_STUDIO_SDK_H
 #define UMICOM_STUDIO_SDK_H
 #include "umicom/studio/compatibility_platform.h"
+/**
+ * Provide the studio sdk probe operation used by this module and its client applications.
+ */
 UmiStatus umi_studio_sdk_probe(const char *prefix,UmiSdkValidationResult *out_result);
 #endif
 

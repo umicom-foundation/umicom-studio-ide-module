@@ -21,16 +21,31 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio package project data shared with callers of this public contract.
+ */
 typedef struct UmiStudioPackageProject {
     UmiPackageManifest windows;
     UmiPackageManifest linux;
 } UmiStudioPackageProject;
 
+/**
+ * Initialise studio package project from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_package_project_init(UmiStudioPackageProject *project,
                                               const char *version);
+/**
+ * Provide the studio package project manifest operation used by this module and its client
+ * applications.
+ */
 const UmiPackageManifest *umi_studio_package_project_manifest(
     const UmiStudioPackageProject *project,
     UmiInstallerPlatform platform);
+/**
+ * Provide the studio package project ready operation used by this module and its client
+ * applications.
+ */
 int umi_studio_package_project_ready(const UmiStudioPackageProject *project);
 
 #ifdef __cplusplus

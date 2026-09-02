@@ -18,5 +18,13 @@
  */
 #include "umicom/studio/products.h"
 #include <stdio.h>
+/*
+ * Find studio product while leaving the underlying catalogue or model owned by this
+ * module.
+ */
 const UmiProductProfile *umi_studio_product_find(const char *id){return umi_reference_product_find(id);}
-UmiStatus umi_studio_product_report(const UmiProductProfile *p,char *b,size_t cap){UmiProductCompatibility c;int n;if(p==NULL||b==NULL||cap==0U)return UMI_STATUS_INVALID_ARGUMENT;if(umi_product_compatibility_check(p,&c)!=UMI_STATUS_OK)return UMI_STATUS_INVALID_ARGUMENT;n=snprintf(b,cap,"Product: %s\nID: %s\nCapabilities: %zu\nMissing: %zu\nCompatible: %s\n",p->descriptor->branding.display_name,p->descriptor->product_id,p->capability_count,c.missing_capabilities,c.compatible?"yes":"no");return n<0||(size_t)n>=cap?UMI_STATUS_CAPACITY_EXCEEDED:UMI_STATUS_OK;}
+/*
+ * Provide the studio product report operation used by this module and its client
+ * applications.
+ */
+UmiStatus umi_studio_product_report(const UmiProductProfile *p,char *b,size_t cap){UmiProductCompatibility c;int n;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(p==NULL||b==NULL||cap==0U)return UMI_STATUS_INVALID_ARGUMENT;/* Protect caller-owned memory by checking that required state is available before it is used. */ if(umi_product_compatibility_check(p,&c)!=UMI_STATUS_OK)return UMI_STATUS_INVALID_ARGUMENT;n=snprintf(b,cap,"Product: %s\nID: %s\nCapabilities: %zu\nMissing: %zu\nCompatible: %s\n",p->descriptor->branding.display_name,p->descriptor->product_id,p->capability_count,c.missing_capabilities,c.compatible?"yes":"no");return n<0||(size_t)n>=cap?UMI_STATUS_CAPACITY_EXCEEDED:UMI_STATUS_OK;}

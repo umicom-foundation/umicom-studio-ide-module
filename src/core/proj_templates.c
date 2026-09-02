@@ -33,10 +33,16 @@ static const char *CPP_MAIN =
 static const char *PY_MAIN =
   "print('Hello, Umicom Python!')\n";
 
+/*
+ * Write tpl in its stable representation and report capacity or input failures to the
+ * caller.
+ */
 gboolean umi_tpl_write(const char *dir, UmiTemplateKind kind, GError **err){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!dir) return FALSE;
   g_mkdir_with_parents(dir, 0755);
   const char *name = NULL, *src = NULL;
+  /* Select the behaviour associated with the requested command or state value. */
   switch(kind){
     case UMI_TPL_C:   name="main.c";  src=C_MAIN; break;
     case UMI_TPL_CPP: name="main.cpp";src=CPP_MAIN; break;

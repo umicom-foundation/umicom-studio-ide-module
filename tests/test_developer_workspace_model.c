@@ -18,6 +18,10 @@
 
 #include "umicom/studio/project_centre.h"
 
+/*
+ * Exercise add project and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static int add_project(UmiProjectWorkspace *workspace, const char *id,
                        const char *path)
 {
@@ -33,6 +37,10 @@ static int add_project(UmiProjectWorkspace *workspace, const char *id,
         ? 0 : 1;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioProjectCentre *centre = NULL;
@@ -44,8 +52,10 @@ int main(void)
     UmiProjectWorkspaceSelectionSnapshot selection;
     UmiStudioProjectCentreSnapshot snapshot;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_project_centre_create(&centre) != UMI_STATUS_OK) return 1;
     workspace = umi_studio_project_centre_service(centre);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (add_project(workspace, "framework", "/src/framework") ||
         add_project(workspace, "studio", "/src/studio")) return 2;
 
@@ -55,6 +65,7 @@ int main(void)
     strcpy(root.path, "/src");
     strcpy(root.label, "Source");
     root.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_workspace_root(centre, &root) !=
         UMI_STATUS_OK) return 3;
     group.struct_size = (uint32_t)sizeof(group);
@@ -62,6 +73,7 @@ int main(void)
     strcpy(group.id, "products");
     strcpy(group.name, "Products");
     group.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_project_group(centre, &group) !=
         UMI_STATUS_OK) return 4;
 
@@ -73,11 +85,13 @@ int main(void)
     strcpy(member.group_id, "products");
     member.order = 20;
     member.enabled = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_project_member(centre, &member) !=
         UMI_STATUS_OK) return 5;
     strcpy(member.id, "member.studio");
     strcpy(member.project_id, "studio");
     member.order = 10;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_upsert_project_member(centre, &member) !=
         UMI_STATUS_OK) return 6;
 
@@ -89,14 +103,18 @@ int main(void)
     strcpy(reference.kind, "build");
     reference.required = 1;
     reference.available = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_project_reference_registry_upsert(
             umi_project_workspace_reference(workspace), &reference) !=
         UMI_STATUS_OK) return 7;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_project_centre_select_project(
             centre, "studio", &selection) != UMI_STATUS_OK ||
         strcmp(selection.project.id, "studio") != 0) return 8;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_project_centre_snapshot(centre, &snapshot) != UMI_STATUS_OK)
         return 9;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!snapshot.has_workspace_model || !snapshot.has_build_order ||
         snapshot.build_order_status != UMI_STATUS_OK ||
         snapshot.workspace_model.root_count != 1U ||

@@ -19,6 +19,10 @@
 
 #include "umicom/studio/delivery_update.h"
 
+/*
+ * Provide the studio update plan operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_update_plan(uint64_t current_generation,
                                  uint64_t available_generation,
                                  int compatible,
@@ -26,6 +30,10 @@ UmiStatus umi_studio_update_plan(uint64_t current_generation,
                                  UmiUpdatePlan *out_plan)
 {
     UmiUpdateDecision decision;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_plan == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     decision = umi_update_decide(current_generation,
                                  available_generation,
@@ -40,6 +48,10 @@ UmiStatus umi_studio_update_plan(uint64_t current_generation,
                                     : "No eligible Studio update is available");
 }
 
+/*
+ * Provide the studio rollback plan operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_rollback_plan(uint64_t current_generation,
                                    uint64_t target_generation,
                                    const char *reason,
@@ -49,6 +61,7 @@ UmiStatus umi_studio_rollback_plan(uint64_t current_generation,
                                               current_generation,
                                               target_generation,
                                               reason);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return umi_rollback_plan_approve(out_plan);
 }

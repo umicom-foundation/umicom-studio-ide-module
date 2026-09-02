@@ -17,6 +17,10 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Copy studio data into module-owned storage so callers keep ownership of their input
+ * values.
+ */
 UmiStatus umi_studio_data_set(UmiStudioServices *services,
                               const char *key,
                               const char *value)
@@ -27,6 +31,7 @@ UmiStatus umi_studio_data_set(UmiStudioServices *services,
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/* Provide the studio data get operation used by this module and its client applications. */
 UmiStatus umi_studio_data_get(UmiStudioServices *services,
                               const char *key,
                               char *value,
@@ -38,6 +43,10 @@ UmiStatus umi_studio_data_get(UmiStudioServices *services,
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Remove studio data while keeping the remaining records in a valid and discoverable
+ * state.
+ */
 UmiStatus umi_studio_data_remove(UmiStudioServices *services,
                                  const char *key)
 {
@@ -47,17 +56,26 @@ UmiStatus umi_studio_data_remove(UmiStudioServices *services,
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio data report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_data_report(UmiStudioServices *services,
                                  UmiStudioDataReport *out_report)
 {
     UmiDataIntegrityReport report;
     UmiDataServer *server;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     server = umi_studio_services_data_server(services);
     status = umi_data_integrity_check(server, &report);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     (void)memset(out_report, 0, sizeof(*out_report));
     out_report->backend = report.backend;
@@ -76,6 +94,10 @@ UmiStatus umi_studio_data_report(UmiStudioServices *services,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Copy studio data transaction into module-owned storage so callers keep ownership of
+ * their input values.
+ */
 UmiStatus umi_studio_data_transaction_set(UmiStudioServices *services,
                                           const char *key,
                                           const char *value)
@@ -83,13 +105,19 @@ UmiStatus umi_studio_data_transaction_set(UmiStudioServices *services,
     UmiDataTransaction transaction;
     UmiDataServer *server;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || key == NULL || value == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     server = umi_studio_services_data_server(services);
     status = umi_data_transaction_begin(server, &transaction);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_data_server_set(server, key, value);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_data_transaction_commit(&transaction);
     }
@@ -97,6 +125,10 @@ UmiStatus umi_studio_data_transaction_set(UmiStudioServices *services,
     return status;
 }
 
+/*
+ * Provide the studio data apply core migrations operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_data_apply_core_migrations(UmiStudioServices *services,
                                                 uint32_t target_version,
                                                 size_t *out_applied)
@@ -109,20 +141,33 @@ UmiStatus umi_studio_data_apply_core_migrations(UmiStudioServices *services,
         { 2U, "Studio history", "CREATE TABLE IF NOT EXISTS studio_history (sequence INTEGER PRIMARY KEY, category TEXT NOT NULL, status INTEGER NOT NULL, message TEXT NOT NULL);", "DROP TABLE studio_history;" }
     };
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || target_version > 2U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     server = umi_studio_services_data_server(services);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_data_server_backend(server) != UMI_DATA_BACKEND_SQLITE) {
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (out_applied != NULL) *out_applied = 0U;
         return UMI_STATUS_NOT_IMPLEMENTED;
     }
     status = umi_migration_registry_create(4U, &registry);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(migrations) / sizeof(migrations[0]); ++index) {
         status = umi_migration_registry_add(registry, &migrations[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) break;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_migration_apply(registry, server, target_version, out_applied);
     }

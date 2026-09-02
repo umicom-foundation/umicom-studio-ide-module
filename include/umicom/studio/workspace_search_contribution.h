@@ -32,6 +32,10 @@ extern "C" {
 
 #define UMI_STUDIO_WORKSPACE_SEARCH_CONTRIBUTION_API_VERSION 1U
 
+/**
+ * Represent the studio workspace search command contribution data shared with callers of
+ * this public contract.
+ */
 typedef struct UmiStudioWorkspaceSearchCommandContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -42,6 +46,10 @@ typedef struct UmiStudioWorkspaceSearchCommandContribution {
     int show_in_command_centre;
 } UmiStudioWorkspaceSearchCommandContribution;
 
+/**
+ * Represent the studio workspace search view contribution data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioWorkspaceSearchViewContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -54,15 +62,39 @@ typedef struct UmiStudioWorkspaceSearchViewContribution {
     int movable;
 } UmiStudioWorkspaceSearchViewContribution;
 
+/**
+ * Return the number of records represented by studio workspace search command contribution
+ * without changing their state.
+ */
 size_t umi_studio_workspace_search_command_contribution_count(void);
+/**
+ * Find studio workspace search command contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioWorkspaceSearchCommandContribution *
 umi_studio_workspace_search_command_contribution_at(size_t position);
+/**
+ * Find studio workspace search command contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioWorkspaceSearchCommandContribution *
 umi_studio_workspace_search_command_contribution_find(
     const char *framework_command_id);
+/**
+ * Return the number of records represented by studio workspace search view contribution
+ * without changing their state.
+ */
 size_t umi_studio_workspace_search_view_contribution_count(void);
+/**
+ * Find studio workspace search view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioWorkspaceSearchViewContribution *
 umi_studio_workspace_search_view_contribution_at(size_t position);
+/**
+ * Find studio workspace search view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioWorkspaceSearchViewContribution *
 umi_studio_workspace_search_view_contribution_find(const char *view_id);
 

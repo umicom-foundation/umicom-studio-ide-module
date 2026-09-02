@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 
+/* Provide the print replayed operation used by this module and its client applications. */
 static UmiStatus print_replayed(const UmiMessageEnvelope *message, void *user_data)
 {
     size_t *count = (size_t *)user_data;
@@ -28,6 +29,10 @@ static UmiStatus print_replayed(const UmiMessageEnvelope *message, void *user_da
     return UMI_STATUS_OK;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;
@@ -39,6 +44,7 @@ int main(void)
     size_t observer_count = 0U;
     size_t replayed = 0U;
     status = umi_studio_bootstrap_create(&bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return 1;
     services = umi_studio_bootstrap_services(bootstrap);
     status = umi_studio_messages_subscribe(services,
@@ -46,10 +52,12 @@ int main(void)
                                            print_replayed,
                                            &observer_count,
                                            &subscription_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_replay(services, &request, &replayed);
     }
     (void)umi_studio_messages_unsubscribe(services, subscription_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)printf("Replayed: %zu; observed: %zu\n", replayed, observer_count);
     }

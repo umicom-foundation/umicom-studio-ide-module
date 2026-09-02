@@ -41,6 +41,7 @@
 static void on_problem_activate(gpointer user, const char *file, int line, int col)
 {
   UmiEditor *ed = (UmiEditor *)user;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ed || !ed->out || !file) return;
 
   char msg[512];
@@ -51,6 +52,7 @@ static void on_problem_activate(gpointer user, const char *file, int line, int c
   /* if (ed->status) umi_status_flash(ed->status, msg, 1200); */
 }
 
+/* Provide the editor new operation used by this module and its client applications. */
 UmiEditor *umi_editor_new(void)
 {
   UmiEditor *ed = g_new0(UmiEditor, 1);
@@ -92,16 +94,21 @@ UmiEditor *umi_editor_new(void)
   return ed;
 }
 
+/* Provide the editor widget operation used by this module and its client applications. */
 GtkWidget *umi_editor_widget(UmiEditor *ed)
 {
   return ed ? ed->root : NULL;
 }
 
+/* Provide the editor free operation used by this module and its client applications. */
 void umi_editor_free(UmiEditor *ed)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ed) return;
   g_clear_pointer(&ed->current_file, g_free);
+  /* Apply this branch only when its contract condition is satisfied. */
   if (ed->buffer) g_object_unref(ed->buffer);
+  /* Apply this branch only when its contract condition is satisfied. */
   if (ed->root)   g_object_unref(ed->root); /* children destroyed with root */
   g_free(ed);
 }

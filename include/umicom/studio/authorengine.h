@@ -26,6 +26,10 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio authorengine config operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_authorengine_config(const char *executable,
                                          const char *workspace,
                                          UmiAiAuthorEngineConfig *config);

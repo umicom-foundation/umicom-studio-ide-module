@@ -39,6 +39,7 @@ static void umi_crash_signal_handler(int sig) {
 
 /* Enable the crash guard: installs a minimal signal handler for common faults. */
 void umi_crash_guard_enable(void) {
+    /* Apply this operation only while the related capability or state is available. */
     if (g_umi_crash_guard_enabled) return; /* already enabled or tripped */
 
     /* Install a very small handler for a few fatal signals.
@@ -54,6 +55,7 @@ void umi_crash_guard_enable(void) {
 
 /* Disable the crash guard: restore default handlers where applicable. */
 void umi_crash_guard_disable(void) {
+    /* Apply this operation only while the related capability or state is available. */
     if (!g_umi_crash_guard_enabled) return; /* not enabled */
 
     signal(SIGSEGV, SIG_DFL);

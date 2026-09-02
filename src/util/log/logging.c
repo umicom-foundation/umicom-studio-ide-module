@@ -74,6 +74,7 @@ typedef struct {
     char *line;                                 /* Owned UTF-8 string */
 } IdleLine;
 
+/* Provide the idle append line operation used by this module and its client applications. */
 static gboolean
 idle_append_line(gpointer data)
 {
@@ -106,13 +107,15 @@ writer_func(GLogLevelFlags   log_level,
     const char *msg = NULL;                     /* Pointer to message text */
     const char *dom = NULL;                     /* Optional log domain */
     for (gsize i = 0; i < n_fields; ++i) {
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (g_strcmp0(fields[i].key, "MESSAGE") == 0) {
             msg = (const char *)fields[i].value;/* GLib provides MESSAGE as UTF-8 */
-        } else if (g_strcmp0(fields[i].key, "GLIB_DOMAIN") == 0) {
+        } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (g_strcmp0(fields[i].key, "GLIB_DOMAIN") == 0) {
             dom = (const char *)fields[i].value;/* Optional domain */
         }
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!msg) msg = "";                         /* Be robust if MESSAGE is missing */
 
     /* Compose a compact line: "[domain] message" (domain omitted if NULL). */
@@ -128,11 +131,12 @@ writer_func(GLogLevelFlags   log_level,
     const gboolean have_ui = (g_log_view != NULL);
     g_mutex_unlock(&g_log_mutex);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (have_ui) {
         IdleLine *payload = g_new0(IdleLine, 1);   /* Allocate payload */
         payload->line = line;                      /* Transfer ownership to idle */
         g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, idle_append_line, payload, NULL);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         g_free(line);                           /* No UI sink: free locally */
     }
 
@@ -140,6 +144,10 @@ writer_func(GLogLevelFlags   log_level,
     return G_LOG_WRITER_HANDLED;
 }
 
+/*
+ * Initialise ustudio logging from caller-provided values so later operations receive a
+ * known state.
+ */
 void
 ustudio_logging_init(GtkTextView *output_view)
 {
@@ -158,9 +166,11 @@ ustudio_logging_init(GtkTextView *output_view)
     g_log_set_writer_func(writer_func, NULL, NULL);
 }
 
+/* Provide the ustudio log line operation used by this module and its client applications. */
 void
 ustudio_log_line(const char *msg)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!msg) return;                                /* Nothing to log */
 
     /* Mirror to stderr for developers right away. */
@@ -171,6 +181,7 @@ ustudio_log_line(const char *msg)
     const gboolean have_ui = (g_log_view != NULL);
     g_mutex_unlock(&g_log_mutex);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (have_ui) {
         IdleLine *payload = g_new0(IdleLine, 1);
         payload->line = g_strdup(msg);              /* Copy so caller can free/modify its own string */
@@ -178,9 +189,11 @@ ustudio_log_line(const char *msg)
     }
 }
 
+/* Provide the ustudio log fmt operation used by this module and its client applications. */
 void
 ustudio_log_fmt(const char *fmt, ...)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!fmt) return;                                /* No format, nothing to do */
 
     va_list ap;

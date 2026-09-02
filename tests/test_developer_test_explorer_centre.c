@@ -27,6 +27,10 @@
 
 #include "umicom/studio/test_explorer_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioTestExplorerCentre *centre = NULL;
@@ -43,6 +47,7 @@ int main(void)
     assert(snapshot.view_contribution_count == 8U);
     assert(snapshot.experience.provider_count >= 2U);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_test_explorer_command_contribution_count();
          ++index) {
@@ -54,6 +59,7 @@ int main(void)
         assert(umi_test_platform_command_find(
                    contribution->framework_command_id) != NULL);
         assert(contribution->show_in_command_centre);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison <
                  umi_studio_test_explorer_command_contribution_count();

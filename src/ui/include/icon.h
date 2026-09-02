@@ -46,12 +46,20 @@ void umi_icon_try_apply_headerbar_logo(GtkWindow *window, int desired_px);
 /* GTK4 obtains its operating-system icon from the executable resource. These
  * no-op entry points remain available for source compatibility. */
 void umi_icon_apply_to_window(GtkWindow *window);
+/**
+ * Provide the icon try apply taskbar icon win32 operation used by this module and its
+ * client applications.
+ */
 void umi_icon_try_apply_taskbar_icon_win32(GtkWindow *window);
 
 /* These raster APIs are retained for older Studio callers. They return a tiny
  * transparent compatibility image, never the canonical Umicom artwork. New
  * code should use umi_icon_image_logo and the packaged SVG path. */
 const unsigned char *umi_icon_logo_png_data(size_t *out_length);
+/**
+ * Provide the icon get logo texture operation used by this module and its client
+ * applications.
+ */
 GdkTexture *umi_icon_get_logo_texture(void);
 
 #endif /* UMICOM_STUDIO_IDE_ICON_H */

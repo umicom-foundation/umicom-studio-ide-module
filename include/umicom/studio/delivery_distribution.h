@@ -27,7 +27,15 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio distribution matrix operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_distribution_matrix(UmiPlatformMatrix *out_matrix);
+/**
+ * Provide the studio runtime bundle operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_runtime_bundle(UmiRuntimeBundle *out_bundle);
 
 #ifdef __cplusplus

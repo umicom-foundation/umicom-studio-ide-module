@@ -26,6 +26,7 @@ struct UmiStudioProductCentre {
     UmiDistributionService *distribution;
 };
 
+/* Provide the add evidence operation used by this module and its client applications. */
 static UmiStatus add_evidence(UmiDistributionService *service,
                               const char *release_id,
                               const char *source_revision)
@@ -52,6 +53,7 @@ static UmiStatus add_evidence(UmiDistributionService *service,
         umi_distribution_service_evidence(service), &evidence);
 }
 
+/* Release or reset state held by publish so the same storage can be reused safely. */
 static UmiStatus publish_release(UmiDistributionService *service,
                                  const char *release_id,
                                  const char *product_id,
@@ -66,6 +68,7 @@ static UmiStatus publish_release(UmiDistributionService *service,
     UmiStatus status = umi_distribution_package_init(
         &package, release_id, product_id, product_id, display_name,
         version, kind, channel);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     (void)snprintf(package.provider_id, sizeof(package.provider_id),
                    "%s", "org.umicom.foundation");
@@ -82,12 +85,14 @@ static UmiStatus publish_release(UmiDistributionService *service,
     package.compatible = 1;
     package.security_update = security_update;
     status = umi_distribution_service_publish(service, &package);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = add_evidence(service, release_id, "verified-catalogue-baseline");
     }
     return status;
 }
 
+/* Provide the seed catalogue operation used by this module and its client applications. */
 static UmiStatus seed_catalogue(UmiDistributionService *service)
 {
     UmiDistributionPolicy policy = umi_distribution_policy_default();
@@ -97,16 +102,19 @@ static UmiStatus seed_catalogue(UmiDistributionService *service)
         "Verified maintenance update for the current Studio release.",
         (UmiVersion){0U, 23U, 1U}, UMI_RELEASE_STABLE,
         UMI_DISTRIBUTION_APPLICATION, 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = publish_release(
         service, "studio-0.24.0-beta", "org.umicom.studio", "Umicom Studio IDE Preview",
         "Preview channel with the next Studio integration milestone.",
         (UmiVersion){0U, 24U, 0U}, UMI_RELEASE_BETA,
         UMI_DISTRIBUTION_APPLICATION, 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = publish_release(
         service, "framework-0.9.1", "org.umicom.framework", "Umicom Framework SDK",
         "Reusable C23 Framework headers, libraries and CMake package.",
         (UmiVersion){0U, 9U, 1U}, UMI_RELEASE_STABLE,
         UMI_DISTRIBUTION_RUNTIME, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = publish_release(
         service, "c-tools-1.1.0", "org.umicom.c-tools", "Umicom C23 Tools",
         "C23 language intelligence and native diagnostics extension.",
@@ -120,30 +128,47 @@ static UmiStatus seed_catalogue(UmiDistributionService *service)
     if (status == UMI_STATUS_OK) status = umi_distribution_service_record_installation(
         service, "org.umicom.studio", umi_studio_version(),
         "C:/Dev/umicom/umicom-studio", UMI_RELEASE_STABLE, 1U);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_distribution_service_record_installation(
         service, "org.umicom.framework",
         (UmiVersion){UMICOM_FRAMEWORK_VERSION_MAJOR,
                      UMICOM_FRAMEWORK_VERSION_MINOR,
                      UMICOM_FRAMEWORK_VERSION_PATCH},
         "C:/Dev/umicom/umicom-studio/framework", UMI_RELEASE_STABLE, 1U);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_distribution_service_set_policy(
         service, "org.umicom.studio", &policy);
     policy.security_only = 1;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_distribution_service_set_policy(
         service, "org.umicom.framework", &policy);
     return status;
 }
 
+/*
+ * Initialise studio product centre from caller-provided values so later operations receive
+ * a known state.
+ */
 UmiStatus umi_studio_product_centre_create(UmiStudioProductCentre **out_centre)
 {
     UmiStudioProductCentre *centre;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_centre = NULL;
     centre = (UmiStudioProductCentre *)calloc(1U, sizeof(*centre));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     status = umi_distribution_service_create(NULL, &centre->distribution);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = seed_catalogue(centre->distribution);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_product_centre_destroy(centre);
         return status;
@@ -152,28 +177,49 @@ UmiStatus umi_studio_product_centre_create(UmiStudioProductCentre **out_centre)
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio product centre so the same storage can be reused
+ * safely.
+ */
 void umi_studio_product_centre_destroy(UmiStudioProductCentre *centre)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return;
     umi_distribution_service_destroy(centre->distribution);
     free(centre);
 }
 
+/*
+ * Provide the studio product centre service operation used by this module and its client
+ * applications.
+ */
 UmiDistributionService *umi_studio_product_centre_service(
     UmiStudioProductCentre *centre)
 {
     return centre != NULL ? centre->distribution : NULL;
 }
 
+/*
+ * Provide the studio product centre snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_product_centre_snapshot(
     const UmiStudioProductCentre *centre,
     UmiStudioProductCentreSnapshot *out_snapshot)
 {
     UmiDistributionServiceSnapshot snapshot;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     status = umi_distribution_service_snapshot(centre->distribution, &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     out_snapshot->revision = snapshot.revision;
     out_snapshot->marketplace_releases = snapshot.marketplace_releases;
@@ -188,17 +234,29 @@ UmiStatus umi_studio_product_centre_snapshot(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio product centre check updates operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_product_centre_check_updates(
     UmiStudioProductCentre *centre,
     uint64_t timestamp_ms,
     size_t *out_available_updates)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_distribution_service_scan_updates(
         centre->distribution, UMICOM_FRAMEWORK_ABI_VERSION,
         timestamp_ms, out_available_updates);
 }
 
+/*
+ * Provide the studio product centre plan update operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_product_centre_plan_update(
     UmiStudioProductCentre *centre,
     const char *release_id,
@@ -212,9 +270,14 @@ UmiStatus umi_studio_product_centre_plan_update(
     const char *install_root = "";
     UmiStatus status;
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || release_id == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     written = snprintf(transaction_id, sizeof(transaction_id),
                        "studio-update-%" PRIu64, timestamp_ms);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (written < 0 || (size_t)written >= sizeof(transaction_id)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
@@ -228,15 +291,17 @@ UmiStatus umi_studio_product_centre_plan_update(
         umi_distribution_service_repository(centre->distribution),
         release_id,
         &package);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_product_installation_state_registry_find(
         umi_product_centre_installations(
             umi_distribution_service_products(centre->distribution)),
         package.product_id,
         &installation);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_NOT_FOUND) {
         install_root = ".umicom/products";
-    } else if (status != UMI_STATUS_OK) {
+    } else /* Preserve the original failure result so the caller can respond to the correct cause. */ if (status != UMI_STATUS_OK) {
         return status;
     }
     return umi_distribution_service_plan_release(
@@ -245,6 +310,10 @@ UmiStatus umi_studio_product_centre_plan_update(
         out_decision, out_transaction);
 }
 
+/*
+ * Provide the studio product centre marketplace view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_product_centre_marketplace_view(
     UmiStudioProductCentre *centre, const char *view_id, UmiUiViewModel **out_view)
 {
@@ -254,6 +323,10 @@ UmiStatus umi_studio_product_centre_marketplace_view(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio product centre installed view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_product_centre_installed_view(
     UmiStudioProductCentre *centre, const char *view_id, UmiUiViewModel **out_view)
 {
@@ -263,6 +336,10 @@ UmiStatus umi_studio_product_centre_installed_view(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio product centre updates view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_product_centre_updates_view(
     UmiStudioProductCentre *centre, const char *view_id, UmiUiViewModel **out_view)
 {
@@ -272,6 +349,10 @@ UmiStatus umi_studio_product_centre_updates_view(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio product centre transactions view operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_product_centre_transactions_view(
     UmiStudioProductCentre *centre, const char *view_id, UmiUiViewModel **out_view)
 {
@@ -281,6 +362,10 @@ UmiStatus umi_studio_product_centre_transactions_view(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio product centre evidence view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_product_centre_evidence_view(
     UmiStudioProductCentre *centre, const char *view_id, UmiUiViewModel **out_view)
 {

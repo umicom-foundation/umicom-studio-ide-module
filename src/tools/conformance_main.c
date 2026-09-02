@@ -18,4 +18,8 @@
  */
 #include <stdio.h>
 #include "umicom/studio/conformance.h"
-int main(void){UmiStudioCompatibilityPlatform *p=NULL;UmiStudioConformanceResult r;if(umi_studio_compatibility_platform_create(&p)!=UMI_STATUS_OK)return 1;(void)umi_studio_conformance_run(p,&r);printf("Products: %zu/%zu compatible\nABI: %s\nConformance: %s\n",r.products_compatible,r.products_checked,r.abi_ok?"PASS":"FAIL",r.passed?"PASS":"FAIL");umi_studio_compatibility_platform_destroy(p);return r.passed?0:2;}
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
+int main(void){UmiStudioCompatibilityPlatform *p=NULL;UmiStudioConformanceResult r;/* Preserve the original failure result so the caller can respond to the correct cause. */ if(umi_studio_compatibility_platform_create(&p)!=UMI_STATUS_OK)return 1;(void)umi_studio_conformance_run(p,&r);printf("Products: %zu/%zu compatible\nABI: %s\nConformance: %s\n",r.products_compatible,r.products_checked,r.abi_ok?"PASS":"FAIL",r.passed?"PASS":"FAIL");umi_studio_compatibility_platform_destroy(p);return r.passed?0:2;}

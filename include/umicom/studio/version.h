@@ -27,7 +27,14 @@ extern "C" {
 #define UMICOM_STUDIO_VERSION_PATCH 0
 #define UMICOM_STUDIO_VERSION_STRING "0.23.0"
 
+/**
+ * Provide the studio version operation used by this module and its client applications.
+ */
 UmiVersion umi_studio_version(void);
+/**
+ * Provide the studio version string operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_version_string(void);
 
 #ifdef __cplusplus

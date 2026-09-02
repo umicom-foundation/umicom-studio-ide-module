@@ -20,10 +20,22 @@
 extern "C" {
 #endif
 
+/**
+ * Return the number of records represented by studio helix agent journal without changing
+ * their state.
+ */
 size_t umi_studio_helix_agent_journal_count(
     UmiStudioHelixAgentCentre *centre);
+/**
+ * Check that studio helix agent journal satisfies its contract before another service
+ * relies on it.
+ */
 int umi_studio_helix_agent_journal_valid(
     UmiStudioHelixAgentCentre *centre);
+/**
+ * Provide the studio helix agent journal entry operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_helix_agent_journal_entry(
     UmiStudioHelixAgentCentre *centre,
     size_t index,

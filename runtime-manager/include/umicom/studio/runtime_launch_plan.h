@@ -31,6 +31,9 @@
 extern "C" {
 #endif
 
+/**
+ * List the named studio runtime launch readiness values accepted by this public contract.
+ */
 typedef enum UmiStudioRuntimeLaunchReadiness {
     UMI_STUDIO_RUNTIME_LAUNCH_READY = 0,
     UMI_STUDIO_RUNTIME_LAUNCH_ALREADY_RUNNING,
@@ -38,6 +41,10 @@ typedef enum UmiStudioRuntimeLaunchReadiness {
     UMI_STUDIO_RUNTIME_LAUNCH_APPLICATION_UNKNOWN
 } UmiStudioRuntimeLaunchReadiness;
 
+/**
+ * Represent the studio runtime launch plan data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioRuntimeLaunchPlan {
     char application_id[UMI_INTEGRATION_ID_CAPACITY];
     char application_name[UMI_INTEGRATION_NAME_CAPACITY];
@@ -47,12 +54,20 @@ typedef struct UmiStudioRuntimeLaunchPlan {
     char reason[UMI_INTEGRATION_TEXT_CAPACITY];
 } UmiStudioRuntimeLaunchPlan;
 
+/**
+ * Provide the studio runtime plan launch operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_runtime_plan_launch(
     const UmiStudioRuntimeManager *manager,
     const char *application_id,
     UmiStudioRuntimeLaunchPlan *plan
 );
 
+/**
+ * Provide the studio runtime launch readiness text operation used by this module and its
+ * client applications.
+ */
 const char *umi_studio_runtime_launch_readiness_text(
     UmiStudioRuntimeLaunchReadiness readiness
 );

@@ -21,6 +21,10 @@ static void runtime_explorer_open_path(
     char view_id[UMI_UI_ID_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || path == NULL || path[0] == '\0') return;
 
     (void)memset(view_id, 0, sizeof(view_id));
@@ -30,6 +34,7 @@ static void runtime_explorer_open_path(
         view_id,
         sizeof(view_id));
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         runtime_copy_selection(
             runtime->selected_file_path,
@@ -40,6 +45,7 @@ static void runtime_explorer_open_path(
             view_id);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
     }
@@ -47,6 +53,10 @@ static void runtime_explorer_open_path(
     (void)runtime_refresh_services(runtime);
 }
 
+/*
+ * Provide the runtime on explorer row clicked operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_explorer_row_clicked(
     GtkButton *button,
     gpointer user_data)
@@ -60,6 +70,10 @@ static void runtime_on_explorer_row_clicked(
     runtime_explorer_open_path(runtime, path);
 }
 
+/*
+ * Provide the runtime explorer refresh list operation used by this module and its client
+ * applications.
+ */
 static void runtime_explorer_refresh_list(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -70,6 +84,10 @@ static void runtime_explorer_refresh_list(
     size_t visible = 0U;
     char summary[192];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->explorer_list == NULL ||
         runtime->owner == NULL) {
         return;
@@ -82,6 +100,10 @@ static void runtime_explorer_refresh_list(
         ? umi_studio_services_file_index(services)
         : NULL;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (index == NULL) {
         gtk_list_box_append(
             GTK_LIST_BOX(runtime->explorer_list),
@@ -91,6 +113,7 @@ static void runtime_explorer_refresh_list(
 
     stats = umi_file_index_stats(index);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (position = 0U;
          position < stats.files &&
          visible < UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT;
@@ -101,10 +124,12 @@ static void runtime_explorer_refresh_list(
         GtkWidget *name;
         GtkWidget *path;
 
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (umi_file_index_at(index, position, &entry) != UMI_STATUS_OK) {
             continue;
         }
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (!runtime_text_contains_casefold(
                 entry.relative_path,
                 runtime->explorer_query)) {
@@ -115,6 +140,10 @@ static void runtime_explorer_refresh_list(
         row = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
         name = runtime_label(entry.name, 0.0F);
         path = runtime_label(entry.relative_path, 0.0F);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (button == NULL || row == NULL ||
             name == NULL || path == NULL) {
             continue;
@@ -154,6 +183,10 @@ static void runtime_explorer_refresh_list(
             ? " (row limit applied)"
             : "");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->explorer_summary_label != NULL) {
         gtk_label_set_text(
             GTK_LABEL(runtime->explorer_summary_label),
@@ -161,6 +194,10 @@ static void runtime_explorer_refresh_list(
     }
 }
 
+/*
+ * Provide the runtime on explorer search changed operation used by this module and its
+ * client applications.
+ */
 static void runtime_on_explorer_search_changed(
     GtkSearchEntry *entry,
     gpointer user_data)
@@ -169,6 +206,10 @@ static void runtime_on_explorer_search_changed(
         (UmiStudioGtkRuntimeChrome *)user_data;
     const char *text;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     text = gtk_editable_get_text(GTK_EDITABLE(entry));
@@ -179,6 +220,10 @@ static void runtime_on_explorer_search_changed(
     runtime_explorer_refresh_list(runtime);
 }
 
+/*
+ * Provide the runtime on explorer refresh operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_explorer_refresh(
     GtkButton *button,
     gpointer user_data)
@@ -190,6 +235,10 @@ static void runtime_on_explorer_refresh(
     UmiStatus status;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL) return;
 
     services = umi_studio_ui_services(runtime->owner->ui);
@@ -201,6 +250,7 @@ static void runtime_on_explorer_refresh(
         ? umi_file_index_rebuild(index)
         : UMI_STATUS_UNAVAILABLE;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
     }

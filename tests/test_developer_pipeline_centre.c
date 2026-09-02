@@ -20,6 +20,10 @@
 
 #include "umicom/studio/developer_workbench.h"
 
+/*
+ * Exercise add project and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void add_project(UmiStudioDeveloperWorkbench *workbench)
 {
     UmiProjectWorkspace *workspace =
@@ -60,6 +64,10 @@ static void add_project(UmiStudioDeveloperWorkbench *workbench)
         umi_project_workspace_task(workspace),&build)==UMI_STATUS_OK);
 }
 
+/*
+ * Exercise verify delivery contributions and return a clear result when the behaviour no
+ * longer matches its contract.
+ */
 static void verify_delivery_contributions(void)
 {
     size_t index;
@@ -68,6 +76,7 @@ static void verify_delivery_contributions(void)
            umi_build_delivery_command_count());
     assert(umi_studio_build_delivery_view_contribution_count() ==
            umi_build_delivery_view_count());
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_build_delivery_command_contribution_count();
          ++index) {
@@ -76,6 +85,7 @@ static void verify_delivery_contributions(void)
         assert(contribution != NULL);
         assert(umi_build_delivery_command_find(
                    contribution->framework_command_id) != NULL);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison <
                  umi_studio_build_delivery_command_contribution_count();
@@ -86,6 +96,7 @@ static void verify_delivery_contributions(void)
                            comparison)->framework_command_id) != 0);
         }
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_build_delivery_view_contribution_count();
          ++index) {
@@ -97,6 +108,10 @@ static void verify_delivery_contributions(void)
     }
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioDeveloperWorkbench *workbench = NULL;

@@ -1,4 +1,19 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/app/include/app.h
+ *
+ * PURPOSE:
+ *   Declare the app contract shared by Framework services and thin applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE                                                   [project identifier banner]
  * File: src/gui/app/include/app.h                                    [physical location within the tree]
  *

@@ -17,18 +17,24 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioOperationsReport report;
     UmiStatus status = umi_studio_bootstrap_create(&bootstrap);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_operations_report(
             umi_studio_services_operations(
                 umi_studio_bootstrap_services(bootstrap)),
             &report);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)printf("Identities: %zu\nRoles: %zu\nPlugins: %zu\n"
                      "Contributions: %zu\nMetrics: %zu\nTrace spans: %zu\n"
@@ -41,7 +47,7 @@ int main(void)
                      report.readiness_checks, report.operational_events,
                      report.supervised_components,
                      report.ready ? "yes" : "no");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         (void)fprintf(stderr, "Operations command failed: %s\n", umi_status_text(status));
     }
     umi_studio_bootstrap_destroy(bootstrap);

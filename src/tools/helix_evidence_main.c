@@ -21,13 +21,19 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioAiPlatform *platform = NULL;
     const char *key = argc > 1 ? argv[1] : "batch";
     const char *value = argc > 2 ? argv[2] : "validation-passed";
     UmiStatus status = umi_studio_ai_platform_create(&platform);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_helix_record_evidence(platform, key, value);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         printf("%s=%s\n", key, umi_studio_helix_evidence(platform, key));
     }

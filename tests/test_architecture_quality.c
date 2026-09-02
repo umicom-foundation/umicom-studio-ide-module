@@ -21,4 +21,8 @@
  */
 #include <assert.h>
 #include "umicom/studio/architecture_quality.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void){char b[256];UmiStatus s=umi_studio_architecture_quality_report(".",b,sizeof(b));assert(s==UMI_STATUS_OK||s==UMI_STATUS_IO_ERROR);return 0;}

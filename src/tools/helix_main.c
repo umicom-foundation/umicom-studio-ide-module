@@ -22,15 +22,22 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioAiPlatform *platform = NULL;
     char output[512];
     size_t index;
     UmiStatus status = umi_studio_ai_platform_create(&platform);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_helix_status(platform, output, sizeof(output));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         printf("%s\n", output);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < umi_studio_helix_agent_count(platform); ++index) {
             const UmiHelixAgent *agent = umi_studio_helix_agent_at(platform, index);
             printf("Agent: %s kind=%s permission=%s\n",

@@ -23,8 +23,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Release or reset state held by studio charting so the same storage can be reused safely.
+ */
 UmiStatus umi_studio_charting_reset(UmiStudioWebPlatform *platform,const char *title);
+/**
+ * Provide the studio charting add close operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_charting_add_close(UmiStudioWebPlatform *platform,int64_t time_ms,double close);
+/**
+ * Provide the studio charting add sma operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_charting_add_sma(UmiStudioWebPlatform *platform,size_t period);
 #ifdef __cplusplus
 }

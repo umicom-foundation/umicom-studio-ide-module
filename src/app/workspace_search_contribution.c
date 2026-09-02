@@ -71,11 +71,19 @@ static const UmiStudioWorkspaceSearchViewContribution VIEWS[] = {
 
 #undef VIEW
 
+/*
+ * Return the number of records represented by studio workspace search command contribution
+ * without changing their state.
+ */
 size_t umi_studio_workspace_search_command_contribution_count(void)
 {
     return sizeof(COMMANDS) / sizeof(COMMANDS[0]);
 }
 
+/*
+ * Find studio workspace search command contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioWorkspaceSearchCommandContribution *
 umi_studio_workspace_search_command_contribution_at(size_t position)
 {
@@ -83,15 +91,25 @@ umi_studio_workspace_search_command_contribution_at(size_t position)
         ? &COMMANDS[position] : NULL;
 }
 
+/*
+ * Find studio workspace search command contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioWorkspaceSearchCommandContribution *
 umi_studio_workspace_search_command_contribution_find(
     const char *framework_command_id)
 {
     size_t position;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (framework_command_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (position = 0U;
          position < umi_studio_workspace_search_command_contribution_count();
          ++position) {
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (strcmp(COMMANDS[position].framework_command_id,
                    framework_command_id) == 0) {
             return &COMMANDS[position];
@@ -100,11 +118,19 @@ umi_studio_workspace_search_command_contribution_find(
     return NULL;
 }
 
+/*
+ * Return the number of records represented by studio workspace search view contribution
+ * without changing their state.
+ */
 size_t umi_studio_workspace_search_view_contribution_count(void)
 {
     return sizeof(VIEWS) / sizeof(VIEWS[0]);
 }
 
+/*
+ * Find studio workspace search view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioWorkspaceSearchViewContribution *
 umi_studio_workspace_search_view_contribution_at(size_t position)
 {
@@ -112,14 +138,24 @@ umi_studio_workspace_search_view_contribution_at(size_t position)
         ? &VIEWS[position] : NULL;
 }
 
+/*
+ * Find studio workspace search view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioWorkspaceSearchViewContribution *
 umi_studio_workspace_search_view_contribution_find(const char *view_id)
 {
     size_t position;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (view_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (position = 0U;
          position < umi_studio_workspace_search_view_contribution_count();
          ++position) {
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (strcmp(VIEWS[position].view_id, view_id) == 0) {
             return &VIEWS[position];
         }

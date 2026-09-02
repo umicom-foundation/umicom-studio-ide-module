@@ -52,6 +52,7 @@ static void on_runner_line(gpointer user, const char *line, gboolean is_err);
 gboolean
 umi_run_pipeline_start(UmiOutputPane *out, UmiProblemList *plist, GError **err)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!out || !plist) {
     g_set_error(err, g_quark_from_static_string("uside-run"), 1,
                 "output pane and problem list must be non-NULL");
@@ -61,6 +62,7 @@ umi_run_pipeline_start(UmiOutputPane *out, UmiProblemList *plist, GError **err)
   /* Create runner on first use.                                              */
   if (!s_runner) {
     s_runner = umi_build_runner_new();
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!s_runner) {
       g_set_error(err, g_quark_from_static_string("uside-run"), 2,
                   "failed to create build runner");
@@ -83,6 +85,7 @@ umi_run_pipeline_start(UmiOutputPane *out, UmiProblemList *plist, GError **err)
 
   /* Load run configuration and prepare argv/envp/cwd.                        */
   UmiRunConfig *rc = umi_run_config_load();
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!rc) {
     g_free(s_ctx); s_ctx = NULL;
     g_set_error(err, g_quark_from_static_string("uside-run"), 4,
@@ -122,6 +125,7 @@ umi_run_pipeline_start(UmiOutputPane *out, UmiProblemList *plist, GError **err)
 
   /* Cleanup transient vectors and config.                                    */
   if (argv) g_strfreev(argv);
+  /* Apply this branch only when its contract condition is satisfied. */
   if (envp) g_strfreev(envp);
   umi_run_config_free(rc);
 
@@ -153,6 +157,7 @@ on_runner_line(gpointer user, const char *line, gboolean is_err)
 {
   (void)is_err;                            /* styling may ignore distinction  */
   UmiRunPipelineCtx *ctx = (UmiRunPipelineCtx *)user;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ctx || !line) return;
   umi_diag_router_feed(&ctx->router, line);
 }

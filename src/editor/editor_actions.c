@@ -39,14 +39,19 @@
 
 static GtkTextBuffer* ensure_buffer(UmiEditor *ed)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!ed) return NULL;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!ed->buffer) ed->buffer = gtk_text_buffer_new(NULL);
     return ed->buffer;
 }
 
+/* Provide the editor open file operation used by this module and its client applications. */
 gboolean umi_editor_open_file(UmiEditor *ed, const char *path, GError **err)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!ed || !path || !*path) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (err) g_set_error(err, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
                              "umi_editor_open_file: invalid editor or path");
         return FALSE;
@@ -54,11 +59,13 @@ gboolean umi_editor_open_file(UmiEditor *ed, const char *path, GError **err)
 
     gchar *txt = NULL;
     gsize len = 0;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!g_file_get_contents(path, &txt, &len, err)) {
         return FALSE; /* 'err' already set */
     }
 
     GtkTextBuffer *buf = ensure_buffer(ed);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!buf) { g_free(txt); return FALSE; }
 
     gtk_text_buffer_set_text(buf, txt, (gint)len);
@@ -71,16 +78,24 @@ gboolean umi_editor_open_file(UmiEditor *ed, const char *path, GError **err)
     return TRUE;
 }
 
+/*
+ * Write editor in its stable representation and report capacity or input failures to the
+ * caller.
+ */
 gboolean umi_editor_save(UmiEditor *ed, GError **err)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!ed || !ed->current_file) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (err) g_set_error(err, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
                              "umi_editor_save: no current file");
         return FALSE;
     }
 
     GtkTextBuffer *buf = ensure_buffer(ed);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!buf) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (err) g_set_error(err, G_IO_ERROR, G_IO_ERROR_FAILED,
                              "umi_editor_save: no buffer");
         return FALSE;
@@ -91,21 +106,30 @@ gboolean umi_editor_save(UmiEditor *ed, GError **err)
     gchar *txt = gtk_text_buffer_get_text(buf, &s, &e, FALSE);
 
     gboolean ok = g_file_set_contents(ed->current_file, txt, -1, err);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (ok) g_message("Editor: saved '%s'", ed->current_file);
     g_free(txt);
     return ok;
 }
 
+/*
+ * Provide the editor save as path operation used by this module and its client
+ * applications.
+ */
 gboolean umi_editor_save_as_path(UmiEditor *ed, const char *path, GError **err)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!ed || !path || !*path) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (err) g_set_error(err, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
                              "umi_editor_save_as_path: invalid editor or path");
         return FALSE;
     }
 
     GtkTextBuffer *buf = ensure_buffer(ed);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!buf) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (err) g_set_error(err, G_IO_ERROR, G_IO_ERROR_FAILED,
                              "umi_editor_save_as_path: no buffer");
         return FALSE;
@@ -116,6 +140,7 @@ gboolean umi_editor_save_as_path(UmiEditor *ed, const char *path, GError **err)
     gchar *txt = gtk_text_buffer_get_text(buf, &s, &e, FALSE);
 
     gboolean ok = g_file_set_contents(path, txt, -1, err);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (ok) {
         g_free(ed->current_file);
         ed->current_file = g_strdup(path);
@@ -125,17 +150,21 @@ gboolean umi_editor_save_as_path(UmiEditor *ed, const char *path, GError **err)
     return ok;
 }
 
+/* Provide the editor save as operation used by this module and its client applications. */
 gboolean umi_editor_save_as(UmiEditor *ed, GError **err)
 {
     (void)ed;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (err) *err = g_error_new_literal(G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
                                         "Save As dialog not implemented yet");
     return FALSE;
 }
 
+/* Provide the editor new file operation used by this module and its client applications. */
 void umi_editor_new_file(UmiEditor *ed)
 {
     GtkTextBuffer *buf = ensure_buffer(ed);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!ed || !buf) return;
 
     gtk_text_buffer_set_text(buf, "", -1);

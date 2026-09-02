@@ -26,7 +26,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio consolidation report data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioConsolidationReport { size_t architecture_findings; size_t duplicates; size_t high_risk; int ready; } UmiStudioConsolidationReport;
+/**
+ * Provide the studio consolidation check operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_consolidation_check(const char *root,UmiStudioConsolidationReport *out_report);
 #ifdef __cplusplus
 }

@@ -56,6 +56,7 @@ umi_transpile_demo(void)
   g_autofree gchar *translated =
       umi_translate_text(sample, "en", "ar", &cfg, err, sizeof(err));
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!translated) {
     umi_status_error("Transpile", "Translation failed: %s", err[0] ? err : "unknown error");
     return;

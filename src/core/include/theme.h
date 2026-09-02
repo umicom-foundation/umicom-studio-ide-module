@@ -3,6 +3,22 @@
  * File: src/core/include/theme.h
  *
  * PURPOSE:
+ *   Declare the theme contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/include/theme.h
+ *
+ * PURPOSE:
  *   Core-visible theme API shim that forwards to the GUI theme module.
  *   This header exists to provide a stable include path for core code.
  *
@@ -16,10 +32,18 @@
 #define UMICOM_THEME_H
 
 #include <gtk/gtk.h>
+/**
+ * Perform theme through the module contract so client applications do not duplicate its
+ * policy.
+ */
 G_BEGIN_DECLS
 /* Apply a named theme to the given window. */
 void umi_theme_apply(GtkWindow *win, const char *theme_name);
 
+/**
+ * Provide the theme apply brand css operation used by this module and its client
+ * applications.
+ */
 void umi_theme_apply_brand_css(GtkWidget *root_window);
 
 /* Apply the default theme to the given window. */

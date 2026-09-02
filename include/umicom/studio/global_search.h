@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio global search snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioGlobalSearchSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioGlobalSearchSnapshot {
     size_t item_count;
     int available;
 } UmiStudioGlobalSearchSnapshot;
+/**
+ * Provide the studio global search snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_global_search_snapshot(UmiStudioServices *services, UmiStudioGlobalSearchSnapshot *out_snapshot);
 #ifdef __cplusplus
 }

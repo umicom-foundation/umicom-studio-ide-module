@@ -48,6 +48,10 @@
 #include "umicom/studio/watcher.h"
 #include "umicom/studio/workspace.h"
 
+/*
+ * Provide the session save handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus session_save_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -56,6 +60,10 @@ static UmiStatus session_save_handler(void *user_data,
     UmiStatus status;
     (void)argument;
     status = umi_studio_session_save((UmiStudioServices *)user_data);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -67,6 +75,10 @@ static UmiStatus session_save_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the documents save all handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus documents_save_all_handler(void *user_data,
                                             const char *argument,
                                             char *out_message,
@@ -80,6 +92,10 @@ static UmiStatus documents_save_all_handler(void *user_data,
     status = umi_studio_documents_save_all((UmiStudioServices *)user_data,
                                            &saved,
                                            &failed);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -90,6 +106,10 @@ static UmiStatus documents_save_all_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the tasks wait idle handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus tasks_wait_idle_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -101,15 +121,24 @@ static UmiStatus tasks_wait_idle_handler(void *user_data,
     char *end = NULL;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && argument[0] != '\0') {
         errno = 0;
         timeout = strtoul(argument, &end, 10);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (errno != 0 || end == argument || *end != '\0' ||
             timeout > UINT32_MAX) {
             return UMI_STATUS_INVALID_ARGUMENT;
         }
     }
     status = umi_task_queue_wait_idle(queue, (uint32_t)timeout);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -121,6 +150,10 @@ static UmiStatus tasks_wait_idle_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the recovery purge handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus recovery_purge_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -133,6 +166,10 @@ static UmiStatus recovery_purge_handler(void *user_data,
     status = umi_recovery_manager_purge(
         umi_studio_services_recovery(services)
     );
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -144,6 +181,10 @@ static UmiStatus recovery_purge_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the workspace refresh handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus workspace_refresh_handler(void *user_data,
                                            const char *argument,
                                            char *out_message,
@@ -152,6 +193,10 @@ static UmiStatus workspace_refresh_handler(void *user_data,
     UmiStatus status;
     (void)argument;
     status = umi_studio_workspace_refresh((UmiStudioServices *)user_data);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -163,6 +208,10 @@ static UmiStatus workspace_refresh_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the workspace close handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus workspace_close_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -171,6 +220,10 @@ static UmiStatus workspace_close_handler(void *user_data,
     UmiStatus status;
     (void)argument;
     status = umi_studio_workspace_close((UmiStudioServices *)user_data);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -182,6 +235,10 @@ static UmiStatus workspace_close_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the watcher scan handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus watcher_scan_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -190,6 +247,10 @@ static UmiStatus watcher_scan_handler(void *user_data,
     UmiStatus status;
     (void)argument;
     status = umi_studio_watcher_scan_once((UmiStudioServices *)user_data);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -202,6 +263,10 @@ static UmiStatus watcher_scan_handler(void *user_data,
 }
 
 
+/*
+ * Provide the data integrity handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus data_integrity_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -211,6 +276,10 @@ static UmiStatus data_integrity_handler(void *user_data,
     UmiStatus status;
     (void)argument;
     status = umi_studio_data_report((UmiStudioServices *)user_data, &report);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Data Server %s: %zu record(s), integrity %s",
@@ -221,6 +290,10 @@ static UmiStatus data_integrity_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the messages flush handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus messages_flush_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -234,6 +307,10 @@ static UmiStatus messages_flush_handler(void *user_data,
                                               0U,
                                               &delivered,
                                               &failed);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Outbox delivered %zu; failed %zu",
@@ -242,6 +319,10 @@ static UmiStatus messages_flush_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the messages replay handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus messages_replay_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -254,6 +335,10 @@ static UmiStatus messages_replay_handler(void *user_data,
     status = umi_studio_replay((UmiStudioServices *)user_data,
                                &request,
                                &replayed);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Replayed %zu durable message(s)", replayed);
@@ -261,6 +346,10 @@ static UmiStatus messages_replay_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the security report handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus security_report_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -271,6 +360,10 @@ static UmiStatus security_report_handler(void *user_data,
     (void)argument;
     status = umi_studio_security_report((UmiStudioServices *)user_data,
                                         &report);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -282,6 +375,10 @@ static UmiStatus security_report_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the plugins report handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus plugins_report_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -292,6 +389,10 @@ static UmiStatus plugins_report_handler(void *user_data,
     (void)argument;
     status = umi_studio_plugins_report((UmiStudioServices *)user_data,
                                        &report);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -302,6 +403,10 @@ static UmiStatus plugins_report_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the marketplace check updates handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus marketplace_check_updates_handler(
     void *user_data,
     const char *argument,
@@ -316,6 +421,10 @@ static UmiStatus marketplace_check_updates_handler(
     uint64_t timestamp_ms = 0U;
     (void)argument;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (clock != NULL && clock->wall_nanoseconds != NULL) {
         timestamp_ms = clock->wall_nanoseconds(clock) / UINT64_C(1000000);
     }
@@ -323,6 +432,10 @@ static UmiStatus marketplace_check_updates_handler(
         ? umi_studio_product_centre_check_updates(
               centre, timestamp_ms, &available)
         : UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Product updates: %zu verified release(s) available",
@@ -331,6 +444,10 @@ static UmiStatus marketplace_check_updates_handler(
     return status;
 }
 
+/*
+ * Provide the marketplace plan update handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus marketplace_plan_update_handler(
     void *user_data,
     const char *argument,
@@ -344,9 +461,17 @@ static UmiStatus marketplace_plan_update_handler(
     UmiDistributionTransaction transaction;
     UmiStatus status;
     uint64_t timestamp_ms = 0U;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(&decision, 0, sizeof(decision));
     (void)memset(&transaction, 0, sizeof(transaction));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (clock != NULL && clock->wall_nanoseconds != NULL) {
         timestamp_ms = clock->wall_nanoseconds(clock) / UINT64_C(1000000);
     }
@@ -354,6 +479,10 @@ static UmiStatus marketplace_plan_update_handler(
         ? umi_studio_product_centre_plan_update(
               centre, argument, timestamp_ms, &decision, &transaction)
         : UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity, "%s",
                        status == UMI_STATUS_OK
@@ -364,6 +493,10 @@ static UmiStatus marketplace_plan_update_handler(
     return status;
 }
 
+/*
+ * Provide the observability report handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus observability_report_handler(void *user_data,
                                               const char *argument,
                                               char *out_message,
@@ -374,6 +507,10 @@ static UmiStatus observability_report_handler(void *user_data,
     (void)argument;
     status = umi_studio_observability_report((UmiStudioServices *)user_data,
                                              &report);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -385,6 +522,10 @@ static UmiStatus observability_report_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the resilience report handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus resilience_report_handler(void *user_data,
                                            const char *argument,
                                            char *out_message,
@@ -395,6 +536,10 @@ static UmiStatus resilience_report_handler(void *user_data,
     (void)argument;
     status = umi_studio_resilience_report((UmiStudioServices *)user_data,
                                           &report);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -406,6 +551,10 @@ static UmiStatus resilience_report_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build phase handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_phase_handler(UmiStudioServices *services,
                                      UmiBuildPhase phase,
                                      char *out_message,
@@ -414,14 +563,20 @@ static UmiStatus build_phase_handler(UmiStudioServices *services,
     UmiBuildResult *result = NULL;
     UmiStatus status = umi_build_result_create(&result);
     UmiStatus diagnostic_status;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_build_service_run(
         umi_studio_services_build(services), phase, result);
     diagnostic_status =
         umi_studio_diagnostics_ingest_build_result(services, result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK && diagnostic_status != UMI_STATUS_OK) {
         status = diagnostic_status;
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -435,6 +590,10 @@ static UmiStatus build_phase_handler(UmiStudioServices *services,
     return status;
 }
 
+/*
+ * Provide the build configure handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_configure_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -447,6 +606,10 @@ static UmiStatus build_configure_handler(void *user_data,
                                message_capacity);
 }
 
+/*
+ * Provide the build compile handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_compile_handler(void *user_data,
                                        const char *argument,
                                        char *out_message,
@@ -459,6 +622,10 @@ static UmiStatus build_compile_handler(void *user_data,
                                message_capacity);
 }
 
+/*
+ * Provide the build test handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_test_handler(void *user_data,
                                     const char *argument,
                                     char *out_message,
@@ -471,6 +638,10 @@ static UmiStatus build_test_handler(void *user_data,
                                message_capacity);
 }
 
+/*
+ * Provide the build clean handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_clean_handler(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -483,6 +654,7 @@ static UmiStatus build_clean_handler(void *user_data,
                                message_capacity);
 }
 
+/* Provide the build run handler operation used by this module and its client applications. */
 static UmiStatus build_run_handler(void *user_data,
                                    const char *argument,
                                    char *out_message,
@@ -495,6 +667,10 @@ static UmiStatus build_run_handler(void *user_data,
                                message_capacity);
 }
 
+/*
+ * Provide the build install handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_install_handler(void *user_data,
                                        const char *argument,
                                        char *out_message,
@@ -507,6 +683,10 @@ static UmiStatus build_install_handler(void *user_data,
                                message_capacity);
 }
 
+/*
+ * Provide the build retry handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_retry_handler(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -517,20 +697,30 @@ static UmiStatus build_retry_handler(void *user_data,
     UmiBuildWorkspaceSnapshot snapshot;
     const char *node_id = argument;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (node_id == NULL || node_id[0] == '\0') {
         status = umi_build_workspace_snapshot(
             umi_studio_build_service_workspace(service), &snapshot);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK || !snapshot.has_selected_node)
             return status != UMI_STATUS_OK
                 ? status : UMI_STATUS_INVALID_ARGUMENT;
         node_id = snapshot.selected_node_id;
     }
     status = umi_studio_build_service_retry(service, node_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity,
                            "Operation '%s' scheduled for retry", node_id);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity,
                            "Retry '%s': %s", node_id,
                            umi_status_text(status));
@@ -539,6 +729,10 @@ static UmiStatus build_retry_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build cancel handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_cancel_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -547,6 +741,10 @@ static UmiStatus build_cancel_handler(void *user_data,
     (void)argument;
     umi_studio_build_service_cancel(
         umi_studio_services_build((UmiStudioServices *)user_data));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Build cancellation requested");
@@ -554,6 +752,7 @@ static UmiStatus build_cancel_handler(void *user_data,
     return UMI_STATUS_OK;
 }
 
+/* Provide the build workspace operation used by this module and its client applications. */
 static UmiBuildWorkspace *build_workspace(void *user_data)
 {
     UmiStudioBuildService *service = umi_studio_services_build(
@@ -562,6 +761,10 @@ static UmiBuildWorkspace *build_workspace(void *user_data)
         ? umi_studio_build_service_workspace(service) : NULL;
 }
 
+/*
+ * Provide the build filter handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_filter_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -573,36 +776,47 @@ static UmiStatus build_filter_handler(void *user_data,
     UmiBuildWorkspaceSnapshot snapshot;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(text, "all") == 0) text = "";
-    else if (strcmp(text, "pending") == 0) {
+    else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "pending") == 0) {
         text = "";
         node_filter = UMI_BUILD_WORKSPACE_NODES_PENDING;
-    } else if (strcmp(text, "ready") == 0) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "ready") == 0) {
         text = "";
         node_filter = UMI_BUILD_WORKSPACE_NODES_READY;
-    } else if (strcmp(text, "running") == 0) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "running") == 0) {
         text = "";
         node_filter = UMI_BUILD_WORKSPACE_NODES_RUNNING;
-    } else if (strcmp(text, "succeeded") == 0) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "succeeded") == 0) {
         text = "";
         node_filter = UMI_BUILD_WORKSPACE_NODES_SUCCEEDED;
-    } else if (strcmp(text, "failed") == 0) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "failed") == 0) {
         text = "";
         node_filter = UMI_BUILD_WORKSPACE_NODES_FAILED;
-    } else if (strcmp(text, "blocked") == 0) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "blocked") == 0) {
         text = "";
         node_filter = UMI_BUILD_WORKSPACE_NODES_BLOCKED;
     }
     status = umi_build_workspace_set_filter(workspace, text, node_filter);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK)
         status = umi_build_workspace_snapshot(workspace, &snapshot);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity,
                            "Build filter selected %zu build node(s)",
                            snapshot.visible_node_count);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity, "Build filter: %s",
                            umi_status_text(status));
         }
@@ -610,6 +824,10 @@ static UmiStatus build_filter_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build select node handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_select_node_handler(void *user_data,
                                            const char *argument,
                                            char *out_message,
@@ -618,10 +836,22 @@ static UmiStatus build_select_node_handler(void *user_data,
     UmiBuildWorkspace *workspace = build_workspace(user_data);
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0')
         return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_build_workspace_select_node(workspace, argument);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U)
         (void)snprintf(out_message, message_capacity,
                        "Selected build node %s: %s", argument,
@@ -629,6 +859,10 @@ static UmiStatus build_select_node_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build select operation handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_select_operation_handler(void *user_data,
                                                 const char *argument,
                                                 char *out_message,
@@ -639,15 +873,28 @@ static UmiStatus build_select_operation_handler(void *user_data,
     char *end = NULL;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0')
         return UMI_STATUS_INVALID_ARGUMENT;
     errno = 0;
     operation_id = strtoull(argument, &end, 10);
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (errno != 0 || end == argument || *end != '\0' || operation_id == 0U)
         return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_build_workspace_select_operation(
         workspace, (uint64_t)operation_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U)
         (void)snprintf(out_message, message_capacity,
                        "Selected build operation %llu: %s", operation_id,
@@ -655,6 +902,10 @@ static UmiStatus build_select_operation_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build select artifact handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_select_artifact_handler(void *user_data,
                                                const char *argument,
                                                char *out_message,
@@ -663,10 +914,22 @@ static UmiStatus build_select_artifact_handler(void *user_data,
     UmiBuildWorkspace *workspace = build_workspace(user_data);
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0')
         return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_build_workspace_select_artifact(workspace, argument);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U)
         (void)snprintf(out_message, message_capacity,
                        "Selected build artifact %s: %s", argument,
@@ -674,6 +937,10 @@ static UmiStatus build_select_artifact_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build run next handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_run_next_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -685,20 +952,28 @@ static UmiStatus build_run_next_handler(void *user_data,
     (void)argument;
 
     status = umi_build_result_create(&result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_build_service_execute_next(
         umi_studio_services_build(services), result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_NOT_FOUND) {
         UmiStatus diagnostic_status =
             umi_studio_diagnostics_ingest_build_result(services, result);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK && diagnostic_status != UMI_STATUS_OK)
             status = diagnostic_status;
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_NOT_FOUND) {
             (void)snprintf(out_message, message_capacity,
                            "No build graph node is ready");
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity,
                            "Build operation #%" PRIu64 ": %s",
                            result->operation_id, umi_status_text(status));
@@ -708,6 +983,10 @@ static UmiStatus build_run_next_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build run all handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_run_all_handler(void *user_data,
                                        const char *argument,
                                        char *out_message,
@@ -720,17 +999,24 @@ static UmiStatus build_run_all_handler(void *user_data,
     size_t executed = 0U;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && argument[0] != '\0') {
         errno = 0;
         maximum_nodes = strtoul(argument, &end, 10);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (errno != 0 || end == argument || *end != '\0' ||
             maximum_nodes == 0UL || maximum_nodes > UMI_BUILD_GRAPH_MAX_NODES)
             return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_studio_build_service_execute_all(
         service, (size_t)maximum_nodes, &executed);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (executed > 0U) {
         UmiBuildResult *latest = NULL;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (umi_build_result_create(&latest) == UMI_STATUS_OK &&
             umi_build_history_latest(
                 umi_studio_build_service_history(service), latest) ==
@@ -738,11 +1024,16 @@ static UmiStatus build_run_all_handler(void *user_data,
             UmiStatus diagnostic_status =
                 umi_studio_diagnostics_ingest_build_result(
                     (UmiStudioServices *)user_data, latest);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_OK && diagnostic_status != UMI_STATUS_OK)
                 status = diagnostic_status;
         }
         umi_build_result_destroy(latest);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U)
         (void)snprintf(out_message, message_capacity,
                        "Build plan executed %zu node(s): %s", executed,
@@ -750,6 +1041,10 @@ static UmiStatus build_run_all_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build invalidate handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_invalidate_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -764,17 +1059,32 @@ static UmiStatus build_invalidate_handler(void *user_data,
     const char *node_id = argument;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
     status = umi_build_workspace_snapshot(workspace, &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (node_id == NULL || node_id[0] == '\0')
         node_id = snapshot.selected_node_id;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (node_id[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_build_graph_find(umi_studio_build_service_graph(service),
                                   node_id, &node);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK)
         status = umi_studio_build_service_invalidate(
             service, node_id, node.input_revision + 1U);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U)
         (void)snprintf(out_message, message_capacity,
                        "Invalidate build node %s: %s", node_id,
@@ -782,6 +1092,10 @@ static UmiStatus build_invalidate_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build refresh handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_refresh_handler(void *user_data,
                                        const char *argument,
                                        char *out_message,
@@ -792,18 +1106,28 @@ static UmiStatus build_refresh_handler(void *user_data,
     UmiStatus status;
     (void)argument;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
     status = umi_build_workspace_refresh(workspace);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK)
         status = umi_build_workspace_snapshot(workspace, &snapshot);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity,
                            "Build workspace refreshed: %zu ready, %zu running, %zu failed",
                            snapshot.graph.ready_count,
                            snapshot.graph.running_count,
                            snapshot.graph.failed_count);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity,
                            "Build refresh: %s", umi_status_text(status));
         }
@@ -811,6 +1135,10 @@ static UmiStatus build_refresh_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the build clear history handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus build_clear_history_handler(void *user_data,
                                              const char *argument,
                                              char *out_message,
@@ -819,14 +1147,26 @@ static UmiStatus build_clear_history_handler(void *user_data,
     UmiBuildWorkspace *workspace = build_workspace(user_data);
     (void)argument;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
     umi_build_workspace_clear_history(workspace);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U)
         (void)snprintf(out_message, message_capacity,
                        "Build history and retained output cleared");
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the tests discover handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus tests_discover_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -844,6 +1184,10 @@ static UmiStatus tests_discover_handler(void *user_data,
         argument != NULL && argument[0] != '\0'
             ? argument : profile->build_directory,
         profile->configuration, &summary);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -854,6 +1198,7 @@ static UmiStatus tests_discover_handler(void *user_data,
     return status;
 }
 
+/* Provide the tests workspace operation used by this module and its client applications. */
 static UmiTestWorkspace *tests_workspace(void *user_data)
 {
     UmiStudioTestService *service = umi_studio_services_tests(
@@ -862,6 +1207,10 @@ static UmiTestWorkspace *tests_workspace(void *user_data)
         ? umi_studio_test_service_workspace(service) : NULL;
 }
 
+/*
+ * Provide the tests filter handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus tests_filter_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -873,31 +1222,41 @@ static UmiStatus tests_filter_handler(void *user_data,
     int failed_only = 0;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(text, "all") == 0) text = "";
-    else if (strcmp(text, "failed") == 0) failed_only = 1;
-    else if (strcmp(text, "passed") == 0) {
+    else /* Preserve the original failure result so the caller can respond to the correct cause. */ if (strcmp(text, "failed") == 0) failed_only = 1;
+    else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "passed") == 0) {
         text = "";
         outcome = UMI_TEST_PLATFORM_OUTCOME_PASSED;
-    } else if (strcmp(text, "skipped") == 0) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "skipped") == 0) {
         text = "";
         outcome = UMI_TEST_PLATFORM_OUTCOME_SKIPPED;
-    } else if (strcmp(text, "not-run") == 0) {
+    } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(text, "not-run") == 0) {
         text = "";
         outcome = UMI_TEST_PLATFORM_OUTCOME_NOT_RUN;
     }
     status = umi_test_workspace_set_filter(
         workspace, failed_only ? "" : text, "", "", outcome, 0,
         failed_only);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         UmiTestWorkspaceSnapshot snapshot;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK &&
             umi_test_workspace_snapshot(workspace, &snapshot) ==
                 UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity,
                            "Testing filter selected %zu test(s)",
                            snapshot.visible_item_count);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity, "Testing filter: %s",
                            umi_status_text(status));
         }
@@ -905,6 +1264,10 @@ static UmiStatus tests_filter_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the tests select handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus tests_select_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -913,11 +1276,23 @@ static UmiStatus tests_select_handler(void *user_data,
     UmiTestWorkspace *workspace = tests_workspace(user_data);
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_test_workspace_select_item(workspace, argument);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity, "Selected test %s: %s",
                        argument, umi_status_text(status));
@@ -934,6 +1309,10 @@ typedef enum StudioTestWorkspaceOperation {
     STUDIO_TEST_REPEAT_SELECTED
 } StudioTestWorkspaceOperation;
 
+/*
+ * Provide the tests execute operation operation used by this module and its client
+ * applications.
+ */
 static UmiStatus tests_execute_operation(
     void *user_data, const char *argument, char *out_message,
     size_t message_capacity, StudioTestWorkspaceOperation operation)
@@ -946,11 +1325,17 @@ static UmiStatus tests_execute_operation(
     UmiTestPlatformExecutionSummary summary;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /* Select the behaviour associated with the requested command or state value. */
     switch (operation) {
         case STUDIO_TEST_RUN_ALL:
             status = umi_test_workspace_set_run_mode(
                 workspace, UMI_TEST_WORKSPACE_RUN);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_OK) {
                 status = umi_test_workspace_plan_all(workspace, &plan);
             }
@@ -958,6 +1343,7 @@ static UmiStatus tests_execute_operation(
         case STUDIO_TEST_RUN_SELECTED:
             status = umi_test_workspace_set_run_mode(
                 workspace, UMI_TEST_WORKSPACE_RUN);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_OK) {
                 status = umi_test_workspace_plan_selected(workspace, &plan);
             }
@@ -965,6 +1351,7 @@ static UmiStatus tests_execute_operation(
         case STUDIO_TEST_DEBUG_SELECTED:
             status = umi_test_workspace_set_run_mode(
                 workspace, UMI_TEST_WORKSPACE_DEBUG);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_OK) {
                 status = umi_test_workspace_plan_selected(workspace, &plan);
             }
@@ -972,6 +1359,7 @@ static UmiStatus tests_execute_operation(
         case STUDIO_TEST_RUN_COVERAGE:
             status = umi_test_workspace_set_run_mode(
                 workspace, UMI_TEST_WORKSPACE_COVERAGE);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_OK) {
                 status = umi_test_workspace_plan_all(workspace, &plan);
             }
@@ -979,6 +1367,7 @@ static UmiStatus tests_execute_operation(
         case STUDIO_TEST_RERUN_FAILED:
             status = umi_test_workspace_set_run_mode(
                 workspace, UMI_TEST_WORKSPACE_RUN);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_OK) {
                 status = umi_test_workspace_plan_failed(workspace, &plan);
             }
@@ -987,12 +1376,14 @@ static UmiStatus tests_execute_operation(
             char *end = NULL;
             unsigned long repeat = argument != NULL && argument[0] != '\0'
                 ? strtoul(argument, &end, 10) : 10UL;
+            /* Apply this branch only when its contract condition is satisfied. */
             if (repeat == 0UL || repeat > UINT32_MAX ||
                 (end != NULL && *end != '\0')) {
                 return UMI_STATUS_INVALID_ARGUMENT;
             }
             status = umi_test_workspace_set_run_mode(
                 workspace, UMI_TEST_WORKSPACE_RUN);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (status == UMI_STATUS_OK) {
                 status = umi_test_workspace_plan_repeat_selected(
                     workspace, (uint32_t)repeat, 0, &plan);
@@ -1004,9 +1395,14 @@ static UmiStatus tests_execute_operation(
             break;
     }
     (void)memset(&summary, 0, sizeof(summary));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_test_service_execute(service, &plan, &summary);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Tests: %zu planned, %zu executed, %zu passed, "
@@ -1037,6 +1433,10 @@ DEFINE_TEST_EXECUTION_HANDLER(tests_repeat_selected_handler,
                               STUDIO_TEST_REPEAT_SELECTED)
 #undef DEFINE_TEST_EXECUTION_HANDLER
 
+/*
+ * Provide the tests stop handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus tests_stop_handler(void *user_data, const char *argument,
                                     char *out_message, size_t capacity)
 {
@@ -1046,6 +1446,10 @@ static UmiStatus tests_stop_handler(void *user_data, const char *argument,
 
     status = workspace != NULL
         ? umi_test_workspace_request_stop(workspace) : UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Stop test run: %s",
                        umi_status_text(status));
@@ -1059,6 +1463,10 @@ typedef enum StudioTestClearOperation {
     STUDIO_TEST_CLEAR_COVERAGE
 } StudioTestClearOperation;
 
+/*
+ * Provide the tests clear operation operation used by this module and its client
+ * applications.
+ */
 static UmiStatus tests_clear_operation(
     void *user_data, const char *argument, char *out_message, size_t capacity,
     StudioTestClearOperation operation)
@@ -1066,14 +1474,23 @@ static UmiStatus tests_clear_operation(
     UmiTestWorkspace *workspace = tests_workspace(user_data);
     (void)argument;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (operation == STUDIO_TEST_CLEAR_RESULTS) {
         umi_test_workspace_clear_results(workspace);
-    } else if (operation == STUDIO_TEST_CLEAR_OUTPUT) {
+    } else /* Apply this branch only when its contract condition is satisfied. */ if (operation == STUDIO_TEST_CLEAR_OUTPUT) {
         umi_test_workspace_clear_output(workspace);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         umi_test_workspace_clear_coverage(workspace);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Testing evidence cleared");
     }
@@ -1094,6 +1511,10 @@ DEFINE_TEST_CLEAR_HANDLER(tests_clear_coverage_handler,
                           STUDIO_TEST_CLEAR_COVERAGE)
 #undef DEFINE_TEST_CLEAR_HANDLER
 
+/*
+ * Provide the terminal execute handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_execute_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -1102,6 +1523,10 @@ static UmiStatus terminal_execute_handler(void *user_data,
     UmiStudioServices *services = (UmiStudioServices *)user_data;
     int exit_code = 0;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -1111,6 +1536,10 @@ static UmiStatus terminal_execute_handler(void *user_data,
         30000U,
         NULL,
         &exit_code);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -1121,6 +1550,10 @@ static UmiStatus terminal_execute_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the diagnostics clear handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus diagnostics_clear_handler(void *user_data,
                                            const char *argument,
                                            char *out_message,
@@ -1129,6 +1562,10 @@ static UmiStatus diagnostics_clear_handler(void *user_data,
     UmiStatus status;
     (void)argument;
     status = umi_studio_diagnostics_clear_problems((UmiStudioServices *)user_data);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity, "%s",
                        status == UMI_STATUS_OK ? "Problems cleared" : umi_status_text(status));
@@ -1136,6 +1573,10 @@ static UmiStatus diagnostics_clear_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the output clear handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus output_clear_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -1144,6 +1585,10 @@ static UmiStatus output_clear_handler(void *user_data,
     UmiStatus status;
     (void)argument;
     status = umi_studio_diagnostics_clear_output((UmiStudioServices *)user_data);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity, "%s",
                        status == UMI_STATUS_OK ? "Output cleared" : umi_status_text(status));
@@ -1151,6 +1596,10 @@ static UmiStatus output_clear_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the terminal clear handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_clear_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -1160,8 +1609,16 @@ static UmiStatus terminal_clear_handler(void *user_data,
         (UmiStudioServices *)user_data);
     UmiStatus status;
     (void)argument;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (controller == NULL) return UMI_STATUS_INVALID_STATE;
     status = umi_terminal_controller_clear_active(controller);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "%s", status == UMI_STATUS_OK
@@ -1171,6 +1628,10 @@ static UmiStatus terminal_clear_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the terminal new handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_new_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -1185,10 +1646,19 @@ static UmiStatus terminal_new_handler(void *user_data,
     char session_id[UMI_TERMINAL_ID_CAPACITY];
     char title[UMI_TERMINAL_TITLE_CAPACITY];
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (controller == NULL) return UMI_STATUS_INVALID_STATE;
     active = umi_terminal_controller_active_session(controller);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (active == NULL) return UMI_STATUS_NOT_FOUND;
     status = umi_terminal_controller_snapshot(controller, &controller_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_terminal_session_snapshot(active, &active_snapshot);
     }
@@ -1196,6 +1666,7 @@ static UmiStatus terminal_new_handler(void *user_data,
                    (unsigned long long)(controller_snapshot.revision + 1U));
     (void)snprintf(title, sizeof(title), "Terminal %zu",
                    controller_snapshot.tabs + 1U);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_terminal_controller_open(
             controller,
@@ -1204,11 +1675,16 @@ static UmiStatus terminal_new_handler(void *user_data,
             title,
             active_snapshot.working_directory);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity,
                            "Opened %s", title);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity,
                            "%s", umi_status_text(status));
         }
@@ -1216,6 +1692,10 @@ static UmiStatus terminal_new_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the terminal close handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_close_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -1226,6 +1706,10 @@ static UmiStatus terminal_close_handler(void *user_data,
     status = umi_terminal_controller_close_active(
         umi_studio_services_terminal_controller(
             (UmiStudioServices *)user_data));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity, "%s",
                        status == UMI_STATUS_OK
@@ -1235,6 +1719,10 @@ static UmiStatus terminal_close_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the terminal activate relative handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus terminal_activate_relative_handler(
     void *user_data,
     const char *argument,
@@ -1247,6 +1735,10 @@ static UmiStatus terminal_activate_relative_handler(
     status = umi_terminal_controller_activate_relative(
         umi_studio_services_terminal_controller(
             (UmiStudioServices *)user_data), direction);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity, "%s",
                        status == UMI_STATUS_OK
@@ -1256,6 +1748,10 @@ static UmiStatus terminal_activate_relative_handler(
     return status;
 }
 
+/*
+ * Provide the terminal next handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_next_handler(void *user_data,
                                        const char *argument,
                                        char *out_message,
@@ -1265,6 +1761,10 @@ static UmiStatus terminal_next_handler(void *user_data,
                                                message_capacity, 1);
 }
 
+/*
+ * Provide the terminal previous handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_previous_handler(void *user_data,
                                            const char *argument,
                                            char *out_message,
@@ -1274,6 +1774,10 @@ static UmiStatus terminal_previous_handler(void *user_data,
                                                message_capacity, -1);
 }
 
+/*
+ * Provide the terminal split handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_split_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -1287,20 +1791,30 @@ static UmiStatus terminal_split_handler(void *user_data,
     char title[UMI_TERMINAL_TITLE_CAPACITY];
     UmiStatus status;
     (void)argument;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (controller == NULL) return UMI_STATUS_INVALID_STATE;
     status = umi_terminal_controller_snapshot(controller, &snapshot);
     (void)snprintf(session_id, sizeof(session_id), "studio.split.%llu",
                    (unsigned long long)(snapshot.revision + 1U));
     (void)snprintf(title, sizeof(title), "Split %zu", snapshot.tabs + 1U);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_terminal_controller_split_active(
             controller, session_id, title, orientation);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity,
                            "Created %s", title);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity,
                            "%s", umi_status_text(status));
         }
@@ -1308,6 +1822,10 @@ static UmiStatus terminal_split_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the terminal split horizontal handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus terminal_split_horizontal_handler(
     void *user_data, const char *argument, char *out_message,
     size_t message_capacity)
@@ -1317,6 +1835,10 @@ static UmiStatus terminal_split_horizontal_handler(
                                   UMI_TERMINAL_ORIENTATION_HORIZONTAL);
 }
 
+/*
+ * Provide the terminal split vertical handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_split_vertical_handler(
     void *user_data, const char *argument, char *out_message,
     size_t message_capacity)
@@ -1326,6 +1848,10 @@ static UmiStatus terminal_split_vertical_handler(
                                   UMI_TERMINAL_ORIENTATION_VERTICAL);
 }
 
+/*
+ * Provide the terminal history clear handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_history_clear_handler(
     void *user_data, const char *argument, char *out_message,
     size_t message_capacity)
@@ -1335,6 +1861,10 @@ static UmiStatus terminal_history_clear_handler(
     status = umi_terminal_controller_clear_history(
         umi_studio_services_terminal_controller(
             (UmiStudioServices *)user_data));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity, "%s",
                        status == UMI_STATUS_OK
@@ -1344,6 +1874,10 @@ static UmiStatus terminal_history_clear_handler(
     return status;
 }
 
+/*
+ * Provide the terminal search handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus terminal_search_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -1352,6 +1886,10 @@ static UmiStatus terminal_search_handler(void *user_data,
     UmiTerminalSearchQuery query;
     UmiTerminalSearchResult result;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -1360,7 +1898,12 @@ static UmiStatus terminal_search_handler(void *user_data,
     status = umi_terminal_controller_search_active(
         umi_studio_services_terminal_controller(
             (UmiStudioServices *)user_data), &query, &result);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (status == UMI_STATUS_OK && result.count > 0U) {
             (void)snprintf(out_message, message_capacity,
                            "%zu match(es); first at row %zu, byte %zu: %s",
@@ -1368,7 +1911,7 @@ static UmiStatus terminal_search_handler(void *user_data,
                            result.matches[0].line_index + 1U,
                            result.matches[0].byte_offset,
                            result.matches[0].preview);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity, "%s",
                            status == UMI_STATUS_OK
                                ? "No matches"
@@ -1378,6 +1921,10 @@ static UmiStatus terminal_search_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the process report handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus process_report_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -1388,6 +1935,10 @@ static UmiStatus process_report_handler(void *user_data,
     stats = umi_process_supervisor_stats(
         umi_studio_services_process_supervisor(
             (UmiStudioServices *)user_data));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Processes: %zu total, %zu running, %llu succeeded, "
@@ -1400,6 +1951,10 @@ static UmiStatus process_report_handler(void *user_data,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the process cancel handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus process_cancel_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -1408,23 +1963,33 @@ static UmiStatus process_cancel_handler(void *user_data,
     unsigned long long parsed;
     char *end = NULL;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     errno = 0;
     parsed = strtoull(argument, &end, 10);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (errno != 0 || end == argument || *end != '\0' || parsed == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_process_supervisor_cancel(
         umi_studio_services_process_supervisor(
             (UmiStudioServices *)user_data), (UmiProcessJobId)parsed);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity,
                            "Cancellation requested for process %llu",
                            parsed);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity,
                            "Process %llu: %s", parsed,
                            umi_status_text(status));
@@ -1433,6 +1998,10 @@ static UmiStatus process_cancel_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the tasks report handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus tasks_report_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -1442,6 +2011,10 @@ static UmiStatus tasks_report_handler(void *user_data,
     (void)argument;
     stats = umi_task_queue_stats(umi_studio_services_task_queue(
         (UmiStudioServices *)user_data));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Tasks: %zu queued, %zu running, %llu completed, "
@@ -1454,6 +2027,10 @@ static UmiStatus tasks_report_handler(void *user_data,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the language initialize handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus language_initialize_handler(void *user_data,
                                              const char *argument,
                                              char *out_message,
@@ -1463,14 +2040,23 @@ static UmiStatus language_initialize_handler(void *user_data,
     long process_id = 0L;
     char *end = NULL;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && argument[0] != '\0') {
         process_id = strtol(argument, &end, 10);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (end == argument || *end != '\0') return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_studio_language_service_initialize(
         umi_studio_services_language((UmiStudioServices *)user_data),
         (int64_t)process_id,
         &request_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -1481,6 +2067,10 @@ static UmiStatus language_initialize_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the debug initialize handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_initialize_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -1493,6 +2083,10 @@ static UmiStatus debug_initialize_handler(void *user_data,
         umi_studio_services_debugger((UmiStudioServices *)user_data),
         adapter,
         &request_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message,
                        message_capacity,
@@ -1503,6 +2097,10 @@ static UmiStatus debug_initialize_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the language workspace symbols handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus language_workspace_symbols_handler(void *user_data,
                                                      const char *argument,
                                                      char *out_message,
@@ -1512,6 +2110,10 @@ static UmiStatus language_workspace_symbols_handler(void *user_data,
     UmiStatus status = umi_studio_language_service_workspace_symbols(
         umi_studio_services_language((UmiStudioServices *)user_data),
         argument != NULL ? argument : "", &request_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "Workspace-symbol request %lld: %s",
@@ -1520,13 +2122,26 @@ static UmiStatus language_workspace_symbols_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the debug thread argument operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_thread_argument(const char *argument, int *out_thread)
 {
     long parsed = 0L;
     char *end = NULL;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_thread == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && argument[0] != '\0') {
         parsed = strtol(argument, &end, 10);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (end == argument || *end != '\0' || parsed < 0L ||
             parsed > INT32_MAX) return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -1534,6 +2149,10 @@ static UmiStatus debug_thread_argument(const char *argument, int *out_thread)
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the debug start handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_start_handler(void *user_data, const char *argument,
                                      char *out_message, size_t capacity)
 {
@@ -1543,12 +2162,20 @@ static UmiStatus debug_start_handler(void *user_data, const char *argument,
     const char *adapter = argument != NULL && argument[0] != '\0'
         ? argument : "cppdbg";
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (profile == NULL || profile->run_program[0] == '\0') {
         return UMI_STATUS_INVALID_STATE;
     }
     status = umi_studio_debugger_service_start(
         umi_studio_services_debugger(services), adapter,
         profile->run_program, profile->source_directory);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Debug start: %s",
                        umi_status_text(status));
@@ -1557,6 +2184,10 @@ static UmiStatus debug_start_handler(void *user_data, const char *argument,
 }
 
 typedef UmiStatus (*DebugThreadAction)(UmiStudioDebuggerService *, int);
+/*
+ * Provide the debug thread handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_thread_handler(void *user_data, const char *argument,
                                       char *out_message, size_t capacity,
                                       const char *name,
@@ -1564,10 +2195,15 @@ static UmiStatus debug_thread_handler(void *user_data, const char *argument,
 {
     int thread_id = 0;
     UmiStatus status = debug_thread_argument(argument, &thread_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = action(umi_studio_services_debugger(
             (UmiStudioServices *)user_data), thread_id);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "%s thread %d: %s", name,
                        thread_id, umi_status_text(status));
@@ -1589,12 +2225,20 @@ DEBUG_THREAD_HANDLER(debug_step_in_handler, "Step into", umi_studio_debugger_ser
 DEBUG_THREAD_HANDLER(debug_step_out_handler, "Step out", umi_studio_debugger_service_step_out)
 #undef DEBUG_THREAD_HANDLER
 
+/*
+ * Provide the debug stop handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_stop_handler(void *user_data, const char *argument,
                                     char *out_message, size_t capacity)
 {
     UmiStatus status = umi_studio_debugger_service_stop(
         umi_studio_services_debugger((UmiStudioServices *)user_data),
         argument != NULL && strcmp(argument, "restart") == 0);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Debug stop: %s",
                        umi_status_text(status));
@@ -1602,6 +2246,10 @@ static UmiStatus debug_stop_handler(void *user_data, const char *argument,
     return status;
 }
 
+/*
+ * Provide the debug add breakpoint handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_add_breakpoint_handler(void *user_data,
                                               const char *argument,
                                               char *out_message,
@@ -1613,21 +2261,31 @@ static UmiStatus debug_add_breakpoint_handler(void *user_data,
     long line;
     size_t path_length;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || (separator = strrchr(argument, ':')) == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     path_length = (size_t)(separator - argument);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (path_length == 0U || path_length + 1U > sizeof(path)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
     (void)memcpy(path, argument, path_length);
     path[path_length] = '\0';
     line = strtol(separator + 1, &end, 10);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (end == separator + 1 || *end != '\0' || line <= 0L ||
         line > INT32_MAX) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_studio_debugger_service_add_breakpoint(
         umi_studio_services_debugger((UmiStudioServices *)user_data),
         path, (int)line, 1);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Breakpoint %s:%ld: %s",
                        path, line, umi_status_text(status));
@@ -1635,6 +2293,10 @@ static UmiStatus debug_add_breakpoint_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the debug set breakpoint enabled handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus debug_set_breakpoint_enabled_handler(
     void *user_data, const char *argument, char *out_message, size_t capacity)
 {
@@ -1644,11 +2306,16 @@ static UmiStatus debug_set_breakpoint_enabled_handler(
     int enabled;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL ||
         (separator = strrchr(argument, '=')) == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     id_length = (size_t)(separator - argument);
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (id_length == 0U || id_length + 1U > sizeof(breakpoint_id) ||
         (strcmp(separator + 1, "0") != 0 &&
          strcmp(separator + 1, "1") != 0)) {
@@ -1660,6 +2327,10 @@ static UmiStatus debug_set_breakpoint_enabled_handler(
     status = umi_studio_debugger_service_set_breakpoint_enabled(
         umi_studio_services_debugger((UmiStudioServices *)user_data),
         breakpoint_id, enabled);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Breakpoint %s %s: %s",
                        breakpoint_id, enabled ? "enabled" : "disabled",
@@ -1668,16 +2339,28 @@ static UmiStatus debug_set_breakpoint_enabled_handler(
     return status;
 }
 
+/*
+ * Provide the debug remove breakpoint handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_remove_breakpoint_handler(
     void *user_data, const char *argument, char *out_message, size_t capacity)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_studio_debugger_service_remove_breakpoint(
         umi_studio_services_debugger((UmiStudioServices *)user_data),
         argument);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Remove breakpoint %s: %s",
                        argument, umi_status_text(status));
@@ -1685,17 +2368,29 @@ static UmiStatus debug_remove_breakpoint_handler(
     return status;
 }
 
+/*
+ * Provide the debug add watch handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_add_watch_handler(void *user_data, const char *argument,
                                          char *out_message, size_t capacity)
 {
     char watch_id[128] = {0};
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_studio_debugger_service_add_watch(
         umi_studio_services_debugger((UmiStudioServices *)user_data),
         argument, watch_id, sizeof(watch_id));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Watch %s: %s", watch_id,
                        umi_status_text(status));
@@ -1703,18 +2398,30 @@ static UmiStatus debug_add_watch_handler(void *user_data, const char *argument,
     return status;
 }
 
+/*
+ * Provide the debug remove watch handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_remove_watch_handler(void *user_data,
                                             const char *argument,
                                             char *out_message,
                                             size_t capacity)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_studio_debugger_service_remove_watch(
         umi_studio_services_debugger((UmiStudioServices *)user_data),
         argument);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Remove watch %s: %s",
                        argument, umi_status_text(status));
@@ -1725,6 +2432,10 @@ static UmiStatus debug_remove_watch_handler(void *user_data,
 typedef UmiStatus (*DebugSelectionAction)(UmiStudioDebuggerService *,
                                           const char *);
 
+/*
+ * Provide the debug selection handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_selection_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -1733,11 +2444,19 @@ static UmiStatus debug_selection_handler(void *user_data,
                                          DebugSelectionAction action)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = action(umi_studio_services_debugger(
                         (UmiStudioServices *)user_data), argument);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Select %s %s: %s",
                        selection_name, argument, umi_status_text(status));
@@ -1760,6 +2479,10 @@ DEBUG_SELECTION_HANDLER(debug_select_scope_handler, "scope",
                         umi_studio_debugger_service_select_scope)
 #undef DEBUG_SELECTION_HANDLER
 
+/*
+ * Provide the debug clear console handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus debug_clear_console_handler(void *user_data,
                                              const char *argument,
                                              char *out_message,
@@ -1769,6 +2492,10 @@ static UmiStatus debug_clear_console_handler(void *user_data,
     (void)argument;
     status = umi_studio_debugger_service_clear_console(
         umi_studio_services_debugger((UmiStudioServices *)user_data));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Debug Console clear: %s",
                        umi_status_text(status));
@@ -1776,6 +2503,10 @@ static UmiStatus debug_clear_console_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the vcs refresh handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus vcs_refresh_handler(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -1786,19 +2517,30 @@ static UmiStatus vcs_refresh_handler(void *user_data,
         (UmiStudioServices *)user_data);
     size_t limit = 20U;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && argument[0] != '\0') {
         char *end = NULL;
         unsigned long parsed = strtoul(argument, &end, 10);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (end == argument || *end != '\0' || parsed == 0UL) {
             return UMI_STATUS_INVALID_ARGUMENT;
         }
         limit = (size_t)parsed;
     }
     status = umi_studio_source_control_service_refresh(service, limit);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_source_control_service_snapshot(service, &snapshot);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message,
                            message_capacity,
@@ -1806,7 +2548,7 @@ static UmiStatus vcs_refresh_handler(void *user_data,
                            snapshot.branch,
                            snapshot.changes,
                            snapshot.commits);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message,
                            message_capacity,
                            "Source control: %s",
@@ -1832,6 +2574,10 @@ typedef enum StudioVcsCommandOperation {
     STUDIO_VCS_DIFF
 } StudioVcsCommandOperation;
 
+/*
+ * Perform vcs operation through the module contract so client applications do not
+ * duplicate its policy.
+ */
 static UmiStatus vcs_operation_execute(void *user_data,
                                        const char *argument,
                                        char *out_message,
@@ -1845,8 +2591,17 @@ static UmiStatus vcs_operation_execute(void *user_data,
         operation == STUDIO_VCS_DISCARD || operation == STUDIO_VCS_COMMIT ||
         operation == STUDIO_VCS_BRANCH_CREATE || operation == STUDIO_VCS_BRANCH_CHECKOUT ||
         operation == STUDIO_VCS_BRANCH_DELETE || operation == STUDIO_VCS_DIFF;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (needs_argument && (argument == NULL || argument[0] == '\0')) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Select the behaviour associated with the requested command or state value. */
     switch (operation) {
         case STUDIO_VCS_STAGE: status = umi_studio_source_control_service_stage(service, argument); break;
         case STUDIO_VCS_UNSTAGE: status = umi_studio_source_control_service_unstage(service, argument); break;
@@ -1867,6 +2622,10 @@ static UmiStatus vcs_operation_execute(void *user_data,
         }
         default: status = UMI_STATUS_INVALID_ARGUMENT; break;
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         (void)snprintf(out_message, capacity, "Source control: %s", umi_status_text(status));
     }
@@ -1907,6 +2666,10 @@ typedef enum StudioVcsWorkspaceOperation {
     STUDIO_VCS_WORKSPACE_DIFF_SELECTED_STAGED
 } StudioVcsWorkspaceOperation;
 
+/*
+ * Provide the vcs workspace coordinator operation used by this module and its client
+ * applications.
+ */
 static UmiVcsWorkspaceCoordinator *vcs_workspace_coordinator(void *user_data)
 {
     UmiStudioSourceControlService *service =
@@ -1915,6 +2678,10 @@ static UmiVcsWorkspaceCoordinator *vcs_workspace_coordinator(void *user_data)
         ? umi_studio_source_control_service_coordinator(service) : NULL;
 }
 
+/*
+ * Perform vcs workspace operation through the module contract so client applications do
+ * not duplicate its policy.
+ */
 static UmiStatus vcs_workspace_operation_execute(
     void *user_data,
     const char *argument,
@@ -1933,23 +2700,33 @@ static UmiStatus vcs_workspace_operation_execute(
         operation == STUDIO_VCS_WORKSPACE_SELECT_REMOTE ||
         operation == STUDIO_VCS_WORKSPACE_SET_COMMIT_MESSAGE;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (coordinator == NULL) return UMI_STATUS_UNAVAILABLE;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (needs_argument && (argument == NULL || argument[0] == '\0')) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Select the behaviour associated with the requested command or state value. */
     switch (operation) {
         case STUDIO_VCS_WORKSPACE_FILTER: {
             UmiVcsChangeFilter filter;
+            /* Use the stable identifier comparison to choose the matching record or policy. */
             if (strcmp(argument, "all") == 0 ||
                 strcmp(argument, "all changes") == 0) {
                 filter = UMI_VCS_CHANGE_FILTER_ALL;
-            } else if (strcmp(argument, "staged") == 0) {
+            } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(argument, "staged") == 0) {
                 filter = UMI_VCS_CHANGE_FILTER_STAGED;
-            } else if (strcmp(argument, "unstaged") == 0) {
+            } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(argument, "unstaged") == 0) {
                 filter = UMI_VCS_CHANGE_FILTER_UNSTAGED;
-            } else if (strcmp(argument, "conflicts") == 0) {
+            } else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(argument, "conflicts") == 0) {
                 filter = UMI_VCS_CHANGE_FILTER_CONFLICTS;
-            } else {
+            } /* Use this fallback path when the earlier condition does not apply. */ else {
                 return UMI_STATUS_INVALID_ARGUMENT;
             }
             status = umi_vcs_workspace_coordinator_set_change_filter(
@@ -2002,8 +2779,13 @@ static UmiStatus vcs_workspace_operation_execute(
         default:
             break;
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && capacity > 0U) {
         UmiVcsWorkspaceCoordinatorSnapshot snapshot;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK &&
             umi_vcs_workspace_coordinator_snapshot(
                 coordinator, &snapshot) == UMI_STATUS_OK) {
@@ -2011,7 +2793,7 @@ static UmiStatus vcs_workspace_operation_execute(
                            "Source control workspace: %s; %zu visible change(s)",
                            snapshot.change_filter_label,
                            snapshot.visible_change_count);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, capacity,
                            "Source control workspace: %s",
                            umi_status_text(status));
@@ -2061,34 +2843,53 @@ static UmiTradingWorkspace *trading_workspace(void *user_data)
     return umi_studio_trading_service_workspace(service);
 }
 
+/* Provide the has argument operation used by this module and its client applications. */
 static int has_argument(const char *argument)
 {
     return argument != NULL && argument[0] != '\0';
 }
 
+/*
+ * Provide the parse real argument operation used by this module and its client
+ * applications.
+ */
 static UmiStatus parse_real_argument(const char *argument, double *out_value)
 {
     char *end = NULL;
     double value;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (!has_argument(argument) || out_value == NULL)
         return UMI_STATUS_INVALID_ARGUMENT;
     errno = 0;
     value = strtod(argument, &end);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (errno != 0 || end == argument || *end != '\0' || !isfinite(value))
         return UMI_STATUS_INVALID_ARGUMENT;
     *out_value = value;
     return UMI_STATUS_OK;
 }
 
+/* Provide the trading message operation used by this module and its client applications. */
 static void trading_message(char *out_message, size_t message_capacity,
                             const char *success_text, UmiStatus status)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message == NULL || message_capacity == 0U) return;
     (void)snprintf(out_message, message_capacity, "%s",
         status == UMI_STATUS_OK ? success_text : umi_status_text(status));
 }
 
+/*
+ * Provide the trading refresh handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_refresh_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -2102,6 +2903,10 @@ static UmiStatus trading_refresh_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the trading filter instruments handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus trading_filter_instruments_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2113,6 +2918,10 @@ static UmiStatus trading_filter_instruments_handler(
     return status;
 }
 
+/*
+ * Provide the trading select instrument handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus trading_select_instrument_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2126,6 +2935,10 @@ static UmiStatus trading_select_instrument_handler(
     return status;
 }
 
+/*
+ * Provide the trading set environment handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_set_environment_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2133,16 +2946,25 @@ static UmiStatus trading_set_environment_handler(
     UmiTradingEnvironment environment;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && strcmp(argument, "simulation") == 0)
         environment = UMI_TRADING_SIMULATION;
-    else if (argument != NULL && strcmp(argument, "paper") == 0)
+    else /* Protect caller-owned memory by checking that required state is available before it is used. */ if (argument != NULL && strcmp(argument, "paper") == 0)
         environment = UMI_TRADING_PAPER;
-    else if (argument != NULL && strcmp(argument, "live") == 0)
+    else /* Protect caller-owned memory by checking that required state is available before it is used. */ if (argument != NULL && strcmp(argument, "live") == 0)
         environment = UMI_TRADING_LIVE;
+    /* Use this fallback path when the earlier condition does not apply. */
     else
         return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_trading_workspace_set_environment(
         trading_workspace(user_data), environment);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
             status == UMI_STATUS_OK
@@ -2154,6 +2976,10 @@ static UmiStatus trading_set_environment_handler(
     return status;
 }
 
+/*
+ * Provide the trading set side handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_set_side_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -2162,10 +2988,15 @@ static UmiStatus trading_set_side_handler(void *user_data,
     UmiSide side;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && strcmp(argument, "buy") == 0)
         side = UMI_SIDE_BUY;
-    else if (argument != NULL && strcmp(argument, "sell") == 0)
+    else /* Protect caller-owned memory by checking that required state is available before it is used. */ if (argument != NULL && strcmp(argument, "sell") == 0)
         side = UMI_SIDE_SELL;
+    /* Use this fallback path when the earlier condition does not apply. */
     else
         return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_trading_workspace_set_draft_side(
@@ -2175,6 +3006,10 @@ static UmiStatus trading_set_side_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the parse order type argument operation used by this module and its client
+ * applications.
+ */
 static UmiStatus parse_order_type_argument(const char *argument,
                                            UmiOrderType *out_type,
                                            UmiTimeInForce *out_tif)
@@ -2184,33 +3019,50 @@ static UmiStatus parse_order_type_argument(const char *argument,
     const char *tif_text;
     size_t length;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (!has_argument(argument) || out_type == NULL || out_tif == NULL)
         return UMI_STATUS_INVALID_ARGUMENT;
     length = strlen(argument);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length >= sizeof(buffer)) return UMI_STATUS_CAPACITY_EXCEEDED;
     (void)memcpy(buffer, argument, length + 1U);
     separator = strchr(buffer, ':');
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (separator != NULL) {
         *separator = '\0';
         tif_text = separator + 1;
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         tif_text = "day";
     }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(buffer, "market") == 0) *out_type = UMI_ORDER_MARKET;
-    else if (strcmp(buffer, "limit") == 0) *out_type = UMI_ORDER_LIMIT;
-    else if (strcmp(buffer, "stop") == 0) *out_type = UMI_ORDER_STOP;
-    else if (strcmp(buffer, "stop-limit") == 0)
+    else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(buffer, "limit") == 0) *out_type = UMI_ORDER_LIMIT;
+    else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(buffer, "stop") == 0) *out_type = UMI_ORDER_STOP;
+    else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(buffer, "stop-limit") == 0)
         *out_type = UMI_ORDER_STOP_LIMIT;
+    /* Use this fallback path when the earlier condition does not apply. */
     else return UMI_STATUS_INVALID_ARGUMENT;
 
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(tif_text, "day") == 0) *out_tif = UMI_TIF_DAY;
-    else if (strcmp(tif_text, "gtc") == 0) *out_tif = UMI_TIF_GTC;
-    else if (strcmp(tif_text, "ioc") == 0) *out_tif = UMI_TIF_IOC;
-    else if (strcmp(tif_text, "fok") == 0) *out_tif = UMI_TIF_FOK;
+    else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(tif_text, "gtc") == 0) *out_tif = UMI_TIF_GTC;
+    else /* Use the stable identifier comparison to choose the matching record or policy. */ if (strcmp(tif_text, "ioc") == 0) *out_tif = UMI_TIF_IOC;
+    else /* Preserve the original failure result so the caller can respond to the correct cause. */ if (strcmp(tif_text, "fok") == 0) *out_tif = UMI_TIF_FOK;
+    /* Use this fallback path when the earlier condition does not apply. */
     else return UMI_STATUS_INVALID_ARGUMENT;
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the trading set type handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_set_type_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -2219,6 +3071,7 @@ static UmiStatus trading_set_type_handler(void *user_data,
     UmiOrderType type;
     UmiTimeInForce tif;
     UmiStatus status = parse_order_type_argument(argument, &type, &tif);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_trading_workspace_set_draft_type(
             trading_workspace(user_data), type, tif);
@@ -2228,12 +3081,17 @@ static UmiStatus trading_set_type_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the trading set quantity handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_set_quantity_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
 {
     double quantity = 0.0;
     UmiStatus status = parse_real_argument(argument, &quantity);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_trading_workspace_set_draft_quantity(
             trading_workspace(user_data), quantity);
@@ -2243,6 +3101,10 @@ static UmiStatus trading_set_quantity_handler(
     return status;
 }
 
+/*
+ * Provide the trading set prices handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_set_prices_handler(void *user_data,
                                             const char *argument,
                                             char *out_message,
@@ -2255,15 +3117,26 @@ static UmiStatus trading_set_prices_handler(void *user_data,
     size_t length;
     UmiStatus status;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (!has_argument(argument)) return UMI_STATUS_INVALID_ARGUMENT;
     length = strlen(argument);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length >= sizeof(buffer)) return UMI_STATUS_CAPACITY_EXCEEDED;
     (void)memcpy(buffer, argument, length + 1U);
     separator = strchr(buffer, ':');
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (separator != NULL) *separator = '\0';
     status = parse_real_argument(buffer, &limit_price);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (status == UMI_STATUS_OK && separator != NULL)
         status = parse_real_argument(separator + 1, &stop_price);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_trading_workspace_set_draft_prices(
             trading_workspace(user_data), limit_price, stop_price);
@@ -2273,6 +3146,10 @@ static UmiStatus trading_set_prices_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the trading preview order handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_preview_order_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2282,6 +3159,10 @@ static UmiStatus trading_preview_order_handler(
     (void)argument;
     status = umi_trading_workspace_preview_order(
         trading_workspace(user_data), &decision);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
             "Pre-trade risk: %s%s%s",
@@ -2292,6 +3173,10 @@ static UmiStatus trading_preview_order_handler(
     return status;
 }
 
+/*
+ * Provide the trading submit order handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_submit_order_handler(void *user_data,
                                               const char *argument,
                                               char *out_message,
@@ -2308,18 +3193,24 @@ static UmiStatus trading_submit_order_handler(void *user_data,
     (void)argument;
 
     now_ns = clock->wall_nanoseconds(clock);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (now_ns / UINT64_C(1000000) > (uint64_t)INT64_MAX)
         return UMI_STATUS_CAPACITY_EXCEEDED;
     now_ms = (int64_t)(now_ns / UINT64_C(1000000));
     status = umi_trading_workspace_submit_order(workspace, now_ms, &decision);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK &&
             umi_trading_workspace_snapshot(workspace, &snapshot) ==
                 UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity,
                 "Submitted simulation order %s",
                 snapshot.selected_order_id);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity,
                 "Order not submitted: %s",
                 decision.reason[0] != '\0' ? decision.reason
@@ -2329,6 +3220,10 @@ static UmiStatus trading_submit_order_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the trading filter orders handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_filter_orders_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2336,16 +3231,21 @@ static UmiStatus trading_filter_orders_handler(
     UmiTradingWorkspaceOrderFilter filter;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && strcmp(argument, "all") == 0)
         filter = UMI_TRADING_WORKSPACE_ORDERS_ALL;
-    else if (argument != NULL && strcmp(argument, "open") == 0)
+    else /* Protect caller-owned memory by checking that required state is available before it is used. */ if (argument != NULL && strcmp(argument, "open") == 0)
         filter = UMI_TRADING_WORKSPACE_ORDERS_OPEN;
-    else if (argument != NULL && strcmp(argument, "filled") == 0)
+    else /* Protect caller-owned memory by checking that required state is available before it is used. */ if (argument != NULL && strcmp(argument, "filled") == 0)
         filter = UMI_TRADING_WORKSPACE_ORDERS_FILLED;
-    else if (argument != NULL && strcmp(argument, "cancelled") == 0)
+    else /* Protect caller-owned memory by checking that required state is available before it is used. */ if (argument != NULL && strcmp(argument, "cancelled") == 0)
         filter = UMI_TRADING_WORKSPACE_ORDERS_CANCELLED;
-    else if (argument != NULL && strcmp(argument, "rejected") == 0)
+    else /* Protect caller-owned memory by checking that required state is available before it is used. */ if (argument != NULL && strcmp(argument, "rejected") == 0)
         filter = UMI_TRADING_WORKSPACE_ORDERS_REJECTED;
+    /* Use this fallback path when the earlier condition does not apply. */
     else
         return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_trading_workspace_set_order_filter(
@@ -2355,6 +3255,10 @@ static UmiStatus trading_filter_orders_handler(
     return status;
 }
 
+/*
+ * Provide the trading select order handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_select_order_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2368,6 +3272,10 @@ static UmiStatus trading_select_order_handler(
     return status;
 }
 
+/*
+ * Provide the trading cancel order handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus trading_cancel_order_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2381,6 +3289,10 @@ static UmiStatus trading_cancel_order_handler(
     return status;
 }
 
+/*
+ * Provide the trading engage kill switch handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus trading_engage_kill_switch_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2393,6 +3305,10 @@ static UmiStatus trading_engage_kill_switch_handler(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the trading reset kill switch handler operation used by this module and its
+ * client applications.
+ */
 static UmiStatus trading_reset_kill_switch_handler(
     void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
@@ -2404,6 +3320,10 @@ static UmiStatus trading_reset_kill_switch_handler(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the developer report handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus developer_report_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -2417,6 +3337,10 @@ static UmiStatus developer_report_handler(void *user_data,
         message_capacity);
 }
 
+/*
+ * Provide the ai refresh health handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus ai_refresh_health_handler(void *user_data,
                                            const char *argument,
                                            char *out_message,
@@ -2430,6 +3354,10 @@ static UmiStatus ai_refresh_health_handler(void *user_data,
     status = umi_studio_ai_platform_refresh_health(
         umi_studio_services_ai_platform(services),
         clock->wall_nanoseconds(clock), &healthy);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        "AuthorEngine health refreshed: %zu healthy runtime(s)",
@@ -2438,6 +3366,10 @@ static UmiStatus ai_refresh_health_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the ai new session handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus ai_new_session_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -2449,6 +3381,10 @@ static UmiStatus ai_new_session_handler(void *user_data,
     char generated_id[UMI_AI_ID_CAPACITY];
     const char *session_id = argument;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (session_id == NULL || session_id[0] == '\0') {
         (void)snprintf(generated_id, sizeof(generated_id),
                        "studio.session.%" PRIu64, now);
@@ -2457,6 +3393,10 @@ static UmiStatus ai_new_session_handler(void *user_data,
     status = umi_studio_ai_platform_begin_session(
         umi_studio_services_ai_platform(services), session_id,
         "Studio AI conversation", now);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        status == UMI_STATUS_OK
@@ -2467,6 +3407,10 @@ static UmiStatus ai_new_session_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the ai save session handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus ai_save_session_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -2476,17 +3420,27 @@ static UmiStatus ai_save_session_handler(void *user_data,
         (UmiStudioServices *)user_data);
     UmiAiAuthorEngineServiceSnapshot snapshot;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_studio_ai_platform_snapshot(platform, &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK && snapshot.active_session_id[0] == '\0') {
         status = UMI_STATUS_INVALID_STATE;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_ai_platform_save_session(
             platform, snapshot.active_session_id, argument);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        status == UMI_STATUS_OK
@@ -2497,6 +3451,10 @@ static UmiStatus ai_save_session_handler(void *user_data,
     return status;
 }
 
+/*
+ * Perform coding task through the module contract so client applications do not duplicate
+ * its policy.
+ */
 static UmiStatus coding_task_execute(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -2524,6 +3482,7 @@ static UmiStatus coding_task_execute(void *user_data,
      * textual makes the command available to palettes, consoles and tests. */
     if (separator != NULL) {
         size_t path_length = (size_t)(separator - argument);
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (path_length == 0U || path_length >= sizeof(active_path)) {
             return UMI_STATUS_INVALID_ARGUMENT;
         }
@@ -2533,7 +3492,12 @@ static UmiStatus coding_task_execute(void *user_data,
     }
     status = umi_studio_coding_assistant_prepare(
         platform, request_id, task, instruction, active_path, &plan);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(
                 out_message, message_capacity,
@@ -2542,7 +3506,7 @@ static UmiStatus coding_task_execute(void *user_data,
                 umi_ai_coding_task_kind_text(task), request_id,
                 plan.repository_context.file_count, plan.total_context_tokens,
                 plan.plan_hash);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity,
                            "AI coding task: %s", umi_status_text(status));
         }
@@ -2568,6 +3532,7 @@ DEFINE_CODING_TASK_HANDLER(ai_generate_tests_handler,
                            UMI_AI_CODING_TASK_GENERATE_TESTS)
 #undef DEFINE_CODING_TASK_HANDLER
 
+/* Provide the resolve patch id operation used by this module and its client applications. */
 static UmiStatus resolve_patch_id(UmiStudioAiPlatform *platform,
                                   const char *argument,
                                   char *out_patch_id,
@@ -2575,11 +3540,16 @@ static UmiStatus resolve_patch_id(UmiStudioAiPlatform *platform,
 {
     UmiAiCodingAssistantSnapshot snapshot;
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (argument != NULL && argument[0] != '\0') {
         written = snprintf(out_patch_id, capacity, "%s", argument);
         return written >= 0 && (size_t)written < capacity
             ? UMI_STATUS_OK : UMI_STATUS_CAPACITY_EXCEEDED;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_ai_coding_assistant_snapshot(
             umi_studio_ai_platform_coding_assistant(platform), &snapshot)
         != UMI_STATUS_OK || snapshot.last_patch_id[0] == '\0') {
@@ -2590,6 +3560,10 @@ static UmiStatus resolve_patch_id(UmiStudioAiPlatform *platform,
         ? UMI_STATUS_OK : UMI_STATUS_CAPACITY_EXCEEDED;
 }
 
+/*
+ * Provide the ai patch approve handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus ai_patch_approve_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -2600,10 +3574,15 @@ static UmiStatus ai_patch_approve_handler(void *user_data,
     char patch_id[UMI_AI_ID_CAPACITY];
     UmiStatus status = resolve_patch_id(
         platform, argument, patch_id, sizeof(patch_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_coding_assistant_approve_patch(
             platform, patch_id, "studio.user");
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
         (void)snprintf(out_message, message_capacity,
                        status == UMI_STATUS_OK ? "Approved AI patch %s"
@@ -2614,6 +3593,10 @@ static UmiStatus ai_patch_approve_handler(void *user_data,
     return status;
 }
 
+/*
+ * Provide the coding patch mutate operation used by this module and its client
+ * applications.
+ */
 static UmiStatus coding_patch_mutate(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -2628,13 +3611,16 @@ static UmiStatus coding_patch_mutate(void *user_data,
     char patch_id[UMI_AI_ID_CAPACITY];
     UmiStatus status = resolve_patch_id(
         platform, argument, patch_id, sizeof(patch_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_ai_platform_snapshot(platform, &integration);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_coding_workspace_adapter_init(
             &workspace, integration.workspace, &adapter);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = revert
             ? umi_studio_coding_assistant_revert_patch(
@@ -2642,11 +3628,16 @@ static UmiStatus coding_patch_mutate(void *user_data,
             : umi_studio_coding_assistant_apply_patch(
                   platform, patch_id, &adapter);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)snprintf(out_message, message_capacity, "%s AI patch %s",
                            revert ? "Reverted" : "Applied", patch_id);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)snprintf(out_message, message_capacity, "AI patch %s: %s",
                            revert ? "revert" : "apply",
                            umi_status_text(status));
@@ -2655,6 +3646,10 @@ static UmiStatus coding_patch_mutate(void *user_data,
     return status;
 }
 
+/*
+ * Provide the ai patch apply handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus ai_patch_apply_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -2664,6 +3659,10 @@ static UmiStatus ai_patch_apply_handler(void *user_data,
         user_data, argument, out_message, message_capacity, 0);
 }
 
+/*
+ * Provide the ai patch revert handler operation used by this module and its client
+ * applications.
+ */
 static UmiStatus ai_patch_revert_handler(void *user_data,
                                          const char *argument,
                                          char *out_message,
@@ -2673,6 +3672,7 @@ static UmiStatus ai_patch_revert_handler(void *user_data,
         user_data, argument, out_message, message_capacity, 1);
 }
 
+/* Provide the register command operation used by this module and its client applications. */
 static UmiStatus register_command(UmiCommandRegistry *registry,
                                   UmiStudioServices *services,
                                   const char *command_id,
@@ -2698,11 +3698,16 @@ static UmiStatus register_command(UmiCommandRegistry *registry,
     return umi_command_registry_register(registry, &descriptor);
 }
 
+/* Add studio commands only after its inputs and available capacity have been checked. */
 UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                        UmiStudioServices *services)
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (registry == NULL || services == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -2717,6 +3722,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               UMI_COMMAND_MUTATES_STATE |
                                   UMI_COMMAND_AUDITED,
                               session_save_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2729,6 +3735,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               UMI_COMMAND_MUTATES_STATE |
                                   UMI_COMMAND_AUDITED,
                               documents_save_all_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2740,6 +3747,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.tasks.read",
                               UMI_COMMAND_NONE,
                               tasks_wait_idle_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2751,6 +3759,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.tasks.read",
                               UMI_COMMAND_NONE,
                               tasks_report_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2764,6 +3773,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_AUDITED |
                                   UMI_COMMAND_REQUIRES_TRUST,
                               recovery_purge_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2775,6 +3785,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.workspace.read",
                               UMI_COMMAND_NONE,
                               workspace_refresh_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2786,6 +3797,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.workspace.write",
                               UMI_COMMAND_MUTATES_STATE,
                               workspace_close_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2797,6 +3809,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.workspace.read",
                               UMI_COMMAND_NONE,
                               watcher_scan_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2808,6 +3821,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "data.read",
                               UMI_COMMAND_NONE,
                               data_integrity_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2819,6 +3833,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "messaging.publish",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               messages_flush_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2830,6 +3845,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "messaging.replay",
                               UMI_COMMAND_AUDITED,
                               messages_replay_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2841,6 +3857,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.security.read",
                               UMI_COMMAND_AUDITED,
                               security_report_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2852,6 +3869,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.plugins.read",
                               UMI_COMMAND_NONE,
                               plugins_report_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2863,6 +3881,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.products.read",
                               UMI_COMMAND_AUDITED,
                               marketplace_check_updates_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2874,6 +3893,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.products.manage",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               marketplace_plan_update_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry, services,
@@ -2882,6 +3902,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Probe registered AI providers and configured AuthorEngine runtimes.",
                               "studio.ai.read", UMI_COMMAND_AUDITED,
                               ai_refresh_health_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_NEW_SESSION,
@@ -2890,6 +3911,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.ai.manage",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               ai_new_session_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_SAVE_SESSION,
@@ -2898,6 +3920,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.ai.manage",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               ai_save_session_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_CODE_CHAT,
@@ -2905,6 +3928,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Plan a repository-aware coding conversation.",
                               "studio.ai.read", UMI_COMMAND_AUDITED,
                               ai_code_chat_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_COMPLETE_CODE,
@@ -2912,6 +3936,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Plan context-aware code completion for the active file.",
                               "studio.ai.read", UMI_COMMAND_AUDITED,
                               ai_complete_code_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_EXPLAIN_CODE,
@@ -2919,6 +3944,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Plan an explanation using governed repository context.",
                               "studio.ai.read", UMI_COMMAND_AUDITED,
                               ai_explain_code_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_REFACTOR_CODE,
@@ -2926,6 +3952,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Plan a refactoring whose patch requires review.",
                               "studio.ai.manage", UMI_COMMAND_AUDITED,
                               ai_refactor_code_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_GENERATE_TESTS,
@@ -2933,6 +3960,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Plan repository-aware tests as a reviewable patch.",
                               "studio.ai.manage", UMI_COMMAND_AUDITED,
                               ai_generate_tests_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_PATCH_APPROVE,
@@ -2942,6 +3970,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED |
                                   UMI_COMMAND_REQUIRES_TRUST,
                               ai_patch_approve_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_PATCH_APPLY,
@@ -2951,6 +3980,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED |
                                   UMI_COMMAND_REQUIRES_TRUST,
                               ai_patch_apply_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_AI_PATCH_REVERT,
@@ -2960,6 +3990,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED |
                                   UMI_COMMAND_REQUIRES_TRUST,
                               ai_patch_revert_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2971,6 +4002,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.observability.read",
                               UMI_COMMAND_NONE,
                               observability_report_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry,
@@ -2982,6 +4014,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.resilience.read",
                               UMI_COMMAND_NONE,
                               resilience_report_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = register_command(registry, services,
@@ -2991,6 +4024,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.build.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_configure_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_COMPILE,
@@ -2999,6 +4033,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.build.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_compile_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_TEST,
@@ -3007,6 +4042,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.tests.execute",
                               UMI_COMMAND_AUDITED,
                               build_test_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_CLEAN,
@@ -3015,6 +4051,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.build.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_clean_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_RUN,
@@ -3023,6 +4060,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "process.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_run_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_INSTALL,
@@ -3031,6 +4069,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.delivery.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_install_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_RETRY,
@@ -3041,6 +4080,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               build_retry_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_CANCEL,
@@ -3051,6 +4091,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               build_cancel_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_FILTER,
@@ -3058,6 +4099,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Filter build nodes by text or lifecycle state.",
                               "studio.build.read", UMI_COMMAND_NONE,
                               build_filter_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_SELECT_NODE,
@@ -3065,6 +4107,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select a build graph node by stable identifier.",
                               "studio.build.read", UMI_COMMAND_NONE,
                               build_select_node_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_SELECT_OPERATION,
@@ -3072,6 +4115,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select retained build evidence by operation ID.",
                               "studio.build.read", UMI_COMMAND_NONE,
                               build_select_operation_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_SELECT_ARTIFACT,
@@ -3079,6 +4123,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select a produced artifact by stable identifier.",
                               "studio.build.read", UMI_COMMAND_NONE,
                               build_select_artifact_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_RUN_NEXT,
@@ -3089,6 +4134,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               build_run_next_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_RUN_ALL,
@@ -3099,6 +4145,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               build_run_all_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_INVALIDATE,
@@ -3109,6 +4156,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               build_invalidate_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_REFRESH,
@@ -3116,6 +4164,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Refresh graph readiness, selection and totals.",
                               "studio.build.read", UMI_COMMAND_NONE,
                               build_refresh_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_CLEAR_HISTORY,
@@ -3124,6 +4173,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.build.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_clear_history_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_DISCOVER,
@@ -3131,6 +4181,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Discover CTest tests from a build directory.",
                               "studio.tests.read", UMI_COMMAND_NONE,
                               tests_discover_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_FILTER,
@@ -3138,6 +4189,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Filter tests by text or by all, passed, failed, skipped or not-run state.",
                               "studio.tests.read", UMI_COMMAND_NONE,
                               tests_filter_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_SELECT,
@@ -3145,6 +4197,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select a visible test by its stable identifier.",
                               "studio.tests.read", UMI_COMMAND_NONE,
                               tests_select_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_RUN_ALL,
@@ -3152,6 +4205,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Execute every test visible in the Test Explorer.",
                               "studio.tests.execute", UMI_COMMAND_AUDITED,
                               tests_run_all_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_RUN_SELECTED,
@@ -3159,6 +4213,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Execute the selected Test Explorer item.",
                               "studio.tests.execute", UMI_COMMAND_AUDITED,
                               tests_run_selected_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_DEBUG_SELECTED,
@@ -3166,6 +4221,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Execute the selected test with debugger run-mode context.",
                               "studio.tests.execute", UMI_COMMAND_AUDITED,
                               tests_debug_selected_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_RUN_COVERAGE,
@@ -3173,6 +4229,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Execute visible tests with coverage run-mode context.",
                               "studio.tests.execute", UMI_COMMAND_AUDITED,
                               tests_run_coverage_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_RERUN_FAILED,
@@ -3180,6 +4237,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Execute tests whose latest retained result failed.",
                               "studio.tests.execute", UMI_COMMAND_AUDITED,
                               tests_rerun_failed_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_REPEAT_SELECTED,
@@ -3187,6 +4245,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Repeat the selected test to diagnose intermittent failures.",
                               "studio.tests.execute", UMI_COMMAND_AUDITED,
                               tests_repeat_selected_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_STOP,
@@ -3194,6 +4253,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Request cooperative cancellation of the active test operation.",
                               "studio.tests.execute", UMI_COMMAND_AUDITED,
                               tests_stop_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_CLEAR_RESULTS,
@@ -3201,6 +4261,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Clear retained test-result evidence.",
                               "studio.tests.execute", UMI_COMMAND_MUTATES_STATE,
                               tests_clear_results_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_CLEAR_OUTPUT,
@@ -3208,6 +4269,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Clear retained test output streams.",
                               "studio.tests.execute", UMI_COMMAND_MUTATES_STATE,
                               tests_clear_output_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_CLEAR_COVERAGE,
@@ -3215,6 +4277,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Clear retained line and branch coverage summaries.",
                               "studio.tests.execute", UMI_COMMAND_MUTATES_STATE,
                               tests_clear_coverage_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_EXECUTE,
@@ -3225,6 +4288,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               terminal_execute_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_CLEAR,
@@ -3233,6 +4297,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "process.read",
                               UMI_COMMAND_MUTATES_STATE,
                               terminal_clear_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_NEW,
@@ -3243,6 +4308,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               terminal_new_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_CLOSE,
@@ -3251,6 +4317,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "process.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               terminal_close_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_NEXT,
@@ -3258,6 +4325,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Activate the next terminal tab.",
                               "process.read", UMI_COMMAND_NONE,
                               terminal_next_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_PREVIOUS,
@@ -3265,6 +4333,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Activate the previous terminal tab.",
                               "process.read", UMI_COMMAND_NONE,
                               terminal_previous_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_SPLIT_HORIZONTAL,
@@ -3275,6 +4344,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               terminal_split_horizontal_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_SPLIT_VERTICAL,
@@ -3285,6 +4355,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               terminal_split_vertical_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_HISTORY_CLEAR,
@@ -3293,6 +4364,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "process.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               terminal_history_clear_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_SEARCH,
@@ -3300,6 +4372,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Search the active retained terminal transcript.",
                               "process.read", UMI_COMMAND_NONE,
                               terminal_search_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_PROCESS_REPORT,
@@ -3307,6 +4380,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Report supervised process state and totals.",
                               "process.read", UMI_COMMAND_NONE,
                               process_report_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_PROCESS_CANCEL,
@@ -3317,6 +4391,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               process_cancel_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DIAGNOSTICS_CLEAR,
@@ -3325,6 +4400,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.diagnostics.write",
                               UMI_COMMAND_MUTATES_STATE,
                               diagnostics_clear_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_OUTPUT_CLEAR,
@@ -3333,6 +4409,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.diagnostics.write",
                               UMI_COMMAND_MUTATES_STATE,
                               output_clear_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_LANGUAGE_INITIALIZE,
@@ -3340,6 +4417,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Send the Language Server Protocol initialise request.",
                               "studio.language.use", UMI_COMMAND_NONE,
                               language_initialize_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_LANGUAGE_WORKSPACE_SYMBOLS,
@@ -3347,6 +4425,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Search symbols through the active language server.",
                               "studio.language.use", UMI_COMMAND_NONE,
                               language_workspace_symbols_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_INITIALIZE,
@@ -3354,42 +4433,50 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Send the Debug Adapter Protocol initialise request.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_initialize_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_START,
                               "Start Debugging", "Debug",
                               "Initialise the adapter and launch the active program.",
                               "studio.debug.use", UMI_COMMAND_AUDITED,
                               debug_start_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_CONTINUE,
                               "Continue", "Debug", "Continue the selected thread.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_continue_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_PAUSE,
                               "Pause", "Debug", "Pause the selected thread.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_pause_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_NEXT,
                               "Step Over", "Debug", "Step over on the selected thread.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_next_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_STEP_IN,
                               "Step Into", "Debug", "Step into on the selected thread.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_step_in_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_STEP_OUT,
                               "Step Out", "Debug", "Step out on the selected thread.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_step_out_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_STOP,
                               "Stop Debugging", "Debug", "Terminate the debuggee.",
                               "studio.debug.use", UMI_COMMAND_AUDITED,
                               debug_stop_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_ADD_BREAKPOINT,
@@ -3397,6 +4484,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Add a source breakpoint using path:line.",
                               "studio.debug.use", UMI_COMMAND_MUTATES_STATE,
                               debug_add_breakpoint_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_SET_BREAKPOINT_ENABLED,
@@ -3404,6 +4492,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Set breakpoint state using id=1 or id=0.",
                               "studio.debug.use", UMI_COMMAND_MUTATES_STATE,
                               debug_set_breakpoint_enabled_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_REMOVE_BREAKPOINT,
@@ -3411,6 +4500,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Remove a breakpoint by its stable ID.",
                               "studio.debug.use", UMI_COMMAND_MUTATES_STATE,
                               debug_remove_breakpoint_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_ADD_WATCH,
@@ -3418,6 +4508,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Add an expression to the Watch pane.",
                               "studio.debug.use", UMI_COMMAND_MUTATES_STATE,
                               debug_add_watch_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_REMOVE_WATCH,
@@ -3425,6 +4516,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Remove a watch expression by its stable ID.",
                               "studio.debug.use", UMI_COMMAND_MUTATES_STATE,
                               debug_remove_watch_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_SELECT_THREAD,
@@ -3432,6 +4524,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select a thread in the debugger workspace.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_select_thread_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_SELECT_FRAME,
@@ -3439,6 +4532,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select a stack frame in the debugger workspace.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_select_frame_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_SELECT_SCOPE,
@@ -3446,6 +4540,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select a variable scope for the Variables pane.",
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_select_scope_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEBUG_CLEAR_CONSOLE,
@@ -3453,6 +4548,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Clear retained Debug Console entries.",
                               "studio.debug.use", UMI_COMMAND_MUTATES_STATE,
                               debug_clear_console_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_VCS_REFRESH,
@@ -3460,118 +4556,144 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Refresh Git branch, change and history state.",
                               "vcs.read", UMI_COMMAND_NONE,
                               vcs_refresh_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_STAGE,
                               "Stage Path", "Source Control", "Stage a repository-relative path.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_stage_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_UNSTAGE,
                               "Unstage Path", "Source Control", "Remove a repository-relative path from the index.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_unstage_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_STAGE_ALL,
                               "Stage All", "Source Control", "Stage all working-tree changes.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_stage_all_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_UNSTAGE_ALL,
                               "Unstage All", "Source Control", "Remove all changes from the index.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_unstage_all_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_DISCARD,
                               "Discard Path", "Source Control", "Discard a working-tree path after confirmation.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, vcs_discard_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_COMMIT,
                               "Commit", "Source Control", "Create a commit using the supplied message.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, vcs_commit_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_FETCH,
                               "Fetch", "Source Control", "Fetch and prune all configured remotes.",
                               "vcs.network", UMI_COMMAND_AUDITED, vcs_fetch_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_PULL,
                               "Pull", "Source Control", "Fast-forward the active branch.",
                               "vcs.network", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, vcs_pull_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_PUSH,
                               "Push", "Source Control", "Push the active branch.",
                               "vcs.network", UMI_COMMAND_AUDITED, vcs_push_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_BRANCH_CREATE,
                               "Create Branch", "Source Control", "Create and check out a validated branch name.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_branch_create_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_BRANCH_CHECKOUT,
                               "Checkout Branch", "Source Control", "Switch to a validated branch name.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_branch_checkout_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_BRANCH_DELETE,
                               "Delete Branch", "Source Control", "Safely delete a merged branch.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, vcs_branch_delete_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_DIFF,
                               "Open Diff", "Source Control", "Load a working-tree path diff; prefix with --staged for index diff.",
                               "vcs.read", UMI_COMMAND_NONE, vcs_diff_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_FILTER,
                               "Filter Source Control Changes", "Source Control",
                               "Show all, staged, unstaged or conflicting changes.",
                               "vcs.read", UMI_COMMAND_NONE, vcs_filter_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_SELECT_CHANGE,
                               "Select Source Control Change", "Source Control",
                               "Select a repository-relative path in the workspace.",
                               "vcs.read", UMI_COMMAND_NONE, vcs_select_change_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_SELECT_COMMIT,
                               "Select Repository Commit", "Source Control",
                               "Select a commit by its stable identifier.",
                               "vcs.read", UMI_COMMAND_NONE, vcs_select_commit_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_SELECT_BRANCH,
                               "Select Repository Branch", "Source Control",
                               "Select a branch without changing the working tree.",
                               "vcs.read", UMI_COMMAND_NONE, vcs_select_branch_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_SELECT_REMOTE,
                               "Select Repository Remote", "Source Control",
                               "Select a configured remote for inspection.",
                               "vcs.read", UMI_COMMAND_NONE, vcs_select_remote_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_SET_COMMIT_MESSAGE,
                               "Set Commit Message", "Source Control",
                               "Set the professional commit-composition message.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_set_commit_message_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_STAGE_SELECTED,
                               "Stage Selected Change", "Source Control",
                               "Stage the selected repository path.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_stage_selected_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_UNSTAGE_SELECTED,
                               "Unstage Selected Change", "Source Control",
                               "Remove the selected repository path from the index.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE, vcs_unstage_selected_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_DISCARD_SELECTED,
                               "Discard Selected Change", "Source Control",
                               "Discard the selected unstaged path after confirmation.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, vcs_discard_selected_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_COMMIT_COMPOSED,
                               "Commit Composed Changes", "Source Control",
                               "Commit staged changes using the composed message.",
                               "vcs.write", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, vcs_commit_composed_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_DIFF_SELECTED,
                               "Open Selected Working Tree Diff", "Source Control",
                               "Load the selected working-tree path diff.",
                               "vcs.read", UMI_COMMAND_NONE, vcs_diff_selected_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_VCS_DIFF_SELECTED_STAGED,
                               "Open Selected Staged Diff", "Source Control",
                               "Load the selected index path diff.",
                               "vcs.read", UMI_COMMAND_NONE, vcs_diff_selected_staged_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_REFRESH,
@@ -3579,6 +4701,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Reconcile trading selections, derived metrics and capabilities.",
                               "studio.trading.read", UMI_COMMAND_NONE,
                               trading_refresh_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_FILTER_INSTRUMENTS,
@@ -3586,6 +4709,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Filter the watchlist by symbol, venue, currency or identifier.",
                               "studio.trading.read", UMI_COMMAND_NONE,
                               trading_filter_instruments_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_SELECT_INSTRUMENT,
@@ -3593,6 +4717,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select the instrument shared by depth, charts and order entry.",
                               "studio.trading.read", UMI_COMMAND_NONE,
                               trading_select_instrument_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_SET_ENVIRONMENT,
@@ -3600,6 +4725,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select simulation, paper or live while retaining readiness gates.",
                               "studio.trading.use", UMI_COMMAND_MUTATES_STATE,
                               trading_set_environment_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_SET_SIDE,
@@ -3607,6 +4733,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Set the draft order to buy or sell.",
                               "studio.trading.use", UMI_COMMAND_MUTATES_STATE,
                               trading_set_side_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_SET_TYPE,
@@ -3614,6 +4741,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Set type and time in force using type[:tif].",
                               "studio.trading.use", UMI_COMMAND_MUTATES_STATE,
                               trading_set_type_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_SET_QUANTITY,
@@ -3621,6 +4749,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Set a positive draft order quantity.",
                               "studio.trading.use", UMI_COMMAND_MUTATES_STATE,
                               trading_set_quantity_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_SET_PRICES,
@@ -3628,6 +4757,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Set limit[:stop] prices for the draft order.",
                               "studio.trading.use", UMI_COMMAND_MUTATES_STATE,
                               trading_set_prices_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_PREVIEW_ORDER,
@@ -3635,6 +4765,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Evaluate pre-trade limits without submitting an order.",
                               "studio.trading.read", UMI_COMMAND_NONE,
                               trading_preview_order_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_SUBMIT_ORDER,
@@ -3645,6 +4776,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               trading_submit_order_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_FILTER_ORDERS,
@@ -3652,6 +4784,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Show all, open, filled, cancelled or rejected orders.",
                               "studio.trading.read", UMI_COMMAND_NONE,
                               trading_filter_orders_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_SELECT_ORDER,
@@ -3659,6 +4792,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "Select an order by its stable client order identifier.",
                               "studio.trading.read", UMI_COMMAND_NONE,
                               trading_select_order_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_CANCEL_ORDER,
@@ -3669,6 +4803,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               trading_cancel_order_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_ENGAGE_KILL_SWITCH,
@@ -3677,6 +4812,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.trading.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               trading_engage_kill_switch_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TRADING_RESET_KILL_SWITCH,
@@ -3687,6 +4823,7 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               trading_reset_kill_switch_handler);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_DEVELOPER_REPORT,

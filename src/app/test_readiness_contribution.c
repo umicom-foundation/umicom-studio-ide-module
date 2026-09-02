@@ -11,6 +11,10 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/test_readiness_contribution.h"
 
+/*
+ * Provide the studio test readiness contribution operation used by this module and its
+ * client applications.
+ */
 const UmiStudioTestReadinessContribution *
 umi_studio_test_readiness_contribution(void)
 {

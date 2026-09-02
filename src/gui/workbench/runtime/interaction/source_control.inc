@@ -19,6 +19,10 @@ static UmiStudioSourceControlService *runtime_source_control_service(
 {
     UmiStudioServices *services;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL) return NULL;
     services = umi_studio_ui_services(runtime->owner->ui);
     return services != NULL
@@ -26,6 +30,10 @@ static UmiStudioSourceControlService *runtime_source_control_service(
         : NULL;
 }
 
+/*
+ * Provide the runtime diff window ensure operation used by this module and its client
+ * applications.
+ */
 static void runtime_diff_window_ensure(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -36,6 +44,10 @@ static void runtime_diff_window_ensure(
     GtkWidget *right_scroll;
     GtkWidget *unified_scroll;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->diff_window != NULL) return;
 
     runtime->diff_window = GTK_WIDGET(gtk_window_new());
@@ -47,6 +59,10 @@ static void runtime_diff_window_ensure(
     notebook = gtk_notebook_new();
     paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->diff_window == NULL || root == NULL ||
         notebook == NULL || paned == NULL ||
         runtime->diff_text_view == NULL ||
@@ -142,6 +158,10 @@ static void runtime_diff_window_ensure(
         runtime);
 }
 
+/*
+ * Provide the runtime show selected diff operation used by this module and its client
+ * applications.
+ */
 static void runtime_show_selected_diff(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -156,6 +176,10 @@ static void runtime_show_selected_diff(
     size_t index;
     char summary[256];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     service = runtime_source_control_service(runtime);
@@ -166,6 +190,10 @@ static void runtime_show_selected_diff(
         ? umi_vcs_workspace_diff(workspace)
         : NULL;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (document == NULL ||
         umi_vcs_diff_document_snapshot(
             document,
@@ -175,6 +203,10 @@ static void runtime_show_selected_diff(
     }
 
     runtime_diff_window_ensure(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->diff_window == NULL ||
         runtime->diff_text_view == NULL ||
         runtime->diff_left_view == NULL ||
@@ -185,13 +217,30 @@ static void runtime_show_selected_diff(
     text = g_string_sized_new(4096U);
     left = g_string_sized_new(4096U);
     right = g_string_sized_new(4096U);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (text == NULL || left == NULL || right == NULL) {
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (text != NULL) g_string_free(text, TRUE);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (left != NULL) g_string_free(left, TRUE);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (right != NULL) g_string_free(right, TRUE);
         return;
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_vcs_diff_document_line_count(document);
          ++index) {
@@ -199,8 +248,13 @@ static void runtime_show_selected_diff(
             umi_vcs_diff_document_line_at(document, index);
         const char *prefix = " ";
 
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (line == NULL) continue;
 
+        /* Select the behaviour associated with the requested command or state value. */
         switch (line->kind) {
             case UMI_VCS_DIFF_ADDITION:
                 prefix = "+";
@@ -243,6 +297,7 @@ static void runtime_show_selected_diff(
 
         g_string_append(text, prefix);
         g_string_append(text, line->text);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (text->len == 0U ||
             text->str[text->len - 1U] != '\n') {
             g_string_append_c(text, '\n');
@@ -283,6 +338,10 @@ static void runtime_show_selected_diff(
     g_string_free(right, TRUE);
 }
 
+/*
+ * Provide the runtime on vcs stage clicked operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_vcs_stage_clicked(
     GtkButton *button,
     gpointer user_data)
@@ -297,6 +356,10 @@ static void runtime_on_vcs_stage_clicked(
             G_OBJECT(button),
             "umicom-vcs-staged"));
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || path == NULL) return;
 
     (void)runtime_execute_registered_command(
@@ -307,6 +370,10 @@ static void runtime_on_vcs_stage_clicked(
         path);
 }
 
+/*
+ * Provide the runtime on vcs diff clicked operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_vcs_diff_clicked(
     GtkButton *button,
     gpointer user_data)
@@ -317,6 +384,10 @@ static void runtime_on_vcs_diff_clicked(
         G_OBJECT(button),
         "umicom-vcs-path");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || path == NULL) return;
 
     runtime_copy_selection(
@@ -324,6 +395,7 @@ static void runtime_on_vcs_diff_clicked(
         sizeof(runtime->selected_vcs_path),
         path);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime_execute_registered_command(
             runtime,
             UMI_STUDIO_COMMAND_VCS_DIFF,
@@ -332,6 +404,10 @@ static void runtime_on_vcs_diff_clicked(
     }
 }
 
+/*
+ * Provide the runtime vcs commit accepted operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_vcs_commit_accepted(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *value)
@@ -342,6 +418,10 @@ static UmiStatus runtime_vcs_commit_accepted(
         value);
 }
 
+/*
+ * Provide the runtime on vcs commit clicked operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_vcs_commit_clicked(
     GtkButton *button,
     gpointer user_data)
@@ -351,14 +431,27 @@ static void runtime_on_vcs_commit_clicked(
     const char *message = NULL;
     (void)button;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->source_control_commit_entry != NULL) {
         message = gtk_editable_get_text(
             GTK_EDITABLE(runtime->source_control_commit_entry));
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (message != NULL && message[0] != '\0') {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (runtime_vcs_commit_accepted(runtime, message) == UMI_STATUS_OK) {
             gtk_editable_set_text(
                 GTK_EDITABLE(runtime->source_control_commit_entry),
@@ -376,6 +469,10 @@ static void runtime_on_vcs_commit_clicked(
         runtime_vcs_commit_accepted);
 }
 
+/*
+ * Provide the runtime source control refresh list operation used by this module and its
+ * client applications.
+ */
 static void runtime_source_control_refresh_list(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -385,6 +482,10 @@ static void runtime_source_control_refresh_list(
     size_t index;
     char summary[256];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->source_control_list == NULL) return;
 
     runtime_clear_list_box(runtime->source_control_list);
@@ -397,6 +498,7 @@ static void runtime_source_control_refresh_list(
         ? umi_vcs_change_list_count(changes)
         : 0U;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < count && index < UMI_STUDIO_GTK_VCS_ROW_LIMIT;
          ++index) {
@@ -416,6 +518,10 @@ static void runtime_source_control_refresh_list(
                     ? change->index_state
                     : UMI_VCS_CHANGE_UNMODIFIED);
 
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (change == NULL) continue;
 
         (void)snprintf(
@@ -432,6 +538,10 @@ static void runtime_source_control_refresh_list(
             change->staged ? "Unstage" : "Stage");
         diff = gtk_button_new_with_label("Diff");
 
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (row == NULL || label == NULL || spacer == NULL ||
             stage == NULL || diff == NULL) {
             continue;
@@ -489,6 +599,10 @@ static void runtime_source_control_refresh_list(
         runtime->source_control_snapshot.ahead,
         runtime->source_control_snapshot.behind);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->source_control_summary_label != NULL) {
         gtk_label_set_text(
             GTK_LABEL(runtime->source_control_summary_label),

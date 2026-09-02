@@ -23,9 +23,17 @@
 
 #include <stdio.h>
 
+/*
+ * Provide the studio tab close decision operation used by this module and its client
+ * applications.
+ */
 UmiStudioTabCloseDecision umi_studio_tab_close_decision(
     const UmiStudioWorkspaceDocument *document)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (document == NULL) {
         return UMI_STUDIO_TAB_CLOSE_NOT_FOUND;
     }
@@ -35,6 +43,7 @@ UmiStudioTabCloseDecision umi_studio_tab_close_decision(
         : UMI_STUDIO_TAB_CLOSE_ALLOWED;
 }
 
+/* Provide the studio tab label operation used by this module and its client applications. */
 UmiStatus umi_studio_tab_label(
     const UmiStudioWorkspaceDocument *document,
     char *output,
@@ -42,6 +51,10 @@ UmiStatus umi_studio_tab_label(
 {
     int written;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (document == NULL || output == NULL || output_capacity == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

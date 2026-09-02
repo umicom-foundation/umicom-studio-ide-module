@@ -18,8 +18,13 @@ static GtkWidget *runtime_build_surface_editor(UmiStudioGtkRuntimeChrome *runtim
     GtkWidget *panel = runtime_panel_new("Editor");
     UmiDocumentWorkingCopySnapshot active;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL || runtime->owner == NULL) return panel;
 
+    /* Apply this operation only while the related capability or state is available. */
     if (umi_document_coordinator_active_snapshot(
             umi_studio_ui_documents(runtime->owner->ui),
             &active) == UMI_STATUS_OK) {
@@ -29,7 +34,7 @@ static GtkWidget *runtime_build_surface_editor(UmiStudioGtkRuntimeChrome *runtim
             panel,
             "State",
             active.dirty ? "Modified" : "Saved");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_panel_add_stat(panel, "Document", "No active document");
     }
 

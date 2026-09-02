@@ -70,6 +70,7 @@ umi_project_error_quark(void)
 static void
 umi_project_set_error(GError **err, int code, const char *fmt, ...)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!err) {
         return; /* Caller not interested in detailed errors.                   */
     }
@@ -86,10 +87,15 @@ umi_project_set_error(GError **err, int code, const char *fmt, ...)
 static gboolean
 umi_project_validate_dir(const char *folder, GError **err)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (G_UNLIKELY(folder == NULL || *folder == '\0')) {
         umi_project_set_error(err, 1, "No folder path provided");
         return FALSE;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!g_file_test(folder, G_FILE_TEST_IS_DIR)) {
         umi_project_set_error(err, 2, "Folder is not a directory or not accessible: %s", folder);
         return FALSE;
@@ -172,6 +178,10 @@ umi_project_refresh_index(UmiProjectManager *pm)
 void
 umi_project_manager_free(UmiProjectManager *pm)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (pm == NULL) {
         return; /* tolerate NULL for convenience                                */
     }

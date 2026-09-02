@@ -22,6 +22,10 @@ static GtkWidget *runtime_build_surface_ai_review(
     GtkWidget *apply;
     GtkWidget *revert;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL) return panel;
 
     gtk_box_append(
@@ -54,6 +58,10 @@ static GtkWidget *runtime_build_surface_ai_review(
     apply = gtk_button_new_with_label("Apply Patch");
     revert = gtk_button_new_with_label("Revert Patch");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (actions != NULL && approve != NULL &&
         apply != NULL && revert != NULL) {
         g_signal_connect(

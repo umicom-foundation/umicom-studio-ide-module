@@ -19,6 +19,9 @@
 extern "C" {
 #endif
 
+/**
+ * List the named studio distribution command values accepted by this public contract.
+ */
 typedef enum UmiStudioDistributionCommand {
     UMI_STUDIO_DISTRIBUTION_BUILD_PACKAGE = 1,
     UMI_STUDIO_DISTRIBUTION_SCAN_DEPENDENCIES = 2,
@@ -29,8 +32,16 @@ typedef enum UmiStudioDistributionCommand {
     UMI_STUDIO_DISTRIBUTION_ROLLBACK = 7
 } UmiStudioDistributionCommand;
 
+/**
+ * Provide the studio distribution command id operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_distribution_command_id(
     UmiStudioDistributionCommand command);
+/**
+ * Provide the studio distribution command enabled operation used by this module and its
+ * client applications.
+ */
 int umi_studio_distribution_command_enabled(
     UmiStudioDistributionCommand command,
     int release_ready,

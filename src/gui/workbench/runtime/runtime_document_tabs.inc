@@ -23,11 +23,16 @@ static void runtime_on_document_tab(GtkButton *button, gpointer user_data)
             G_OBJECT(button),
             "umicom-view-id");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->ui == NULL || view_id == NULL) {
         return;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_ui_workbench_activate_document(
             umi_studio_ui_workbench(runtime->owner->ui),
             view_id) == UMI_STATUS_OK) {
@@ -35,6 +40,10 @@ static void runtime_on_document_tab(GtkButton *button, gpointer user_data)
     }
 }
 
+/*
+ * Provide the runtime update document tabs operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_update_document_tabs(
     void *context,
     const UmiStudioRuntimeDocumentTabs *tabs)
@@ -43,6 +52,10 @@ static UmiStatus runtime_update_document_tabs(
         (UmiStudioGtkRuntimeChrome *)context;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || tabs == NULL ||
         runtime->document_tabs == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -50,8 +63,13 @@ static UmiStatus runtime_update_document_tabs(
 
     runtime_clear_box(runtime->document_tabs);
 
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (tabs->count == 0U) {
         GtkWidget *empty = runtime_label("No open documents", 0.0F);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (empty != NULL) {
             gtk_widget_add_css_class(empty, "umicom-runtime-muted");
             gtk_box_append(GTK_BOX(runtime->document_tabs), empty);
@@ -59,6 +77,7 @@ static UmiStatus runtime_update_document_tabs(
         return UMI_STATUS_OK;
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < tabs->count; ++index) {
         const UmiStudioRuntimeDocumentTab *tab = &tabs->tabs[index];
         char label[320];
@@ -72,6 +91,10 @@ static UmiStatus runtime_update_document_tabs(
             tab->dirty ? " •" : "");
 
         button = gtk_button_new_with_label(label);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (button == NULL) continue;
 
         g_object_set_data_full(
@@ -84,6 +107,7 @@ static UmiStatus runtime_update_document_tabs(
             button,
             tab->path[0] != '\0' ? tab->path : tab->display_name);
 
+        /* Apply this operation only while the related capability or state is available. */
         if (tab->active) {
             gtk_widget_add_css_class(button, "suggested-action");
         }

@@ -28,13 +28,24 @@ struct UmiStudioDeveloperPipelineCentre {
     int has_project_workflow;
 };
 
+/* Provide the copy text operation used by this module and its client applications. */
 static void copy_text(char *destination, size_t capacity, const char *source)
 {
     size_t length;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (destination == NULL || capacity == 0U) return;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (source == NULL) source = "";
     length = strlen(source);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length >= capacity) length = capacity - 1U;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length > 0U) (void)memcpy(destination, source, length);
     destination[length] = '\0';
 }
@@ -103,30 +114,45 @@ static const UmiStudioBuildDeliveryViewContribution DELIVERY_VIEWS[] = {
 
 #undef VIEW
 
+/*
+ * Initialise studio developer pipeline centre from caller-provided values so later
+ * operations receive a known state.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_create(
     UmiDeveloperRuntime *runtime,
     UmiStudioDeveloperPipelineCentre **out_centre)
 {
     UmiStudioDeveloperPipelineCentre *centre;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || out_centre == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     *out_centre = NULL;
     centre = (UmiStudioDeveloperPipelineCentre *)calloc(1U, sizeof(*centre));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     centre->runtime = runtime;
     centre->revision = 1U;
     status = umi_build_task_registry_create(&centre->delivery_tasks);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_build_deployment_target_registry_create(
             &centre->deployment_targets);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_build_delivery_pipeline_create(
             "studio.build-delivery", centre->delivery_tasks,
             centre->deployment_targets, 2U, &centre->delivery);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_developer_pipeline_centre_destroy(centre);
         return status;
@@ -135,9 +161,17 @@ UmiStatus umi_studio_developer_pipeline_centre_create(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio developer pipeline centre so the same storage can
+ * be reused safely.
+ */
 void umi_studio_developer_pipeline_centre_destroy(
     UmiStudioDeveloperPipelineCentre *centre)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return;
     /* The developer runtime is borrowed from the owning workbench. */
     umi_build_delivery_pipeline_destroy(centre->delivery);
@@ -146,16 +180,25 @@ void umi_studio_developer_pipeline_centre_destroy(
     free(centre);
 }
 
+/*
+ * Provide the studio developer pipeline centre snapshot operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_snapshot(
     UmiStudioDeveloperPipelineCentre *centre,
     UmiStudioDeveloperPipelineCentreSnapshot *out_snapshot)
 {
     UmiDeveloperRuntimeSnapshot runtime_snapshot;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || out_snapshot == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_developer_runtime_snapshot(centre->runtime, &runtime_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     out_snapshot->struct_size = (uint32_t)sizeof(*out_snapshot);
@@ -171,6 +214,7 @@ UmiStatus umi_studio_developer_pipeline_centre_snapshot(
     out_snapshot->journal = runtime_snapshot.journal;
     status = umi_build_delivery_pipeline_snapshot(
         centre->delivery, &out_snapshot->delivery);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     out_snapshot->delivery_command_count =
         umi_studio_build_delivery_command_contribution_count();
@@ -185,6 +229,7 @@ UmiStatus umi_studio_developer_pipeline_centre_snapshot(
         out_snapshot->delivery.artifacts.artifact_count +
         out_snapshot->delivery.deployment.plan.step_count;
     out_snapshot->available = 1;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (centre->has_project_workflow) {
         out_snapshot->last_project_workflow = centre->last_project_workflow;
         out_snapshot->has_project_workflow = 1;
@@ -192,19 +237,32 @@ UmiStatus umi_studio_developer_pipeline_centre_snapshot(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio developer pipeline centre prepare cmake operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_prepare_cmake(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperCMakePlanRequest *request,
     UmiDeveloperCMakePlanSnapshot *out_plan)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_developer_runtime_submit_cmake_plan(
         centre->runtime, request, out_plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->revision += 1U;
     return status;
 }
 
+/*
+ * Provide the studio developer pipeline centre execute next operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_execute_next(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperExecutor *executor,
@@ -212,62 +270,106 @@ UmiStatus umi_studio_developer_pipeline_centre_execute_next(
     UmiDeveloperExecutionResult *out_result)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || executor == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_developer_runtime_execute_next(
         centre->runtime, executor, out_operation, out_result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->revision += 1U;
     return status;
 }
 
+/*
+ * Provide the studio developer pipeline centre execute next process operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_execute_next_process(
     UmiStudioDeveloperPipelineCentre *centre,
     UmiDeveloperOperationSnapshot *out_operation,
     UmiDeveloperExecutionResult *out_result)
 {
     UmiDeveloperExecutor executor;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     umi_developer_executor_init(&executor, umi_developer_process_execute, NULL);
     return umi_studio_developer_pipeline_centre_execute_next(
         centre, &executor, out_operation, out_result);
 }
 
+/*
+ * Provide the studio developer pipeline centre submit task operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_submit_task(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperTaskPlanRequest *request,
     UmiDeveloperTaskPlanSnapshot *out_plan)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_developer_task_plan_submit(centre->runtime, request, out_plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->revision += 1U;
     return status;
 }
 
+/*
+ * Provide the studio developer pipeline centre submit launch operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_submit_launch(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperLaunchPlanRequest *request,
     UmiDeveloperLaunchPlanSnapshot *out_plan)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_developer_launch_plan_submit(centre->runtime, request, out_plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->revision += 1U;
     return status;
 }
 
+/*
+ * Provide the studio developer pipeline centre submit workflow operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_submit_workflow(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperWorkflowRequest *request,
     UmiDeveloperWorkflowSnapshot *out_workflow)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_developer_workflow_submit(
         centre->runtime, request, out_workflow);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->revision += 1U;
     return status;
 }
 
+/*
+ * Provide the studio developer pipeline centre prepare project workflow operation used by
+ * this module and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_prepare_project_workflow(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperProjectWorkflowRequest *request,
@@ -275,17 +377,30 @@ UmiStatus umi_studio_developer_pipeline_centre_prepare_project_workflow(
 {
     UmiDeveloperProjectWorkflowSnapshot workflow;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_developer_project_workflow_submit(
         centre->runtime, request, &workflow);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     centre->last_project_workflow = workflow;
     centre->has_project_workflow = 1;
     centre->revision += 1U;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_workflow != NULL) *out_workflow = workflow;
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio developer pipeline centre execute batch operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_execute_batch(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperExecutor *executor,
@@ -293,40 +408,66 @@ UmiStatus umi_studio_developer_pipeline_centre_execute_batch(
     UmiDeveloperBatchExecutionSnapshot *out_snapshot)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || executor == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_developer_batch_execute(
         centre->runtime, executor, request, out_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->revision += 1U;
     return status;
 }
 
+/*
+ * Provide the studio developer pipeline centre execute batch process operation used by
+ * this module and its client applications.
+ */
 UmiStatus umi_studio_developer_pipeline_centre_execute_batch_process(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperBatchExecutionRequest *request,
     UmiDeveloperBatchExecutionSnapshot *out_snapshot)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_developer_batch_execute_process(
         centre->runtime, request, out_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->revision += 1U;
     return status;
 }
 
+/*
+ * Provide the studio developer pipeline centre runtime operation used by this module and
+ * its client applications.
+ */
 UmiDeveloperRuntime *umi_studio_developer_pipeline_centre_runtime(
     UmiStudioDeveloperPipelineCentre *centre)
 {
     return centre != NULL ? centre->runtime : NULL;
 }
 
+/*
+ * Provide the studio developer pipeline centre delivery tasks operation used by this
+ * module and its client applications.
+ */
 UmiBuildTaskRegistry *umi_studio_developer_pipeline_centre_delivery_tasks(
     UmiStudioDeveloperPipelineCentre *centre)
 {
     return centre != NULL ? centre->delivery_tasks : NULL;
 }
 
+/*
+ * Provide the studio developer pipeline centre deployment targets operation used by this
+ * module and its client applications.
+ */
 UmiBuildDeploymentTargetRegistry *
 umi_studio_developer_pipeline_centre_deployment_targets(
     UmiStudioDeveloperPipelineCentre *centre)
@@ -334,35 +475,58 @@ umi_studio_developer_pipeline_centre_deployment_targets(
     return centre != NULL ? centre->deployment_targets : NULL;
 }
 
+/*
+ * Provide the studio developer pipeline centre delivery operation used by this module and
+ * its client applications.
+ */
 UmiBuildDeliveryPipeline *umi_studio_developer_pipeline_centre_delivery(
     UmiStudioDeveloperPipelineCentre *centre)
 {
     return centre != NULL ? centre->delivery : NULL;
 }
 
+/*
+ * Return the number of records represented by studio build delivery command contribution
+ * without changing their state.
+ */
 size_t umi_studio_build_delivery_command_contribution_count(void)
 {
     return sizeof(DELIVERY_COMMANDS) / sizeof(DELIVERY_COMMANDS[0]);
 }
 
+/*
+ * Find studio build delivery command contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioBuildDeliveryCommandContribution *
 umi_studio_build_delivery_command_contribution_at(size_t position)
 {
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (position >= umi_studio_build_delivery_command_contribution_count()) {
         return NULL;
     }
     return &DELIVERY_COMMANDS[position];
 }
 
+/*
+ * Find studio build delivery command contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioBuildDeliveryCommandContribution *
 umi_studio_build_delivery_command_contribution_find(
     const char *framework_command_id)
 {
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (framework_command_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_build_delivery_command_contribution_count();
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(DELIVERY_COMMANDS[index].framework_command_id,
                    framework_command_id) == 0) {
             return &DELIVERY_COMMANDS[index];
@@ -371,29 +535,48 @@ umi_studio_build_delivery_command_contribution_find(
     return NULL;
 }
 
+/*
+ * Return the number of records represented by studio build delivery view contribution
+ * without changing their state.
+ */
 size_t umi_studio_build_delivery_view_contribution_count(void)
 {
     return sizeof(DELIVERY_VIEWS) / sizeof(DELIVERY_VIEWS[0]);
 }
 
+/*
+ * Find studio build delivery view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioBuildDeliveryViewContribution *
 umi_studio_build_delivery_view_contribution_at(size_t position)
 {
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (position >= umi_studio_build_delivery_view_contribution_count()) {
         return NULL;
     }
     return &DELIVERY_VIEWS[position];
 }
 
+/*
+ * Find studio build delivery view contribution while leaving the underlying catalogue or
+ * model owned by this module.
+ */
 const UmiStudioBuildDeliveryViewContribution *
 umi_studio_build_delivery_view_contribution_find(
     const char *framework_view_id)
 {
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (framework_view_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_build_delivery_view_contribution_count();
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(DELIVERY_VIEWS[index].framework_view_id,
                    framework_view_id) == 0) {
             return &DELIVERY_VIEWS[index];

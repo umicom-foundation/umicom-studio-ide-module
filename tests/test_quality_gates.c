@@ -16,6 +16,10 @@
 #include <assert.h>
 #include "quality_centre_fixture.h"
 #include "umicom/studio/quality_evidence.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioQualityCentre *centre = umi_test_quality_centre();

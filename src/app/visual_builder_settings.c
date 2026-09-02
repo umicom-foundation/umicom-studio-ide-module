@@ -24,17 +24,35 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/visual_builder_settings.h"
 #include <stdint.h>
+/*
+ * Provide the studio visual builder config default operation used by this module and its
+ * client applications.
+ */
 UmiStudioVisualBuilderConfig umi_studio_visual_builder_config_default(void){UmiStudioVisualBuilderConfig config;umi_designer_surface_options_init(&config.surface);config.preview_profile=UMI_DESIGNER_PREVIEW_DESKTOP;config.show_generated_source=1;config.auto_refresh_preview=1;return config;}
+/*
+ * Perform studio visual builder settings through the module contract so client
+ * applications do not duplicate its policy.
+ */
 UmiStatus umi_studio_visual_builder_settings_apply(const UmiSettings *settings,UmiStudioVisualBuilderConfig *config)
 {
     int64_t grid=0,profile=0;int snap=0,show_source=0,auto_preview=0;UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if(settings==NULL||config==NULL)return UMI_STATUS_INVALID_ARGUMENT;
     status=umi_settings_get_integer(settings,UMI_STUDIO_SETTING_VISUAL_BUILDER_GRID_SIZE,&grid);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status==UMI_STATUS_OK)status=umi_settings_get_boolean(settings,UMI_STUDIO_SETTING_VISUAL_BUILDER_SNAP,&snap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status==UMI_STATUS_OK)status=umi_settings_get_integer(settings,UMI_STUDIO_SETTING_VISUAL_BUILDER_PREVIEW_PROFILE,&profile);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status==UMI_STATUS_OK)status=umi_settings_get_boolean(settings,UMI_STUDIO_SETTING_VISUAL_BUILDER_SHOW_SOURCE,&show_source);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status==UMI_STATUS_OK)status=umi_settings_get_boolean(settings,UMI_STUDIO_SETTING_VISUAL_BUILDER_AUTO_PREVIEW,&auto_preview);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status!=UMI_STATUS_OK)return status;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(grid<1||grid>256||profile<UMI_DESIGNER_PREVIEW_DESKTOP||profile>UMI_DESIGNER_PREVIEW_PHONE_PORTRAIT)return UMI_STATUS_INVALID_STATE;
     status=umi_designer_surface_set_grid(&config->surface,(unsigned)grid,snap);config->preview_profile=(UmiDesignerPreviewProfile)profile;config->show_generated_source=show_source;config->auto_refresh_preview=auto_preview;return status;
 }

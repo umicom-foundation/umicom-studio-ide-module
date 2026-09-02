@@ -79,11 +79,19 @@ static const UmiStudioVcsWorkbenchViewContribution VIEWS[] = {
 
 #undef VIEW
 
+/*
+ * Return the number of records represented by studio vcs workbench command without
+ * changing their state.
+ */
 size_t umi_studio_vcs_workbench_command_count(void)
 {
     return sizeof(COMMANDS) / sizeof(COMMANDS[0]);
 }
 
+/*
+ * Find studio vcs workbench command while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiStudioVcsWorkbenchCommandContribution *
 umi_studio_vcs_workbench_command_at(size_t index)
 {
@@ -91,12 +99,22 @@ umi_studio_vcs_workbench_command_at(size_t index)
         ? &COMMANDS[index] : NULL;
 }
 
+/*
+ * Find studio vcs workbench command while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 const UmiStudioVcsWorkbenchCommandContribution *
 umi_studio_vcs_workbench_command_find(const char *framework_command_id)
 {
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (framework_command_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < umi_studio_vcs_workbench_command_count(); ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(COMMANDS[index].framework_command_id,
                    framework_command_id) == 0) {
             return &COMMANDS[index];
@@ -105,11 +123,19 @@ umi_studio_vcs_workbench_command_find(const char *framework_command_id)
     return NULL;
 }
 
+/*
+ * Return the number of records represented by studio vcs workbench view without changing
+ * their state.
+ */
 size_t umi_studio_vcs_workbench_view_count(void)
 {
     return sizeof(VIEWS) / sizeof(VIEWS[0]);
 }
 
+/*
+ * Find studio vcs workbench view while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioVcsWorkbenchViewContribution *
 umi_studio_vcs_workbench_view_at(size_t index)
 {
@@ -117,17 +143,31 @@ umi_studio_vcs_workbench_view_at(size_t index)
         ? &VIEWS[index] : NULL;
 }
 
+/*
+ * Find studio vcs workbench view while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiStudioVcsWorkbenchViewContribution *
 umi_studio_vcs_workbench_view_find(const char *view_id)
 {
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (view_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < umi_studio_vcs_workbench_view_count(); ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(VIEWS[index].view_id, view_id) == 0) return &VIEWS[index];
     }
     return NULL;
 }
 
+/*
+ * Initialise studio vcs workbench from caller-provided values so later operations receive
+ * a known state.
+ */
 UmiStatus umi_studio_vcs_workbench_create(
     UmiVcsWorkbenchRuntime **out_runtime)
 {

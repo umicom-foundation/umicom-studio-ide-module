@@ -114,19 +114,35 @@ extern "C" {
 #define UMI_STUDIO_SETTING_VISUAL_BUILDER_AUTO_PREVIEW \
     "studio.visual_builder.auto_refresh_preview"
 
+/**
+ * Initialise studio settings from caller-provided values so later operations receive a
+ * known state.
+ */
 UmiStatus umi_studio_settings_create(UmiSettings **out_settings);
 
+/**
+ * Provide the studio settings load if present operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_settings_load_if_present(
     UmiSettings *settings,
     const char *path,
     int *out_loaded
 );
 
+/**
+ * Write studio settings in its stable representation and report capacity or input failures
+ * to the caller.
+ */
 UmiStatus umi_studio_settings_save(
     const UmiSettings *settings,
     const char *path
 );
 
+/**
+ * Provide the studio settings default path operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_settings_default_path(void);
 
 #ifdef __cplusplus

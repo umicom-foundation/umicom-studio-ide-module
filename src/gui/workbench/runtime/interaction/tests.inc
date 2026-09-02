@@ -20,6 +20,10 @@ static UmiTestPlatformService *runtime_test_platform(
     UmiStudioServices *services;
     UmiStudioTestService *tests;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL) return NULL;
 
     services = umi_studio_ui_services(runtime->owner->ui);
@@ -32,12 +36,21 @@ static UmiTestPlatformService *runtime_test_platform(
         : NULL;
 }
 
+/*
+ * Provide the runtime test select operation used by this module and its client
+ * applications.
+ */
 static void runtime_test_select(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *test_id)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || test_id == NULL || test_id[0] == '\0') return;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (runtime_execute_registered_command(
             runtime,
             UMI_STUDIO_COMMAND_TESTS_SELECT,
@@ -49,6 +62,10 @@ static void runtime_test_select(
     }
 }
 
+/*
+ * Provide the runtime on test select operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_test_select(
     GtkButton *button,
     gpointer user_data)
@@ -62,6 +79,10 @@ static void runtime_on_test_select(
         test_id);
 }
 
+/*
+ * Perform runtime on test through the module contract so client applications do not
+ * duplicate its policy.
+ */
 static void runtime_on_test_run(
     GtkButton *button,
     gpointer user_data)
@@ -72,9 +93,14 @@ static void runtime_on_test_run(
         G_OBJECT(button),
         "umicom-test-id");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || test_id == NULL) return;
 
     runtime_test_select(runtime, test_id);
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(runtime->selected_test_id, test_id) == 0) {
         (void)runtime_execute_registered_command(
             runtime,
@@ -83,6 +109,10 @@ static void runtime_on_test_run(
     }
 }
 
+/*
+ * Provide the runtime on test debug operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_test_debug(
     GtkButton *button,
     gpointer user_data)
@@ -93,9 +123,14 @@ static void runtime_on_test_debug(
         G_OBJECT(button),
         "umicom-test-id");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || test_id == NULL) return;
 
     runtime_test_select(runtime, test_id);
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(runtime->selected_test_id, test_id) == 0) {
         (void)runtime_execute_registered_command(
             runtime,
@@ -104,6 +139,10 @@ static void runtime_on_test_debug(
     }
 }
 
+/*
+ * Provide the runtime on test source operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_test_source(
     GtkButton *button,
     gpointer user_data)
@@ -120,20 +159,34 @@ static void runtime_on_test_source(
     GFile *file;
     char *path;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || uri == NULL || uri[0] == '\0') return;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (g_str_has_prefix(uri, "file:")) {
         file = g_file_new_for_uri(uri);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (file == NULL) return;
         path = g_file_get_path(file);
         g_object_unref(file);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         path = g_strdup(uri);
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (path != NULL) {
         runtime_explorer_open_path(runtime, path);
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (source_line > 0U) {
             size_t offset = 0U;
             (void)umi_document_coordinator_go_to_line(
@@ -146,6 +199,10 @@ static void runtime_on_test_source(
     }
 }
 
+/*
+ * Provide the runtime tests refresh list operation used by this module and its client
+ * applications.
+ */
 static void runtime_tests_refresh_list(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -157,6 +214,10 @@ static void runtime_tests_refresh_list(
     const char *query = "";
     char summary[256];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->test_list == NULL) return;
 
     runtime_clear_list_box(runtime->test_list);
@@ -165,6 +226,10 @@ static void runtime_tests_refresh_list(
         ? umi_test_platform_service_item(platform)
         : NULL;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->test_search_entry != NULL) {
         query = gtk_editable_get_text(
             GTK_EDITABLE(runtime->test_search_entry));
@@ -174,6 +239,7 @@ static void runtime_tests_refresh_list(
         ? umi_test_platform_item_registry_count(items)
         : 0U;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < count && visible < UMI_STUDIO_GTK_TEST_ROW_LIMIT;
          ++index) {
@@ -190,6 +256,7 @@ static void runtime_tests_refresh_list(
         char detail_text[768];
 
         (void)memset(&item, 0, sizeof(item));
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_test_platform_item_registry_at(
                 items,
                 index,
@@ -197,6 +264,7 @@ static void runtime_tests_refresh_list(
             continue;
         }
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (!runtime_text_contains_casefold(item.name, query) &&
             !runtime_text_contains_casefold(item.id, query) &&
             !runtime_text_contains_casefold(item.labels, query)) {
@@ -213,6 +281,10 @@ static void runtime_tests_refresh_list(
         debug = gtk_button_new_with_label("Debug");
         source = gtk_button_new_with_label("Source");
 
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (row == NULL || labels == NULL || title == NULL ||
             detail == NULL || spacer == NULL || select == NULL ||
             run == NULL || debug == NULL || source == NULL) {
@@ -308,6 +380,10 @@ static void runtime_tests_refresh_list(
         runtime->test_snapshot.failed,
         runtime->test_snapshot.operation_running ? " — running" : "");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->test_summary_label != NULL) {
         gtk_label_set_text(
             GTK_LABEL(runtime->test_summary_label),
@@ -315,6 +391,10 @@ static void runtime_tests_refresh_list(
     }
 }
 
+/*
+ * Provide the runtime on test search changed operation used by this module and its client
+ * applications.
+ */
 static void runtime_on_test_search_changed(
     GtkSearchEntry *entry,
     gpointer user_data)

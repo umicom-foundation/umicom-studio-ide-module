@@ -3,6 +3,22 @@
  * File: src/include/umi_diagnostics.h
  *
  * PURPOSE:
+ *   Declare the umi diagnostics contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/include/umi_diagnostics.h
+ *
+ * PURPOSE:
  *   Provide a single, canonical definition of diagnostics severity used
  *   throughout Umicom Studio IDE (build system, problems pane, console sink).
  *
@@ -34,6 +50,7 @@ typedef enum UmiDiagSeverity {
 
 /* Small helper for pretty-printing/logging. */
 static inline const char* umi_diag_severity_name(UmiDiagSeverity s) {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (s) {
         case UMI_DIAG_ERROR:   return "error";
         case UMI_DIAG_WARNING: return "warning";

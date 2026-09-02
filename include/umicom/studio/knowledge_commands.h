@@ -19,6 +19,10 @@
 extern "C" {
 #endif
 
+/**
+ * Add studio knowledge commands only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_knowledge_commands_register(
     UmiCommandRegistry *registry,
     UmiStudioServices *services);

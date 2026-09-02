@@ -25,14 +25,23 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Provide the copy text operation used by this module and its client applications. */
 static int copy_text(char *destination, size_t capacity, const char *source)
 {
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (destination == NULL || capacity == 0U || source == NULL) return 0;
     written = snprintf(destination, capacity, "%s", source);
     return written >= 0 && (size_t)written < capacity;
 }
 
+/*
+ * Provide the studio coding assistant prepare operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_coding_assistant_prepare(
     UmiStudioAiPlatform *platform,
     const char *request_id,
@@ -42,6 +51,10 @@ UmiStatus umi_studio_coding_assistant_prepare(
     UmiAiCodingTaskPlan *out_plan)
 {
     UmiAiCodingRequest request;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL || request_id == NULL || instruction == NULL ||
         active_path == NULL || out_plan == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -49,6 +62,7 @@ UmiStatus umi_studio_coding_assistant_prepare(
     umi_ai_coding_request_init(&request, task);
     request.context_token_budget =
         umi_studio_ai_platform_coding_context_tokens(platform);
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (!copy_text(request.request_id, sizeof(request.request_id), request_id) ||
         !copy_text(request.session_id, sizeof(request.session_id),
                    "studio.session.default") ||
@@ -65,32 +79,53 @@ UmiStatus umi_studio_coding_assistant_prepare(
         UMI_AI_PROVIDER_AUTHOR_ENGINE, out_plan);
 }
 
+/*
+ * Provide the studio coding assistant record patch operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_coding_assistant_record_patch(
     UmiStudioAiPlatform *platform,
     const UmiAiCodingPatch *patch)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_coding_assistant_record_patch(
         umi_studio_ai_platform_coding_assistant(platform), patch);
 }
 
+/*
+ * Provide the studio coding assistant approve patch operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_coding_assistant_approve_patch(
     UmiStudioAiPlatform *platform,
     const char *patch_id,
     const char *approved_by)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_coding_assistant_approve_patch(
         umi_studio_ai_platform_coding_assistant(platform), patch_id,
         approved_by);
 }
 
+/* Provide the full path operation used by this module and its client applications. */
 static UmiStatus full_path(const UmiStudioCodingWorkspace *workspace,
                            const char *relative_path,
                            char *out_path,
                            size_t capacity)
 {
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL || !umi_ai_coding_path_is_safe_relative(relative_path)) {
         return UMI_STATUS_PERMISSION_DENIED;
     }
@@ -100,6 +135,10 @@ static UmiStatus full_path(const UmiStudioCodingWorkspace *workspace,
         ? UMI_STATUS_OK : UMI_STATUS_CAPACITY_EXCEEDED;
 }
 
+/*
+ * Read workspace into validated module state and return a status when input cannot be
+ * used.
+ */
 static UmiStatus workspace_read(void *user_data,
                                 const char *relative_path,
                                 char *out_text,
@@ -113,19 +152,31 @@ static UmiStatus workspace_read(void *user_data,
     size_t length;
     int extra;
     UmiStatus status = full_path(workspace, relative_path, path, sizeof(path));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (status != UMI_STATUS_OK || out_text == NULL || out_length == NULL ||
         capacity < 2U) return status != UMI_STATUS_OK ? status
                                                       : UMI_STATUS_INVALID_ARGUMENT;
     file = fopen(path, "rb");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (file == NULL) return errno == ENOENT ? UMI_STATUS_NOT_FOUND
                                              : UMI_STATUS_IO_ERROR;
     length = fread(out_text, 1U, capacity - 1U, file);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (ferror(file)) status = UMI_STATUS_IO_ERROR;
+    /* Use this fallback path when the earlier condition does not apply. */
     else {
         extra = fgetc(file);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (extra != EOF) status = UMI_STATUS_CAPACITY_EXCEEDED;
-        else if (ferror(file)) status = UMI_STATUS_IO_ERROR;
+        else /* Preserve the original failure result so the caller can respond to the correct cause. */ if (ferror(file)) status = UMI_STATUS_IO_ERROR;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         out_text[length] = '\0';
         *out_length = length;
@@ -134,6 +185,10 @@ static UmiStatus workspace_read(void *user_data,
     return status;
 }
 
+/*
+ * Write workspace in its stable representation and report capacity or input failures to
+ * the caller.
+ */
 static UmiStatus workspace_write(void *user_data,
                                  const char *relative_path,
                                  const char *text,
@@ -144,38 +199,59 @@ static UmiStatus workspace_write(void *user_data,
     char path[UMI_AI_TEXT_CAPACITY * 2U];
     FILE *file;
     UmiStatus status = full_path(workspace, relative_path, path, sizeof(path));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (status != UMI_STATUS_OK || text == NULL) return status != UMI_STATUS_OK
         ? status : UMI_STATUS_INVALID_ARGUMENT;
     file = fopen(path, "wb");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (file == NULL) return UMI_STATUS_IO_ERROR;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (fwrite(text, 1U, length, file) != length || fflush(file) != 0) {
         status = UMI_STATUS_IO_ERROR;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (fclose(file) != 0) status = UMI_STATUS_IO_ERROR;
     return status;
 }
 
+/* Remove workspace while keeping the remaining records in a valid and discoverable state. */
 static UmiStatus workspace_remove(void *user_data, const char *relative_path)
 {
     UmiStudioCodingWorkspace *workspace =
         (UmiStudioCodingWorkspace *)user_data;
     char path[UMI_AI_TEXT_CAPACITY * 2U];
     UmiStatus status = full_path(workspace, relative_path, path, sizeof(path));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return remove(path) == 0 ? UMI_STATUS_OK
                              : (errno == ENOENT ? UMI_STATUS_NOT_FOUND
                                                 : UMI_STATUS_IO_ERROR);
 }
 
+/*
+ * Initialise studio coding workspace adapter from caller-provided values so later
+ * operations receive a known state.
+ */
 UmiStatus umi_studio_coding_workspace_adapter_init(
     UmiStudioCodingWorkspace *workspace,
     const char *root,
     UmiAiCodingFileAdapter *out_adapter)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL || root == NULL || root[0] == '\0' ||
         out_adapter == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(workspace, 0, sizeof(*workspace));
     (void)memset(out_adapter, 0, sizeof(*out_adapter));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!copy_text(workspace->root, sizeof(workspace->root), root)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
@@ -188,21 +264,37 @@ UmiStatus umi_studio_coding_workspace_adapter_init(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio coding assistant apply patch operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_coding_assistant_apply_patch(
     UmiStudioAiPlatform *platform,
     const char *patch_id,
     const UmiAiCodingFileAdapter *adapter)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_coding_assistant_apply_patch(
         umi_studio_ai_platform_coding_assistant(platform), patch_id, adapter);
 }
 
+/*
+ * Provide the studio coding assistant revert patch operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_coding_assistant_revert_patch(
     UmiStudioAiPlatform *platform,
     const char *patch_id,
     const UmiAiCodingFileAdapter *adapter)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_ai_coding_assistant_revert_patch(
         umi_studio_ai_platform_coding_assistant(platform), patch_id, adapter);

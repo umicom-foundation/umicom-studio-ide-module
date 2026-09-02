@@ -23,7 +23,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Provide the studio web process operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_web_process(UmiStudioWebPlatform *platform,const char *request,char *out_response,size_t capacity);
+/**
+ * Provide the studio web register defaults operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_web_register_defaults(UmiStudioWebPlatform *platform);
 #ifdef __cplusplus
 }

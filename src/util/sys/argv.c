@@ -37,6 +37,7 @@ static gboolean umi_win_needs_quote_char(char c) {
 /* We double backslashes that precede a quote and wrap the whole arg in quotes   */
 /* when necessary. This mirrors common implementations (e.g., GLib g_shell_*).  */
 static gchar *umi_win_quote_arg(const char *arg) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!arg || !*arg) {
         /* Empty arg becomes "" */
         return g_strdup("\"\"");
@@ -44,9 +45,11 @@ static gchar *umi_win_quote_arg(const char *arg) {
 
     gboolean needs_quote = FALSE;      /* track if we must wrap in quotes */
     for (const char *p = arg; *p; ++p) {
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_win_needs_quote_char(*p)) { needs_quote = TRUE; break; }
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!needs_quote) {
         /* No special chars → return verbatim. */
         return g_strdup(arg);
@@ -60,14 +63,15 @@ static gchar *umi_win_quote_arg(const char *arg) {
     /* Walk through and escape as required. */
     int bs_count = 0;  /* number of consecutive backslashes seen */
     for (const char *p = arg; *p; ++p) {
+        /* Apply this branch only when its contract condition is satisfied. */
         if (*p == '\\') {
             ++bs_count;               /* count backslashes to handle " cases */
-        } else if (*p == '"') {
+        } else /* Apply this branch only when its contract condition is satisfied. */ if (*p == '"') {
             /* A quote is preceded by N backslashes -> emit 2N+1 backslashes. */
             for (int i = 0; i < bs_count * 2 + 1; ++i) g_string_append_c(s, '\\');
             g_string_append_c(s, '"'); /* copy the quote itself */
             bs_count = 0;              /* reset */
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             /* Any other char: first flush the backslashes seen so far. */
             for (int i = 0; i < bs_count; ++i) g_string_append_c(s, '\\');
             bs_count = 0;
@@ -85,6 +89,7 @@ static gchar *umi_win_quote_arg(const char *arg) {
 /* Join a NULL-terminated argv vector into a single string. */
 /* On Windows, we apply Windows quoting; on other OS, we join with spaces.     */
 gchar *umi_argv_join(char *const argv[]) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!argv) return g_strdup("");
 
     GString *out = g_string_sized_new(128); /* growable result */
@@ -99,6 +104,7 @@ gchar *umi_argv_join(char *const argv[]) {
 #else
     /* POSIX shells typically don’t need special handling for display purposes. */
     for (int i = 0; argv[i]; ++i) {
+        /* Apply this branch only when its contract condition is satisfied. */
         if (i) g_string_append_c(out, ' ');
         g_string_append(out, argv[i]);
     }
@@ -111,16 +117,22 @@ gchar *umi_argv_join(char *const argv[]) {
  * semantics on Windows. Returns a newly allocated argv vector (NULL-terminated).
  * Caller must free with g_strfreev().                                          */
 gchar **umi_argv_split(const char *line) {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!line) return g_new0(char*, 1); /* return empty argv */
 
 #ifdef G_OS_WIN32
     /* On Windows, we approximate splitting by scanning quotes and spaces. */
     GPtrArray *args = g_ptr_array_new_with_free_func(g_free);
     const char *p = line;
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (*p) {
         /* Skip leading spaces */
         while (*p == ' ' || *p == '\t') ++p;
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (!*p) break;
 
         gboolean in_quotes = FALSE;
@@ -129,17 +141,20 @@ gchar **umi_argv_split(const char *line) {
 
         while (*p) {
             char c = *p++;
+            /* Apply this branch only when its contract condition is satisfied. */
             if (c == '\\') {
                 ++bs; /* count backslashes */
                 continue;
             }
+            /* Apply this branch only when its contract condition is satisfied. */
             if (c == '"') {
                 /* A quote preceded by N backslashes => emit N/2 backslashes,
                  * and if N is even, toggle quoting; if odd, it’s a literal quote. */
                 for (int i = 0; i < bs / 2; ++i) g_string_append_c(arg, '\\');
+                /* Apply this branch only when its contract condition is satisfied. */
                 if ((bs % 2) == 0) {
                     in_quotes = !in_quotes; /* toggle quote mode */
-                } else {
+                } /* Use this fallback path when the earlier condition does not apply. */ else {
                     g_string_append_c(arg, '"'); /* literal quote */
                 }
                 bs = 0;
@@ -149,6 +164,7 @@ gchar **umi_argv_split(const char *line) {
             for (int i = 0; i < bs; ++i) g_string_append_c(arg, '\\');
             bs = 0;
 
+            /* Apply this branch only when its contract condition is satisfied. */
             if (!in_quotes && (c == ' ' || c == '\t')) {
                 break; /* end of this argument */
             }
@@ -164,6 +180,7 @@ gchar **umi_argv_split(const char *line) {
     /* POSIX: use GLib helper for shell-style splitting. */
     g_autoptr(GError) err = NULL;
     gchar **v = NULL;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!g_shell_parse_argv(line, NULL, &v, &err)) {
         /* On parse error, return an empty vector to be safe. */
         (void)err; /* keeping the variable for debugging; not printed here */

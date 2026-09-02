@@ -24,6 +24,7 @@ typedef struct SurfaceData {
     UmiStudioDesigner *designer;
 } SurfaceData;
 
+/* Provide the draw surface operation used by this module and its client applications. */
 static void draw_surface(
     GtkDrawingArea *area,
     cairo_t *cr,
@@ -40,6 +41,10 @@ static void draw_surface(
     (void)width;
     (void)height;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (data == NULL || data->designer == NULL) {
         return;
     }
@@ -60,11 +65,13 @@ static void draw_surface(
         UmiDeclNode node;
         UmiDesignerRect rect;
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_decl_document_node_at(
                 document, index, &node) != UMI_STATUS_OK) {
             continue;
         }
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_designer_surface_get_rect(
                 umi_studio_designer_document(data->designer),
                 node.node_id,
@@ -83,11 +90,16 @@ static void draw_surface(
     }
 }
 
+/* Provide the destroy surface operation used by this module and its client applications. */
 static void destroy_surface(gpointer data)
 {
     g_free(data);
 }
 
+/*
+ * Provide the studio designer surface view new operation used by this module and its
+ * client applications.
+ */
 GtkWidget *umi_studio_designer_surface_view_new(
     UmiStudioDesigner *designer)
 {

@@ -22,5 +22,9 @@
 #define UMICOM_STUDIO_DESIGNER_TREE_VIEW_H
 #include <gtk/gtk.h>
 #include "umicom/studio/designer.h"
+/**
+ * Provide the studio designer tree view new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_designer_tree_view_new(UmiStudioDesigner *designer);
 #endif

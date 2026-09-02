@@ -26,12 +26,17 @@ struct UmiStudioSourceControlService {
     UmiSourceControlService *foundation;
 };
 
+/* Provide the workspace of operation used by this module and its client applications. */
 static UmiVcsWorkspace *workspace_of(UmiStudioSourceControlService *service)
 {
     return service != NULL
         ? umi_source_control_service_workspace(service->foundation) : NULL;
 }
 
+/*
+ * Provide the workspace of const operation used by this module and its client
+ * applications.
+ */
 static const UmiVcsWorkspace *workspace_of_const(
     const UmiStudioSourceControlService *service)
 {
@@ -40,6 +45,7 @@ static const UmiVcsWorkspace *workspace_of_const(
         : NULL;
 }
 
+/* Provide the coordinator of operation used by this module and its client applications. */
 static UmiVcsWorkspaceCoordinator *coordinator_of(
     UmiStudioSourceControlService *service)
 {
@@ -59,6 +65,7 @@ static UmiStatus synchronise_after(UmiStudioSourceControlService *service,
 {
     UmiStatus synchronise_status;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     synchronise_status = umi_vcs_workspace_coordinator_synchronise(
         coordinator_of(service));
@@ -66,6 +73,10 @@ static UmiStatus synchronise_after(UmiStudioSourceControlService *service,
         ? status : synchronise_status;
 }
 
+/*
+ * Initialise studio source control service from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_source_control_service_create(
     const char *root,
     UmiStudioSourceControlService **out_service)
@@ -73,18 +84,28 @@ UmiStatus umi_studio_source_control_service_create(
     UmiStudioSourceControlService *service;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (root == NULL || root[0] == '\0' || out_service == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     *out_service = NULL;
     service = (UmiStudioSourceControlService *)calloc(1U, sizeof(*service));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     status = umi_source_control_service_create(&service->foundation);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_source_control_service_open_workspace(
             service->foundation, root);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_source_control_service_destroy(service->foundation);
         free(service);
@@ -94,14 +115,26 @@ UmiStatus umi_studio_source_control_service_create(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio source control service so the same storage can be
+ * reused safely.
+ */
 void umi_studio_source_control_service_destroy(
     UmiStudioSourceControlService *service)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL) return;
     umi_source_control_service_destroy(service->foundation);
     free(service);
 }
 
+/*
+ * Provide the studio source control service refresh operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_refresh(
     UmiStudioSourceControlService *service,
     size_t history_limit)
@@ -112,6 +145,10 @@ UmiStatus umi_studio_source_control_service_refresh(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service stage operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_stage(
     UmiStudioSourceControlService *service,
     const char *path)
@@ -122,6 +159,10 @@ UmiStatus umi_studio_source_control_service_stage(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service unstage operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_unstage(
     UmiStudioSourceControlService *service,
     const char *path)
@@ -132,6 +173,10 @@ UmiStatus umi_studio_source_control_service_unstage(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service stage all operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_source_control_service_stage_all(
     UmiStudioSourceControlService *service)
 {
@@ -141,6 +186,10 @@ UmiStatus umi_studio_source_control_service_stage_all(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service unstage all operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_source_control_service_unstage_all(
     UmiStudioSourceControlService *service)
 {
@@ -150,6 +199,10 @@ UmiStatus umi_studio_source_control_service_unstage_all(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service discard operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_discard(
     UmiStudioSourceControlService *service,
     const char *path)
@@ -160,6 +213,10 @@ UmiStatus umi_studio_source_control_service_discard(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service commit operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_commit(
     UmiStudioSourceControlService *service,
     const char *message,
@@ -173,6 +230,10 @@ UmiStatus umi_studio_source_control_service_commit(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service fetch operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_fetch(
     UmiStudioSourceControlService *service)
 {
@@ -182,6 +243,10 @@ UmiStatus umi_studio_source_control_service_fetch(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service pull operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_pull(
     UmiStudioSourceControlService *service)
 {
@@ -191,6 +256,10 @@ UmiStatus umi_studio_source_control_service_pull(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service push operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_push(
     UmiStudioSourceControlService *service)
 {
@@ -200,6 +269,10 @@ UmiStatus umi_studio_source_control_service_push(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Initialise studio source control service branch from caller-provided values so later
+ * operations receive a known state.
+ */
 UmiStatus umi_studio_source_control_service_branch_create(
     UmiStudioSourceControlService *service,
     const char *name,
@@ -212,6 +285,10 @@ UmiStatus umi_studio_source_control_service_branch_create(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service branch checkout operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_source_control_service_branch_checkout(
     UmiStudioSourceControlService *service,
     const char *name)
@@ -222,6 +299,10 @@ UmiStatus umi_studio_source_control_service_branch_checkout(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service branch delete operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_source_control_service_branch_delete(
     UmiStudioSourceControlService *service,
     const char *name,
@@ -234,6 +315,10 @@ UmiStatus umi_studio_source_control_service_branch_delete(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service open diff operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_source_control_service_open_diff(
     UmiStudioSourceControlService *service,
     const char *path,
@@ -246,15 +331,24 @@ UmiStatus umi_studio_source_control_service_open_diff(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio source control service snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_source_control_service_snapshot(
     const UmiStudioSourceControlService *service,
     UmiStudioSourceControlSnapshot *out_snapshot)
 {
     UmiVcsWorkspaceSnapshot source;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service == NULL || out_snapshot == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_vcs_workspace_snapshot(workspace_of_const(service), &source) !=
         UMI_STATUS_OK) {
         return UMI_STATUS_INTERNAL_ERROR;
@@ -285,6 +379,10 @@ UmiStatus umi_studio_source_control_service_snapshot(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio source control service changes operation used by this module and its
+ * client applications.
+ */
 const UmiVcsChangeList *umi_studio_source_control_service_changes(
     const UmiStudioSourceControlService *service)
 {
@@ -292,6 +390,10 @@ const UmiVcsChangeList *umi_studio_source_control_service_changes(
         ? umi_vcs_workspace_changes(workspace_of_const(service)) : NULL;
 }
 
+/*
+ * Provide the studio source control service history operation used by this module and its
+ * client applications.
+ */
 const UmiVcsHistory *umi_studio_source_control_service_history(
     const UmiStudioSourceControlService *service)
 {
@@ -299,12 +401,20 @@ const UmiVcsHistory *umi_studio_source_control_service_history(
         ? umi_vcs_workspace_history(workspace_of_const(service)) : NULL;
 }
 
+/*
+ * Provide the studio source control service workspace operation used by this module and
+ * its client applications.
+ */
 UmiVcsWorkspace *umi_studio_source_control_service_workspace(
     UmiStudioSourceControlService *service)
 {
     return workspace_of(service);
 }
 
+/*
+ * Provide the studio source control service coordinator operation used by this module and
+ * its client applications.
+ */
 UmiVcsWorkspaceCoordinator *umi_studio_source_control_service_coordinator(
     UmiStudioSourceControlService *service)
 {

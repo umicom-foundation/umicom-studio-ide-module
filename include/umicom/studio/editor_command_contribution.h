@@ -27,6 +27,10 @@ extern "C" {
 
 #define UMI_STUDIO_EDITOR_COMMAND_CONTRIBUTION_API_VERSION 1U
 
+/**
+ * Represent the studio editor command contribution data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioEditorCommandContribution {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,9 +41,21 @@ typedef struct UmiStudioEditorCommandContribution {
     int show_in_command_centre;
 } UmiStudioEditorCommandContribution;
 
+/**
+ * Return the number of records represented by studio editor command contribution without
+ * changing their state.
+ */
 size_t umi_studio_editor_command_contribution_count(void);
+/**
+ * Find studio editor command contribution while leaving the underlying catalogue or model
+ * owned by this module.
+ */
 const UmiStudioEditorCommandContribution *
 umi_studio_editor_command_contribution_at(size_t index);
+/**
+ * Find studio editor command contribution while leaving the underlying catalogue or model
+ * owned by this module.
+ */
 const UmiStudioEditorCommandContribution *
 umi_studio_editor_command_contribution_find(const char *framework_command_id);
 

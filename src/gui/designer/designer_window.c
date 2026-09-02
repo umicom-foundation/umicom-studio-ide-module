@@ -35,16 +35,22 @@ typedef struct UmiStudioDesignerWindowState {
     GtkWidget *status;
 } UmiStudioDesignerWindowState;
 
+/* Provide the update status operation used by this module and its client applications. */
 static void update_status(UmiStudioDesignerWindowState *state,
                           const char *message)
 {
     UmiStudioDesignerSnapshot snapshot;
     char text[256];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (state == NULL || state->status == NULL) {
         return;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_designer_snapshot(state->designer,
                                      &snapshot) != UMI_STATUS_OK) {
         gtk_label_set_text(GTK_LABEL(state->status),
@@ -63,6 +69,7 @@ static void update_status(UmiStudioDesignerWindowState *state,
     gtk_label_set_text(GTK_LABEL(state->status), text);
 }
 
+/* Provide the on undo clicked operation used by this module and its client applications. */
 static void on_undo_clicked(GtkButton *button, gpointer user_data)
 {
     UmiStudioDesignerWindowState *state =
@@ -77,6 +84,7 @@ static void on_undo_clicked(GtkButton *button, gpointer user_data)
                       : "Nothing to undo");
 }
 
+/* Provide the on redo clicked operation used by this module and its client applications. */
 static void on_redo_clicked(GtkButton *button, gpointer user_data)
 {
     UmiStudioDesignerWindowState *state =
@@ -91,6 +99,10 @@ static void on_redo_clicked(GtkButton *button, gpointer user_data)
                       : "Nothing to redo");
 }
 
+/*
+ * Provide the studio designer window new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_designer_window_new(
     GtkApplication *application,
     UmiStudioDeclarative *declarative,

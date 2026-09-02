@@ -23,6 +23,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio ui data shared with callers of this public contract.
+ */
 typedef struct UmiStudioUi UmiStudioUi;
 
 #define UMI_STUDIO_COMMAND_PERSPECTIVE_ACTIVATE "studio.ui.perspective.activate"
@@ -60,6 +63,10 @@ typedef struct UmiStudioUi UmiStudioUi;
 
 #define UMI_STUDIO_WORKBENCH_COMMAND_COUNT 25U
 
+/**
+ * Add studio workbench commands only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_workbench_commands_register(UmiCommandRegistry *registry,
                                                   UmiStudioUi *ui);
 

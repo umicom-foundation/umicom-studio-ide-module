@@ -20,6 +20,10 @@ static void runtime_text_view_set(
 {
     GtkTextBuffer *buffer;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (view == NULL) return;
 
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
@@ -29,6 +33,10 @@ static void runtime_text_view_set(
         -1);
 }
 
+/*
+ * Provide the runtime test details refresh operation used by this module and its client
+ * applications.
+ */
 static void runtime_test_details_refresh(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -41,9 +49,17 @@ static void runtime_test_details_refresh(
     GString *output_text;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     platform = runtime_test_platform(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return;
 
     results = umi_test_platform_service_result(platform);
@@ -54,24 +70,46 @@ static void runtime_test_details_refresh(
     coverage_text = g_string_sized_new(2048U);
     output_text = g_string_sized_new(4096U);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (result_text == NULL ||
         coverage_text == NULL ||
         output_text == NULL) {
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (result_text != NULL) g_string_free(result_text, TRUE);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (coverage_text != NULL) g_string_free(coverage_text, TRUE);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (output_text != NULL) g_string_free(output_text, TRUE);
         return;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (results != NULL) {
         const size_t count =
             umi_test_platform_result_registry_count(results);
         const size_t start = count > 100U ? count - 100U : 0U;
 
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = start; index < count; ++index) {
             UmiTestPlatformResultSnapshot item;
 
             (void)memset(&item, 0, sizeof(item));
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
             if (umi_test_platform_result_registry_at(
                     results,
                     index,
@@ -89,12 +127,14 @@ static void runtime_test_details_refresh(
                 item.exit_code,
                 item.flaky ? " | flaky" : "",
                 item.message[0] != '\0' ? " | " : "");
+            /* Apply this branch only when its contract condition is satisfied. */
             if (item.message[0] != '\0') {
                 g_string_append_printf(
                     result_text,
                     "  %s\n",
                     item.message);
             }
+            /* Apply this branch only when its contract condition is satisfied. */
             if (item.failure_details[0] != '\0') {
                 g_string_append_printf(
                     result_text,
@@ -104,16 +144,22 @@ static void runtime_test_details_refresh(
         }
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (coverage != NULL) {
         const size_t count =
             umi_test_platform_coverage_registry_count(coverage);
 
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < count && index < 100U; ++index) {
             UmiTestPlatformCoverageSnapshot item;
             double line_percent = 0.0;
             double branch_percent = 0.0;
 
             (void)memset(&item, 0, sizeof(item));
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_test_platform_coverage_registry_at(
                     coverage,
                     index,
@@ -121,11 +167,13 @@ static void runtime_test_details_refresh(
                 continue;
             }
 
+            /* Apply this branch only when its contract condition is satisfied. */
             if (item.lines_total > 0U) {
                 line_percent =
                     ((double)item.lines_covered /
                      (double)item.lines_total) * 100.0;
             }
+            /* Apply this branch only when its contract condition is satisfied. */
             if (item.branches_total > 0U) {
                 branch_percent =
                     ((double)item.branches_covered /
@@ -145,15 +193,21 @@ static void runtime_test_details_refresh(
         }
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (output != NULL) {
         const size_t count =
             umi_test_platform_output_registry_count(output);
         const size_t start = count > 150U ? count - 150U : 0U;
 
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = start; index < count; ++index) {
             UmiTestPlatformOutputSnapshot item;
 
             (void)memset(&item, 0, sizeof(item));
+            /* Apply this branch only when its contract condition is satisfied. */
             if (umi_test_platform_output_registry_at(
                     output,
                     index,
@@ -167,6 +221,7 @@ static void runtime_test_details_refresh(
                 item.stream,
                 item.item_id,
                 item.text);
+            /* Apply this branch only when its contract condition is satisfied. */
             if (output_text->len == 0U ||
                 output_text->str[output_text->len - 1U] != '\n') {
                 g_string_append_c(output_text, '\n');
@@ -183,6 +238,10 @@ static void runtime_test_details_refresh(
     g_string_free(output_text, TRUE);
 }
 
+/*
+ * Provide the runtime test details notebook operation used by this module and its client
+ * applications.
+ */
 static GtkWidget *runtime_test_details_notebook(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -191,6 +250,10 @@ static GtkWidget *runtime_test_details_notebook(
     GtkWidget *coverage_scroll;
     GtkWidget *output_scroll;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return NULL;
 
     notebook = gtk_notebook_new();
@@ -198,6 +261,10 @@ static GtkWidget *runtime_test_details_notebook(
     runtime->test_coverage_view = gtk_text_view_new();
     runtime->test_output_view = gtk_text_view_new();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (notebook == NULL ||
         runtime->test_results_view == NULL ||
         runtime->test_coverage_view == NULL ||

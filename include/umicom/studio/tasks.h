@@ -23,11 +23,23 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio tasks submit operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_tasks_submit(UmiStudioServices *services,
                                   const UmiTaskConfig *config,
                                   UmiTask **out_task);
+/**
+ * Release or reset state held by studio tasks wait and so the same storage can be reused
+ * safely.
+ */
 UmiStatus umi_studio_tasks_wait_and_destroy(UmiTask *task,
                                             uint32_t timeout_ms);
+/**
+ * Provide the studio tasks stats operation used by this module and its client
+ * applications.
+ */
 UmiTaskQueueStats umi_studio_tasks_stats(UmiStudioServices *services);
 
 #ifdef __cplusplus

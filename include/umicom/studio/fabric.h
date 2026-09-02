@@ -21,7 +21,14 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio fabric register defaults operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_fabric_register_defaults(UmiStudioServices *services);
+/**
+ * Check that studio fabric satisfies its contract before another service relies on it.
+ */
 UmiStatus umi_studio_fabric_validate(UmiStudioServices *services);
 
 #ifdef __cplusplus

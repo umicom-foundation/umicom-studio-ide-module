@@ -24,6 +24,10 @@ struct UmiStudioExtensionPlatform {
     UmiPluginPolicy policy;
 };
 
+/*
+ * Provide the add extension point operation used by this module and its client
+ * applications.
+ */
 static UmiStatus add_extension_point(UmiPluginManager *manager,
                                      const char *extension_id,
                                      const char *schema,
@@ -43,28 +47,43 @@ static UmiStatus add_extension_point(UmiPluginManager *manager,
         umi_plugin_manager_extension_points(manager), &point);
 }
 
+/*
+ * Provide the register extension points operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_extension_points(UmiPluginManager *manager)
 {
     UmiStatus status;
     status = add_extension_point(manager, "studio.commands", "command-id",
                                  UMI_PLUGIN_EXTENSION_MANY, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_extension_point(
         manager, "studio.panes", "pane-id", UMI_PLUGIN_EXTENSION_MANY, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_extension_point(
         manager, "studio.menus", "menu-location", UMI_PLUGIN_EXTENSION_MANY, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_extension_point(
         manager, "studio.tools", "tool-id", UMI_PLUGIN_EXTENSION_MANY, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_extension_point(
         manager, "studio.providers", "provider-id", UMI_PLUGIN_EXTENSION_MANY, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_extension_point(
         manager, "studio.languages", "language-id", UMI_PLUGIN_EXTENSION_MANY, 1);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_extension_point(
         manager, "studio.debuggers", "debug-adapter-id", UMI_PLUGIN_EXTENSION_MANY, 0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_extension_point(
         manager, "studio.ai-tools", "ai-tool-id", UMI_PLUGIN_EXTENSION_MANY, 0);
     return status;
 }
 
+/*
+ * Provide the add catalogue entry operation used by this module and its client
+ * applications.
+ */
 static UmiStatus add_catalogue_entry(UmiPluginManager *manager,
                                      const char *plugin_id,
                                      const char *name,
@@ -86,37 +105,58 @@ static UmiStatus add_catalogue_entry(UmiPluginManager *manager,
     return umi_plugin_catalogue_add(umi_plugin_manager_catalogue(manager), &entry);
 }
 
+/*
+ * Provide the register builtin catalogue operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_builtin_catalogue(UmiPluginManager *manager)
 {
     UmiVersion version = {1U, 0U, 0U};
     UmiStatus status = add_catalogue_entry(
         manager, "org.umicom.c-tools", "Umicom C23 Tools",
         "C23 language intelligence, build profiles and native diagnostics.", version);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_catalogue_entry(
         manager, "org.umicom.assembly-tools", "Umicom Assembly Tools",
         "x86-64, AArch64 and RISC-V assembly navigation and inspection.", version);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = add_catalogue_entry(
         manager, "org.umicom.authorengine", "AuthorEngine Integration",
         "Provider-neutral AI writing and coding integration for Studio.", version);
     return status;
 }
 
+/*
+ * Initialise studio extension platform from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_extension_platform_create(
     UmiPluginHost *host,
     UmiStudioExtensionPlatform **out_platform)
 {
     UmiStudioExtensionPlatform *platform;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (host == NULL || out_platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_platform = NULL;
     platform = (UmiStudioExtensionPlatform *)calloc(1U, sizeof(*platform));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     platform->policy = umi_plugin_policy_default();
     platform->policy.minimum_trust = UMI_PLUGIN_TRUST_LOCAL;
     platform->policy.untrusted_isolation = UMI_PLUGIN_ISOLATION_RESTRICTED_PROCESS;
     status = umi_plugin_manager_create(host, &platform->policy, &platform->manager);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_extension_points(platform->manager);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = register_builtin_catalogue(platform->manager);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_extension_platform_destroy(platform);
         return status;
@@ -125,28 +165,49 @@ UmiStatus umi_studio_extension_platform_create(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio extension platform so the same storage can be
+ * reused safely.
+ */
 void umi_studio_extension_platform_destroy(UmiStudioExtensionPlatform *platform)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return;
     umi_plugin_manager_destroy(platform->manager);
     free(platform);
 }
 
+/*
+ * Provide the studio extension platform manager operation used by this module and its
+ * client applications.
+ */
 UmiPluginManager *umi_studio_extension_platform_manager(
     UmiStudioExtensionPlatform *platform)
 {
     return platform != NULL ? platform->manager : NULL;
 }
 
+/*
+ * Provide the studio extension platform snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_platform_snapshot(
     const UmiStudioExtensionPlatform *platform,
     UmiStudioExtensionPlatformSnapshot *out_snapshot)
 {
     UmiPluginManagerSnapshot manager_snapshot;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     status = umi_plugin_manager_snapshot(platform->manager, &manager_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     out_snapshot->revision = manager_snapshot.revision;
     out_snapshot->installed = manager_snapshot.installed;
@@ -165,12 +226,20 @@ UmiStatus umi_studio_extension_platform_snapshot(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio extension platform set enabled operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_platform_set_enabled(
     UmiStudioExtensionPlatform *platform,
     const char *plugin_id,
     int enabled,
     uint64_t timestamp_ms)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_plugin_manager_set_enabled(
         platform->manager, plugin_id, enabled, timestamp_ms);

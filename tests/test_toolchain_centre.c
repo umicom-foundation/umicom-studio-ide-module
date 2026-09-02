@@ -21,6 +21,10 @@
 
 #include "umicom/studio/toolchain_centre.h"
 
+/*
+ * Exercise validate tool and return a clear result when the behaviour no longer matches
+ * its contract.
+ */
 static void validate_tool(UmiToolchainProfile *profile,
                           UmiToolKind kind,
                           const char *path,
@@ -32,6 +36,10 @@ static void validate_tool(UmiToolchainProfile *profile,
     (void)snprintf(tool->version, sizeof(tool->version), "%s", version);
 }
 
+/*
+ * Exercise make profile and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void make_profile(UmiToolchainProfile *profile)
 {
     umi_toolchain_profile_init(profile);
@@ -54,6 +62,10 @@ static void make_profile(UmiToolchainProfile *profile)
                   "pkg-config 2.4.3");
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioToolchainCentre *centre = NULL;
@@ -62,8 +74,10 @@ int main(void)
     const UmiEnvironmentPlan *environment;
 
     make_profile(&profile);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_toolchain_centre_create(&centre) != UMI_STATUS_OK)
         return EXIT_FAILURE;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_toolchain_catalogue_upsert_profile(
             umi_studio_toolchain_centre_catalogue(centre), &profile) !=
             UMI_STATUS_OK ||
@@ -75,6 +89,7 @@ int main(void)
         return EXIT_FAILURE;
     }
     environment = umi_studio_toolchain_centre_environment(centre);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!snapshot.available || !snapshot.has_selected_profile ||
         !snapshot.environment_ready ||
         snapshot.selected_capability.compiler_vendor !=

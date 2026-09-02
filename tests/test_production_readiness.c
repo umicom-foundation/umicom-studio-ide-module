@@ -17,9 +17,17 @@
 #include "umicom/test_runtime/check.h"
 #include <stdlib.h>
 #include "umicom/studio/production_readiness.h"
+/*
+ * Exercise available and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static int available(const char *id, void *context) {
     (void)context; return id != NULL && id[0] != '\0';
 }
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void) {
     UmiApplicationProductionRuntime *runtime = calloc(1U, sizeof(*runtime));
     UmiStudioProductionReadiness readiness;

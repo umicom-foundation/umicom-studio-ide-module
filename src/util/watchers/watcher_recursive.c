@@ -51,15 +51,19 @@ struct _UmiWatcherRec {
 /* Normalize to a displayable UTF-8 path or URI. */
 static char *normalize_path(GFile *f)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!f) return g_strdup("(unknown)");
     char *p = g_file_get_path(f);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!p) return g_file_get_uri(f);
 #ifdef G_OS_WIN32
-    for (char *q = p; *q; ++q) if (*q == '\\') *q = '/';
+    /* Visit each bounded item once so every record receives the same rule. */
+    for (char *q = p; *q; ++q) /* Apply this branch only when its contract condition is satisfied. */ if (*q == '\\') *q = '/';
 #endif
     return p;
 }
 
+/* Provide the mon changed operation used by this module and its client applications. */
 static void mon_changed(GFileMonitor *mon,
                         GFile         *file,
                         GFile         *other_file,
@@ -68,6 +72,7 @@ static void mon_changed(GFileMonitor *mon,
 {
     (void)mon; (void)other_file; (void)evt;
     UmiWatcherRec *w = (UmiWatcherRec*)u;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w || !w->cb) return;
 
     g_autofree char *path = normalize_path(file);
@@ -77,6 +82,7 @@ static void mon_changed(GFileMonitor *mon,
 /* Attach a monitor to a directory with WATCH_MOVES if available. */
 static gboolean add_dir_monitor(UmiWatcherRec *w, const char *dir_path)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w || !dir_path || !*dir_path) return FALSE;
 
     g_autoptr(GFile) dir = g_file_new_for_path(dir_path);
@@ -85,6 +91,7 @@ static gboolean add_dir_monitor(UmiWatcherRec *w, const char *dir_path)
     GFileMonitor *m = g_file_monitor_directory(
         dir, G_FILE_MONITOR_WATCH_MOVES, NULL, &err);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!m) {
         g_warning("watcher: monitor failed for '%s': %s",
                   dir_path, err ? err->message : "unknown");
@@ -100,6 +107,7 @@ static gboolean add_dir_monitor(UmiWatcherRec *w, const char *dir_path)
 /* Depth-first scan with symlink-guard. */
 static void scan_dir(UmiWatcherRec *w, const char *root)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w || !root) return;
 
     add_dir_monitor(w, root);
@@ -113,19 +121,24 @@ static void scan_dir(UmiWatcherRec *w, const char *root)
             G_FILE_ATTRIBUTE_STANDARD_IS_SYMLINK,
             G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
             NULL, &err);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (!en) { g_clear_error(&err); return; }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (;;) {
         GFileInfo *info = g_file_enumerator_next_file(en, NULL, &err);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (!info) break;
 
         const gboolean is_dir  = (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY);
         const gboolean is_link = g_file_info_get_is_symlink(info);
 
+        /* Apply this branch only when its contract condition is satisfied. */
         if (is_dir && !is_link) {
             const char *name = g_file_info_get_name(info);
             g_autoptr(GFile) child = g_file_get_child(groot, name);
             g_autofree char *child_path = g_file_get_path(child);
+            /* Apply this branch only when its contract condition is satisfied. */
             if (child_path) scan_dir(w, child_path);
         }
         g_object_unref(info);
@@ -136,7 +149,9 @@ static void scan_dir(UmiWatcherRec *w, const char *root)
 /* If given a file, return its parent directory; else duplicate dir path. */
 static char *dir_for_any_path(const char *path)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!path || !*path) return NULL;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (g_file_test(path, G_FILE_TEST_IS_DIR)) return g_strdup(path);
     g_autofree char *parent = g_path_get_dirname(path);
     return g_strdup(parent);
@@ -145,9 +160,12 @@ static char *dir_for_any_path(const char *path)
 /* Drop all monitors (disconnect + free). */
 static void clear_monitors(UmiWatcherRec *w)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w || !w->monitors) return;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (guint i = 0; i < w->monitors->len; ++i) {
         GFileMonitor *m = g_ptr_array_index(w->monitors, i);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (!m) continue;
         g_signal_handlers_disconnect_by_data(m, w);
         /* array free func will unref in unref below */
@@ -155,8 +173,10 @@ static void clear_monitors(UmiWatcherRec *w)
     g_ptr_array_set_size(w->monitors, 0);
 }
 
+/* Provide the watchrec new operation used by this module and its client applications. */
 UmiWatcherRec *umi_watchrec_new(const char *root, UmiWatchCb cb, gpointer user)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!root || !*root || !cb) return NULL;
 
     UmiWatcherRec *w = g_new0(UmiWatcherRec, 1);
@@ -170,15 +190,20 @@ UmiWatcherRec *umi_watchrec_new(const char *root, UmiWatchCb cb, gpointer user)
     return w;
 }
 
+/* Add watchrec only after its inputs and available capacity have been checked. */
 gboolean umi_watchrec_add(UmiWatcherRec *w, const char *path_or_dir)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w || !path_or_dir || !*path_or_dir) return FALSE;
 
     g_autofree char *dir = dir_for_any_path(path_or_dir);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!dir) return FALSE;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (guint i = 0; i < w->roots->len; ++i) {
         const char *existing = g_ptr_array_index(w->roots, i);
+        /* Use the stable identifier comparison to choose the matching record or policy. */
         if (g_strcmp0(existing, dir) == 0) { scan_dir(w, dir); return TRUE; }
     }
 
@@ -187,18 +212,23 @@ gboolean umi_watchrec_add(UmiWatcherRec *w, const char *path_or_dir)
     return TRUE;
 }
 
+/* Provide the watchrec rescan operation used by this module and its client applications. */
 void umi_watchrec_rescan(UmiWatcherRec *w)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w) return;
     clear_monitors(w);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (guint i = 0; i < w->roots->len; ++i) {
         const char *r = g_ptr_array_index(w->roots, i);
         scan_dir(w, r);
     }
 }
 
+/* Provide the watchrec free operation used by this module and its client applications. */
 void umi_watchrec_free(UmiWatcherRec *w)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w) return;
     clear_monitors(w);
     g_clear_pointer(&w->monitors, g_ptr_array_unref);

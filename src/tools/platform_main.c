@@ -18,9 +18,14 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Provide the console sink operation used by this module and its client applications. */
 static void console_sink(const UmiDiagnostic *diagnostic, void *user_data)
 {
     (void)user_data;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (diagnostic != NULL) {
         (void)printf("[%s][%s] %s\n",
                      umi_diagnostic_severity_text(diagnostic->severity),
@@ -30,6 +35,10 @@ static void console_sink(const UmiDiagnostic *diagnostic, void *user_data)
     }
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioServices *services = NULL;
@@ -39,16 +48,21 @@ int main(int argc, char **argv)
     int require_github = 0;
     int index;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 1; index < argc; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(argv[index], "--gtk") == 0) require_gtk = 1;
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(argv[index], "--github") == 0) require_github = 1;
     }
     status = umi_studio_services_create(console_sink, NULL, &services);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return 1;
     status = umi_studio_platform_check(services,
                                        require_gtk,
                                        require_github,
                                        &report);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "Platform check failed: %s\n",

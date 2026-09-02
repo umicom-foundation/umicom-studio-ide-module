@@ -21,17 +21,29 @@
 #include "umicom/studio/extension_centre.h"
 #include <string.h>
 
+/* Provide the copy text operation used by this module and its client applications. */
 static void copy_text(char *destination, size_t capacity, const char *source)
 {
     size_t length;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (destination == NULL || capacity == 0U) return;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (source == NULL) source = "";
     length = strlen(source);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length >= capacity) length = capacity - 1U;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (length > 0U) (void)memcpy(destination, source, length);
     destination[length] = '\0';
 }
 
+/* Provide the extension manager operation used by this module and its client applications. */
 static UmiPluginManager *extension_manager(UmiStudioServices *services)
 {
     UmiStudioExtensionPlatform *platform =
@@ -40,6 +52,10 @@ static UmiPluginManager *extension_manager(UmiStudioServices *services)
         ? umi_studio_extension_platform_manager(platform) : NULL;
 }
 
+/*
+ * Provide the studio extension centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_centre_snapshot(
     UmiStudioServices *services,
     UmiStudioExtensionCentreSnapshot *out)
@@ -47,6 +63,10 @@ UmiStatus umi_studio_extension_centre_snapshot(
     UmiStudioExtensionPlatform *platform;
     UmiStudioExtensionPlatformSnapshot platform_snapshot;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(out, 0, sizeof(*out));
     out->struct_size = (uint32_t)sizeof(*out);
@@ -58,13 +78,22 @@ UmiStatus umi_studio_extension_centre_snapshot(
               "Installed extensions, catalogue, dependencies, permissions, trust and audit evidence.");
     out->revision = 1U;
     out->available = 1;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL) return UMI_STATUS_OK;
     platform = umi_studio_services_extension_platform(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) {
         out->available = 0;
         return UMI_STATUS_UNAVAILABLE;
     }
     status = umi_studio_extension_platform_snapshot(platform, &platform_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     out->revision = platform_snapshot.revision;
     out->installed = platform_snapshot.installed;
@@ -84,6 +113,10 @@ UmiStatus umi_studio_extension_centre_snapshot(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio extension centre installed view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_centre_installed_view(
     UmiStudioServices *services, const char *view_id, UmiUiViewModel **out_view)
 {
@@ -93,6 +126,10 @@ UmiStatus umi_studio_extension_centre_installed_view(
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/*
+ * Provide the studio extension centre catalogue view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_centre_catalogue_view(
     UmiStudioServices *services, const char *view_id, UmiUiViewModel **out_view)
 {
@@ -102,6 +139,10 @@ UmiStatus umi_studio_extension_centre_catalogue_view(
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/*
+ * Provide the studio extension centre permissions view operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_extension_centre_permissions_view(
     UmiStudioServices *services, const char *view_id, UmiUiViewModel **out_view)
 {
@@ -111,6 +152,10 @@ UmiStatus umi_studio_extension_centre_permissions_view(
         : UMI_STATUS_UNAVAILABLE;
 }
 
+/*
+ * Provide the studio extension centre audit view operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_extension_centre_audit_view(
     UmiStudioServices *services, const char *view_id, UmiUiViewModel **out_view)
 {

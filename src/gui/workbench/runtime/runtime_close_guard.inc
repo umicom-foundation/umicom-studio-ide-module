@@ -21,6 +21,10 @@ static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
     GtkWidget *dialog =
         GTK_WIDGET(gtk_widget_get_root(GTK_WIDGET(button)));
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
         return;
@@ -28,23 +32,33 @@ static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
 
     runtime->force_close = 1;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (GTK_IS_WINDOW(dialog)) {
         gtk_window_destroy(GTK_WINDOW(dialog));
     }
     gtk_window_destroy(runtime->owner->window);
 }
 
+/*
+ * Provide the runtime close cancelled operation used by this module and its client
+ * applications.
+ */
 static void runtime_close_cancelled(GtkButton *button, gpointer user_data)
 {
     GtkWidget *dialog =
         GTK_WIDGET(gtk_widget_get_root(GTK_WIDGET(button)));
     (void)user_data;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (GTK_IS_WINDOW(dialog)) {
         gtk_window_destroy(GTK_WINDOW(dialog));
     }
 }
 
+/*
+ * Provide the runtime show close confirmation operation used by this module and its client
+ * applications.
+ */
 static void runtime_show_close_confirmation(
     UmiStudioGtkRuntimeChrome *runtime,
     const UmiStudioRuntimeCloseReport *report)
@@ -55,6 +69,10 @@ static void runtime_show_close_confirmation(
     GtkWidget *cancel;
     GtkWidget *close_anyway;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || report == NULL ||
         runtime->owner == NULL ||
         runtime->owner->window == NULL) {
@@ -67,6 +85,10 @@ static void runtime_show_close_confirmation(
     cancel = gtk_button_new_with_label("Cancel");
     close_anyway = gtk_button_new_with_label("Close Anyway");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (dialog == NULL || root == NULL || buttons == NULL ||
         cancel == NULL || close_anyway == NULL) {
         return;
@@ -111,6 +133,10 @@ static void runtime_show_close_confirmation(
     gtk_window_present(GTK_WINDOW(dialog));
 }
 
+/*
+ * Provide the runtime on close request operation used by this module and its client
+ * applications.
+ */
 static gboolean runtime_on_close_request(
     GtkWindow *window,
     gpointer user_data)
@@ -124,8 +150,16 @@ static gboolean runtime_on_close_request(
 
     (void)window;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->force_close) return FALSE;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->runtime_bootstrap == NULL ||
         runtime->runtime_bootstrap->platform == NULL) {
         return FALSE;
@@ -134,16 +168,22 @@ static gboolean runtime_on_close_request(
     status = umi_studio_runtime_platform_snapshot(
         runtime->runtime_bootstrap->platform,
         &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return FALSE;
 
     bindings = umi_studio_runtime_platform_bindings(
         runtime->runtime_bootstrap->platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bindings == NULL || bindings->documents == NULL) return FALSE;
 
     status = umi_studio_close_guard_evaluate(
         bindings->documents,
         &snapshot.ide.context,
         &report);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return FALSE;
 
     /*
@@ -154,13 +194,15 @@ static gboolean runtime_on_close_request(
      */
     if (runtime->debugger_snapshot.session_count > 0U) {
         report.debug_running = 1;
+        /* Apply this branch only when its contract condition is satisfied. */
         if (report.dirty_document_count > 0U) {
             report.decision = UMI_STUDIO_CLOSE_CONFIRM_DIRTY_AND_RUNNING;
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             report.decision = UMI_STUDIO_CLOSE_CONFIRM_RUNNING;
         }
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (report.decision == UMI_STUDIO_CLOSE_ALLOW) return FALSE;
 
     runtime_show_close_confirmation(runtime, &report);

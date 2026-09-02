@@ -42,6 +42,10 @@ typedef struct {
   GMainLoop    *loop;
 } OpenFolderCtx;
 
+/*
+ * Provide the on select folder cb operation used by this module and its client
+ * applications.
+ */
 static void on_select_folder_cb(GObject *source, GAsyncResult *res, gpointer user_data)
 {
   GtkFileDialog *dlg = GTK_FILE_DIALOG(source);
@@ -50,16 +54,24 @@ static void on_select_folder_cb(GObject *source, GAsyncResult *res, gpointer use
   g_autoptr(GError) err = NULL;
   g_autoptr(GFile)  file = gtk_file_dialog_select_folder_finish(dlg, res, &err);
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!err && file && ctx && ctx->ws) {
     g_autofree char *path = g_file_get_path(file);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (path && *path) umi_workspace_set_root(ctx->ws, path);
   }
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (ctx && ctx->loop) g_main_loop_quit(ctx->loop);
 }
 
+/*
+ * Provide the open folder prompt operation used by this module and its client
+ * applications.
+ */
 void umi_open_folder_prompt(GtkWindow *parent, UmiWorkspace *ws)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!ws) return;
 
   GtkFileDialog *dlg = gtk_file_dialog_new();

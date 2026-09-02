@@ -21,5 +21,9 @@
 #define UMICOM_STUDIO_GUI_CHART_PREVIEW_H
 #include <gtk/gtk.h>
 #include "umicom/studio/web_platform.h"
+/**
+ * Provide the studio chart preview new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_chart_preview_new(UmiStudioWebPlatform *platform);
 #endif

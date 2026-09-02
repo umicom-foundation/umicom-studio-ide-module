@@ -3,6 +3,22 @@
  * File: src/gui/app/include/window_chat_integration.h
  *
  * PURPOSE:
+ *   Declare the window chat integration contract shared by Framework services
+ *   and thin applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/gui/app/include/window_chat_integration.h
+ *
+ * PURPOSE:
  *   Public declaration to mount the Chat pane (right side) and to register
  *   a 'toggle-chat' application action. Pure C; no CSS.
  *
@@ -18,8 +34,16 @@
 
 #include <gtk/gtk.h>
 
+/**
+ * Provide the ustudio chat mount and actions operation used by this module and its client
+ * applications.
+ */
 G_BEGIN_DECLS
 
+/**
+ * Provide the ustudio chat mount and actions operation used by this module and its client
+ * applications.
+ */
 void ustudio_chat_mount_and_actions(GtkApplication *app,
                                     GtkWindow      *win,
                                     GtkWidget      *right_box);

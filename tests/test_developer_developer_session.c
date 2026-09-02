@@ -22,6 +22,10 @@
 
 #include "umicom/studio/developer_session.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioDeveloperSession *session = NULL;
@@ -29,10 +33,12 @@ int main(void)
     UmiStudioDeveloperSessionSnapshot context;
     UmiStudioDeveloperSessionSnapshot updated;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_developer_session_create(&session) != UMI_STATUS_OK) {
         return 1;
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_developer_session_snapshot(session, &initial) != UMI_STATUS_OK ||
         initial.revision == 0U) {
         umi_studio_developer_session_destroy(session);
@@ -47,16 +53,19 @@ int main(void)
     (void)strcpy(context.configuration_id, "debug");
     (void)strcpy(context.active_file, "applications/studio/src/app/developer_session.c");
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_developer_session_set_context(session, &context) != UMI_STATUS_OK) {
         umi_studio_developer_session_destroy(session);
         return 3;
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_developer_session_snapshot(session, &updated) != UMI_STATUS_OK) {
         umi_studio_developer_session_destroy(session);
         return 4;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (updated.revision != initial.revision + 1U ||
         strcmp(updated.project_id, "umicom-studio") != 0 ||
         strcmp(updated.configuration_id, "debug") != 0) {
@@ -66,12 +75,14 @@ int main(void)
 
     context.revision = 0U;
     (void)strcpy(context.configuration_id, "release");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_developer_session_set_context(session, &context) != UMI_STATUS_OK ||
         umi_studio_developer_session_snapshot(session, &updated) != UMI_STATUS_OK) {
         umi_studio_developer_session_destroy(session);
         return 6;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (updated.revision != initial.revision + 2U ||
         strcmp(updated.configuration_id, "release") != 0) {
         umi_studio_developer_session_destroy(session);

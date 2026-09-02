@@ -110,8 +110,19 @@ extern "C" {
 #define UMI_STUDIO_PANE_PRODUCT_TRANSACTIONS "studio.pane.product-transactions"
 #define UMI_STUDIO_PANE_PRODUCT_EVIDENCE "studio.pane.product-evidence"
 
+/**
+ * Add studio contributions only after its inputs and available capacity have been checked.
+ */
 UmiStatus umi_studio_contributions_register(UmiUiWorkbench *workbench);
+/**
+ * Provide the studio contributions register layout operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_contributions_register_layout(UmiUiWorkbench *workbench);
+/**
+ * Return the number of records represented by studio contribution definition without
+ * changing their state.
+ */
 size_t umi_studio_contribution_definition_count(void);
 
 #ifdef __cplusplus

@@ -15,9 +15,14 @@
 #include <stdio.h>
 #include "umicom/studio/distribution_centre.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioDistributionCentre centre;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_distribution_centre_init(
             &centre, "studio-0.23.0", "0.23.0") != UMI_STATUS_OK) return 1;
     (void)umi_studio_supply_chain_mark_local_complete(&centre.supply_chain);

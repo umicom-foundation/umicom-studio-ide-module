@@ -15,11 +15,17 @@
 #include "umicom/studio/visual_builder_source.h"
 #include <stdio.h>
 #include <stdlib.h>
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioVisualBuilderCentre *centre=NULL; UmiStudioVisualBuilderSnapshot snapshot; UmiDesignerBuilderSession *session;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(umi_studio_visual_builder_centre_create("org.umicom.studio.visual-builder",&centre)!=UMI_STATUS_OK)return EXIT_FAILURE;
     session=umi_studio_visual_builder_centre_session(centre);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(umi_designer_builder_session_add_component(session,"welcome","label","root")!=UMI_STATUS_OK||umi_studio_visual_builder_preview_refresh(centre)!=UMI_STATUS_OK||umi_studio_visual_builder_source_refresh(centre)!=UMI_STATUS_OK||umi_studio_visual_builder_centre_snapshot(centre,&snapshot)!=UMI_STATUS_OK){umi_studio_visual_builder_centre_destroy(centre);return EXIT_FAILURE;}
     (void)printf("capability=%s components=%zu generated=%zu preview=%s\n",umi_studio_visual_builder_capability_id(),snapshot.builder.document.component_count,umi_studio_visual_builder_source_count(centre),umi_designer_preview_health_text(snapshot.builder.preview_health));
     umi_studio_visual_builder_centre_destroy(centre);return EXIT_SUCCESS;

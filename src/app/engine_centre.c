@@ -26,6 +26,10 @@ static UmiStatus set_string(
 {
     UmiUiValue value;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (view == NULL || key == NULL || text == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -54,20 +58,26 @@ UmiStatus umi_studio_engine_centre_snapshot(
     UmiStudioEngineCentreSnapshot *out_snapshot)
 {
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
     out_snapshot->engine_count = umi_engine_catalogue_count();
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < out_snapshot->engine_count; ++index) {
         const UmiEngineDescriptor *descriptor = umi_engine_catalogue_at(index);
         /* Every catalogue index below count must resolve to one descriptor. */
         if (descriptor == NULL) return UMI_STATUS_INTERNAL_ERROR;
+        /* Apply this branch only when its contract condition is satisfied. */
         if (descriptor->maturity == UMI_ENGINE_MATURITY_CONTRACT) {
             out_snapshot->contract_count += 1U;
-        } else if (descriptor->maturity == UMI_ENGINE_MATURITY_FOUNDATION) {
+        } else /* Apply this branch only when its contract condition is satisfied. */ if (descriptor->maturity == UMI_ENGINE_MATURITY_FOUNDATION) {
             out_snapshot->foundation_count += 1U;
-        } else if (descriptor->maturity == UMI_ENGINE_MATURITY_OPERATIONAL) {
+        } else /* Apply this branch only when its contract condition is satisfied. */ if (descriptor->maturity == UMI_ENGINE_MATURITY_OPERATIONAL) {
             out_snapshot->operational_count += 1U;
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             return UMI_STATUS_INTERNAL_ERROR;
         }
     }
@@ -92,26 +102,37 @@ UmiStatus umi_studio_engine_centre_view_create(
     UmiStudioEngineCentreSnapshot snapshot;
     UmiStatus status;
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (view_id == NULL || view_id[0] == '\0' || out_view == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     *out_view = NULL;
     status = umi_studio_engine_centre_snapshot(&snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_view_model_create(
         view_id, "umicom.studio.engine-centre", UMI_UI_ROLE_PANE, out_view);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = set_string(
         *out_view, "title", "Engine Explorer");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = set_string(
         *out_view, "summary",
         "Reusable Framework engines and their truthful implementation maturity.");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = set_count(
         *out_view, "engine.count", snapshot.engine_count);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = set_count(
         *out_view, "engine.operational-count", snapshot.operational_count);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = set_count(
         *out_view, "engine.foundation-count", snapshot.foundation_count);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; status == UMI_STATUS_OK &&
          index < snapshot.engine_count; ++index) {
         const UmiEngineDescriptor *descriptor = umi_engine_catalogue_at(index);
@@ -127,10 +148,11 @@ UmiStatus umi_studio_engine_centre_view_create(
                 umi_engine_maturity_text(descriptor->maturity),
                 descriptor->summary)
             : -1;
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (key_written < 0 || (size_t)key_written >= sizeof(key) ||
             row_written < 0 || (size_t)row_written >= sizeof(row)) {
             status = UMI_STATUS_CAPACITY_EXCEEDED;
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             status = set_string(*out_view, key, row);
         }
     }

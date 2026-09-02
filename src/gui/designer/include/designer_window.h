@@ -22,5 +22,9 @@
 #define UMICOM_STUDIO_DESIGNER_DESIGNER_WINDOW_H
 #include <gtk/gtk.h>
 #include "umicom/studio/designer.h"
+/**
+ * Provide the studio designer window new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_designer_window_new(GtkApplication *application,UmiStudioDeclarative *declarative,UmiStudioDesigner *designer);
 #endif

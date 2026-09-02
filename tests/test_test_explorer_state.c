@@ -17,6 +17,10 @@
 
 #include "umicom/studio/tests.h"
 
+/*
+ * Exercise add test and return a clear result when the behaviour no longer matches its
+ * contract.
+ */
 static void add_test(UmiTestPlatformItemRegistry *items,
                      const char *id,
                      const char *labels)
@@ -33,6 +37,10 @@ static void add_test(UmiTestPlatformItemRegistry *items,
            UMI_STATUS_OK);
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioTestService *service = NULL;

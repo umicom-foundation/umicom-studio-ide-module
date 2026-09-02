@@ -70,6 +70,7 @@ static void on_activate(GtkApplication *app, gpointer user_data)
 
     /* Build the full UI from scratch using pure C (no XML resources). */
     GtkWidget *win = window_new(app);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!win) {
         g_warning("[app.c] on_activate: Failed to create main window");
         return;
@@ -112,6 +113,7 @@ GtkApplication *umi_app_new(void)
         G_APPLICATION_DEFAULT_FLAGS
     );
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!app) {
         g_error("[app.c] umi_app_new: Failed to create GtkApplication");
         return NULL;
@@ -177,6 +179,7 @@ UmiApp *umi_app_handle(GtkApplication *app)
  *---------------------------------------------------------------------------*/
 GtkWindow *umi_app_window(UmiApp *ua)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!ua) return NULL;
     return ua->win;
 }
@@ -203,6 +206,7 @@ GtkWindow *umi_app_window(UmiApp *ua)
  *---------------------------------------------------------------------------*/
 struct _UmiEditor *umi_app_editor(UmiApp *ua)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!ua) return NULL;
     return ua->editor;
 }

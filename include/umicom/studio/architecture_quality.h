@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Provide the studio architecture quality report operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_architecture_quality_report(const char *root,char *buffer,size_t capacity);
 #ifdef __cplusplus
 }

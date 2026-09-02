@@ -23,24 +23,36 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Provide the read file operation used by this module and its client applications. */
 static int read_file(const char *path,char **out_text)
 {
     FILE *file; long length; char *text;
-    *out_text=NULL; file=fopen(path,"rb"); if(file==NULL)return 0;
+    *out_text=NULL; file=fopen(path,"rb"); /* Protect caller-owned memory by checking that required state is available before it is used. */ if(file==NULL)return 0;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if(fseek(file,0L,SEEK_END)!=0){fclose(file);return 0;} length=ftell(file);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if(length<0L||fseek(file,0L,SEEK_SET)!=0){fclose(file);return 0;}
-    text=(char *)malloc((size_t)length+1U); if(text==NULL){fclose(file);return 0;}
+    text=(char *)malloc((size_t)length+1U); /* Protect caller-owned memory by checking that required state is available before it is used. */ if(text==NULL){fclose(file);return 0;}
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if(length>0L&&fread(text,1U,(size_t)length,file)!=(size_t)length){free(text);fclose(file);return 0;}
     text[(size_t)length]='\0'; fclose(file); *out_text=text; return 1;
 }
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc,char **argv)
 {
     UmiStudioDeclarative *service=NULL; UmiDeclDocument *document=NULL; UmiDeclDiagnosticList diagnostics; char *source=NULL; char formatted[65536]; UmiStatus status;
+    /* Apply this branch only when its contract condition is satisfied. */
     if(argc<3){fprintf(stderr,"Usage: umicom-studio-template validate|format <file.umiapp>\n");return EXIT_FAILURE;}
+    /* Apply this branch only when its contract condition is satisfied. */
     if(!read_file(argv[2],&source)){fprintf(stderr,"Unable to read %s\n",argv[2]);return EXIT_FAILURE;}
     status=umi_studio_declarative_create(&service);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if(status==UMI_STATUS_OK&&strcmp(argv[1],"format")==0)status=umi_studio_declarative_format(service,source,formatted,sizeof(formatted),&diagnostics);
-    else if(status==UMI_STATUS_OK){status=umi_studio_declarative_parse(service,source,&document,&diagnostics);if(status==UMI_STATUS_OK)status=umi_studio_declarative_validate(service,document,&diagnostics);}
-    if(status==UMI_STATUS_OK){if(strcmp(argv[1],"format")==0)fputs(formatted,stdout);else printf("Template is valid. Diagnostics: %zu\n",diagnostics.count);}else{size_t i;for(i=0U;i<diagnostics.count;++i)fprintf(stderr,"line %zu: %s\n",diagnostics.items[i].line,diagnostics.items[i].message);}
+    else /* Preserve the original failure result so the caller can respond to the correct cause. */ if(status==UMI_STATUS_OK){status=umi_studio_declarative_parse(service,source,&document,&diagnostics);/* Preserve the original failure result so the caller can respond to the correct cause. */ if(status==UMI_STATUS_OK)status=umi_studio_declarative_validate(service,document,&diagnostics);}
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
+    if(status==UMI_STATUS_OK){/* Keep the operation inside its valid bounds before reading, writing or adding data. */ if(strcmp(argv[1],"format")==0)fputs(formatted,stdout);/* Use this fallback path when the earlier condition does not apply. */ else printf("Template is valid. Diagnostics: %zu\n",diagnostics.count);}/* Use this fallback path when the earlier condition does not apply. */ else{size_t i;/* Visit each bounded item once so every record receives the same rule. */ for(i=0U;i<diagnostics.count;++i)fprintf(stderr,"line %zu: %s\n",diagnostics.items[i].line,diagnostics.items[i].message);}
     umi_decl_document_destroy(document);umi_studio_declarative_destroy(service);free(source);return status==UMI_STATUS_OK?EXIT_SUCCESS:EXIT_FAILURE;
 }

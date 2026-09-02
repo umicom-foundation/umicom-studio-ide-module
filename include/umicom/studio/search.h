@@ -22,12 +22,20 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio search files operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_search_files(UmiStudioServices *services,
                                   const char *query,
                                   int case_sensitive,
                                   UmiFileIndexEntry *out_entries,
                                   size_t capacity,
                                   size_t *out_count);
+/**
+ * Provide the studio search text operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_search_text(UmiStudioServices *services,
                                  const UmiSearchRequest *request,
                                  UmiSearchMatchSink sink,

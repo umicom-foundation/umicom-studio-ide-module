@@ -1,5 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/include/project_manager.h
+ *
+ * PURPOSE:
+ *   Declare the project manager contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/project_manager.h
  * PURPOSE: High-level project/open workspace management API
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

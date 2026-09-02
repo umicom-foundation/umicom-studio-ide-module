@@ -34,6 +34,10 @@ static const unsigned char COMPATIBILITY_PNG[] = {
     0x42, 0x60, 0x82
 };
 
+/*
+ * Provide the icon set brand path operation used by this module and its client
+ * applications.
+ */
 gboolean umi_icon_set_brand_path(const char *image_path)
 {
     char *canonical_path;
@@ -45,6 +49,10 @@ gboolean umi_icon_set_brand_path(const char *image_path)
         return FALSE;
     }
     canonical_path = g_canonicalize_filename(image_path, NULL);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (canonical_path == NULL) return FALSE;
 
     g_free(g_brand_icon_path);
@@ -52,16 +60,22 @@ gboolean umi_icon_set_brand_path(const char *image_path)
     return TRUE;
 }
 
+/* Provide the icon brand path operation used by this module and its client applications. */
 const char *umi_icon_brand_path(void)
 {
     return g_brand_icon_path;
 }
 
+/*
+ * Provide the icon clear brand path operation used by this module and its client
+ * applications.
+ */
 void umi_icon_clear_brand_path(void)
 {
     g_clear_pointer(&g_brand_icon_path, g_free);
 }
 
+/* Provide the icon image logo operation used by this module and its client applications. */
 GtkWidget *umi_icon_image_logo(int size_px)
 {
     GtkWidget *picture;
@@ -72,6 +86,10 @@ GtkWidget *umi_icon_image_logo(int size_px)
     picture = g_brand_icon_path != NULL
         ? gtk_picture_new_for_filename(g_brand_icon_path)
         : gtk_picture_new();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (picture == NULL) return NULL;
 
     gtk_widget_set_size_request(picture, requested_size, requested_size);
@@ -81,6 +99,10 @@ GtkWidget *umi_icon_image_logo(int size_px)
     return picture;
 }
 
+/*
+ * Provide the icon logo png data operation used by this module and its client
+ * applications.
+ */
 const unsigned char *umi_icon_logo_png_data(size_t *out_length)
 {
     /* The static byte array has process lifetime and must not be freed by the
@@ -89,6 +111,10 @@ const unsigned char *umi_icon_logo_png_data(size_t *out_length)
     return COMPATIBILITY_PNG;
 }
 
+/*
+ * Provide the icon get logo texture operation used by this module and its client
+ * applications.
+ */
 GdkTexture *umi_icon_get_logo_texture(void)
 {
     GBytes *bytes;
@@ -98,9 +124,17 @@ GdkTexture *umi_icon_get_logo_texture(void)
     /* This decoder exists only for callers that still require GdkTexture.
      * Current interface code uses GtkPicture so SVG remains scalable. */
     bytes = g_bytes_new_static(COMPATIBILITY_PNG, sizeof(COMPATIBILITY_PNG));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bytes == NULL) return NULL;
     texture = gdk_texture_new_from_bytes(bytes, &error);
     g_bytes_unref(bytes);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (error != NULL) {
         g_warning("Unable to decode the compatibility icon: %s",
                   error->message);
@@ -109,6 +143,10 @@ GdkTexture *umi_icon_get_logo_texture(void)
     return texture;
 }
 
+/*
+ * Provide the icon apply to window operation used by this module and its client
+ * applications.
+ */
 void umi_icon_apply_to_window(GtkWindow *window)
 {
     /* GTK4 reads the native icon embedded by the shared CMake branding helper.
@@ -116,6 +154,10 @@ void umi_icon_apply_to_window(GtkWindow *window)
     (void)window;
 }
 
+/*
+ * Provide the icon try apply headerbar logo operation used by this module and its client
+ * applications.
+ */
 void umi_icon_try_apply_headerbar_logo(GtkWindow *window, int desired_px)
 {
     GtkWidget *titlebar;
@@ -123,13 +165,26 @@ void umi_icon_try_apply_headerbar_logo(GtkWindow *window, int desired_px)
     GtkWidget *row;
     GtkWidget *picture;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (window == NULL) return;
     titlebar = gtk_window_get_titlebar(window);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!GTK_IS_HEADER_BAR(titlebar)) return;
 
     picture = umi_icon_image_logo(desired_px > 0 ? desired_px : 16);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (picture == NULL) return;
     row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (row == NULL) {
         g_object_unref(picture);
         return;
@@ -140,6 +195,10 @@ void umi_icon_try_apply_headerbar_logo(GtkWindow *window, int desired_px)
     /* Preserve an existing title widget while moving it into the branded row.
      * The temporary reference keeps it alive between the two containers. */
     old_title = gtk_header_bar_get_title_widget(GTK_HEADER_BAR(titlebar));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (old_title != NULL) {
         g_object_ref(old_title);
         gtk_header_bar_set_title_widget(GTK_HEADER_BAR(titlebar), NULL);
@@ -149,6 +208,10 @@ void umi_icon_try_apply_headerbar_logo(GtkWindow *window, int desired_px)
     gtk_header_bar_set_title_widget(GTK_HEADER_BAR(titlebar), row);
 }
 
+/*
+ * Provide the icon try apply taskbar icon win32 operation used by this module and its
+ * client applications.
+ */
 void umi_icon_try_apply_taskbar_icon_win32(GtkWindow *window)
 {
     /* Windows chooses the multi-size ICO compiled into the executable. */

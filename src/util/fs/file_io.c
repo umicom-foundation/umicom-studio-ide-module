@@ -28,6 +28,7 @@
 
 /* Atomic path write: "path.tmp" -> "path" via rename on success. */
 gboolean umi_file_save_atomic(const char *path, const char *data, gssize len, GError **err){
+  /* Apply this branch only when its contract condition is satisfied. */
   if(!path)                                        /* Validate required arg. */
     return FALSE;                                  /* No path => cannot save. */
 

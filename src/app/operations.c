@@ -35,6 +35,10 @@ struct UmiStudioOperations {
     UmiRateLimiter *tool_rate_limiter;
 };
 
+/*
+ * Provide the register studio identity operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_studio_identity(UmiStudioOperations *operations)
 {
     static const char *permissions[] = {
@@ -81,19 +85,23 @@ static UmiStatus register_studio_identity(UmiStudioOperations *operations)
     identity.revision = 1U;
 
     status = umi_identity_registry_register(identities, &identity);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
     status = umi_role_registry_define(roles,
                                       "studio.developer",
                                       "Local developer using Umicom Studio IDE");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(permissions) / sizeof(permissions[0]); ++index) {
         status = umi_role_registry_grant(roles,
                                          "studio.developer",
                                          permissions[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
@@ -106,6 +114,10 @@ static UmiStatus register_studio_identity(UmiStudioOperations *operations)
     return umi_policy_engine_add(policy, &rule);
 }
 
+/*
+ * Provide the configure plugin grants operation used by this module and its client
+ * applications.
+ */
 static UmiStatus configure_plugin_grants(UmiStudioOperations *operations)
 {
     static const char *permissions[] = {
@@ -122,8 +134,10 @@ static UmiStatus configure_plugin_grants(UmiStudioOperations *operations)
     UmiStatus status;
     size_t index;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(permissions) / sizeof(permissions[0]); ++index) {
         status = umi_permission_set_add(grants, permissions[index]);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
@@ -131,6 +145,10 @@ static UmiStatus configure_plugin_grants(UmiStudioOperations *operations)
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the configure observability operation used by this module and its client
+ * applications.
+ */
 static UmiStatus configure_observability(UmiStudioOperations *operations)
 {
     UmiOperationalEvent event = {0};
@@ -142,6 +160,7 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
         "studio.security.authorisation-checks",
         "Number of Studio authorisation decisions",
         UMI_METRIC_COUNTER);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_metrics_registry_define(
             operations->metrics,
@@ -149,6 +168,7 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
             "Number of discovered Studio plug-in manifests",
             UMI_METRIC_GAUGE);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_metrics_registry_define(
             operations->metrics,
@@ -156,6 +176,7 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
             "Number of Studio operational events",
             UMI_METRIC_COUNTER);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -165,6 +186,7 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
                                            1,
                                            "Security context is ready",
                                            now);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_readiness_registry_update(operations->readiness,
                                                "studio.plugins",
@@ -172,6 +194,7 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
                                                "Plug-in host is ready",
                                                now);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_readiness_registry_update(operations->readiness,
                                                "studio.observability",
@@ -179,6 +202,7 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
                                                "Observability registries are ready",
                                                now);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_readiness_registry_update(operations->readiness,
                                                "studio.resilience",
@@ -186,6 +210,7 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
                                                "Resilience supervisor is ready",
                                                now);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -198,6 +223,7 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
                    "%s",
                    "Studio operational services created");
     status = umi_operational_event_log_append(operations->events, &event);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_metrics_counter_add(operations->metrics,
                                          "studio.operations.events",
@@ -207,6 +233,10 @@ static UmiStatus configure_observability(UmiStudioOperations *operations)
     return status;
 }
 
+/*
+ * Provide the configure resilience operation used by this module and its client
+ * applications.
+ */
 static UmiStatus configure_resilience(UmiStudioOperations *operations)
 {
     static const char *components[] = {
@@ -220,17 +250,20 @@ static UmiStatus configure_resilience(UmiStudioOperations *operations)
     size_t index;
     uint64_t now = umi_studio_operations_now(operations);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(components) / sizeof(components[0]); ++index) {
         status = umi_resilience_supervisor_register(operations->resilience,
                                                     components[index],
                                                     &policy,
                                                     now);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
         status = umi_resilience_supervisor_success(operations->resilience,
                                                    components[index],
                                                    now);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             return status;
         }
@@ -238,8 +271,13 @@ static UmiStatus configure_resilience(UmiStudioOperations *operations)
     return UMI_STATUS_OK;
 }
 
+/* Provide the destroy partial operation used by this module and its client applications. */
 static void destroy_partial(UmiStudioOperations *operations)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (operations == NULL) {
         return;
     }
@@ -258,6 +296,10 @@ static void destroy_partial(UmiStudioOperations *operations)
     free(operations);
 }
 
+/*
+ * Initialise studio operations from caller-provided values so later operations receive a
+ * known state.
+ */
 UmiStatus umi_studio_operations_create(UmiClock *clock,
                                        UmiStudioOperations **out_operations)
 {
@@ -267,6 +309,10 @@ UmiStatus umi_studio_operations_create(UmiClock *clock,
     UmiStatus status;
     uint64_t now;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (clock == NULL || out_operations == NULL ||
         clock->wall_nanoseconds == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -274,6 +320,10 @@ UmiStatus umi_studio_operations_create(UmiClock *clock,
     *out_operations = NULL;
 
     operations = (UmiStudioOperations *)calloc(1U, sizeof(*operations));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (operations == NULL) {
         return UMI_STATUS_OUT_OF_MEMORY;
     }
@@ -319,6 +369,10 @@ UmiStatus umi_studio_operations_create(UmiClock *clock,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio operations so the same storage can be reused
+ * safely.
+ */
 void umi_studio_operations_destroy(UmiStudioOperations *operations)
 {
     destroy_partial(operations);
@@ -344,6 +398,10 @@ GETTER(umi_studio_operations_plugin_circuit, UmiCircuitBreaker, plugin_circuit)
 GETTER(umi_studio_operations_tool_rate_limiter, UmiRateLimiter, tool_rate_limiter)
 #undef GETTER
 
+/*
+ * Provide the studio operations now operation used by this module and its client
+ * applications.
+ */
 uint64_t umi_studio_operations_now(UmiStudioOperations *operations)
 {
     return operations != NULL && operations->clock != NULL &&
@@ -352,6 +410,10 @@ uint64_t umi_studio_operations_now(UmiStudioOperations *operations)
         : 0U;
 }
 
+/*
+ * Provide the studio operations report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_operations_report(const UmiStudioOperations *operations,
                                        UmiStudioOperationsReport *out_report)
 {
@@ -360,6 +422,10 @@ UmiStatus umi_studio_operations_report(const UmiStudioOperations *operations,
     UmiPluginHost *plugins;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (operations == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -373,6 +439,7 @@ UmiStatus umi_studio_operations_report(const UmiStudioOperations *operations,
                                                 operations->readiness,
                                                 operations->events,
                                                 &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }

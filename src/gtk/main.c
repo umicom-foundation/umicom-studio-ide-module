@@ -32,11 +32,16 @@
 #include "umicom/studio/appearance_centre.h"
 #include "umicom/studio/bootstrap.h"
 
+/* Provide the str eq operation used by this module and its client applications. */
 static int str_eq(const char *a, const char *b)
 {
     return a != NULL && b != NULL && strcmp(a, b) == 0;
 }
 
+/*
+ * Provide the configure runtime branding operation used by this module and its client
+ * applications.
+ */
 static void configure_runtime_branding(UmiStudioBootstrap *bootstrap,
                                        const char *program_path)
 {
@@ -47,8 +52,16 @@ static void configure_runtime_branding(UmiStudioBootstrap *bootstrap,
     char *icon_path;
     UmiStudioUi *ui;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL || program_path == NULL) return;
     absolute_program = g_canonicalize_filename(program_path, NULL);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (absolute_program == NULL) return;
     program_directory = g_path_get_dirname(absolute_program);
     branding_directory = g_build_filename(program_directory, "branding", NULL);
@@ -60,6 +73,10 @@ static void configure_runtime_branding(UmiStudioBootstrap *bootstrap,
     icon_path = g_build_filename(
         branding_directory, "umicom-icon-on-dark.svg", NULL);
     ui = umi_studio_bootstrap_ui(bootstrap);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui != NULL && logo_path != NULL && icon_path != NULL &&
         g_file_test(logo_path, G_FILE_TEST_IS_REGULAR) &&
         g_file_test(icon_path, G_FILE_TEST_IS_REGULAR)) {
@@ -76,19 +93,26 @@ static void configure_runtime_branding(UmiStudioBootstrap *bootstrap,
     g_free(absolute_program);
 }
 
+/* Provide the log line operation used by this module and its client applications. */
 static void log_line(const char *text)
 {
     (void)fprintf(stderr, "%s\n", text != NULL ? text : "");
 }
 
+/* Provide the on bare close operation used by this module and its client applications. */
 static gboolean on_bare_close(GtkWindow *window, gpointer user_data)
 {
     GMainLoop *loop = (GMainLoop *)user_data;
     (void)window;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (loop != NULL) g_main_loop_quit(loop);
     return FALSE;
 }
 
+/* Provide the run bare gtk operation used by this module and its client applications. */
 static int run_bare_gtk(void)
 {
     GMainLoop *loop;
@@ -110,6 +134,7 @@ static int run_bare_gtk(void)
     return 0;
 }
 
+/* Provide the on test activate operation used by this module and its client applications. */
 static void on_test_activate(GtkApplication *application, gpointer user_data)
 {
     GtkWindow *window;
@@ -123,6 +148,10 @@ static void on_test_activate(GtkApplication *application, gpointer user_data)
     gtk_window_present(window);
 }
 
+/*
+ * Provide the run test window app operation used by this module and its client
+ * applications.
+ */
 static int run_test_window_app(int argc, char **argv)
 {
     GtkApplication *application = gtk_application_new(
@@ -143,6 +172,10 @@ typedef struct UmiStudioFrameworkWorkbenchRun {
     int create_failed;
 } UmiStudioFrameworkWorkbenchRun;
 
+/*
+ * Provide the on framework workbench activate operation used by this module and its client
+ * applications.
+ */
 static void on_framework_workbench_activate(GtkApplication *application,
                                             gpointer user_data)
 {
@@ -150,6 +183,10 @@ static void on_framework_workbench_activate(GtkApplication *application,
         (UmiStudioFrameworkWorkbenchRun *)user_data;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (run == NULL || run->bootstrap == NULL || run->workbench != NULL) return;
     umi_splash_set_progress(
         run->splash, 0.82, "Composing the professional workbench…");
@@ -158,6 +195,7 @@ static void on_framework_workbench_activate(GtkApplication *application,
         umi_studio_bootstrap_ui(run->bootstrap),
         umi_studio_bootstrap_desktop_shell(run->bootstrap),
         &run->workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "[USIDE] Framework workbench create failed: %s\n",
@@ -173,6 +211,10 @@ static void on_framework_workbench_activate(GtkApplication *application,
     run->splash = NULL;
 }
 
+/*
+ * Provide the run framework workbench operation used by this module and its client
+ * applications.
+ */
 static int run_framework_workbench(UmiStudioBootstrap *bootstrap,
                                    UmiSplash *splash,
                                    int argc,
@@ -187,6 +229,10 @@ static int run_framework_workbench(UmiStudioBootstrap *bootstrap,
     application = gtk_application_new(
         "org.umicom.studio.framework-workbench",
         G_APPLICATION_NON_UNIQUE);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (application == NULL) {
         umi_splash_free(splash);
         return 1;
@@ -203,19 +249,30 @@ static int run_framework_workbench(UmiStudioBootstrap *bootstrap,
     return run.create_failed ? 1 : result;
 }
 
+/* Provide the filter dev flags operation used by this module and its client applications. */
 static int filter_dev_flags(int argc, char **argv, char ***out_argv)
 {
     char **filtered;
     int count = 0;
     int index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_argv == NULL) return 0;
     filtered = (char **)malloc((size_t)(argc + 1) * sizeof(*filtered));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (filtered == NULL) {
         *out_argv = NULL;
         return 0;
     }
     filtered[count++] = argv[0];
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 1; index < argc; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (str_eq(argv[index], "--console") ||
             str_eq(argv[index], "--dev") ||
             str_eq(argv[index], "--framework-workbench") ||
@@ -229,6 +286,7 @@ static int filter_dev_flags(int argc, char **argv, char ***out_argv)
     return count;
 }
 
+/* Provide the run studio operation used by this module and its client applications. */
 static int run_studio(
     UmiStudioBootstrap *bootstrap,
     UmiSplash *splash,
@@ -241,22 +299,34 @@ static int run_studio(
     GtkApplication *application;
     int result;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0; index < argc; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (str_eq(argv[index], "--bare-gtk")) {
             umi_splash_free(splash);
             return run_bare_gtk();
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (str_eq(argv[index], "--test-window")) {
             umi_splash_free(splash);
             return run_test_window_app(argc, argv);
         }
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (str_eq(argv[index], "--legacy-ui")) {
             filtered_argc = filter_dev_flags(argc, argv, &filtered_argv);
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (filtered_argv == NULL) {
                 umi_splash_free(splash);
                 return 1;
             }
             application = umi_app_new();
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (application == NULL) {
                 free(filtered_argv);
                 umi_splash_free(splash);
@@ -274,6 +344,10 @@ static int run_studio(
     }
 
     filtered_argc = filter_dev_flags(argc, argv, &filtered_argv);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (filtered_argv == NULL) {
         umi_splash_free(splash);
         return 1;
@@ -287,13 +361,25 @@ static int run_studio(
     return result;
 }
 
+/*
+ * Provide the flush startup presentation operation used by this module and its client
+ * applications.
+ */
 static void flush_startup_presentation(void)
 {
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (g_main_context_pending(NULL)) {
         (void)g_main_context_iteration(NULL, FALSE);
     }
 }
 
+/*
+ * Provide the show startup splash operation used by this module and its client
+ * applications.
+ */
 static UmiSplash *show_startup_splash(const char *program_path)
 {
     UmiSplash *splash;
@@ -306,10 +392,18 @@ static UmiSplash *show_startup_splash(const char *program_path)
         "Umicom Studio IDE",
         "Starting Umicom Framework…",
         0U);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (splash == NULL) return NULL;
 
     absolute_program = g_canonicalize_filename(
         program_path != NULL ? program_path : "umicom-studio-ide", NULL);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (absolute_program == NULL) {
         umi_splash_show(splash, NULL);
         flush_startup_presentation();
@@ -335,6 +429,10 @@ static UmiSplash *show_startup_splash(const char *program_path)
     return splash;
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioBootstrap *bootstrap = NULL;
@@ -352,6 +450,7 @@ int main(int argc, char **argv)
     flush_startup_presentation();
 
     status = umi_studio_bootstrap_create(&bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "[USIDE] Framework create failed: %s\n",
@@ -364,6 +463,7 @@ int main(int argc, char **argv)
         splash, 0.48, "Starting developer and project services…");
     flush_startup_presentation();
     status = umi_studio_bootstrap_start(bootstrap);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
                       "[USIDE] Framework start failed: %s\n",
@@ -391,10 +491,15 @@ int main(int argc, char **argv)
 #ifdef _WIN32
 #include <windows.h>
 
+/* Provide the wants console operation used by this module and its client applications. */
 static int wants_console(int argc, char **argv)
 {
     const char *environment = getenv("USIDE_DEV");
     int index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (environment != NULL &&
         (str_eq(environment, "1") || _stricmp(environment, "true") == 0)) {
         return 1;
@@ -405,6 +510,7 @@ static int wants_console(int argc, char **argv)
      * console is created only when the developer requests one explicitly.
      */
     for (index = 0; index < argc; ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (str_eq(argv[index], "--console") ||
             str_eq(argv[index], "--dev") ||
             str_eq(argv[index], "--test-window") ||
@@ -417,8 +523,13 @@ static int wants_console(int argc, char **argv)
     return 0;
 }
 
+/*
+ * Provide the attach or allocate console operation used by this module and its client
+ * applications.
+ */
 static void attach_or_allocate_console(void)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!AttachConsole(ATTACH_PARENT_PROCESS)) (void)AllocConsole();
     (void)freopen("CONOUT$", "w", stdout);
     (void)freopen("CONOUT$", "w", stderr);
@@ -429,6 +540,7 @@ static void attach_or_allocate_console(void)
     (void)SetConsoleCP(CP_UTF8);
 }
 
+/* Provide the win main operation used by this module and its client applications. */
 int WINAPI WinMain(HINSTANCE instance,
                    HINSTANCE previous_instance,
                    LPSTR command_line,
@@ -438,6 +550,7 @@ int WINAPI WinMain(HINSTANCE instance,
     (void)previous_instance;
     (void)command_line;
     (void)show_command;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (wants_console(__argc, __argv)) attach_or_allocate_console();
     return main(__argc, __argv);
 }

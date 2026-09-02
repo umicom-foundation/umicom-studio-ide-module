@@ -25,8 +25,16 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio developer run centre data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioDeveloperRunCentre UmiStudioDeveloperRunCentre;
 
+/**
+ * Represent the studio developer run centre snapshot data shared with callers of this
+ * public contract.
+ */
 typedef struct UmiStudioDeveloperRunCentreSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -39,21 +47,45 @@ typedef struct UmiStudioDeveloperRunCentreSnapshot {
     int available;
 } UmiStudioDeveloperRunCentreSnapshot;
 
+/**
+ * Initialise studio developer run centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_developer_run_centre_create(
     UmiDeveloperRuntime *runtime,
     UmiStudioDeveloperRunCentre **out_centre);
+/**
+ * Release or reset state held by studio developer run centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_developer_run_centre_destroy(UmiStudioDeveloperRunCentre *centre);
+/**
+ * Provide the studio developer run centre snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_developer_run_centre_snapshot(
     UmiStudioDeveloperRunCentre *centre,
     UmiStudioDeveloperRunCentreSnapshot *out_snapshot);
+/**
+ * Find studio developer run centre while leaving the underlying catalogue or model owned
+ * by this module.
+ */
 UmiStatus umi_studio_developer_run_centre_at(
     UmiStudioDeveloperRunCentre *centre,
     size_t index,
     UmiProjectLaunchProfileSnapshot *out_profile);
+/**
+ * Provide the studio developer run centre submit operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_developer_run_centre_submit(
     UmiStudioDeveloperRunCentre *centre,
     const UmiDeveloperLaunchPlanRequest *request,
     UmiDeveloperLaunchPlanSnapshot *out_plan);
+/**
+ * Provide the studio developer run centre runtime operation used by this module and its
+ * client applications.
+ */
 UmiDeveloperRuntime *umi_studio_developer_run_centre_runtime(
     UmiStudioDeveloperRunCentre *centre);
 

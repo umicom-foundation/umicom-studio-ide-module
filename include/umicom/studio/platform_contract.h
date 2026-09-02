@@ -30,6 +30,10 @@ extern "C" {
 
 #define UMI_STUDIO_PLATFORM_CONTRACT_API_VERSION 1U
 
+/**
+ * Represent the studio platform contract snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioPlatformContractSnapshot {
     uint32_t structure_size;
     uint32_t api_version;
@@ -53,22 +57,66 @@ typedef struct UmiStudioPlatformContractSnapshot {
     int valid;
 } UmiStudioPlatformContractSnapshot;
 
+/**
+ * Return the number of records represented by studio platform contract core command
+ * without changing their state.
+ */
 size_t umi_studio_platform_contract_core_command_count(void);
+/**
+ * Provide the studio platform contract core command id operation used by this module and
+ * its client applications.
+ */
 const char *umi_studio_platform_contract_core_command_id(size_t index);
+/**
+ * Return the number of records represented by studio platform contract workbench command
+ * without changing their state.
+ */
 size_t umi_studio_platform_contract_workbench_command_count(void);
+/**
+ * Provide the studio platform contract workbench command id operation used by this module
+ * and its client applications.
+ */
 const char *umi_studio_platform_contract_workbench_command_id(size_t index);
+/**
+ * Return the number of records represented by studio platform contract contributed command
+ * without changing their state.
+ */
 size_t umi_studio_platform_contract_contributed_command_count(void);
+/**
+ * Provide the studio platform contract contributed command id operation used by this
+ * module and its client applications.
+ */
 const char *umi_studio_platform_contract_contributed_command_id(size_t index);
+/**
+ * Return the number of records represented by studio platform contract required service
+ * without changing their state.
+ */
 size_t umi_studio_platform_contract_required_service_count(void);
+/**
+ * Provide the studio platform contract required service id operation used by this module
+ * and its client applications.
+ */
 const char *umi_studio_platform_contract_required_service_id(size_t index);
 
+/**
+ * Provide the studio platform contract capture operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_platform_contract_capture(
     const UmiCommandRegistry *commands,
     const UmiServiceRegistry *services,
     UmiStudioPlatformContractSnapshot *out_snapshot);
+/**
+ * Provide the studio platform contract capture bootstrap operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_platform_contract_capture_bootstrap(
     UmiStudioBootstrap *bootstrap,
     UmiStudioPlatformContractSnapshot *out_snapshot);
+/**
+ * Check that studio platform contract satisfies its contract before another service relies
+ * on it.
+ */
 UmiStatus umi_studio_platform_contract_validate(
     const UmiStudioPlatformContractSnapshot *snapshot);
 

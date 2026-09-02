@@ -1,6 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/llm/includes/llm.h
+ *
+ * PURPOSE:
+ *   Declare the llm contract shared by Framework services and thin applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/llm/includes/llm.h
  * PURPOSE: Public LLM API surface (types + function contracts) for the IDE.
  *
  * Design goals:

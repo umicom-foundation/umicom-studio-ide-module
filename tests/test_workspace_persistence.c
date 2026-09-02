@@ -19,6 +19,10 @@
 #include "umicom/studio/workspace_catalogue.h"
 #include "umicom/studio/workspace_groups.h"
 #include "umicom/studio/workspace_persistence.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioProfessionalWorkspace *source = umi_test_seeded_professional_workspace();

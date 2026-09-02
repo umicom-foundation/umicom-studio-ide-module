@@ -18,4 +18,8 @@
  */
 #include <assert.h>
 #include "umicom/product/product.h"
-int main(void){size_t i;for(i=0U;i<umi_reference_product_count();++i){UmiProductValidation v;assert(umi_product_validation_run(umi_reference_product_at(i),&v)==UMI_STATUS_OK);assert(v.passed);}return 0;}
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
+int main(void){size_t i;/* Visit each bounded item once so every record receives the same rule. */ for(i=0U;i<umi_reference_product_count();++i){UmiProductValidation v;assert(umi_product_validation_run(umi_reference_product_at(i),&v)==UMI_STATUS_OK);assert(v.passed);}return 0;}

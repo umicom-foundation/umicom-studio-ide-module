@@ -22,6 +22,10 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Provide the studio state capture operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_state_capture(UmiStudioBootstrap *bootstrap,
                                    UmiStudioStateReport *out_report)
 {
@@ -30,6 +34,10 @@ UmiStatus umi_studio_state_capture(UmiStudioBootstrap *bootstrap,
     UmiCommandRegistry *command_registry;
     UmiHealthRegistry *health_registry;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bootstrap == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -38,6 +46,10 @@ UmiStatus umi_studio_state_capture(UmiStudioBootstrap *bootstrap,
     service_registry = umi_studio_bootstrap_service_registry(bootstrap);
     command_registry = umi_studio_bootstrap_command_registry(bootstrap);
     health_registry = umi_studio_bootstrap_health_registry(bootstrap);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || service_registry == NULL ||
         command_registry == NULL || health_registry == NULL) {
         return UMI_STATUS_INVALID_STATE;
@@ -75,9 +87,11 @@ UmiStatus umi_studio_state_capture(UmiStudioBootstrap *bootstrap,
     {
         UmiStudioDataReport data;
         UmiStudioMessageReport messages;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (umi_studio_data_report(services, &data) == UMI_STATUS_OK) {
             out_report->data_records = data.records;
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (umi_studio_messages_report(services, &messages) == UMI_STATUS_OK) {
             out_report->message_schemas = messages.schemas;
             out_report->message_topics = messages.topics;
@@ -89,12 +103,20 @@ UmiStatus umi_studio_state_capture(UmiStudioBootstrap *bootstrap,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio state format operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_state_format(const UmiStudioStateReport *report,
                                   char *out_text,
                                   size_t text_capacity)
 {
     int written;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (report == NULL || out_text == NULL || text_capacity == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

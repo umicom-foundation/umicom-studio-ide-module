@@ -39,16 +39,29 @@
     "studio.ui.workbench-state.v1"
 #define UMI_STUDIO_LEGACY_PERSPECTIVE_SESSION_KEY "studio.ui.active-perspective"
 
+/*
+ * Provide the studio workbench reset layout operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workbench_reset_layout(UmiUiWorkbench *workbench)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_studio_contributions_register_layout(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return umi_ui_workbench_activate_workspace_profile(
         workbench, UMI_STUDIO_WORKSPACE_PROFILE_DEVELOP);
 }
 
+/*
+ * Provide the studio workbench populate operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workbench_populate(UmiUiWorkbench *workbench,
                                         UmiStudioServices *services)
 {
@@ -66,15 +79,23 @@ UmiStatus umi_studio_workbench_populate(UmiUiWorkbench *workbench,
         "}\n";
     UmiUiDocumentViewSnapshot welcome = {0};
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL || services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
 
     status = umi_studio_perspectives_register(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_contributions_register(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_workspace_profiles_register(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_appearance_register(workbench);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     /*
@@ -83,12 +104,15 @@ UmiStatus umi_studio_workbench_populate(UmiUiWorkbench *workbench,
      * selected view container becomes visible.
      */
     status = umi_studio_workbench_views_register(workbench, services);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_studio_workbench_shell_catalogue_register(workbench, services);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_workbench_activate_perspective(
         workbench, UMI_STUDIO_DEFAULT_PERSPECTIVE);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     /*
@@ -116,12 +140,18 @@ UmiStatus umi_studio_workbench_populate(UmiUiWorkbench *workbench,
     welcome.show_line_numbers = 1;
     status = umi_ui_document_view_model_upsert(
         umi_ui_workbench_documents(workbench), &welcome);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_workbench_activate_document(workbench, welcome.view_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio workbench restore session operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_workbench_restore_session(UmiUiWorkbench *workbench,
                                                UmiSessionStore *session)
 {
@@ -130,23 +160,31 @@ UmiStatus umi_studio_workbench_restore_session(UmiUiWorkbench *workbench,
     UmiUiWorkbenchState state;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL || session == NULL) return UMI_STATUS_INVALID_ARGUMENT;
 
     /* Custom profiles must exist before the general workbench-state decoder
      * tries to reactivate one by ID. Built-in defaults are already registered
      * during workbench population. */
     status = umi_studio_workspace_profile_session_restore(workbench, session);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_appearance_restore(workbench, session);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_editor_layout_session_restore(
         workbench, session, &editor_layout_result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     status = umi_session_store_get(session,
                                    UMI_STUDIO_WORKBENCH_STATE_SESSION_KEY,
                                    encoded,
                                    sizeof(encoded));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_NOT_FOUND) {
         /* Read the Batch 23 key once; the next save migrates it to Version 2. */
         status = umi_session_store_get(
@@ -155,11 +193,14 @@ UmiStatus umi_studio_workbench_restore_session(UmiUiWorkbench *workbench,
             encoded,
             sizeof(encoded));
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_ui_workbench_state_decode(encoded, &state);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
         return umi_ui_workbench_state_apply(workbench, &state);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_NOT_FOUND) return status;
 
     /*
@@ -172,13 +213,20 @@ UmiStatus umi_studio_workbench_restore_session(UmiUiWorkbench *workbench,
                                        UMI_STUDIO_LEGACY_PERSPECTIVE_SESSION_KEY,
                                        perspective,
                                        sizeof(perspective));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_NOT_FOUND) return UMI_STATUS_OK;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (perspective[0] == '\0') return UMI_STATUS_OK;
         return umi_ui_workbench_activate_perspective(workbench, perspective);
     }
 }
 
+/*
+ * Provide the studio workbench save session operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_workbench_save_session(UmiUiWorkbench *workbench,
                                             UmiSessionStore *session)
 {
@@ -187,25 +235,36 @@ UmiStatus umi_studio_workbench_save_session(UmiUiWorkbench *workbench,
     char encoded[UMI_UI_WORKBENCH_STATE_TEXT_CAPACITY];
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workbench == NULL || session == NULL) return UMI_STATUS_INVALID_ARGUMENT;
 
     status = umi_ui_workbench_state_snapshot(workbench, &state);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_ui_workbench_state_encode(&state, encoded, sizeof(encoded));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_session_store_set(session,
                                    UMI_STUDIO_WORKBENCH_STATE_SESSION_KEY,
                                    encoded);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_workspace_profile_session_save(workbench, session);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_appearance_save(workbench, session);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_editor_layout_session_save(workbench, session);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     /* Keep the old key during the migration window for older tooling. */
     status = umi_ui_workbench_snapshot(workbench, &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     return umi_session_store_set(session,
                                  UMI_STUDIO_LEGACY_PERSPECTIVE_SESSION_KEY,

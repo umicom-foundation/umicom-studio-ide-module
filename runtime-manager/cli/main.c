@@ -26,6 +26,7 @@
 #include "umicom/studio/runtime_launch_plan.h"
 #include "umicom/studio/runtime_snapshot.h"
 
+/* Provide the print entry operation used by this module and its client applications. */
 static void print_entry(const UmiStudioRuntimeManager *manager,
                         const UmiStudioRuntimeEntry *entry)
 {
@@ -41,10 +42,12 @@ static void print_entry(const UmiStudioRuntimeManager *manager,
                  entry->application.capability_count);
 }
 
+/* Provide the command list operation used by this module and its client applications. */
 static int command_list(UmiStudioRuntimeManager *manager)
 {
     size_t index;
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < manager->count; ++index) {
         print_entry(manager, &manager->entries[index]);
     }
@@ -52,10 +55,12 @@ static int command_list(UmiStudioRuntimeManager *manager)
     return 0;
 }
 
+/* Provide the command summary operation used by this module and its client applications. */
 static int command_summary(UmiStudioRuntimeManager *manager)
 {
     UmiStudioRuntimeSnapshot snapshot;
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_runtime_snapshot_build(manager, &snapshot) != UMI_STATUS_OK) {
         return 1;
     }
@@ -69,12 +74,17 @@ static int command_summary(UmiStudioRuntimeManager *manager)
     return 0;
 }
 
+/* Provide the command show operation used by this module and its client applications. */
 static int command_show(UmiStudioRuntimeManager *manager, const char *id)
 {
     const UmiStudioRuntimeEntry *entry;
     size_t index;
 
     entry = umi_studio_runtime_manager_find_const(manager, id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (entry == NULL) {
         (void)fprintf(stderr, "Unknown application: %s\n", id);
         return 2;
@@ -88,18 +98,21 @@ static int command_show(UmiStudioRuntimeManager *manager, const char *id)
                      : entry->application.executable);
     (void)printf("Favourite   : %s\n", entry->favourite ? "yes" : "no");
     (void)puts("Capabilities:");
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < entry->application.capability_count; ++index) {
         (void)printf("  - %s\n", entry->application.capabilities[index]);
     }
     return 0;
 }
 
+/* Provide the command plan operation used by this module and its client applications. */
 static int command_plan(UmiStudioRuntimeManager *manager, const char *id)
 {
     UmiStudioRuntimeLaunchPlan plan;
     UmiStatus status;
 
     status = umi_studio_runtime_plan_launch(manager, id, &plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) {
         return 1;
     }
@@ -113,6 +126,7 @@ static int command_plan(UmiStudioRuntimeManager *manager, const char *id)
     return status == UMI_STATUS_NOT_FOUND ? 2 : 0;
 }
 
+/* Provide the usage operation used by this module and its client applications. */
 static void usage(void)
 {
     (void)puts("Usage:");
@@ -122,6 +136,10 @@ static void usage(void)
     (void)puts("  umicom-studio-apps plan <application-id>");
 }
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiStudioRuntimeManager manager;
@@ -129,25 +147,31 @@ int main(int argc, char **argv)
 
     umi_studio_runtime_manager_init(&manager);
     status = umi_studio_runtime_catalogue_populate(&manager);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr, "Unable to populate Studio application catalogue.\n");
         return 1;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (argc < 2) {
         usage();
         return 0;
     }
 
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(argv[1], "list") == 0) {
         return command_list(&manager);
     }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(argv[1], "summary") == 0) {
         return command_summary(&manager);
     }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (strcmp(argv[1], "show") == 0 && argc >= 3) {
         return command_show(&manager, argv[2]);
     }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (strcmp(argv[1], "plan") == 0 && argc >= 3) {
         return command_plan(&manager, argv[2]);
     }

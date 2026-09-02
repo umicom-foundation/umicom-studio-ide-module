@@ -26,6 +26,10 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio helix can promote operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_can_promote(UmiStudioAiPlatform *platform,
                                        const UmiHelixFitness *fitness,
                                        uint32_t required_checks,

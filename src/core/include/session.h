@@ -1,5 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/include/session.h
+ *
+ * PURPOSE:
+ *   Declare the session contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/session.h
  * PURPOSE: Persist last opened file and caret position
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

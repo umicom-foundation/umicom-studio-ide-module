@@ -19,11 +19,17 @@
 
 #include <stdio.h>
 #include "umicom/studio/delivery_evidence.h"
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void) {
     UmiBuildEvidence evidence;
     UmiSbom sbom;
     UmiLicenseInventory licenses;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_delivery_build_evidence("local", 10U, 0U, 0U, &evidence) != UMI_STATUS_OK) return 1;
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (umi_studio_delivery_sbom(&sbom, &licenses) != UMI_STATUS_OK) return 2;
     printf("Build evidence passed: %s\n", umi_build_evidence_passed(&evidence) ? "yes" : "no");
     printf("SBOM components: %zu\n", sbom.count);

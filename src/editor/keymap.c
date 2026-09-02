@@ -28,16 +28,20 @@ typedef struct {
   gpointer user;
 } UmiKMClosure;
 
+/* Provide the on simple action operation used by this module and its client applications. */
 static void on_simple_action(GSimpleAction *action, GVariant *param, gpointer data)
 {
   (void)action; (void)param;
   UmiKMClosure *c = (UmiKMClosure*)data;
+  /* Apply this branch only when its contract condition is satisfied. */
   if (c && c->fn) c->fn(c->user);
 }
 
+/* Provide the install action operation used by this module and its client applications. */
 static void install_action(GtkWindow *win, const char *name, const char *accel,
                            void (*fn)(gpointer), gpointer user)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!win || !name || !*name || !accel || !*accel || !fn) return;
 
   /* Create window-scoped action */
@@ -57,6 +61,7 @@ static void install_action(GtkWindow *win, const char *name, const char *accel,
 
   /* Bind accelerator to the window action */
   GtkApplication *app = gtk_window_get_application(win);
+  /* Apply this branch only when its contract condition is satisfied. */
   if (app){
     char detailed[128];
     g_snprintf(detailed, sizeof(detailed), "win.%s", name);
@@ -65,8 +70,10 @@ static void install_action(GtkWindow *win, const char *name, const char *accel,
   }
 }
 
+/* Provide the keymap install operation used by this module and its client applications. */
 void umi_keymap_install(GtkWindow *win, const UmiKeymapCallbacks *km)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!win || !km) return;
 
   install_action(win, "umi-palette",      "F1",                km->palette,      km->user);

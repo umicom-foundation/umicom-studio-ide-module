@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/panes/output/include/output_console.h
+ *
+ * PURPOSE:
+ *   Declare the output console contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/panes/output/include/output_console.h
  * PURPOSE:
  *   Tiny output-console adapter for piping process/log lines into a GtkTextBuffer,
  *   with zero cross-folder deps. Exposes a minimal "chain" handle so upstream

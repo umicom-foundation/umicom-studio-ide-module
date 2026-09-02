@@ -18,41 +18,75 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Initialise studio integration designer from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_integration_designer_create(UmiStudioServices *services,UmiStudioIntegrationDesignerCentre **out_centre)
 {
     UmiStudioIntegrationDesignerCentre *centre;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     *out_centre = NULL;
     centre = (UmiStudioIntegrationDesignerCentre *)calloc(1U,sizeof(*centre));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     centre->services = services;
     umi_integration_designer_fabric_init(&centre->fabric);
     umi_integration_execution_policy_default(&centre->policy);
     status = umi_integration_designer_copy(centre->active_view,sizeof(centre->active_view),"overview");
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) { free(centre); return status; }
     centre->revision = 1U;
     *out_centre = centre;
     return UMI_STATUS_OK;
 }
 
+/*
+ * Release or reset state held by studio integration designer so the same storage can be
+ * reused safely.
+ */
 void umi_studio_integration_designer_destroy(UmiStudioIntegrationDesignerCentre *centre)
 {
     free(centre);
 }
 
+/*
+ * Provide the studio integration designer activate operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_integration_designer_activate(UmiStudioIntegrationDesignerCentre *centre,const char *view_id)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || view_id == NULL || view_id[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_integration_designer_copy(centre->active_view,sizeof(centre->active_view),view_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) centre->revision += 1U;
     return status;
 }
 
+/*
+ * Provide the studio integration designer snapshot operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_integration_designer_snapshot(const UmiStudioIntegrationDesignerCentre *centre,UmiStudioIntegrationDesignerSnapshot *out_snapshot)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (centre == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)memset(out_snapshot,0,sizeof(*out_snapshot));
     umi_integration_designer_fabric_snapshot(&centre->fabric,&out_snapshot->fabric);
@@ -61,6 +95,10 @@ UmiStatus umi_studio_integration_designer_snapshot(const UmiStudioIntegrationDes
     return status;
 }
 
+/*
+ * Provide the studio integration designer fabric operation used by this module and its
+ * client applications.
+ */
 UmiIntegrationDesignerFabric *umi_studio_integration_designer_fabric(UmiStudioIntegrationDesignerCentre *centre)
 {
     return centre == NULL ? NULL : &centre->fabric;

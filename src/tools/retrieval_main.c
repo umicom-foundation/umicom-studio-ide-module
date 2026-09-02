@@ -21,6 +21,10 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(int argc, char **argv)
 {
     UmiAiRetrievalResult results[4];
@@ -33,6 +37,7 @@ int main(int argc, char **argv)
                                           results, 4U);
     size_t index;
     printf("Results: %zu\n", count);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < count; ++index) {
         printf("[%zu] score=%.3f chunk=%s text=%s\n",
                index + 1U, results[index].score,

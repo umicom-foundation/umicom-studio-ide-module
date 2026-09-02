@@ -11,11 +11,19 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/helix_agent_views.h"
 
+/*
+ * Provide the studio helix agent capability id operation used by this module and its
+ * client applications.
+ */
 const char *umi_studio_helix_agent_capability_id(void)
 {
     return "umicom.studio.helix-agent-runtime";
 }
 
+/*
+ * Initialise studio helix agent view from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_helix_agent_view_create(
     UmiStudioHelixAgentCentre *centre,
     UmiStudioHelixAgentPane pane,
@@ -23,7 +31,12 @@ UmiStatus umi_studio_helix_agent_view_create(
 {
     UmiHelixOrchestrator *runtime =
         umi_studio_helix_agent_centre_runtime(centre);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Select the behaviour associated with the requested command or state value. */
     switch (pane) {
         case UMI_STUDIO_HELIX_PANE_OVERVIEW:
             return umi_helix_ui_overview("studio.helix.v2.overview",

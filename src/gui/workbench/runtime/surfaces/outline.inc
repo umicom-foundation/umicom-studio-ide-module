@@ -21,6 +21,10 @@ static GtkWidget *runtime_build_surface_outline(UmiStudioGtkRuntimeChrome *runti
     UmiStudioLanguageSnapshot snapshot;
     char value[64];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL || runtime->owner == NULL) return panel;
 
     services = umi_studio_ui_services(runtime->owner->ui);
@@ -28,6 +32,10 @@ static GtkWidget *runtime_build_surface_outline(UmiStudioGtkRuntimeChrome *runti
         ? umi_studio_services_language(services)
         : NULL;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (language != NULL &&
         umi_studio_language_service_snapshot(
             language,
@@ -39,7 +47,7 @@ static GtkWidget *runtime_build_surface_outline(UmiStudioGtkRuntimeChrome *runti
         (void)snprintf(value, sizeof(value), "%zu", snapshot.pending_requests);
         runtime_panel_add_stat(panel, "Pending requests", value);
         runtime_panel_add_stat(panel, "LSP session", snapshot.session_state);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_panel_add_stat(panel, "Language service", "Unavailable");
     }
 

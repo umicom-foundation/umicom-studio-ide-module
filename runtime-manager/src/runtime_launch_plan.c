@@ -24,8 +24,13 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Provide the set text operation used by this module and its client applications. */
 static void set_text(char *destination, size_t capacity, const char *source)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (destination == NULL || capacity == 0U) {
         return;
     }
@@ -36,6 +41,10 @@ static void set_text(char *destination, size_t capacity, const char *source)
                    source != NULL ? source : "");
 }
 
+/*
+ * Provide the studio runtime plan launch operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_runtime_plan_launch(
     const UmiStudioRuntimeManager *manager,
     const char *application_id,
@@ -44,6 +53,10 @@ UmiStatus umi_studio_runtime_plan_launch(
     const UmiStudioRuntimeEntry *entry;
     UmiIntegrationApplicationState state;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (manager == NULL || application_id == NULL || plan == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -51,6 +64,10 @@ UmiStatus umi_studio_runtime_plan_launch(
     (void)memset(plan, 0, sizeof(*plan));
     entry = umi_studio_runtime_manager_find_const(manager, application_id);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (entry == NULL) {
         plan->readiness = UMI_STUDIO_RUNTIME_LAUNCH_APPLICATION_UNKNOWN;
         set_text(plan->application_id,
@@ -70,6 +87,7 @@ UmiStatus umi_studio_runtime_plan_launch(
              entry->application.name);
 
     state = umi_studio_runtime_manager_state(manager, application_id);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (state == UMI_INTEGRATION_APP_RUNNING) {
         plan->readiness = UMI_STUDIO_RUNTIME_LAUNCH_ALREADY_RUNNING;
         set_text(plan->reason,
@@ -78,16 +96,18 @@ UmiStatus umi_studio_runtime_plan_launch(
         return UMI_STATUS_OK;
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (entry->resolved_executable[0] != '\0') {
         set_text(plan->executable,
                  sizeof(plan->executable),
                  entry->resolved_executable);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         set_text(plan->executable,
                  sizeof(plan->executable),
                  entry->application.executable);
     }
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (plan->executable[0] == '\0') {
         plan->readiness = UMI_STUDIO_RUNTIME_LAUNCH_EXECUTABLE_UNKNOWN;
         set_text(plan->reason,
@@ -104,9 +124,14 @@ UmiStatus umi_studio_runtime_plan_launch(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio runtime launch readiness text operation used by this module and its
+ * client applications.
+ */
 const char *umi_studio_runtime_launch_readiness_text(
     UmiStudioRuntimeLaunchReadiness readiness)
 {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (readiness) {
         case UMI_STUDIO_RUNTIME_LAUNCH_READY: return "Ready";
         case UMI_STUDIO_RUNTIME_LAUNCH_ALREADY_RUNNING:

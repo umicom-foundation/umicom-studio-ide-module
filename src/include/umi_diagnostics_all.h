@@ -1,4 +1,20 @@
 /*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/include/umi_diagnostics_all.h
+ *
+ * PURPOSE:
+ *   Declare the umi diagnostics all contract shared by Framework services and
+ *   thin applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
  * Umicom Studio IDE : OpenSource IDE for developers and Content Creators
  * Repository: https://github.com/umicom-foundation/umicom-studio-ide
  * File: src/include/umi_diagnostics_all.h

@@ -14,9 +14,14 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/distribution_commands.h"
 
+/*
+ * Provide the studio distribution command id operation used by this module and its client
+ * applications.
+ */
 const char *umi_studio_distribution_command_id(
     UmiStudioDistributionCommand command)
 {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (command) {
         case UMI_STUDIO_DISTRIBUTION_BUILD_PACKAGE:
             return "distribution.build-package";
@@ -37,11 +42,16 @@ const char *umi_studio_distribution_command_id(
     }
 }
 
+/*
+ * Provide the studio distribution command enabled operation used by this module and its
+ * client applications.
+ */
 int umi_studio_distribution_command_enabled(
     UmiStudioDistributionCommand command,
     int release_ready,
     int installed_generation_available)
 {
+    /* Select the behaviour associated with the requested command or state value. */
     switch (command) {
         case UMI_STUDIO_DISTRIBUTION_BUILD_PACKAGE:
         case UMI_STUDIO_DISTRIBUTION_SCAN_DEPENDENCIES:

@@ -3,6 +3,22 @@
  * File: src/include/status.h
  *
  * PURPOSE:
+ *   Declare the status contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/include/status.h
+ *
+ * PURPOSE:
  *   Compatibility shim because project_manager.h includes "status.h", but
  *   the actual public status utilities live in util/log/include/status_util.h.
  *   This header simply forwards to the canonical one.

@@ -21,6 +21,10 @@ static UmiStatus runtime_host_set_window_title(
     UmiStudioGtkRuntimeChrome *runtime =
         (UmiStudioGtkRuntimeChrome *)context;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -34,6 +38,10 @@ static UmiStatus runtime_host_set_window_title(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the runtime host present surface operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_host_present_surface(
     void *context,
     const UmiApplicationShellState *state)
@@ -42,6 +50,10 @@ static UmiStatus runtime_host_present_surface(
         (UmiStudioGtkRuntimeChrome *)context;
     UmiStudioRuntimeSurfaceKind active;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || state == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -82,6 +94,10 @@ static UmiStatus runtime_host_present_surface(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the runtime host update workflow operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_host_update_workflow(
     void *context,
     const UmiIdeWorkflowReport *workflow)
@@ -90,10 +106,18 @@ static UmiStatus runtime_host_update_workflow(
         (UmiStudioGtkRuntimeChrome *)context;
     char text[160];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || workflow == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->workflow_badge == NULL) return UMI_STATUS_OK;
 
     (void)snprintf(
@@ -107,11 +131,12 @@ static UmiStatus runtime_host_update_workflow(
 
     gtk_label_set_text(GTK_LABEL(runtime->workflow_badge), text);
 
+    /* Apply this operation only while the related capability or state is available. */
     if (workflow->ready) {
         gtk_widget_remove_css_class(
             runtime->workflow_badge,
             "umicom-runtime-badge-blocked");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         gtk_widget_add_css_class(
             runtime->workflow_badge,
             "umicom-runtime-badge-blocked");
@@ -120,6 +145,10 @@ static UmiStatus runtime_host_update_workflow(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Initialise runtime host adapter from caller-provided values so later operations receive
+ * a known state.
+ */
 static void runtime_host_adapter_init(
     UmiStudioGtkRuntimeChrome *runtime)
 {

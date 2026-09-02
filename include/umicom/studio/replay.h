@@ -24,6 +24,9 @@
 extern "C" {
 #endif
 
+/**
+ * Represent the studio replay request data shared with callers of this public contract.
+ */
 typedef struct UmiStudioReplayRequest {
     uint64_t minimum_sequence;
     uint64_t maximum_sequence;
@@ -31,7 +34,14 @@ typedef struct UmiStudioReplayRequest {
     size_t maximum_messages;
 } UmiStudioReplayRequest;
 
+/**
+ * Provide the studio replay request default operation used by this module and its client
+ * applications.
+ */
 UmiStudioReplayRequest umi_studio_replay_request_default(void);
+/**
+ * Provide the studio replay operation used by this module and its client applications.
+ */
 UmiStatus umi_studio_replay(UmiStudioServices *services,
                             const UmiStudioReplayRequest *request,
                             size_t *out_replayed);

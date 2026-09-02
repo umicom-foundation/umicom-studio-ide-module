@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio chart workspace snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioChartWorkspaceSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioChartWorkspaceSnapshot {
     size_t item_count;
     int available;
 } UmiStudioChartWorkspaceSnapshot;
+/**
+ * Provide the studio chart workspace snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_chart_workspace_snapshot(UmiStudioServices *services, UmiStudioChartWorkspaceSnapshot *out_snapshot);
 #ifdef __cplusplus
 }

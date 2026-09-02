@@ -2,6 +2,22 @@
  * Umicom Studio IDE
  * File: src/ui/include/splash.h
  *
+ * PURPOSE:
+ *   Declare the splash contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/ui/include/splash.h
+ *
  * PURPOSE (What is this file?):
  *   This header declares a tiny, *loosely-coupled* splash screen helper for
  *   the Umicom Studio IDE. It provides a small, brandable window that can be

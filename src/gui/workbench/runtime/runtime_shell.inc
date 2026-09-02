@@ -17,6 +17,10 @@
 
 static void runtime_configure_splitter(GtkWidget *paned)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (paned == NULL) return;
     gtk_widget_add_css_class(paned, "umicom-runtime-split");
     gtk_paned_set_wide_handle(GTK_PANED(paned), FALSE);
@@ -28,6 +32,10 @@ static void runtime_configure_splitter(GtkWidget *paned)
     gtk_paned_set_shrink_end_child(GTK_PANED(paned), TRUE);
 }
 
+/*
+ * Provide the runtime build shell operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_build_shell(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -35,6 +43,10 @@ static UmiStatus runtime_build_shell(
     GtkWidget *workbench;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -44,9 +56,14 @@ static UmiStatus runtime_build_shell(
      * of the editor groups, documents and toolkit-neutral dock state. */
     status = umi_gtk4_adapter_set_chrome_visibility(
         runtime->owner->adapter, 0U);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
     existing = gtk_window_get_child(runtime->owner->window);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (existing == NULL) return UMI_STATUS_INVALID_STATE;
     g_object_ref(existing);
     gtk_window_set_child(runtime->owner->window, NULL);
@@ -71,6 +88,10 @@ static UmiStatus runtime_build_shell(
     runtime->layout_tabs = runtime_build_layout_tabs(runtime);
     runtime->status_bar = runtime_build_status_bar(runtime);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->outer_root == NULL ||
         runtime->application_bar == NULL ||
         runtime->toolbar == NULL ||
@@ -137,6 +158,10 @@ static UmiStatus runtime_build_shell(
     workbench = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     runtime->workbench_surface = workbench;
     runtime->editor_command_bar = runtime_build_editor_command_bar(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->editor_command_bar != NULL) {
         gtk_box_append(GTK_BOX(workbench), runtime->editor_command_bar);
     }
@@ -146,6 +171,10 @@ static UmiStatus runtime_build_shell(
     g_object_unref(existing);
 
     runtime->welcome_surface = runtime_build_welcome_surface(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->welcome_surface == NULL) {
         return UMI_STATUS_OUT_OF_MEMORY;
     }

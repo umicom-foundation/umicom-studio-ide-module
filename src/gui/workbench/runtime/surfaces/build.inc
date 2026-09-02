@@ -20,11 +20,19 @@ static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime
     UmiStudioBuildSnapshot snapshot;
     char value[128];
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (panel == NULL || runtime == NULL || runtime->owner == NULL) return panel;
 
     service = umi_studio_services_build(
         umi_studio_ui_services(runtime->owner->ui));
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (service != NULL &&
         umi_studio_build_service_snapshot(
             service,
@@ -39,7 +47,7 @@ static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime
             panel,
             "Last status",
             umi_status_text(snapshot.last_status));
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_panel_add_stat(panel, "Build service", "Unavailable");
     }
 

@@ -20,6 +20,10 @@
 
 #include "umicom/studio/view_models.h"
 
+/*
+ * Provide the studio ui catalogue snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ui_catalogue_snapshot(UmiStudioUi *ui,
                                            UmiStudioUiCatalogue *out_catalogue)
 {
@@ -27,11 +31,17 @@ UmiStatus umi_studio_ui_catalogue_snapshot(UmiStudioUi *ui,
     UmiUiWorkbenchSnapshot snapshot;
     UmiStudioViewModelSnapshot views;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (ui == NULL || out_catalogue == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     workbench = umi_studio_ui_workbench(ui);
     status = umi_ui_workbench_snapshot(workbench, &snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_view_models_snapshot(umi_studio_ui_view_models(ui), &views);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     out_catalogue->perspectives = snapshot.perspective_count;
     out_catalogue->panes = snapshot.pane_count;
@@ -45,11 +55,19 @@ UmiStatus umi_studio_ui_catalogue_snapshot(UmiStudioUi *ui,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio ui catalogue format operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_ui_catalogue_format(const UmiStudioUiCatalogue *catalogue,
                                          char *out_text,
                                          size_t capacity)
 {
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (catalogue == NULL || out_text == NULL || capacity == 0U) return UMI_STATUS_INVALID_ARGUMENT;
     written = snprintf(out_text, capacity,
                        "Studio UI Catalogue\n"
@@ -60,6 +78,7 @@ UmiStatus umi_studio_ui_catalogue_format(const UmiStudioUiCatalogue *catalogue,
                        catalogue->menu_items, catalogue->toolbar_items, catalogue->status_items,
                        catalogue->contributions, catalogue->view_models,
                        (unsigned long long)catalogue->revision);
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (written < 0 || (size_t)written >= capacity) return UMI_STATUS_CAPACITY_EXCEEDED;
     return UMI_STATUS_OK;
 }

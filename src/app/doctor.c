@@ -24,41 +24,58 @@
 
 #define UMI_STUDIO_DOCTOR_PATH_CAPACITY 2048U
 
+/* Provide the make path operation used by this module and its client applications. */
 static int make_path(char *buffer, size_t capacity, const char *root, const char *relative)
 {
     int written;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (buffer == NULL || capacity == 0U || root == NULL || relative == NULL) return 0;
     written = snprintf(buffer, capacity, "%s/%s", root, relative);
     return written >= 0 && (size_t)written < capacity;
 }
 
+/* Provide the path exists operation used by this module and its client applications. */
 static int path_exists(const char *path)
 {
     struct stat information;
     return path != NULL && stat(path, &information) == 0;
 }
 
+/* Provide the report check operation used by this module and its client applications. */
 static void report_check(UmiDiagnosticSink sink, void *user_data, UmiStudioDoctorReport *report, int passed, const char *message)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (passed) {
         ++report->checks_passed;
         umi_diagnostic_emit(sink, user_data, UMI_DIAGNOSTIC_INFO, "studio-doctor", message, 0U);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         ++report->checks_failed;
         umi_diagnostic_emit(sink, user_data, UMI_DIAGNOSTIC_ERROR, "studio-doctor", message, 0U);
     }
 }
 
+/* Provide the text excludes operation used by this module and its client applications. */
 static int text_excludes(const char *path, const char *needle)
 {
     char *text = NULL; size_t size = 0U;
     UmiStatus status = umi_fs_read_text(path, &text, &size); int result; (void)size;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (status != UMI_STATUS_OK || text == NULL) return 0;
     result = strstr(text, needle) == NULL;
     umi_fs_free_text(text);
     return result;
 }
 
+/*
+ * Perform studio doctor through the module contract so client applications do not
+ * duplicate its policy.
+ */
 UmiStatus umi_studio_doctor_run(const char *repository_root, UmiDiagnosticSink sink, void *user_data, UmiStudioDoctorReport *out_report)
 {
     static const char *required_files[] = {
@@ -114,20 +131,30 @@ UmiStatus umi_studio_doctor_run(const char *repository_root, UmiDiagnosticSink s
     char path[UMI_STUDIO_DOCTOR_PATH_CAPACITY];
     UmiStudioDoctorReport report = {0U, 0U};
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (repository_root == NULL || out_report == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(required_files) / sizeof(required_files[0]); ++index) {
         char message[UMI_STUDIO_DOCTOR_PATH_CAPACITY + 64U];
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (!make_path(path, sizeof(path), repository_root, required_files[index])) return UMI_STATUS_CAPACITY_EXCEEDED;
         (void)snprintf(message, sizeof(message), "required file: %s", required_files[index]);
         report_check(sink, user_data, &report, path_exists(path), message);
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(forbidden_paths) / sizeof(forbidden_paths[0]); ++index) {
         char message[UMI_STUDIO_DOCTOR_PATH_CAPACITY + 64U];
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (!make_path(path, sizeof(path), repository_root, forbidden_paths[index])) return UMI_STATUS_CAPACITY_EXCEEDED;
         (void)snprintf(message, sizeof(message), "removed migration path: %s", forbidden_paths[index]);
         report_check(sink, user_data, &report, !path_exists(path), message);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (!make_path(path, sizeof(path), repository_root, "applications/studio/CMakeLists.txt")) return UMI_STATUS_CAPACITY_EXCEEDED;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(forbidden_terms) / sizeof(forbidden_terms[0]); ++index) {
         char message[256U];
         (void)snprintf(message, sizeof(message), "active CMake excludes term: %s", forbidden_terms[index]);

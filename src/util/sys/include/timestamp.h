@@ -1,6 +1,22 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/util/sys/include/timestamp.h
+ *
+ * PURPOSE:
+ *   Declare the timestamp contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/sys/include/timestamp.h
  * PURPOSE: Tiny helpers to format timestamps (ISO 8601, local/UTC)
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
  *---------------------------------------------------------------------------*/
@@ -30,6 +46,10 @@
  *   Newly-allocated string (g_free), or NULL on failure.
  *---------------------------------------------------------------------------*/
 G_GNUC_WARN_UNUSED_RESULT
+/**
+ * Provide the format time iso8601 local operation used by this module and its client
+ * applications.
+ */
 gchar *umi_format_time_iso8601_local(void);
 
 /*-----------------------------------------------------------------------------
@@ -42,6 +62,10 @@ gchar *umi_format_time_iso8601_local(void);
  *   Newly-allocated string (g_free), or NULL on failure.
  *---------------------------------------------------------------------------*/
 G_GNUC_WARN_UNUSED_RESULT
+/**
+ * Provide the format time iso8601 utc operation used by this module and its client
+ * applications.
+ */
 gchar *umi_format_time_iso8601_utc(void);
 
 /*-----------------------------------------------------------------------------
@@ -58,6 +82,10 @@ gchar *umi_format_time_iso8601_utc(void);
  *   Newly-allocated string (g_free), or NULL on failure.
  *---------------------------------------------------------------------------*/
 G_GNUC_WARN_UNUSED_RESULT
+/**
+ * Provide the format time custom operation used by this module and its client
+ * applications.
+ */
 gchar *umi_format_time_custom(const gchar *fmt);
 
 #endif /* UMICOM_TIMESTAMP_H */

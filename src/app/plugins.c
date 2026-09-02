@@ -25,6 +25,10 @@ typedef struct UmiStudioPluginDiscoveryContext {
     uint64_t timestamp_ms;
 } UmiStudioPluginDiscoveryContext;
 
+/*
+ * Provide the register discovered operation used by this module and its client
+ * applications.
+ */
 static UmiStatus register_discovered(const char *manifest_path,
                                      const UmiPluginManifest *manifest,
                                      void *user_data)
@@ -32,6 +36,10 @@ static UmiStatus register_discovered(const char *manifest_path,
     UmiStudioPluginDiscoveryContext *context =
         (UmiStudioPluginDiscoveryContext *)user_data;
     UmiPluginPolicyDecision decision;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (context == NULL || context->manager == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -43,6 +51,10 @@ static UmiStatus register_discovered(const char *manifest_path,
                                        &decision);
 }
 
+/*
+ * Provide the studio plugins report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_plugins_report(UmiStudioServices *services,
                                     UmiStudioPluginReport *out_report)
 {
@@ -52,6 +64,10 @@ UmiStatus umi_studio_plugins_report(UmiStudioServices *services,
     size_t index;
     UmiStudioExtensionPlatformSnapshot platform_snapshot;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -59,6 +75,10 @@ UmiStatus umi_studio_plugins_report(UmiStudioServices *services,
     host = platform != NULL
         ? umi_plugin_manager_host(umi_studio_extension_platform_manager(platform))
         : NULL;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (host == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -67,6 +87,7 @@ UmiStatus umi_studio_plugins_report(UmiStudioServices *services,
     out_report->registered = umi_plugin_registry_count(registry);
     out_report->contributions = umi_plugin_contribution_registry_count(
         umi_plugin_host_contributions(host));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_studio_extension_platform_snapshot(
             platform, &platform_snapshot) == UMI_STATUS_OK) {
         out_report->extension_points = platform_snapshot.extension_points;
@@ -79,14 +100,18 @@ UmiStatus umi_studio_plugins_report(UmiStudioServices *services,
                            platform_snapshot.default_untrusted_isolation));
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < out_report->registered; ++index) {
         UmiPluginRecord record;
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (umi_plugin_registry_at(registry, index, &record) != UMI_STATUS_OK) {
             continue;
         }
+        /* Apply this operation only while the related capability or state is available. */
         if (record.enabled) {
             ++out_report->enabled;
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (record.state == UMI_PLUGIN_FAILED) {
             ++out_report->failed;
         }
@@ -94,6 +119,10 @@ UmiStatus umi_studio_plugins_report(UmiStudioServices *services,
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio plugins discover operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_plugins_discover(UmiStudioServices *services,
                                       const char *root,
                                       int recursive,
@@ -106,11 +135,19 @@ UmiStatus umi_studio_plugins_discover(UmiStudioServices *services,
     UmiStatus status;
     uint64_t now;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || root == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     operations = umi_studio_services_operations(services);
     platform = umi_studio_services_extension_platform(services);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -123,10 +160,12 @@ UmiStatus umi_studio_plugins_discover(UmiStudioServices *services,
                                  register_discovered,
                                  &context,
                                  &discovery);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
     status = umi_studio_plugins_report(services, out_report);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }

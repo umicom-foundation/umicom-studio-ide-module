@@ -17,17 +17,23 @@
 
 #include <stdio.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioResilienceReport report;
     UmiStatus status = umi_studio_bootstrap_create(&bootstrap);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_resilience_report(
             umi_studio_bootstrap_services(bootstrap),
             &report);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)printf("Supervised: %zu\nRunning: %zu\nDegraded: %zu\n"
                      "Failed: %zu\nPlugin circuit: %d\n"
@@ -40,7 +46,7 @@ int main(void)
                      report.tool_rate_limit.tokens,
                      (unsigned long long)report.tool_rate_limit.accepted,
                      (unsigned long long)report.tool_rate_limit.rejected);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         (void)fprintf(stderr, "Resilience command failed: %s\n", umi_status_text(status));
     }
     umi_studio_bootstrap_destroy(bootstrap);

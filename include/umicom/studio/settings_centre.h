@@ -26,6 +26,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/**
+ * Represent the studio settings centre snapshot data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioSettingsCentreSnapshot {
     uint32_t struct_size;
     uint32_t api_version;
@@ -37,6 +41,10 @@ typedef struct UmiStudioSettingsCentreSnapshot {
     size_t item_count;
     int available;
 } UmiStudioSettingsCentreSnapshot;
+/**
+ * Provide the studio settings centre snapshot operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_settings_centre_snapshot(UmiStudioServices *services, UmiStudioSettingsCentreSnapshot *out_snapshot);
 #ifdef __cplusplus
 }

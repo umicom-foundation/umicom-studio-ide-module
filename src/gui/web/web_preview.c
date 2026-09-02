@@ -20,6 +20,10 @@
 
 #include "web_preview.h"
 
+/*
+ * Provide the studio web preview new operation used by this module and its client
+ * applications.
+ */
 GtkWidget *umi_studio_web_preview_new(
     UmiStudioWebPlatform *platform)
 {
@@ -29,6 +33,10 @@ GtkWidget *umi_studio_web_preview_new(
     const char *browser_text;
     gchar *summary_text;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (platform == NULL) {
         return gtk_label_new("Web platform unavailable");
     }

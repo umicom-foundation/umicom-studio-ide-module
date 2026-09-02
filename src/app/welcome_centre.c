@@ -96,7 +96,7 @@ UmiStatus umi_studio_welcome_centre_snapshot(
     if (umi_studio_learning_centre_snapshot(&learning) == UMI_STATUS_OK) {
         out_snapshot->item_count =
             3U + workspace_guide.choice_count + learning.lesson_count;
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         /* A learning-service problem must not hide project and layout actions. */
         out_snapshot->item_count = 3U + workspace_guide.choice_count;
     }

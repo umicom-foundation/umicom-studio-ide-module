@@ -32,16 +32,26 @@
 extern "C" {
 #endif
 
+/**
+ * List the named studio tab close decision values accepted by this public contract.
+ */
 typedef enum UmiStudioTabCloseDecision {
     UMI_STUDIO_TAB_CLOSE_ALLOWED = 0,
     UMI_STUDIO_TAB_CLOSE_CONFIRM_DIRTY,
     UMI_STUDIO_TAB_CLOSE_NOT_FOUND
 } UmiStudioTabCloseDecision;
 
+/**
+ * Provide the studio tab close decision operation used by this module and its client
+ * applications.
+ */
 UmiStudioTabCloseDecision umi_studio_tab_close_decision(
     const UmiStudioWorkspaceDocument *document
 );
 
+/**
+ * Provide the studio tab label operation used by this module and its client applications.
+ */
 UmiStatus umi_studio_tab_label(
     const UmiStudioWorkspaceDocument *document,
     char *output,

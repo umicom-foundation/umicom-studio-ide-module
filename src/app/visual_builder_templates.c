@@ -16,6 +16,10 @@
 
 #include <stdlib.h>
 
+/*
+ * Find studio visual builder template while leaving the underlying catalogue or model
+ * owned by this module.
+ */
 UmiStatus umi_studio_visual_builder_template_find(
     UmiStudioVisualBuilderCentre *centre,
     const char *template_id,
@@ -31,6 +35,10 @@ UmiStatus umi_studio_visual_builder_template_find(
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Perform studio visual builder template through the module contract so client
+ * applications do not duplicate its policy.
+ */
 UmiStatus umi_studio_visual_builder_template_apply(
     UmiStudioVisualBuilderCentre *centre,
     const char *template_id,
@@ -42,13 +50,22 @@ UmiStatus umi_studio_visual_builder_template_apply(
     UmiDesignerTemplate *item;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (session == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     item = (UmiDesignerTemplate *)malloc(sizeof(*item));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (item == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     status = umi_designer_template_registry_find(
         umi_designer_builder_session_templates(session),
         template_id,
         item);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_designer_template_instantiate(
             item,
@@ -60,6 +77,10 @@ UmiStatus umi_studio_visual_builder_template_apply(
     return status;
 }
 
+/*
+ * Return the number of records represented by studio visual builder template without
+ * changing their state.
+ */
 size_t umi_studio_visual_builder_template_count(
     UmiStudioVisualBuilderCentre *centre)
 {

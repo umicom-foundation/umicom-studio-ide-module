@@ -18,6 +18,10 @@
 
 #include "umicom/studio/editor_intelligence_workbench_contribution.h"
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiEditorIntelWorkbenchRuntime *runtime = NULL;
@@ -26,6 +30,7 @@ int main(void)
     size_t comparison;
 
     assert(umi_studio_editor_intelligence_workbench_view_count() == 5U);
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_intelligence_workbench_view_count();
          ++index) {
@@ -41,6 +46,7 @@ int main(void)
         assert(view->default_region[0] != '\0');
         assert(view->closable);
         assert(view->movable);
+        /* Visit each bounded item once so every record receives the same rule. */
         for (comparison = index + 1U;
              comparison < umi_studio_editor_intelligence_workbench_view_count();
              ++comparison) {

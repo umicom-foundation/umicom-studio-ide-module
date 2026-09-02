@@ -77,35 +77,58 @@ struct UmiStudioServices {
     int published;
 };
 
+/* Provide the studio watch sink operation used by this module and its client applications. */
 static void studio_watch_sink(const UmiWatchEvent *event, void *user_data)
 {
     UmiStudioServices *services = (UmiStudioServices *)user_data;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || services->file_index == NULL || event == NULL) {
         return;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (event->kind == UMI_WATCH_OVERFLOW ||
         event->kind == UMI_WATCH_RESCAN_REQUIRED || event->directory) {
         (void)umi_file_index_rebuild(services->file_index);
-    } else if (event->kind == UMI_WATCH_DELETED) {
+    } else /* Apply this branch only when its contract condition is satisfied. */ if (event->kind == UMI_WATCH_DELETED) {
         (void)umi_file_index_remove(services->file_index, event->path);
-    } else if (event->kind == UMI_WATCH_CREATED ||
+    } else /* Apply this branch only when its contract condition is satisfied. */ if (event->kind == UMI_WATCH_CREATED ||
                event->kind == UMI_WATCH_MODIFIED) {
         (void)umi_file_index_update(services->file_index, event->path);
     }
 }
 
+/* Provide the destroy partial operation used by this module and its client applications. */
 static void destroy_partial(UmiStudioServices *services)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL) {
         return;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services->watcher != NULL) {
         (void)umi_watcher_stop(services->watcher);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services->process_supervisor != NULL) {
         (void)umi_process_supervisor_shutdown(services->process_supervisor);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services->task_queue != NULL) {
         (void)umi_task_queue_shutdown(services->task_queue, 1);
     }
@@ -178,6 +201,10 @@ static void destroy_partial(UmiStudioServices *services)
     free(services);
 }
 
+/*
+ * Initialise studio services from caller-provided values so later operations receive a
+ * known state.
+ */
 UmiStatus umi_studio_services_create(
     UmiDiagnosticSink initial_sink,
     void *initial_user_data,
@@ -208,17 +235,26 @@ UmiStatus umi_studio_services_create(
     UmiFileIndexConfig file_index_config;
     UmiWatcherConfig watcher_config;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_services == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     *out_services = NULL;
 
     services = (UmiStudioServices *)calloc(1U, sizeof(*services));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL) {
         return UMI_STATUS_OUT_OF_MEMORY;
     }
 
     status = umi_studio_settings_create(&services->settings);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -229,6 +265,7 @@ UmiStatus umi_studio_services_create(
         umi_studio_settings_default_path(),
         &settings_loaded
     );
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -240,6 +277,7 @@ UmiStatus umi_studio_services_create(
         UMI_STUDIO_SETTING_DIAGNOSTIC_CAPACITY,
         &diagnostic_capacity
     );
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (status != UMI_STATUS_OK || diagnostic_capacity <= 0) {
         destroy_partial(services);
         return status != UMI_STATUS_OK ? status : UMI_STATUS_INVALID_STATE;
@@ -250,6 +288,7 @@ UmiStatus umi_studio_services_create(
         UMI_STUDIO_SETTING_BUILD_PARALLEL_JOBS,
         &parallel_jobs
     );
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (status != UMI_STATUS_OK || parallel_jobs <= 0) {
         destroy_partial(services);
         return status != UMI_STATUS_OK ? status : UMI_STATUS_INVALID_STATE;
@@ -259,6 +298,7 @@ UmiStatus umi_studio_services_create(
     services->clock = umi_clock_system();
     status = umi_studio_operations_create(&services->clock,
                                           &services->operations);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -266,6 +306,7 @@ UmiStatus umi_studio_services_create(
     status = umi_studio_extension_platform_create(
         umi_studio_operations_plugins(services->operations),
         &services->extension_platform);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -275,6 +316,7 @@ UmiStatus umi_studio_services_create(
     store_config.capacity = (size_t)diagnostic_capacity;
     status = umi_diagnostic_store_create(&store_config,
                                          &services->diagnostic_store);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -283,6 +325,7 @@ UmiStatus umi_studio_services_create(
     status = umi_diagnostic_hub_add(&services->diagnostic_hub,
                                     umi_diagnostic_store_sink,
                                     services->diagnostic_store);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -293,20 +336,27 @@ UmiStatus umi_studio_services_create(
     pipeline_config.output_capacity = (size_t)diagnostic_capacity;
     status = umi_diagnostic_pipeline_create(&pipeline_config,
                                             &services->diagnostic_pipeline);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_diagnostic_hub_add(&services->diagnostic_hub,
                                         umi_diagnostic_pipeline_sink,
                                         services->diagnostic_pipeline);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (initial_sink != NULL) {
         status = umi_diagnostic_hub_add(&services->diagnostic_hub,
                                         initial_sink,
                                         initial_user_data);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) {
             destroy_partial(services);
             return status;
@@ -317,18 +367,21 @@ UmiStatus umi_studio_services_create(
     task_config.worker_count = (size_t)parallel_jobs;
     task_config.capacity = 512U;
     status = umi_task_queue_create(&task_config, &services->task_queue);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
     }
 
     status = umi_document_store_create(&services->documents);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
     }
 
     status = umi_session_store_create(&services->session);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -336,6 +389,7 @@ UmiStatus umi_studio_services_create(
     status = umi_session_store_load(services->session,
                                     umi_studio_session_default_path(),
                                     &session_loaded);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -344,6 +398,7 @@ UmiStatus umi_studio_services_create(
 
     status = umi_recovery_manager_create(umi_studio_recovery_default_root(),
                                          &services->recovery);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -351,6 +406,7 @@ UmiStatus umi_studio_services_create(
 
     status = umi_process_supervisor_create(NULL,
                                            &services->process_supervisor);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -362,56 +418,69 @@ UmiStatus umi_studio_services_create(
             ? umi_data_server_create_sqlite(data_path, &services->data_server)
             : umi_data_server_create_memory(&services->data_server);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_store_from_data_server(services->data_server,
                                             &services->store);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_schema_registry_create(&services->schemas);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_dispatcher_create(services->schemas,
                                        &services->dispatcher);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_inbox_create(4096U, &services->inbox);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_outbox_create(4096U, &services->outbox);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_dead_letter_store_create(2048U,
                                               &services->dead_letters);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_topic_registry_create(256U, &services->topics);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_message_store_create(&services->store,
                                           "studio-history",
                                           &services->message_store);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_journal_store_init(&services->journal,
                                         &services->store,
                                         "studio-journal");
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         services->message_metrics = (UmiMessageMetricsCounter *)calloc(
             1U, umi_message_metrics_counter_size());
         status = services->message_metrics != NULL
             ? UMI_STATUS_OK : UMI_STATUS_OUT_OF_MEMORY;
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         umi_message_metrics_init(services->message_metrics);
         status = umi_studio_fabric_register_defaults(services);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
     }
 
     status = umi_workspace_graph_create(&services->workspace);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK ||
         umi_fs_current_directory(current_directory,
                                  sizeof(current_directory)) != UMI_STATUS_OK) {
@@ -421,6 +490,7 @@ UmiStatus umi_studio_services_create(
     status = umi_workspace_graph_open(services->workspace,
                                       current_directory,
                                       0);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -429,6 +499,7 @@ UmiStatus umi_studio_services_create(
     file_index_config = umi_file_index_config_default(current_directory);
     status = umi_file_index_create(&file_index_config,
                                    &services->file_index);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -438,6 +509,7 @@ UmiStatus umi_studio_services_create(
     watcher_config.sink = studio_watch_sink;
     watcher_config.sink_user_data = services;
     status = umi_watcher_create(&watcher_config, &services->watcher);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -448,18 +520,21 @@ UmiStatus umi_studio_services_create(
         &services->clock,
         &services->developer_platform
     );
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_build_service_bind_task_queue(
             umi_studio_developer_platform_build(
                 services->developer_platform),
             services->task_queue);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_build_service_prepare_default_graph(
             umi_studio_developer_platform_build(
                 services->developer_platform),
             1);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         UmiTerminalControllerConfig terminal_config =
             umi_terminal_controller_config_default();
@@ -479,37 +554,45 @@ UmiStatus umi_studio_services_create(
         status = umi_terminal_controller_create(
             &terminal_config, &services->terminal_controller);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
     }
 
     status = umi_studio_trading_service_create(&services->trading);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
     }
 
     status = umi_studio_declarative_create(&services->declarative);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_designer_create(services->declarative,
                                             &services->designer);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_web_platform_create(&services->web_platform);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_delivery_platform_create(&services->delivery_platform);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_product_centre_create(&services->product_centre);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_compatibility_platform_create(
             &services->compatibility_platform
         );
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         UmiStudioAiPlatformConfig ai_config =
             umi_studio_ai_platform_config_default();
@@ -517,73 +600,94 @@ UmiStatus umi_studio_services_create(
             services->settings, UMI_STUDIO_SETTING_AUTHORENGINE_EXECUTABLE,
             ai_config.authorengine_executable,
             sizeof(ai_config.authorengine_executable));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = umi_settings_get_text(
                 services->settings, UMI_STUDIO_SETTING_AUTHORENGINE_WORKSPACE,
                 ai_config.workspace, sizeof(ai_config.workspace));
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK && strcmp(ai_config.workspace, ".") == 0) {
             (void)snprintf(ai_config.workspace, sizeof(ai_config.workspace),
                            "%s", current_directory);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_integer(
             services->settings, UMI_STUDIO_SETTING_AI_CONTEXT_TOKENS,
             &ai_context_tokens);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_integer(
             services->settings, UMI_STUDIO_SETTING_AI_RESERVED_OUTPUT_TOKENS,
             &ai_output_tokens);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
             services->settings, UMI_STUDIO_SETTING_AI_ALLOW_REMOTE,
             &ai_allow_remote);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
             services->settings, UMI_STUDIO_SETTING_AI_PERSIST_SESSIONS,
             &ai_persist_sessions);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_integer(
             services->settings, UMI_STUDIO_SETTING_AI_CODING_CONTEXT_TOKENS,
             &ai_coding_context_tokens);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_integer(
             services->settings, UMI_STUDIO_SETTING_AI_CODING_MAX_PATCH_FILES,
             &ai_coding_patch_files);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_integer(
             services->settings, UMI_STUDIO_SETTING_AI_CODING_MAX_PATCH_LINES,
             &ai_coding_patch_lines);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
             services->settings, UMI_STUDIO_SETTING_AI_CODING_ALLOW_CREATE,
             &ai_coding_allow_create);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
             services->settings, UMI_STUDIO_SETTING_AI_CODING_ALLOW_DELETE,
             &ai_coding_allow_delete);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
             services->settings, UMI_STUDIO_SETTING_AI_CODING_REQUIRE_APPROVAL,
             &ai_coding_require_approval);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_text(
             services->settings, UMI_STUDIO_SETTING_AI_PREFERRED_RUNTIME,
             ai_config.preferred_runtime_id,
             sizeof(ai_config.preferred_runtime_id));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_text(
             services->settings, UMI_STUDIO_SETTING_AI_REMOTE_PROVIDER,
             ai_config.remote_provider_id,
             sizeof(ai_config.remote_provider_id));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_text(
             services->settings, UMI_STUDIO_SETTING_AI_REMOTE_ENDPOINT,
             ai_config.remote_endpoint, sizeof(ai_config.remote_endpoint));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_text(
             services->settings, UMI_STUDIO_SETTING_AI_REMOTE_MODEL,
             ai_config.remote_model_id, sizeof(ai_config.remote_model_id));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_text(
             services->settings, UMI_STUDIO_SETTING_AI_REMOTE_SECRET_REFERENCE,
             ai_config.remote_secret_reference,
             sizeof(ai_config.remote_secret_reference));
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
             services->settings, UMI_STUDIO_SETTING_AI_RAG_ENABLED,
             &ai_rag_enabled);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) status = umi_settings_get_boolean(
             services->settings, UMI_STUDIO_SETTING_AI_STREAM_RESPONSES,
             &ai_stream_responses);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             status = umi_studio_knowledge_settings_apply(
                 services->settings, &ai_config);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK &&
             (ai_context_tokens <= 0 || ai_context_tokens > UINT32_MAX ||
              ai_output_tokens <= 0 || ai_output_tokens > UINT32_MAX ||
@@ -596,6 +700,7 @@ UmiStatus umi_studio_services_create(
              ai_coding_patch_lines > UINT32_MAX)) {
             status = UMI_STATUS_INVALID_STATE;
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             ai_config.context_tokens = (uint32_t)ai_context_tokens;
             ai_config.reserved_output_tokens = (uint32_t)ai_output_tokens;
@@ -614,9 +719,11 @@ UmiStatus umi_studio_services_create(
                 &ai_config, &services->ai_platform);
         }
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_ai_tools_register_defaults(services->ai_platform);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);
         return status;
@@ -626,11 +733,13 @@ UmiStatus umi_studio_services_create(
     return UMI_STATUS_OK;
 }
 
+/* Release or reset state held by studio services so the same storage can be reused safely. */
 void umi_studio_services_destroy(UmiStudioServices *services)
 {
     destroy_partial(services);
 }
 
+/* Provide the publish service operation used by this module and its client applications. */
 static UmiStatus publish_service(UmiServiceRegistry *registry,
                                  const char *service_id,
                                  void *service,
@@ -648,6 +757,10 @@ static UmiStatus publish_service(UmiServiceRegistry *registry,
     return umi_service_registry_register(registry, &descriptor);
 }
 
+/*
+ * Provide the studio services publish operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_services_publish(
     UmiStudioServices *services,
     UmiMasterController *master)
@@ -656,15 +769,24 @@ UmiStatus umi_studio_services_publish(
     UmiHealthRegistry *health;
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || master == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Apply this branch only when its contract condition is satisfied. */
     if (services->published) {
         return UMI_STATUS_ALREADY_EXISTS;
     }
 
     registry = umi_master_controller_services(master);
     health = umi_master_controller_health(master);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (registry == NULL || health == NULL) {
         return UMI_STATUS_INVALID_STATE;
     }
@@ -828,6 +950,7 @@ UmiStatus umi_studio_services_publish(
     status = umi_studio_designer_bind_commands(
         services->designer,
         umi_master_controller_command_registry(master));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     PUBLISH("umicom.studio.clock",
             &services->clock,
@@ -840,6 +963,7 @@ UmiStatus umi_studio_services_publish(
                                         "Studio shared services are ready",
                                         services->clock.wall_nanoseconds(
                                             &services->clock));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -848,11 +972,19 @@ UmiStatus umi_studio_services_publish(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio services add diagnostic sink operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_services_add_diagnostic_sink(
     UmiStudioServices *services,
     UmiDiagnosticSink sink,
     void *user_data)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -861,11 +993,19 @@ UmiStatus umi_studio_services_add_diagnostic_sink(
                                   user_data);
 }
 
+/*
+ * Provide the studio services remove diagnostic sink operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_services_remove_diagnostic_sink(
     UmiStudioServices *services,
     UmiDiagnosticSink sink,
     void *user_data)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -874,145 +1014,257 @@ UmiStatus umi_studio_services_remove_diagnostic_sink(
                                      user_data);
 }
 
+/*
+ * Provide the studio services diagnostic sink operation used by this module and its client
+ * applications.
+ */
 UmiDiagnosticSink umi_studio_services_diagnostic_sink(void)
 {
     return umi_diagnostic_hub_emit;
 }
 
+/*
+ * Provide the studio services diagnostic user data operation used by this module and its
+ * client applications.
+ */
 void *umi_studio_services_diagnostic_user_data(UmiStudioServices *services)
 {
     return services != NULL ? (void *)&services->diagnostic_hub : NULL;
 }
 
+/*
+ * Provide the studio services clock operation used by this module and its client
+ * applications.
+ */
 UmiClock *umi_studio_services_clock(UmiStudioServices *services)
 {
     return services != NULL ? &services->clock : NULL;
 }
 
+/*
+ * Provide the studio services settings operation used by this module and its client
+ * applications.
+ */
 UmiSettings *umi_studio_services_settings(UmiStudioServices *services)
 {
     return services != NULL ? services->settings : NULL;
 }
 
+/*
+ * Provide the studio services diagnostic store operation used by this module and its
+ * client applications.
+ */
 UmiDiagnosticStore *umi_studio_services_diagnostic_store(
     UmiStudioServices *services)
 {
     return services != NULL ? services->diagnostic_store : NULL;
 }
 
+/*
+ * Provide the studio services diagnostic pipeline operation used by this module and its
+ * client applications.
+ */
 UmiDiagnosticPipeline *umi_studio_services_diagnostic_pipeline(
     UmiStudioServices *services)
 {
     return services != NULL ? services->diagnostic_pipeline : NULL;
 }
 
+/*
+ * Provide the studio services task queue operation used by this module and its client
+ * applications.
+ */
 UmiTaskQueue *umi_studio_services_task_queue(UmiStudioServices *services)
 {
     return services != NULL ? services->task_queue : NULL;
 }
 
+/*
+ * Provide the studio services documents operation used by this module and its client
+ * applications.
+ */
 UmiDocumentStore *umi_studio_services_documents(UmiStudioServices *services)
 {
     return services != NULL ? services->documents : NULL;
 }
 
+/*
+ * Provide the studio services session operation used by this module and its client
+ * applications.
+ */
 UmiSessionStore *umi_studio_services_session(UmiStudioServices *services)
 {
     return services != NULL ? services->session : NULL;
 }
 
+/*
+ * Provide the studio services recovery operation used by this module and its client
+ * applications.
+ */
 UmiRecoveryManager *umi_studio_services_recovery(UmiStudioServices *services)
 {
     return services != NULL ? services->recovery : NULL;
 }
 
+/*
+ * Provide the studio services workspace operation used by this module and its client
+ * applications.
+ */
 UmiWorkspaceGraph *umi_studio_services_workspace(UmiStudioServices *services)
 {
     return services != NULL ? services->workspace : NULL;
 }
 
+/*
+ * Provide the studio services file index operation used by this module and its client
+ * applications.
+ */
 UmiFileIndex *umi_studio_services_file_index(UmiStudioServices *services)
 {
     return services != NULL ? services->file_index : NULL;
 }
 
+/*
+ * Provide the studio services watcher operation used by this module and its client
+ * applications.
+ */
 UmiWatcher *umi_studio_services_watcher(UmiStudioServices *services)
 {
     return services != NULL ? services->watcher : NULL;
 }
 
+/*
+ * Provide the studio services process supervisor operation used by this module and its
+ * client applications.
+ */
 UmiProcessSupervisor *umi_studio_services_process_supervisor(
     UmiStudioServices *services)
 {
     return services != NULL ? services->process_supervisor : NULL;
 }
 
+/*
+ * Provide the studio services data server operation used by this module and its client
+ * applications.
+ */
 UmiDataServer *umi_studio_services_data_server(UmiStudioServices *services)
 {
     return services != NULL ? services->data_server : NULL;
 }
 
+/*
+ * Provide the studio services store operation used by this module and its client
+ * applications.
+ */
 UmiStore *umi_studio_services_store(UmiStudioServices *services)
 {
     return services != NULL ? &services->store : NULL;
 }
 
+/*
+ * Provide the studio services schema registry operation used by this module and its client
+ * applications.
+ */
 UmiSchemaRegistry *umi_studio_services_schema_registry(UmiStudioServices *services)
 {
     return services != NULL ? services->schemas : NULL;
 }
 
+/*
+ * Provide the studio services dispatcher operation used by this module and its client
+ * applications.
+ */
 UmiDispatcher *umi_studio_services_dispatcher(UmiStudioServices *services)
 {
     return services != NULL ? services->dispatcher : NULL;
 }
 
+/*
+ * Provide the studio services inbox operation used by this module and its client
+ * applications.
+ */
 UmiInbox *umi_studio_services_inbox(UmiStudioServices *services)
 {
     return services != NULL ? services->inbox : NULL;
 }
 
+/*
+ * Provide the studio services outbox operation used by this module and its client
+ * applications.
+ */
 UmiOutbox *umi_studio_services_outbox(UmiStudioServices *services)
 {
     return services != NULL ? services->outbox : NULL;
 }
 
+/*
+ * Provide the studio services dead letters operation used by this module and its client
+ * applications.
+ */
 UmiDeadLetterStore *umi_studio_services_dead_letters(UmiStudioServices *services)
 {
     return services != NULL ? services->dead_letters : NULL;
 }
 
+/*
+ * Provide the studio services topics operation used by this module and its client
+ * applications.
+ */
 UmiTopicRegistry *umi_studio_services_topics(UmiStudioServices *services)
 {
     return services != NULL ? services->topics : NULL;
 }
 
+/*
+ * Provide the studio services message store operation used by this module and its client
+ * applications.
+ */
 UmiMessageStore *umi_studio_services_message_store(UmiStudioServices *services)
 {
     return services != NULL ? services->message_store : NULL;
 }
 
+/*
+ * Provide the studio services journal operation used by this module and its client
+ * applications.
+ */
 UmiJournalStore *umi_studio_services_journal(UmiStudioServices *services)
 {
     return services != NULL ? &services->journal : NULL;
 }
 
+/*
+ * Provide the studio services message metrics operation used by this module and its client
+ * applications.
+ */
 UmiMessageMetricsCounter *umi_studio_services_message_metrics(UmiStudioServices *services)
 {
     return services != NULL ? services->message_metrics : NULL;
 }
 
+/*
+ * Provide the studio services operations operation used by this module and its client
+ * applications.
+ */
 UmiStudioOperations *umi_studio_services_operations(UmiStudioServices *services)
 {
     return services != NULL ? services->operations : NULL;
 }
 
+/*
+ * Provide the studio services ai platform operation used by this module and its client
+ * applications.
+ */
 UmiStudioAiPlatform *umi_studio_services_ai_platform(
     UmiStudioServices *services)
 {
     return services != NULL ? services->ai_platform : NULL;
 }
 
+/*
+ * Provide the studio services knowledge operation used by this module and its client
+ * applications.
+ */
 UmiKnowledgeService *umi_studio_services_knowledge(
     UmiStudioServices *services)
 {
@@ -1020,12 +1272,20 @@ UmiKnowledgeService *umi_studio_services_knowledge(
         ? umi_studio_ai_platform_knowledge(services->ai_platform) : NULL;
 }
 
+/*
+ * Provide the studio services developer platform operation used by this module and its
+ * client applications.
+ */
 UmiStudioDeveloperPlatform *umi_studio_services_developer_platform(
     UmiStudioServices *services)
 {
     return services != NULL ? services->developer_platform : NULL;
 }
 
+/*
+ * Provide the studio services build operation used by this module and its client
+ * applications.
+ */
 UmiStudioBuildService *umi_studio_services_build(UmiStudioServices *services)
 {
     return services != NULL && services->developer_platform != NULL
@@ -1033,6 +1293,10 @@ UmiStudioBuildService *umi_studio_services_build(UmiStudioServices *services)
         : NULL;
 }
 
+/*
+ * Provide the studio services tests operation used by this module and its client
+ * applications.
+ */
 UmiStudioTestService *umi_studio_services_tests(UmiStudioServices *services)
 {
     return services != NULL && services->developer_platform != NULL
@@ -1040,6 +1304,10 @@ UmiStudioTestService *umi_studio_services_tests(UmiStudioServices *services)
         : NULL;
 }
 
+/*
+ * Provide the studio services terminal operation used by this module and its client
+ * applications.
+ */
 UmiStudioTerminalService *umi_studio_services_terminal(
     UmiStudioServices *services)
 {
@@ -1048,12 +1316,20 @@ UmiStudioTerminalService *umi_studio_services_terminal(
         : NULL;
 }
 
+/*
+ * Provide the studio services terminal controller operation used by this module and its
+ * client applications.
+ */
 UmiTerminalController *umi_studio_services_terminal_controller(
     UmiStudioServices *services)
 {
     return services != NULL ? services->terminal_controller : NULL;
 }
 
+/*
+ * Provide the studio services language operation used by this module and its client
+ * applications.
+ */
 UmiStudioLanguageService *umi_studio_services_language(
     UmiStudioServices *services)
 {
@@ -1062,6 +1338,10 @@ UmiStudioLanguageService *umi_studio_services_language(
         : NULL;
 }
 
+/*
+ * Provide the studio services debugger operation used by this module and its client
+ * applications.
+ */
 UmiStudioDebuggerService *umi_studio_services_debugger(
     UmiStudioServices *services)
 {
@@ -1070,6 +1350,10 @@ UmiStudioDebuggerService *umi_studio_services_debugger(
         : NULL;
 }
 
+/*
+ * Provide the studio services source control operation used by this module and its client
+ * applications.
+ */
 UmiStudioSourceControlService *umi_studio_services_source_control(
     UmiStudioServices *services)
 {
@@ -1079,44 +1363,64 @@ UmiStudioSourceControlService *umi_studio_services_source_control(
         : NULL;
 }
 
+/*
+ * Provide the studio services trading operation used by this module and its client
+ * applications.
+ */
 UmiStudioTradingService *umi_studio_services_trading(
     UmiStudioServices *services)
 {
     return services != NULL ? services->trading : NULL;
 }
 
+/*
+ * Provide the studio services open workspace operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
                                              const char *root,
                                              int trusted)
 {
     UmiStatus status;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || root == NULL || root[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     status = umi_watcher_stop(services->watcher);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_file_index_set_root(services->file_index, root);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_watcher_set_root(services->watcher, root);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_workspace_graph_open(services->workspace, root, trusted);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_workspace_graph_discover(services->workspace);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_file_index_rebuild(services->file_index);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         UmiWorkspaceGraphSnapshot workspace_snapshot;
         UmiWorkspaceProjectSnapshot project_snapshot;
         const char *project_id = "workspace";
+        /* Apply this branch only when its contract condition is satisfied. */
         if (umi_workspace_graph_snapshot(services->workspace,
                                          &workspace_snapshot) ==
                 UMI_STATUS_OK) {
+            /* Apply this branch only when its contract condition is satisfied. */
             if (workspace_snapshot.project_count > 0U &&
                 umi_workspace_graph_project_at(services->workspace, 0U,
                                                 &project_snapshot) ==
@@ -1131,15 +1435,25 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
     return status;
 }
 
+/*
+ * Provide the studio services close workspace operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
 {
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     (void)umi_watcher_stop(services->watcher);
     status = umi_workspace_graph_close(services->workspace);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_file_index_clear(services->file_index);
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_test_service_set_workspace(
             umi_studio_services_tests(services), "", "", 0U);
@@ -1147,6 +1461,10 @@ UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
     return status;
 }
 
+/*
+ * Return the number of records represented by studio services diagnostic sink without
+ * changing their state.
+ */
 size_t umi_studio_services_diagnostic_sink_count(
     const UmiStudioServices *services)
 {
@@ -1155,40 +1473,68 @@ size_t umi_studio_services_diagnostic_sink_count(
         : 0U;
 }
 
+/*
+ * Provide the studio services declarative operation used by this module and its client
+ * applications.
+ */
 UmiStudioDeclarative *umi_studio_services_declarative(UmiStudioServices *services)
 {
     return services != NULL ? services->declarative : NULL;
 }
 
+/*
+ * Provide the studio services designer operation used by this module and its client
+ * applications.
+ */
 UmiStudioDesigner *umi_studio_services_designer(UmiStudioServices *services)
 {
     return services != NULL ? services->designer : NULL;
 }
 
+/*
+ * Provide the studio services web platform operation used by this module and its client
+ * applications.
+ */
 UmiStudioWebPlatform *umi_studio_services_web_platform(
     UmiStudioServices *services)
 {
     return services != NULL ? services->web_platform : NULL;
 }
 
+/*
+ * Provide the studio services delivery platform operation used by this module and its
+ * client applications.
+ */
 UmiStudioDeliveryPlatform *umi_studio_services_delivery_platform(
     UmiStudioServices *services)
 {
     return services != NULL ? services->delivery_platform : NULL;
 }
 
+/*
+ * Provide the studio services compatibility platform operation used by this module and its
+ * client applications.
+ */
 UmiStudioCompatibilityPlatform *umi_studio_services_compatibility_platform(
     UmiStudioServices *services)
 {
     return services == NULL ? NULL : services->compatibility_platform;
 }
 
+/*
+ * Provide the studio services extension platform operation used by this module and its
+ * client applications.
+ */
 UmiStudioExtensionPlatform *umi_studio_services_extension_platform(
     UmiStudioServices *services)
 {
     return services != NULL ? services->extension_platform : NULL;
 }
 
+/*
+ * Provide the studio services product centre operation used by this module and its client
+ * applications.
+ */
 UmiStudioProductCentre *umi_studio_services_product_centre(
     UmiStudioServices *services)
 {

@@ -1,5 +1,21 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
+ * File: src/core/include/settings_apply.h
+ *
+ * PURPOSE:
+ *   Declare the settings apply contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
  * File: src/settings_apply.h
  * PURPOSE: Emit settings changes and apply theme live
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT

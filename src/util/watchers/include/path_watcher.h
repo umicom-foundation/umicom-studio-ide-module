@@ -3,6 +3,22 @@
  * File: src/util/watchers/include/path_watcher.h
  *
  * PURPOSE:
+ *   Declare the path watcher contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/util/watchers/include/path_watcher.h
+ *
+ * PURPOSE:
  *   Public API for a thin, NON-RECURSIVE path watcher built on GFileMonitor.
  *   Use this when you only need to watch a handful of directories at the
  *   top level. For deep trees, prefer watcher_recursive.h.
@@ -44,9 +60,21 @@ typedef void (*UmiPathEvt)(gpointer user, const char *path);
 /* Opaque watcher handle. */
 typedef struct _UmiPathWatcher UmiPathWatcher;
 
+/**
+ * Provide the pathwatch new operation used by this module and its client applications.
+ */
 UmiPathWatcher *umi_pathwatch_new(UmiPathEvt cb, gpointer user);
+/**
+ * Add pathwatch only after its inputs and available capacity have been checked.
+ */
 gboolean        umi_pathwatch_add(UmiPathWatcher *w, const char *dir_path);
+/**
+ * Provide the pathwatch stop operation used by this module and its client applications.
+ */
 void            umi_pathwatch_stop(UmiPathWatcher *w);
+/**
+ * Provide the pathwatch free operation used by this module and its client applications.
+ */
 void            umi_pathwatch_free(UmiPathWatcher *w);
 
 G_END_DECLS

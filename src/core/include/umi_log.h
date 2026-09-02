@@ -1,3 +1,19 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/core/include/umi_log.h
+ *
+ * PURPOSE:
+ *   Declare the umi log contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
 /*
  * umi_log.h - Minimal logging shim for Umicom Studio
  *
@@ -47,6 +63,9 @@ void umi_log_set_level(int level);
 
 /* Low-level helpers (usually use the macros below) */
 void umi_logv(int level, const char *fmt, va_list ap);
+/**
+ * Provide the log operation used by this module and its client applications.
+ */
 void umi_log(int level, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 
 /* Convenience macros used by existing code */

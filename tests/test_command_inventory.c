@@ -17,6 +17,10 @@
 
 #include <assert.h>
 
+/*
+ * Start this command or application, report setup failures, and return a process exit code
+ * to the operating system.
+ */
 int main(void)
 {
     UmiStudioBootstrap *bootstrap = NULL;
@@ -29,6 +33,7 @@ int main(void)
     registry = umi_studio_bootstrap_command_registry(bootstrap);
     assert(registry != NULL);
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_platform_contract_core_command_count();
          ++index) {
@@ -36,6 +41,7 @@ int main(void)
         assert(id != NULL);
         assert(umi_runtime_inventory_has_command(registry, id));
     }
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_platform_contract_workbench_command_count();
          ++index) {
@@ -44,6 +50,7 @@ int main(void)
         assert(umi_runtime_inventory_has_command(registry, id));
     }
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_platform_contract_contributed_command_count();
          ++index) {

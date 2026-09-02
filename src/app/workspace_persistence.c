@@ -24,6 +24,10 @@ UmiStatus umi_studio_workspace_persistence_export_active(
 {
     UmiUiWorkspaceCustomisation *model =
         umi_studio_professional_workspace_model(workspace);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (model == NULL || out_text == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -54,6 +58,10 @@ UmiStatus umi_studio_workspace_persistence_import_with_report(
     UmiUiWorkspaceImportOptions options =
         umi_ui_workspace_import_options_default();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (model == NULL || text == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

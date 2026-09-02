@@ -16,6 +16,10 @@
 
 #include <string.h>
 
+/*
+ * Provide the studio publish request default operation used by this module and its client
+ * applications.
+ */
 UmiStudioPublishRequest umi_studio_publish_request_default(void)
 {
     UmiStudioPublishRequest request;
@@ -26,6 +30,10 @@ UmiStudioPublishRequest umi_studio_publish_request_default(void)
     return request;
 }
 
+/*
+ * Provide the studio messages subscribe operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_subscribe(UmiStudioServices *services,
                                         const UmiSubscription *subscription,
                                         UmiMessageHandler handler,
@@ -42,6 +50,10 @@ UmiStatus umi_studio_messages_subscribe(UmiStudioServices *services,
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio messages unsubscribe operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_unsubscribe(UmiStudioServices *services,
                                           uint64_t subscription_id)
 {
@@ -51,6 +63,10 @@ UmiStatus umi_studio_messages_unsubscribe(UmiStudioServices *services,
         : UMI_STATUS_INVALID_ARGUMENT;
 }
 
+/*
+ * Provide the studio messages publish operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_publish(UmiStudioServices *services,
                                       const UmiStudioPublishRequest *request,
                                       uint64_t *out_sequence,
@@ -61,6 +77,10 @@ UmiStatus umi_studio_messages_publish(UmiStudioServices *services,
     uint64_t outbox_record = 0U;
     uint64_t sequence = 0U;
     size_t deliveries = 0U;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || request == NULL || request->name == NULL ||
         request->name[0] == '\0' || request->schema_id == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
@@ -84,6 +104,7 @@ UmiStatus umi_studio_messages_publish(UmiStudioServices *services,
 
     status = umi_schema_registry_validate(
         umi_studio_services_schema_registry(services), &message);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_message_metrics_increment(umi_studio_services_message_metrics(services),
                                       UMI_MESSAGE_METRIC_FAILED);
@@ -92,39 +113,56 @@ UmiStatus umi_studio_messages_publish(UmiStudioServices *services,
     umi_message_metrics_increment(umi_studio_services_message_metrics(services),
                                   UMI_MESSAGE_METRIC_ACCEPTED);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if ((message.flags & UMI_MESSAGE_FLAG_DURABLE) != 0U) {
         status = umi_journal_store_append(umi_studio_services_journal(services),
                                           &message,
                                           &sequence);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
         message.sequence = sequence;
         status = umi_outbox_enqueue(umi_studio_services_outbox(services),
                                     &message,
                                     &outbox_record);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
 
     status = umi_dispatcher_dispatch(umi_studio_services_dispatcher(services),
                                      &message,
                                      &deliveries);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (outbox_record != 0U) {
         (void)umi_outbox_complete(umi_studio_services_outbox(services),
                                   outbox_record,
                                   status,
                                   umi_retry_status_is_retryable(status));
     }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         umi_message_metrics_increment(umi_studio_services_message_metrics(services),
                                       UMI_MESSAGE_METRIC_DELIVERED);
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         umi_message_metrics_increment(umi_studio_services_message_metrics(services),
                                       UMI_MESSAGE_METRIC_FAILED);
     }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_sequence != NULL) *out_sequence = sequence;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_deliveries != NULL) *out_deliveries = deliveries;
     return status;
 }
 
+/*
+ * Provide the studio messages flush outbox operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_flush_outbox(UmiStudioServices *services,
                                            size_t maximum_records,
                                            size_t *out_delivered,
@@ -135,23 +173,35 @@ UmiStatus umi_studio_messages_flush_outbox(UmiStudioServices *services,
     size_t processed = 0U;
     UmiOutboxRecordView record;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /*
+     * Continue only while work remains available; the loop body advances the state on each
+     * pass.
+     */
     while (maximum_records == 0U || processed < maximum_records) {
         size_t deliveries = 0U;
         status = umi_outbox_next_pending(umi_studio_services_outbox(services),
                                          &record);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_NOT_FOUND) break;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
         status = umi_dispatcher_dispatch(umi_studio_services_dispatcher(services),
                                          record.message,
                                          &deliveries);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             delivered++;
             umi_message_metrics_increment(umi_studio_services_message_metrics(services),
                                           UMI_MESSAGE_METRIC_DELIVERED);
-        } else {
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
             int retryable = umi_retry_status_is_retryable(status);
             failed++;
+            /* Apply this branch only when its contract condition is satisfied. */
             if (!retryable) {
                 (void)umi_dead_letter_store_add(
                     umi_studio_services_dead_letters(services),
@@ -171,6 +221,7 @@ UmiStatus umi_studio_messages_flush_outbox(UmiStudioServices *services,
                                       status,
                                       retryable);
         }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             (void)umi_outbox_complete(umi_studio_services_outbox(services),
                                       record.record_id,
@@ -180,14 +231,30 @@ UmiStatus umi_studio_messages_flush_outbox(UmiStudioServices *services,
         processed++;
     }
     (void)umi_outbox_remove_sent(umi_studio_services_outbox(services), NULL);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_delivered != NULL) *out_delivered = delivered;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (out_failed != NULL) *out_failed = failed;
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the studio messages report operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_messages_report(UmiStudioServices *services,
                                      UmiStudioMessageReport *out_report)
 {
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (services == NULL || out_report == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }

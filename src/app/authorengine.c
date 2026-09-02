@@ -22,6 +22,10 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Provide the studio authorengine config operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_authorengine_config(const char *executable,
                                          const char *workspace,
                                          UmiAiAuthorEngineConfig *config)
@@ -29,6 +33,10 @@ UmiStatus umi_studio_authorengine_config(const char *executable,
     int a;
     int b;
     int c;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (executable == NULL || workspace == NULL || config == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -36,6 +44,7 @@ UmiStatus umi_studio_authorengine_config(const char *executable,
     a = snprintf(config->executable, sizeof(config->executable), "%s", executable);
     b = snprintf(config->workspace, sizeof(config->workspace), "%s", workspace);
     c = snprintf(config->provider, sizeof(config->provider), "%s", "studio");
+    /* Apply this branch only when its contract condition is satisfied. */
     if (a < 0 || b < 0 || c < 0 ||
         (size_t)a >= sizeof(config->executable) ||
         (size_t)b >= sizeof(config->workspace) ||

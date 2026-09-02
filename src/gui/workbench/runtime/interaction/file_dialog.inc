@@ -32,7 +32,15 @@ static void runtime_open_file_complete(
         GTK_FILE_DIALOG(source_object),
         result,
         &error);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (file == NULL) {
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (error != NULL &&
             !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
             runtime_show_notification(runtime, error->message);
@@ -42,6 +50,10 @@ static void runtime_open_file_complete(
     }
 
     path = g_file_get_path(file);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (path == NULL) {
         runtime_show_notification(
             runtime,
@@ -57,6 +69,7 @@ static void runtime_open_file_complete(
         view_id,
         sizeof(view_id));
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         runtime_copy_selection(
             runtime->selected_file_path,
@@ -67,6 +80,7 @@ static void runtime_open_file_complete(
             view_id);
     }
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
     }
@@ -76,6 +90,10 @@ static void runtime_open_file_complete(
     (void)runtime_refresh_services(runtime);
 }
 
+/*
+ * Provide the runtime save as complete operation used by this module and its client
+ * applications.
+ */
 static void runtime_save_as_complete(
     GObject *source_object,
     GAsyncResult *result,
@@ -92,7 +110,15 @@ static void runtime_save_as_complete(
         GTK_FILE_DIALOG(source_object),
         result,
         &error);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (file == NULL) {
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (error != NULL &&
             !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
             runtime_show_notification(runtime, error->message);
@@ -102,6 +128,10 @@ static void runtime_save_as_complete(
     }
 
     path = g_file_get_path(file);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (path == NULL) {
         runtime_show_notification(
             runtime,
@@ -113,9 +143,10 @@ static void runtime_save_as_complete(
     status = umi_document_coordinator_save_active_as(
         umi_studio_ui_documents(runtime->owner->ui),
         path);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_show_notification(runtime, "Document saved.");
     }
 
@@ -124,6 +155,10 @@ static void runtime_save_as_complete(
     (void)runtime_refresh_services(runtime);
 }
 
+/*
+ * Provide the runtime open folder complete operation used by this module and its client
+ * applications.
+ */
 static void runtime_open_folder_complete(
     GObject *source_object,
     GAsyncResult *result,
@@ -143,7 +178,15 @@ static void runtime_open_folder_complete(
         GTK_FILE_DIALOG(source_object),
         result,
         &error);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (folder == NULL) {
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (error != NULL &&
             !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
             runtime_show_notification(runtime, error->message);
@@ -153,6 +196,10 @@ static void runtime_open_folder_complete(
     }
 
     path = g_file_get_path(folder);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (path == NULL) {
         runtime_show_notification(
             runtime,
@@ -170,17 +217,27 @@ static void runtime_open_folder_complete(
      */
     status = umi_studio_services_open_workspace(services, path, 1);
 
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         index = umi_studio_services_file_index(services);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (index != NULL) {
             (void)umi_file_index_set_root(index, path);
             (void)umi_file_index_rebuild(index);
         }
 
         name = g_path_get_basename(path);
+        /* Apply this branch only when its contract condition is satisfied. */
         if (strlen(path) < sizeof(runtime->workspace_root)) {
             (void)strcpy(runtime->workspace_root, path);
         }
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (name != NULL &&
             strlen(name) < sizeof(runtime->workspace_name)) {
             (void)strcpy(runtime->workspace_name, name);
@@ -188,7 +245,7 @@ static void runtime_open_folder_complete(
         g_free(name);
 
         runtime_show_notification(runtime, "Workspace opened.");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_show_notification(runtime, umi_status_text(status));
     }
 
@@ -197,17 +254,29 @@ static void runtime_open_folder_complete(
     (void)runtime_refresh_services(runtime);
 }
 
+/*
+ * Provide the runtime choose file to open operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_choose_file_to_open(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkFileDialog *dialog;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
     dialog = gtk_file_dialog_new();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (dialog == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     gtk_file_dialog_set_title(dialog, "Open File");
@@ -221,17 +290,29 @@ static UmiStatus runtime_choose_file_to_open(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the runtime choose save as operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_choose_save_as(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkFileDialog *dialog;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
     dialog = gtk_file_dialog_new();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (dialog == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     gtk_file_dialog_set_title(dialog, "Save As");
@@ -245,17 +326,29 @@ static UmiStatus runtime_choose_save_as(
     return UMI_STATUS_OK;
 }
 
+/*
+ * Provide the runtime choose workspace folder operation used by this module and its client
+ * applications.
+ */
 static UmiStatus runtime_choose_workspace_folder(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkFileDialog *dialog;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
     dialog = gtk_file_dialog_new();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (dialog == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
     gtk_file_dialog_set_title(dialog, "Open Workspace Folder");

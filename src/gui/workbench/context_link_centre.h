@@ -23,20 +23,44 @@
 #include "umicom/platform/session_store.h"
 #include "umicom/workbench_context_host/workbench_context_host.h"
 
+/**
+ * Represent the studio context link centre data shared with callers of this public
+ * contract.
+ */
 typedef struct UmiStudioContextLinkCentre UmiStudioContextLinkCentre;
 
+/**
+ * Initialise studio context link centre from caller-provided values so later operations
+ * receive a known state.
+ */
 UmiStatus umi_studio_context_link_centre_create(
     UmiUiWorkbench *workbench,
     UmiSessionStore *session,
     UmiStudioContextLinkCentre **out_centre);
+/**
+ * Release or reset state held by studio context link centre so the same storage can be
+ * reused safely.
+ */
 void umi_studio_context_link_centre_destroy(
     UmiStudioContextLinkCentre *centre);
+/**
+ * Provide the studio context link centre refresh operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_context_link_centre_refresh(
     UmiStudioContextLinkCentre *centre,
     uint64_t now_ms);
+/**
+ * Provide the studio context link centre host operation used by this module and its client
+ * applications.
+ */
 UmiWorkbenchContextHost *umi_studio_context_link_centre_host(
     UmiStudioContextLinkCentre *centre);
 
+/**
+ * Provide the studio context link centre publish project operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_project(
     UmiStudioContextLinkCentre *centre,
     const char *project_id,
@@ -46,6 +70,10 @@ UmiStatus umi_studio_context_link_centre_publish_project(
     const char *configuration_id,
     const char *language_id,
     uint64_t now_ms);
+/**
+ * Provide the studio context link centre publish source location operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_source_location(
     UmiStudioContextLinkCentre *centre,
     const char *file_path,
@@ -54,6 +82,10 @@ UmiStatus umi_studio_context_link_centre_publish_source_location(
     uint32_t column,
     uint32_t selection_length,
     uint64_t now_ms);
+/**
+ * Provide the studio context link centre publish diagnostic operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_diagnostic(
     UmiStudioContextLinkCentre *centre,
     const char *file_path,
@@ -63,6 +95,10 @@ UmiStatus umi_studio_context_link_centre_publish_diagnostic(
     const char *diagnostic_code,
     const char *message,
     uint64_t now_ms);
+/**
+ * Provide the studio context link centre publish source control operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_source_control(
     UmiStudioContextLinkCentre *centre,
     const char *project_id,
@@ -72,6 +108,10 @@ UmiStatus umi_studio_context_link_centre_publish_source_control(
     const char *path,
     const char *change_kind,
     uint64_t now_ms);
+/**
+ * Provide the studio context link centre publish debug location operation used by this
+ * module and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_debug_location(
     UmiStudioContextLinkCentre *centre,
     const char *file_path,
@@ -79,6 +119,10 @@ UmiStatus umi_studio_context_link_centre_publish_debug_location(
     uint32_t line,
     uint32_t column,
     uint64_t now_ms);
+/**
+ * Provide the studio context link centre publish test operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_test(
     UmiStudioContextLinkCentre *centre,
     const char *test_id,
@@ -88,6 +132,10 @@ UmiStatus umi_studio_context_link_centre_publish_test(
     uint64_t source_line,
     uint64_t duration_ms,
     uint64_t now_ms);
+/**
+ * Provide the studio context link centre publish selection operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_selection(
     UmiStudioContextLinkCentre *centre,
     const char *source_id,
@@ -96,6 +144,10 @@ UmiStatus umi_studio_context_link_centre_publish_selection(
     const char *selection_type,
     uint64_t now_ms);
 
+/**
+ * Provide the studio context link centre publish ai operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_context_link_centre_publish_ai(
     UmiStudioContextLinkCentre *centre,
     const char *conversation_id,

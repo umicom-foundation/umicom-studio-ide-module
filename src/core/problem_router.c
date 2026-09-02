@@ -44,6 +44,7 @@
  * - Emit a small banner via the abstract sink (optional, UX-friendly).      */
 void umi_problem_router_begin(UmiProblemRouter *r)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!r) return;
 
   /* Problems model may be absent in headless/CLI scenarios; guard pointers. */
@@ -63,6 +64,7 @@ void umi_problem_router_begin(UmiProblemRouter *r)
  * - Always mirror the raw line to the sink for transparency.                */
 void umi_problem_router_feed(UmiProblemRouter *r, const char *line)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!r || !line) return;
 
   /* Mirror first so users see the exact tool output even if parsing fails.  */
@@ -75,6 +77,7 @@ void umi_problem_router_feed(UmiProblemRouter *r, const char *line)
     UmiDiagParser *p = umi_diag_parser_new(NULL);
     UmiDiag *diag = NULL;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_diag_parser_feed_line(p, line, &diag) && diag) {
       (void)umi_problem_list_add(r->plist, diag);
       umi_diag_free(diag);
@@ -87,8 +90,10 @@ void umi_problem_router_feed(UmiProblemRouter *r, const char *line)
 /* End of session:                                                            */
 void umi_problem_router_end(UmiProblemRouter *r)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!r) return;
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (r->out) {
     umi_output_sink_append_line(r->out, "[problems] done");
   }

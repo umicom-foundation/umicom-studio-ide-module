@@ -26,6 +26,10 @@ static void runtime_on_vcs_branch_checkout(
             G_OBJECT(button),
             "umicom-vcs-branch");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || branch == NULL || branch[0] == '\0') return;
 
     (void)runtime_execute_registered_command(
@@ -34,6 +38,10 @@ static void runtime_on_vcs_branch_checkout(
         branch);
 }
 
+/*
+ * Provide the runtime source control refresh details operation used by this module and its
+ * client applications.
+ */
 static void runtime_source_control_refresh_details(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -43,12 +51,20 @@ static void runtime_source_control_refresh_details(
     const UmiVcsBranchList *branches;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL) return;
 
     service = runtime_source_control_service(runtime);
     workspace = service != NULL
         ? umi_studio_source_control_service_workspace(service)
         : NULL;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (workspace == NULL) return;
 
     history = umi_vcs_workspace_history(workspace);
@@ -57,9 +73,14 @@ static void runtime_source_control_refresh_details(
     runtime_clear_list_box(runtime->source_control_history_list);
     runtime_clear_list_box(runtime->source_control_branches_list);
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->source_control_history_list != NULL && history != NULL) {
         const size_t count = umi_vcs_history_count(history);
 
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < count && index < 150U; ++index) {
             const UmiVcsCommit *commit = umi_vcs_history_at(history, index);
             GtkWidget *row;
@@ -67,6 +88,10 @@ static void runtime_source_control_refresh_details(
             GtkWidget *detail;
             char detail_text[768];
 
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (commit == NULL) continue;
 
             row = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
@@ -80,6 +105,10 @@ static void runtime_source_control_refresh_details(
                 commit->email);
             detail = runtime_label(detail_text, 0.0F);
 
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (row == NULL || subject == NULL || detail == NULL) continue;
 
             gtk_widget_add_css_class(detail, "umicom-runtime-muted");
@@ -91,9 +120,14 @@ static void runtime_source_control_refresh_details(
         }
     }
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->source_control_branches_list != NULL && branches != NULL) {
         const size_t count = umi_vcs_branch_list_count(branches);
 
+        /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < count && index < 250U; ++index) {
             const UmiVcsBranch *branch =
                 umi_vcs_branch_list_at(branches, index);
@@ -103,6 +137,10 @@ static void runtime_source_control_refresh_details(
             GtkWidget *checkout;
             char text[768];
 
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (branch == NULL) continue;
 
             (void)snprintf(
@@ -122,6 +160,10 @@ static void runtime_source_control_refresh_details(
             spacer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
             checkout = gtk_button_new_with_label("Checkout");
 
+            /*
+             * Protect caller-owned memory by checking that required state is available before it is
+             * used.
+             */
             if (row == NULL || label == NULL ||
                 spacer == NULL || checkout == NULL) {
                 continue;
@@ -151,17 +193,29 @@ static void runtime_source_control_refresh_details(
     }
 }
 
+/*
+ * Provide the runtime source control notebook operation used by this module and its client
+ * applications.
+ */
 static GtkWidget *runtime_source_control_notebook(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *notebook;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime == NULL || runtime->source_control_list == NULL) return NULL;
 
     notebook = gtk_notebook_new();
     runtime->source_control_history_list = gtk_list_box_new();
     runtime->source_control_branches_list = gtk_list_box_new();
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (notebook == NULL ||
         runtime->source_control_history_list == NULL ||
         runtime->source_control_branches_list == NULL) {

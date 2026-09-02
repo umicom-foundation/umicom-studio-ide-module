@@ -263,11 +263,19 @@ static const UmiStudioEditorIntelligenceViewContribution VIEWS[] = {
 
 #undef VIEW
 
+/*
+ * Return the number of records represented by studio editor intelligence command
+ * contribution without changing their state.
+ */
 size_t umi_studio_editor_intelligence_command_contribution_count(void)
 {
     return sizeof(COMMANDS) / sizeof(COMMANDS[0]);
 }
 
+/*
+ * Find studio editor intelligence command contribution while leaving the underlying
+ * catalogue or model owned by this module.
+ */
 const UmiStudioEditorIntelligenceCommandContribution *
 umi_studio_editor_intelligence_command_contribution_at(size_t index)
 {
@@ -276,16 +284,26 @@ umi_studio_editor_intelligence_command_contribution_at(size_t index)
         : NULL;
 }
 
+/*
+ * Find studio editor intelligence command contribution while leaving the underlying
+ * catalogue or model owned by this module.
+ */
 const UmiStudioEditorIntelligenceCommandContribution *
 umi_studio_editor_intelligence_command_contribution_find(
     const char *framework_command_id)
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (framework_command_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_intelligence_command_contribution_count();
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(COMMANDS[index].framework_command_id,
                    framework_command_id) == 0) {
             return &COMMANDS[index];
@@ -294,11 +312,19 @@ umi_studio_editor_intelligence_command_contribution_find(
     return NULL;
 }
 
+/*
+ * Return the number of records represented by studio editor intelligence view contribution
+ * without changing their state.
+ */
 size_t umi_studio_editor_intelligence_view_contribution_count(void)
 {
     return sizeof(VIEWS) / sizeof(VIEWS[0]);
 }
 
+/*
+ * Find studio editor intelligence view contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioEditorIntelligenceViewContribution *
 umi_studio_editor_intelligence_view_contribution_at(size_t index)
 {
@@ -307,15 +333,25 @@ umi_studio_editor_intelligence_view_contribution_at(size_t index)
         : NULL;
 }
 
+/*
+ * Find studio editor intelligence view contribution while leaving the underlying catalogue
+ * or model owned by this module.
+ */
 const UmiStudioEditorIntelligenceViewContribution *
 umi_studio_editor_intelligence_view_contribution_find(const char *view_id)
 {
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (view_id == NULL) return NULL;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_intelligence_view_contribution_count();
          ++index) {
+        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
         if (strcmp(VIEWS[index].view_id, view_id) == 0) return &VIEWS[index];
     }
     return NULL;

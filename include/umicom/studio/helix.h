@@ -26,9 +26,17 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio helix status operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_status(UmiStudioAiPlatform *platform,
                                   char *output,
                                   size_t output_capacity);
+/**
+ * Provide the studio helix advance operation used by this module and its client
+ * applications.
+ */
 UmiStatus umi_studio_helix_advance(UmiStudioAiPlatform *platform,
                                    UmiHelixWorkflowStage next_stage);
 

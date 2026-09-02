@@ -32,11 +32,20 @@ static const UmiStudioFederatedContextDefinition DEFINITIONS[] = {
     {"output", "diagnostic", 1}
 };
 
+/*
+ * Add studio federated interactions only after its inputs and available capacity have been
+ * checked.
+ */
 UmiStatus umi_studio_federated_interactions_register(
     UmiDesktopContextSynchronizer *synchronizer)
 {
     size_t index;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (synchronizer == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U; index < sizeof(DEFINITIONS) / sizeof(DEFINITIONS[0]);
          ++index) {
         UmiDesktopContextSubscription subscription;
@@ -53,6 +62,7 @@ UmiStatus umi_studio_federated_interactions_register(
             DEFINITIONS[index].refresh_on_delivery;
         status = umi_desktop_context_synchronizer_subscribe(
             synchronizer, &subscription);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status != UMI_STATUS_OK) return status;
     }
     return UMI_STATUS_OK;

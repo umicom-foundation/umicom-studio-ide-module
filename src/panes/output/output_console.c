@@ -143,7 +143,7 @@ umi_output_console_new(GtkTextBuffer *opt_buf)
   if (opt_buf) {                                            /* caller-supplied  */
     c->buf = opt_buf;                                       /* non-owning       */
     c->created_buf = FALSE;                                  /* reflect          */
-  } else {                                                  /* create our own   */
+  } /* Use this fallback path when the earlier condition does not apply. */ else {                                                  /* create our own   */
     c->buf = gtk_text_buffer_new(NULL);                     /* default buffer   */
     c->created_buf = TRUE;                                   /* mark created     */
     /* We do NOT manually unref this later; the TextView holds a ref and
@@ -172,23 +172,38 @@ umi_output_console_new(GtkTextBuffer *opt_buf)
   return c;                                                 /* return handle    */
 }
 
+/*
+ * Provide the output console chain operation used by this module and its client
+ * applications.
+ */
 UmiOutChain *
 umi_output_console_chain(UmiOutputConsole *c)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!c) return NULL;                                      /* guard            */
   return &c->chain;                                         /* embedded member  */
 }
 
+/*
+ * Provide the output console buffer operation used by this module and its client
+ * applications.
+ */
 GtkTextBuffer *
 umi_output_console_buffer(UmiOutputConsole *c)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!c) return NULL;                                      /* guard            */
   return c->buf;                                            /* the buffer       */
 }
 
+/*
+ * Provide the output console free operation used by this module and its client
+ * applications.
+ */
 void
 umi_output_console_free(UmiOutputConsole *c)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!c) return;                                           /* guard            */
 
   if (c->ansi) {                                            /* drop helper      */
@@ -196,6 +211,7 @@ umi_output_console_free(UmiOutputConsole *c)
     c->ansi = NULL;
   }
 
+  /* Apply this branch only when its contract condition is satisfied. */
   if (c->widget) {                                          /* unref widget     */
     g_object_unref(c->widget);                              /* release our ref  */
     c->widget = NULL;
@@ -209,9 +225,14 @@ umi_output_console_free(UmiOutputConsole *c)
   g_free(c);                                                /* free instance    */
 }
 
+/*
+ * Provide the output console append line operation used by this module and its client
+ * applications.
+ */
 void
 umi_output_console_append_line(UmiOutputConsole *c, const char *line)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!c || !line) return;                                  /* guard            */
   IdleAppend *payload = g_new(IdleAppend, 1);               /* allocate         */
   payload->self = c;                                        /* set console      */
@@ -219,9 +240,14 @@ umi_output_console_append_line(UmiOutputConsole *c, const char *line)
   g_idle_add_full(G_PRIORITY_DEFAULT, idle_append_cb, payload, NULL); /* enqueue */
 }
 
+/*
+ * Provide the output console widget operation used by this module and its client
+ * applications.
+ */
 GtkWidget *
 umi_output_console_widget(UmiOutputConsole *c)
 {
+  /* Apply this branch only when its contract condition is satisfied. */
   if (!c) return NULL;                                      /* guard            */
   return c->widget;                                         /* scroller to pack */
 }

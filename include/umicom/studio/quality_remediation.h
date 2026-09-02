@@ -15,6 +15,14 @@
 #ifndef UMICOM_STUDIO_QUALITY_REMEDIATION_H
 #define UMICOM_STUDIO_QUALITY_REMEDIATION_H
 #include "umicom/studio/quality_centre.h"
+/**
+ * Provide the studio quality remediation refresh operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_quality_remediation_refresh(UmiStudioQualityCentre *centre);
+/**
+ * Find studio quality remediation while leaving the underlying catalogue or model owned by
+ * this module.
+ */
 const UmiCodeGuardRemediationAction *umi_studio_quality_remediation_at(const UmiStudioQualityCentre *centre,size_t index);
 #endif

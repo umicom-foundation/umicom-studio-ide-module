@@ -42,6 +42,7 @@
  * can load full theme CSS from resources. For now we remain conservative. */
 static void apply_css_to_display(const char *css)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!css) return;
     GtkCssProvider *prov = gtk_css_provider_new();
 
@@ -49,6 +50,7 @@ static void apply_css_to_display(const char *css)
     gtk_css_provider_load_from_string(prov, css);
 
     GdkDisplay *display = gdk_display_get_default();
+    /* Apply this branch only when its contract condition is satisfied. */
     if (display) {
         gtk_style_context_add_provider_for_display(
             display, GTK_STYLE_PROVIDER(prov), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -56,6 +58,10 @@ static void apply_css_to_display(const char *css)
     g_object_unref(prov);
 }
 
+/*
+ * Perform theme through the module contract so client applications do not duplicate its
+ * policy.
+ */
 void umi_theme_apply(GtkWindow *win, const char *theme_name)
 {
     /* We intentionally tolerate NULLs — no crashes in headless/test runs. */
@@ -67,7 +73,7 @@ void umi_theme_apply(GtkWindow *win, const char *theme_name)
         apply_css_to_display(
             ":root { color-scheme: dark; }\n"
             "window { } /* reserved for future theme rules */\n");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         /* default / light */
         apply_css_to_display(
             ":root { color-scheme: light; }\n"
@@ -75,6 +81,10 @@ void umi_theme_apply(GtkWindow *win, const char *theme_name)
     }
 }
 
+/*
+ * Provide the theme apply default operation used by this module and its client
+ * applications.
+ */
 void umi_theme_apply_default(GtkWindow *win)
 {
     umi_theme_apply(win, NULL);

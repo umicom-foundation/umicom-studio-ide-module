@@ -22,14 +22,34 @@
 extern "C" {
 #endif
 
+/**
+ * Provide the studio application surface open editor operation used by this module and its
+ * client applications.
+ */
 UmiStatus umi_studio_application_surface_open_editor(
     UmiStudioApplicationSurface *surface);
+/**
+ * Provide the studio application surface open explorer operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_application_surface_open_explorer(
     UmiStudioApplicationSurface *surface);
+/**
+ * Provide the studio application surface open designer operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_application_surface_open_designer(
     UmiStudioApplicationSurface *surface);
+/**
+ * Provide the studio application surface open ai chat operation used by this module and
+ * its client applications.
+ */
 UmiStatus umi_studio_application_surface_open_ai_chat(
     UmiStudioApplicationSurface *surface);
+/**
+ * Provide the studio application surface refresh diagnostics operation used by this module
+ * and its client applications.
+ */
 UmiStatus umi_studio_application_surface_refresh_diagnostics(
     UmiStudioApplicationSurface *surface);
 

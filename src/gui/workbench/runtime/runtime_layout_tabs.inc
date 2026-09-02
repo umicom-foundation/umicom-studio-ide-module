@@ -25,6 +25,10 @@ static GtkWidget *runtime_build_layout_tabs(
     GtkWidget *save;
     size_t index;
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (bar == NULL || runtime == NULL || profile_strip == NULL ||
         scroller == NULL) {
         return bar;
@@ -33,6 +37,7 @@ static GtkWidget *runtime_build_layout_tabs(
     gtk_widget_add_css_class(bar, "umicom-runtime-layout-tabs");
     gtk_widget_add_css_class(profile_strip, "umicom-runtime-layout-profiles");
 
+    /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < sizeof(RUNTIME_LAYOUT_PROFILES) /
                  sizeof(RUNTIME_LAYOUT_PROFILES[0]);
@@ -44,6 +49,10 @@ static GtkWidget *runtime_build_layout_tabs(
             profile->label,
             profile->command_id,
             profile->description);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
         if (button != NULL) {
             gtk_widget_add_css_class(button, "flat");
             gtk_box_append(GTK_BOX(profile_strip), button);
@@ -59,6 +68,10 @@ static GtkWidget *runtime_build_layout_tabs(
 
     runtime->layout_lock_button = gtk_toggle_button_new_with_label(
         "Layout Locked");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->layout_lock_button != NULL) {
         gtk_widget_add_css_class(
             runtime->layout_lock_button, "umicom-runtime-layout-lock");
@@ -73,6 +86,10 @@ static GtkWidget *runtime_build_layout_tabs(
     }
 
     runtime->layout_cancel_button = gtk_button_new_with_label("Cancel Edit");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (runtime->layout_cancel_button != NULL) {
         gtk_widget_add_css_class(runtime->layout_cancel_button, "flat");
         gtk_widget_set_visible(runtime->layout_cancel_button, FALSE);
@@ -102,8 +119,20 @@ static GtkWidget *runtime_build_layout_tabs(
         "Save",
         "studio.layout.save",
         "Save the current Framework workspace state");
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (manage != NULL) gtk_box_append(GTK_BOX(bar), manage);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (restore != NULL) gtk_box_append(GTK_BOX(bar), restore);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
     if (save != NULL) gtk_box_append(GTK_BOX(bar), save);
     return bar;
 }

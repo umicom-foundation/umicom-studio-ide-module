@@ -1,3 +1,19 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: src/panes/chat/include/chat_pane.h
+ *
+ * PURPOSE:
+ *   Declare the chat pane contract shared by Framework services and thin
+ *   applications.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
 /* -----------------------------------------------------------------------------
  * Umicom Studio IDE
  * PURPOSE: Core sources for Umicom Studio IDE.

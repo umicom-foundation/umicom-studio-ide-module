@@ -62,6 +62,10 @@ typedef struct {
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((weak))
 #endif
+/*
+ * Provide the llm cfg init from env operation used by this module and its client
+ * applications.
+ */
 void umi_llm_cfg_init_from_env(UmiLlmCfg *cfg);
 
 typedef void (*UmiLlmOnTokenEx)(const gchar *frag,
@@ -71,6 +75,10 @@ typedef void (*UmiLlmOnTokenEx)(const gchar *frag,
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((weak))
 #endif
+/*
+ * Provide the llm chat stream ex operation used by this module and its client
+ * applications.
+ */
 gboolean umi_llm_chat_stream_ex(const UmiLlmCfg *cfg,
                                 const char      *system_prompt,
                                 const char      *user_prompt,
@@ -100,6 +108,7 @@ typedef struct {
 /* Append text helper (safe for NULL). */
 static void append_text(GtkTextBuffer *b, const gchar *txt)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!b || !txt) return;
     GtkTextIter end;
     gtk_text_buffer_get_end_iter(b, &end);
@@ -109,20 +118,27 @@ static void append_text(GtkTextBuffer *b, const gchar *txt)
 /* Top-k entropy from logprobs with log-sum-exp normalisation. */
 static void show_entropy(GtkTextBuffer *b, const UmiLlmTokenAlt *alts, guint n)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!b) return;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!alts || n == 0) { append_text(b, "(no alternatives)\n"); return; }
 
     double maxlg = alts[0].logprob;
-    for (guint i = 1; i < n; i++) if (alts[i].logprob > maxlg) maxlg = alts[i].logprob;
+    /* Visit each bounded item once so every record receives the same rule. */
+    for (guint i = 1; i < n; i++) /* Apply this branch only when its contract condition is satisfied. */ if (alts[i].logprob > maxlg) maxlg = alts[i].logprob;
 
     const guint m = n > 64 ? 64u : n;      /* cap to 64 for display */
     double Z = 0.0, probs[64];
+    /* Visit each bounded item once so every record receives the same rule. */
     for (guint i = 0; i < m; i++) { probs[i] = exp(alts[i].logprob - maxlg); Z += probs[i]; }
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (Z <= 0.0) Z = 1.0;
+    /* Visit each bounded item once so every record receives the same rule. */
     for (guint i = 0; i < m; i++) probs[i] /= Z;
 
     double H = 0.0;
-    for (guint i = 0; i < m; i++) if (probs[i] > 0.0) H -= probs[i] * log(probs[i]);
+    /* Visit each bounded item once so every record receives the same rule. */
+    for (guint i = 0; i < m; i++) /* Apply this branch only when its contract condition is satisfied. */ if (probs[i] > 0.0) H -= probs[i] * log(probs[i]);
 
     char line[128];
     g_snprintf(line, sizeof line, "entropy(H): %.3f\n", H);
@@ -135,12 +151,16 @@ static void on_stream_token_ex(const gchar *frag,
                                gpointer ud)
 {
     LlmLab *lab = (LlmLab*)ud;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!lab) return;
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (frag && *frag) append_text(lab->buf, frag);
 
+    /* Apply this operation only while the related capability or state is available. */
     if (gtk_check_button_get_active(lab->show_alts) && alts && alts_n > 0) {
         append_text(lab->alts_buf, "— top-k —\n");
+        /* Visit each bounded item once so every record receives the same rule. */
         for (guint i = 0; i < alts_n; i++) {
             char line[256];
             g_snprintf(line, sizeof line, "  %s  (%.3f)\n", alts[i].token, alts[i].logprob);
@@ -159,29 +179,36 @@ static void on_send(GtkButton *btn, gpointer user_data)
 {
     (void)btn;
     LlmLab *lab = (LlmLab*)user_data;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!lab) return;
 
     const gchar *q = gtk_editable_get_text(GTK_EDITABLE(lab->entry));
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!q || !*q) return;
 
     gtk_text_buffer_set_text(lab->buf,      "", -1);
     gtk_text_buffer_set_text(lab->alts_buf, "", -1);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!umi_llm_chat_stream_ex) {
         append_text(lab->buf, "⚠ LLM backend not linked. Enable provider library.\n");
         return;
     }
 
     UmiLlmCfg cfg;
+    /* Apply this branch only when its contract condition is satisfied. */
     if (umi_llm_cfg_init_from_env) { umi_llm_cfg_init_from_env(&cfg); }
+    /* Use this fallback path when the earlier condition does not apply. */
     else { cfg.provider = UMI_LLM_PROVIDER_ZAI; cfg.stream = TRUE; }
 
     guint idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(lab->provider));
     const char *prov = (idx != GTK_INVALID_LIST_POSITION)
                        ? gtk_string_list_get_string(lab->provider_model, idx)
                        : "zai";
+    /* Apply this branch only when its contract condition is satisfied. */
     if (prov && g_ascii_strcasecmp(prov, "openai") == 0)
         cfg.provider = UMI_LLM_PROVIDER_OPENAI;
+    /* Use this fallback path when the earlier condition does not apply. */
     else
         cfg.provider = UMI_LLM_PROVIDER_ZAI;
 
@@ -194,11 +221,12 @@ static void on_send(GtkButton *btn, gpointer user_data)
     gboolean ok = umi_llm_chat_stream_ex(&cfg, system_prompt, q,
                                          on_stream_token_ex, lab,
                                          err, sizeof err);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (!ok) {
         append_text(lab->buf, "⚠ ");
         append_text(lab->buf, err[0] ? err : "unknown error");
         append_text(lab->buf, "\n");
-    } else {
+    } /* Use this fallback path when the earlier condition does not apply. */ else {
         append_text(lab->buf, "\n✅ done\n");
     }
 }
@@ -265,6 +293,7 @@ static GtkWidget *build_lab(LlmLab **out_state)
     gtk_grid_attach(GTK_GRID(grid), scroll,                      0, 2, 2, 1);
     gtk_grid_attach(GTK_GRID(grid), alts_scroll,                 2, 2, 1, 1);
 
+    /* Apply this branch only when its contract condition is satisfied. */
     if (out_state) *out_state = lab;
     return grid;
 }
@@ -281,10 +310,14 @@ GtkWidget *umi_llm_lab_new_with_parent(GtkWindow *parent)
     return w;
 }
 
+/* Provide the llm lab present operation used by this module and its client applications. */
 void umi_llm_lab_present(GtkWidget *w)
 {
+    /* Apply this branch only when its contract condition is satisfied. */
     if (!w) return;
     GtkRoot *root = gtk_widget_get_root(w);
+    /* Apply this branch only when its contract condition is satisfied. */
     if (GTK_IS_WINDOW(root)) gtk_window_present(GTK_WINDOW(root));
+    /* Use this fallback path when the earlier condition does not apply. */
     else                     gtk_widget_grab_focus(w);
 }
