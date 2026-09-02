@@ -23,6 +23,7 @@
 #include <glib/gstdio.h>
 
 #include "umicom/application_shell/persona.h"
+#include "umicom/browser/source_preview.h"
 #include "umicom/ide_integration/ide_integration.h"
 #include "umicom/diagnostics/store.h"
 #include "umicom/debug/workspace.h"
@@ -39,6 +40,7 @@
 #include "umicom/studio/coding_assistant.h"
 #include "umicom/studio/commands.h"
 #include "umicom/studio/debugger.h"
+#include "umicom/studio/designer.h"
 #include "umicom/studio/language.h"
 #include "umicom/studio/learning_centre.h"
 #include "umicom/studio/new_project.h"
@@ -53,7 +55,7 @@
 #include "umicom/vcs/diff_document.h"
 #include "umicom/vcs/workspace.h"
 
-#define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 19U
+#define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 27U
 #define UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT 10U
 #define UMI_STUDIO_GTK_RUNTIME_REFRESH_MS 750U
 /* These bounds keep useful panels readable without allowing two tool regions
@@ -82,6 +84,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiStudioRuntimeBootstrap *runtime_bootstrap;
     UmiStudioRuntimeHostController host_controller;
     UmiStudioRuntimeHostAdapter host_adapter;
+    /* Framework owns provider selection and preview safety; Studio stores the
+     * service handle and only presents its bounded result. */
+    UmiBrowserSourcePreviewService *source_preview_service;
 
     GtkWidget *outer_root;
     UmiGtk4WorkstationShellHeader *brand_identity;
@@ -140,6 +145,11 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *editor_goto_entry;
     GtkWidget *editor_info_label;
 
+    GtkWidget *live_preview_summary_label;
+    GtkWidget *live_preview_text_view;
+    uint64_t live_preview_model_revision;
+    char live_preview_view_id[UMI_UI_ID_CAPACITY];
+
     GtkWidget *explorer_search_entry;
     GtkWidget *explorer_list;
     GtkWidget *explorer_summary_label;
@@ -194,6 +204,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
 
     GtkCssProvider *css_provider;
     guint refresh_source;
+    guint designer_refresh_source;
     uint32_t panel_refresh_tick;
     uint64_t appearance_revision;
     int force_close;
@@ -202,6 +213,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     int applying_workspace_geometry;
     int layout_locked;
     int layout_baseline_valid;
+    UmiStudioRuntimeSurfaceKind designer_active_surface;
     int surface_regions[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     int surface_visible[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     int surface_floating[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
@@ -217,6 +229,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     char session_path[UMI_STUDIO_RUNTIME_PATH_CAPACITY];
 
     char explorer_query[256];
+    char designer_palette_query[UMI_DESIGNER_WORKSPACE_QUERY_CAPACITY];
     char selected_file_path[UMI_PATH_CAPACITY];
     char selected_test_id[128];
     char selected_vcs_path[UMI_VCS_PATH_CAPACITY];
@@ -253,6 +266,10 @@ static void runtime_show_window_catalogue(UmiStudioGtkRuntimeChrome *runtime);
  */
 static void runtime_workspace_apply_geometry(
     UmiStudioGtkRuntimeChrome *runtime);
+/* Rebuild designer panels after a semantic edit has completed. Deferring the
+ * rebuild avoids destroying a button or entry while GTK is dispatching it. */
+static UmiStatus runtime_rebuild_surface_panels(
+    UmiStudioGtkRuntimeChrome *runtime);
 /*
  * Provide the runtime welcome update mode operation used by this module and its client
  * applications.
@@ -264,6 +281,15 @@ static void runtime_welcome_update_mode(
 static void runtime_show_surface(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind);
+
+/* Apply Framework's current semantic visibility to every native panel. */
+static UmiStatus runtime_apply_shell_layout_visibility(
+    UmiStudioGtkRuntimeChrome *runtime);
+
+/* Refresh the active-document preview from Framework provider output. */
+static UmiStatus runtime_live_preview_refresh(
+    UmiStudioGtkRuntimeChrome *runtime,
+    int force);
 
 
 /*

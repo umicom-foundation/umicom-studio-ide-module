@@ -82,6 +82,9 @@ static UmiStatus runtime_refresh_services(
 
     runtime_status_override_legacy_services(runtime);
     runtime_welcome_update_mode(runtime);
+    /* This call is cheap when the document-model revision is unchanged. It
+     * gives the preview a short natural debounce without rebuilding widgets. */
+    (void)runtime_live_preview_refresh(runtime, 0);
     runtime_refresh_command_sensitivity(runtime, runtime->toolbar);
     runtime_refresh_command_sensitivity(runtime, runtime->activity_bar);
 

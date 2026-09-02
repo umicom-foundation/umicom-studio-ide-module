@@ -27,7 +27,7 @@ searchable **New Window** manager for its real Framework-backed surfaces.
 2. Resize the left, right and bottom regions with their splitters.
 3. Select **New Window** in the application bar.
 4. Search for Explorer, Problems, Output, Terminal, Source Control, Tests,
-   Debug, Build or an AI surface.
+   Debug, Build, an AI surface, or one of the visual-design surfaces.
 5. Move the panel to Left, Right, Bottom or Centre. Select **Float** to place it
    in a separate native window, or select **Hide** when it is not needed.
 6. Select **Editing Layout** again to lock the result.
@@ -57,6 +57,16 @@ The layout strip contains task-oriented arrangements such as Default,
 Debugging, Testing, Source Control, AI Development, Review and Zen. The Layout
 Browser explains each preset. The New Window manager changes which real panels
 are shown in the active shell.
+
+The **Design** layout groups Design, Code, Mixed and Preview with Components,
+Structure and Properties. These panels use the same docking, floating,
+grouping and lock rules as the rest of Studio; any mode can be closed, reopened
+from the window catalogue or detached to another monitor.
+
+The **Code + Preview** layout is for ordinary editor documents rather than the
+visual designer model. It places the active editor beside the Live Preview
+panel with Problems and Output below. Live Preview can still be moved, grouped,
+floated or hidden after the layout is unlocked.
 
 The Framework now provides two related persistence paths. Studio's semantic
 runtime commands save and restore the shell session. The professional workspace

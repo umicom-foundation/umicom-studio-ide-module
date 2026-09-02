@@ -210,6 +210,103 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_OK;
     }
 
+    /* The named source-preview layout applies the Framework visibility policy,
+     * then selects the preview page in the secondary GTK stack. The editor
+     * remains in the centre, so both views are visible and independently
+     * movable through the normal workspace controls. */
+    if (strcmp(command_id, "studio.layout.code-preview") == 0) {
+        UmiStatus status = runtime_execute_registered_command(
+            runtime,
+            "studio.layout.code-preview",
+            argument);
+        /* Select native pages only after Framework accepts the layout change. */
+        if (status == UMI_STATUS_OK) {
+            status = runtime_apply_shell_layout_visibility(runtime);
+        }
+        /* The two workflow pages are selected only after every placement has
+         * been synchronized with the named layout. */
+        if (status == UMI_STATUS_OK) {
+            runtime_show_surface(runtime, UMI_STUDIO_SURFACE_EDITOR);
+            runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
+            (void)runtime_live_preview_refresh(runtime, 1);
+        }
+        return status;
+    }
+
+    /* Both the long-lived Tools menu identifier and the named layout button
+     * open the complete visual-design workspace. The Framework command applies
+     * semantic layout state; these calls select the corresponding GTK pages. */
+    if (strcmp(command_id, "designer.open") == 0 ||
+        strcmp(command_id, "studio.layout.visual-design") == 0) {
+        UmiStatus status = runtime_execute_registered_command(
+            runtime,
+            "studio.layout.visual-design",
+            argument);
+        /* First hide panels omitted by the new semantic layout. */
+        if (status == UMI_STATUS_OK) {
+            status = runtime_apply_shell_layout_visibility(runtime);
+        }
+        /* Then select the designer pages that share the central tab group. */
+        if (status == UMI_STATUS_OK) {
+            runtime_show_surface(
+                runtime, UMI_STUDIO_SURFACE_COMPONENT_PALETTE);
+            runtime_show_surface(
+                runtime, UMI_STUDIO_SURFACE_COMPONENT_STRUCTURE);
+            runtime_show_surface(
+                runtime, UMI_STUDIO_SURFACE_OBJECT_INSPECTOR);
+            runtime_show_surface(
+                runtime, UMI_STUDIO_SURFACE_DESIGN_CODE);
+            runtime_show_surface(
+                runtime, UMI_STUDIO_SURFACE_DESIGN_MIXED);
+            runtime_show_surface(
+                runtime, UMI_STUDIO_SURFACE_DESIGN_PREVIEW);
+            runtime_show_surface(
+                runtime, UMI_STUDIO_SURFACE_VISUAL_DESIGNER);
+        }
+        return status;
+    }
+
+    /* All remaining named layout commands share the same application path:
+     * Framework changes semantic state, then GTK mirrors the complete visible
+     * set. This also synchronizes a restored layout. Manager was handled above
+     * and Save does not change the active arrangement. */
+    if (strncmp(command_id, "studio.layout.", 14U) == 0 &&
+        strcmp(command_id, "studio.layout.save") != 0) {
+        UmiStatus status = runtime_execute_registered_command(
+            runtime, command_id, argument);
+        /* Do not alter native widgets when Framework rejected the command. */
+        if (status == UMI_STATUS_OK) {
+            status = runtime_apply_shell_layout_visibility(runtime);
+        }
+        return status;
+    }
+
+    /* Mode commands select an already registered central authoring surface.
+     * The same surfaces remain available through the Window catalogue. */
+    if (strcmp(command_id, "designer.code") == 0) {
+        runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_CODE;
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_CODE);
+        return UMI_STATUS_OK;
+    }
+    if (strcmp(command_id, "designer.mixed") == 0) {
+        runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_MIXED;
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_MIXED);
+        return UMI_STATUS_OK;
+    }
+    if (strcmp(command_id, "designer.preview") == 0) {
+        runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_PREVIEW;
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_PREVIEW);
+        return UMI_STATUS_OK;
+    }
+
+    /* Live Preview follows the ordinary editor document and remains separate
+     * from the declarative visual designer's Preview mode. */
+    if (strcmp(command_id, "view.live-preview") == 0) {
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
+        (void)runtime_live_preview_refresh(runtime, 1);
+        return UMI_STATUS_OK;
+    }
+
     /* Help actions reveal operational workbench panels rather than sending
      * users to a disconnected placeholder or a separate application. */
     if (strcmp(command_id, "help.ai-teacher") == 0) {

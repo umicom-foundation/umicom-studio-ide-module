@@ -68,6 +68,8 @@
 #include "surfaces/ai_model_comparison.inc"
 #include "surfaces/documentation.inc"
 #include "surfaces/learning.inc"
+#include "surfaces/designer.inc"
+#include "surfaces/live_preview.inc"
 
 #include "runtime_surface_registry.inc"
 #include "runtime_window_catalogue.inc"

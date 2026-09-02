@@ -21,6 +21,7 @@
 #ifndef UMICOM_STUDIO_DESIGNER_H
 #define UMICOM_STUDIO_DESIGNER_H
 #include "umicom/studio/declarative.h"
+#include "umicom/designer/workspace_model.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -96,6 +97,48 @@ UmiStatus umi_studio_designer_snapshot(const UmiStudioDesigner *designer,UmiStud
  * applications.
  */
 UmiDesignerDocument *umi_studio_designer_document(UmiStudioDesigner *designer);
+/**
+ * Project the synchronized component palette, hierarchy and property inspector
+ * used by Studio's dockable visual-design panels.
+ */
+UmiStatus umi_studio_designer_workspace_model(
+    const UmiStudioDesigner *designer,
+    const char *palette_query,
+    UmiDesignerWorkspaceModel *out_model);
+/**
+ * Add a registered component beneath the selected container, or beneath the
+ * design root when the selection cannot contain children. The generated node
+ * identifier is returned so the frontend can focus the new component.
+ */
+UmiStatus umi_studio_designer_add_palette_component(
+    UmiStudioDesigner *designer,
+    const char *component_type,
+    char *out_node_id,
+    size_t node_id_capacity);
+/**
+ * Change a property on the currently selected component through the existing
+ * undoable designer operation path.
+ */
+UmiStatus umi_studio_designer_set_selected_property(
+    UmiStudioDesigner *designer,
+    const char *property_name,
+    const char *value_text);
+/**
+ * Copy the revision-aware live source state used by Code, Mixed and Preview
+ * panels. The returned record is independent from the designer's ownership.
+ */
+UmiStatus umi_studio_designer_live_source_snapshot(
+    const UmiStudioDesigner *designer,
+    UmiDesignerLiveSourceWorkspace *out_workspace);
+/**
+ * Parse one debounced source edit and replace the semantic design only when
+ * the complete text is valid. Invalid text keeps the previous visual model.
+ */
+UmiStatus umi_studio_designer_apply_live_source(
+    UmiStudioDesigner *designer,
+    const char *source,
+    uint64_t now_millis,
+    UmiDeclDiagnosticList *diagnostics);
 #ifdef __cplusplus
 }
 #endif

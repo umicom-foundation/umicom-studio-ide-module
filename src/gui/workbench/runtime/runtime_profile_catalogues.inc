@@ -355,6 +355,14 @@ static const UmiStudioGtkSurfaceProfile RUNTIME_SURFACE_PROFILES[] = {
 #include "profiles/surfaces/ai_model_comparison.inc"
 #include "profiles/surfaces/learning.inc"
 #include "profiles/surfaces/documentation.inc"
+#include "profiles/surfaces/visual_designer.inc"
+#include "profiles/surfaces/component_palette.inc"
+#include "profiles/surfaces/component_structure.inc"
+#include "profiles/surfaces/object_inspector.inc"
+#include "profiles/surfaces/design_code.inc"
+#include "profiles/surfaces/design_mixed.inc"
+#include "profiles/surfaces/design_preview.inc"
+#include "profiles/surfaces/live_preview.inc"
 };
 #undef UMI_STUDIO_GTK_SURFACE_PROFILE
 
@@ -386,6 +394,7 @@ static const UmiStudioGtkCommandProfile RUNTIME_COMMAND_PROFILES[] = {
 #include "profiles/commands/search.inc"
 #include "profiles/commands/tests.inc"
 #include "profiles/commands/debug_view.inc"
+#include "profiles/commands/live_preview.inc"
 #include "profiles/commands/ai.inc"
 #include "profiles/commands/ai_review.inc"
 #include "profiles/commands/layout_manager.inc"
@@ -405,6 +414,8 @@ static const UmiStudioGtkLayoutProfile RUNTIME_LAYOUT_PROFILES[] = {
 #include "profiles/layouts/review.inc"
 #include "profiles/layouts/zen.inc"
 #include "profiles/layouts/learning.inc"
+#include "profiles/layouts/visual_design.inc"
+#include "profiles/layouts/code_preview.inc"
 };
 #undef UMI_STUDIO_GTK_LAYOUT_PROFILE
 

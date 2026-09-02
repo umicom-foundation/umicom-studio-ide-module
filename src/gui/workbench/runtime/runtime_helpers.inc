@@ -236,6 +236,14 @@ static int runtime_command_enabled(
      */
     if (bindings == NULL || bindings->commands == NULL) return 0;
 
+    /* Studio owns the native workspace transition for this externally declared
+     * Tools command, so it remains usable even when the generic command record
+     * has no toolkit-independent action handler. */
+    if (strcmp(command_id, "designer.open") == 0 ||
+        strcmp(command_id, "view.live-preview") == 0) {
+        return 1;
+    }
+
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (umi_command_registry_contains(bindings->commands, command_id)) {
         return umi_command_registry_is_enabled(

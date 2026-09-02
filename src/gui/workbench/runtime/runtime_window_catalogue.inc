@@ -36,6 +36,7 @@ static UmiStatus runtime_surface_place(
     GtkWidget *parent;
     GtkWidget *revealer;
     const char *name;
+    const UmiStudioGtkSurfaceProfile *profile;
     UmiStudioGtkRuntimeRegion previous_region;
     int was_floating;
 
@@ -57,6 +58,7 @@ static UmiStatus runtime_surface_place(
     was_floating = runtime->surface_floating[kind];
     target = runtime_region_stack(runtime, region);
     name = umi_studio_runtime_surface_kind_text(kind);
+    profile = runtime_surface_profile(kind);
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -74,7 +76,11 @@ static UmiStatus runtime_surface_place(
         } else /* Apply this branch only when its contract condition is satisfied. */ if (GTK_IS_WINDOW(parent)) {
             gtk_window_set_child(GTK_WINDOW(parent), NULL);
         }
-        runtime_stack_add(target, panel, name);
+        runtime_stack_add(
+            target,
+            panel,
+            name,
+            profile != NULL ? profile->title : name);
         g_object_unref(panel);
     }
     /*

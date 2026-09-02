@@ -176,6 +176,18 @@ static UmiStatus runtime_create_framework(
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
+    /* The source-preview service is Framework-owned and provider-neutral. Its
+     * safe built-ins are available before GTK creates the Live Preview panel. */
+    status = umi_browser_source_preview_service_create(
+        &runtime->source_preview_service);
+    /* Built-ins can only be installed into a successfully allocated service. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_browser_source_preview_service_install_builtins(
+            runtime->source_preview_service);
+    }
+    /* Attachment stops cleanly when the preview catalogue cannot be prepared. */
+    if (status != UMI_STATUS_OK) return status;
+
     umi_application_shell_state_init(&runtime->shell_state);
     umi_application_shell_layout_init(
         &runtime->shell_layout,
@@ -330,6 +342,12 @@ static void runtime_destroy_framework(
         g_source_remove(runtime->refresh_source);
         runtime->refresh_source = 0U;
     }
+    /* A pending designer refresh also borrows the runtime pointer, so cancel it
+     * before the workbench state is released. */
+    if (runtime->designer_refresh_source != 0U) {
+        g_source_remove(runtime->designer_refresh_source);
+        runtime->designer_refresh_source = 0U;
+    }
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -398,6 +416,12 @@ static void runtime_destroy_framework(
     umi_application_shell_registry_destroy(
         runtime->shell_registry);
     runtime->shell_registry = NULL;
+
+    /* Provider contexts are caller-owned, while the copied provider catalogue
+     * itself belongs to the Framework service created during attachment. */
+    umi_browser_source_preview_service_destroy(
+        runtime->source_preview_service);
+    runtime->source_preview_service = NULL;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is

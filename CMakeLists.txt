@@ -1578,6 +1578,7 @@ if(BUILD_TESTING)
     foreach(UMICOM_STUDIO_DESIGNER_TEST
             declarative
             designer
+            designer_workspace_model
             designer_history
             designer_catalogue
             designer_preview

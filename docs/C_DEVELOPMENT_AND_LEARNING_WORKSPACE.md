@@ -16,6 +16,20 @@ The Build surface reports the active build profile, build directory, diagnostics
 
 The Run and Debug surface works with the existing debugger service. It presents breakpoints, threads, stack frames, variables, watches, pause, continue, step over, step in, step out, and stop operations.
 
+## Previewing the active document
+
+Choose **Code + Preview** in the layout strip, or open **Live Preview** from the
+View menu. Studio keeps the normal editor in the centre and places a read-only
+preview in the right tool region. The preview follows the active document and
+updates only when the document model revision changes. It can be docked,
+grouped, hidden or floated like the other Framework-backed panels.
+
+HTML is converted to readable content without running scripts or styles. C,
+headers, scripts, configuration and other text documents use a plain source
+preview. Future renderers can join the Framework provider catalogue, but a
+provider that executes source remains blocked unless a trusted workspace and
+explicit permission are supplied.
+
 ## Reading documentation
 
 Open **Help > Documentation** to reveal the Documentation surface. Enter a local HTML file path such as `docs/index.html`, or a `file://` URL, and choose **Open**. The Framework browser records navigation history while the Framework document-preview service extracts the page title and readable content into a bounded buffer.
@@ -34,3 +48,4 @@ When a lesson supplies a resource path, **Open lesson resource** sends it to the
 - Umicom Studio owns the thin GTK presentation that turns Framework snapshots into buttons, labels, lists, editors, and panels.
 - The Application Shell catalogue keeps every surface discoverable and gives future frontends the same stable identifiers.
 - Layout persistence remembers visibility, placement, docking, and floating state independently from the services shown inside each panel.
+- The source-preview service selects providers, checks revisions and enforces the no-execution default independently from Studio's GTK widgets.

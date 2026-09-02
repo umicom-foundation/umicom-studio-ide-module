@@ -32,6 +32,30 @@ static void runtime_configure_splitter(GtkWidget *paned)
     gtk_paned_set_shrink_end_child(GTK_PANED(paned), TRUE);
 }
 
+/* Remember a mode chosen directly through the centre tab strip. This lets a
+ * later model refresh return to the user's Code, Mixed or Preview page. */
+static void runtime_on_centre_surface_changed(
+    GObject *stack_object,
+    GParamSpec *parameter,
+    gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+    const char *name;
+    UmiStudioRuntimeSurfaceKind kind;
+
+    (void)parameter;
+    if (runtime == NULL || !GTK_IS_STACK(stack_object)) return;
+    name = gtk_stack_get_visible_child_name(GTK_STACK(stack_object));
+    kind = runtime_surface_kind_from_id(name);
+    if (kind == UMI_STUDIO_SURFACE_VISUAL_DESIGNER ||
+        kind == UMI_STUDIO_SURFACE_DESIGN_CODE ||
+        kind == UMI_STUDIO_SURFACE_DESIGN_MIXED ||
+        kind == UMI_STUDIO_SURFACE_DESIGN_PREVIEW) {
+        runtime->designer_active_surface = kind;
+    }
+}
+
 /*
  * Provide the runtime build shell operation used by this module and its client
  * applications.
@@ -41,6 +65,14 @@ static UmiStatus runtime_build_shell(
 {
     GtkWidget *existing;
     GtkWidget *workbench;
+    GtkWidget *primary_group;
+    GtkWidget *primary_switcher;
+    GtkWidget *secondary_group;
+    GtkWidget *secondary_switcher;
+    GtkWidget *bottom_group;
+    GtkWidget *bottom_switcher;
+    GtkWidget *centre_group;
+    GtkWidget *centre_switcher;
     UmiStatus status;
 
     /*
@@ -83,6 +115,14 @@ static UmiStatus runtime_build_shell(
     runtime->secondary_stack = gtk_stack_new();
     runtime->bottom_revealer = gtk_revealer_new();
     runtime->bottom_stack = gtk_stack_new();
+    primary_group = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    primary_switcher = gtk_stack_switcher_new();
+    secondary_group = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    secondary_switcher = gtk_stack_switcher_new();
+    bottom_group = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    bottom_switcher = gtk_stack_switcher_new();
+    centre_group = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    centre_switcher = gtk_stack_switcher_new();
     runtime->centre_stack = gtk_stack_new();
     runtime->document_tabs = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
     runtime->layout_tabs = runtime_build_layout_tabs(runtime);
@@ -106,6 +146,10 @@ static UmiStatus runtime_build_shell(
         runtime->secondary_stack == NULL ||
         runtime->bottom_revealer == NULL ||
         runtime->bottom_stack == NULL ||
+        primary_group == NULL || primary_switcher == NULL ||
+        secondary_group == NULL || secondary_switcher == NULL ||
+        bottom_group == NULL || bottom_switcher == NULL ||
+        centre_group == NULL || centre_switcher == NULL ||
         runtime->centre_stack == NULL ||
         runtime->layout_tabs == NULL ||
         runtime->status_bar == NULL) {
@@ -148,12 +192,37 @@ static UmiStatus runtime_build_shell(
         runtime->bottom_stack,
         -1,
         UMI_STUDIO_GTK_RUNTIME_BOTTOM_MIN_HEIGHT);
+    /* Every dock region exposes its grouped surfaces as named tabs. A user can
+     * therefore switch between several open panels without moving or closing
+     * them, while the same pages remain movable through the window catalogue. */
+    gtk_stack_switcher_set_stack(
+        GTK_STACK_SWITCHER(primary_switcher), GTK_STACK(runtime->primary_stack));
+    gtk_stack_switcher_set_stack(
+        GTK_STACK_SWITCHER(secondary_switcher), GTK_STACK(runtime->secondary_stack));
+    gtk_stack_switcher_set_stack(
+        GTK_STACK_SWITCHER(bottom_switcher), GTK_STACK(runtime->bottom_stack));
+    gtk_stack_switcher_set_stack(
+        GTK_STACK_SWITCHER(centre_switcher), GTK_STACK(runtime->centre_stack));
+    gtk_box_append(GTK_BOX(primary_group), primary_switcher);
+    gtk_box_append(GTK_BOX(primary_group), runtime->primary_stack);
+    gtk_box_append(GTK_BOX(secondary_group), secondary_switcher);
+    gtk_box_append(GTK_BOX(secondary_group), runtime->secondary_stack);
+    gtk_box_append(GTK_BOX(bottom_group), bottom_switcher);
+    gtk_box_append(GTK_BOX(bottom_group), runtime->bottom_stack);
+    gtk_box_append(GTK_BOX(centre_group), centre_switcher);
+    gtk_box_append(GTK_BOX(centre_group), runtime->centre_stack);
+    gtk_widget_set_hexpand(runtime->primary_stack, TRUE);
+    gtk_widget_set_vexpand(runtime->primary_stack, TRUE);
+    gtk_widget_set_hexpand(runtime->secondary_stack, TRUE);
+    gtk_widget_set_vexpand(runtime->secondary_stack, TRUE);
+    gtk_widget_set_hexpand(runtime->bottom_stack, TRUE);
+    gtk_widget_set_vexpand(runtime->bottom_stack, TRUE);
     gtk_revealer_set_child(
-        GTK_REVEALER(runtime->primary_revealer), runtime->primary_stack);
+        GTK_REVEALER(runtime->primary_revealer), primary_group);
     gtk_revealer_set_child(
-        GTK_REVEALER(runtime->secondary_revealer), runtime->secondary_stack);
+        GTK_REVEALER(runtime->secondary_revealer), secondary_group);
     gtk_revealer_set_child(
-        GTK_REVEALER(runtime->bottom_revealer), runtime->bottom_stack);
+        GTK_REVEALER(runtime->bottom_revealer), bottom_group);
 
     workbench = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     runtime->workbench_surface = workbench;
@@ -178,16 +247,25 @@ static UmiStatus runtime_build_shell(
     if (runtime->welcome_surface == NULL) {
         return UMI_STATUS_OUT_OF_MEMORY;
     }
-    gtk_stack_add_named(
+    gtk_stack_add_titled(
         GTK_STACK(runtime->centre_stack),
         runtime->welcome_surface,
-        "welcome");
-    gtk_stack_add_named(
+        "welcome",
+        "Welcome");
+    gtk_stack_add_titled(
         GTK_STACK(runtime->centre_stack),
         runtime->workbench_surface,
-        "workbench");
+        "workbench",
+        "Editor");
+    g_signal_connect(
+        runtime->centre_stack,
+        "notify::visible-child-name",
+        G_CALLBACK(runtime_on_centre_surface_changed),
+        runtime);
     gtk_widget_set_hexpand(runtime->centre_stack, TRUE);
     gtk_widget_set_vexpand(runtime->centre_stack, TRUE);
+    gtk_widget_set_hexpand(centre_group, TRUE);
+    gtk_widget_set_vexpand(centre_group, TRUE);
 
     gtk_widget_add_css_class(
         runtime->primary_stack, "umicom-runtime-primary");
@@ -207,7 +285,7 @@ static UmiStatus runtime_build_shell(
     runtime_configure_splitter(runtime->secondary_paned);
     runtime_configure_splitter(runtime->workspace_paned);
     gtk_paned_set_start_child(
-        GTK_PANED(runtime->secondary_paned), runtime->centre_stack);
+        GTK_PANED(runtime->secondary_paned), centre_group);
     gtk_paned_set_end_child(
         GTK_PANED(runtime->secondary_paned), runtime->secondary_revealer);
     gtk_paned_set_start_child(
