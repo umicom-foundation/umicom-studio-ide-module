@@ -375,10 +375,12 @@ static void runtime_destroy_framework(
          * used.
          */
         if (runtime->surface_windows[kind] != NULL) {
-            g_signal_handlers_disconnect_by_func(
-                runtime->surface_windows[kind],
-                G_CALLBACK(runtime_on_floating_surface_close),
-                runtime);
+            if (runtime->surface_close_handler_ids[kind] != 0U) {
+                g_signal_handler_disconnect(
+                    runtime->surface_windows[kind],
+                    runtime->surface_close_handler_ids[kind]);
+                runtime->surface_close_handler_ids[kind] = 0U;
+            }
             gtk_window_destroy(GTK_WINDOW(runtime->surface_windows[kind]));
             runtime->surface_windows[kind] = NULL;
             runtime->surface_floating[kind] = 0;

@@ -353,6 +353,8 @@ static const UmiStudioGtkSurfaceProfile RUNTIME_SURFACE_PROFILES[] = {
 #include "profiles/surfaces/ai_tools.inc"
 #include "profiles/surfaces/ai_validation.inc"
 #include "profiles/surfaces/ai_model_comparison.inc"
+#include "profiles/surfaces/learning.inc"
+#include "profiles/surfaces/documentation.inc"
 };
 #undef UMI_STUDIO_GTK_SURFACE_PROFILE
 
@@ -402,6 +404,7 @@ static const UmiStudioGtkLayoutProfile RUNTIME_LAYOUT_PROFILES[] = {
 #include "profiles/layouts/ai_development.inc"
 #include "profiles/layouts/review.inc"
 #include "profiles/layouts/zen.inc"
+#include "profiles/layouts/learning.inc"
 };
 #undef UMI_STUDIO_GTK_LAYOUT_PROFILE
 

@@ -210,5 +210,16 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_OK;
     }
 
+    /* Help actions reveal operational workbench panels rather than sending
+     * users to a disconnected placeholder or a separate application. */
+    if (strcmp(command_id, "help.ai-teacher") == 0) {
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LEARNING);
+        return UMI_STATUS_OK;
+    }
+    if (strcmp(command_id, "help.documentation") == 0) {
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DOCUMENTATION);
+        return UMI_STATUS_OK;
+    }
+
     return runtime_execute_phase1_host_command(runtime, command_id, argument);
 }

@@ -300,6 +300,9 @@ static const char *runtime_surface_default_context_group(
     switch (kind) {
         case UMI_STUDIO_SURFACE_TEST_EXPLORER:
             return "studio.context.testing";
+        case UMI_STUDIO_SURFACE_LEARNING:
+        case UMI_STUDIO_SURFACE_DOCUMENTATION:
+            return "studio.context.learning";
         case UMI_STUDIO_SURFACE_AI_CHAT:
         case UMI_STUDIO_SURFACE_AI_REVIEW:
         case UMI_STUDIO_SURFACE_AI_APPROVALS:
@@ -321,6 +324,9 @@ static const char *runtime_surface_default_context_colour(
     switch (kind) {
         case UMI_STUDIO_SURFACE_TEST_EXPLORER:
             return "umicom-context-green";
+        case UMI_STUDIO_SURFACE_LEARNING:
+        case UMI_STUDIO_SURFACE_DOCUMENTATION:
+            return "umicom-context-yellow";
         case UMI_STUDIO_SURFACE_AI_CHAT:
         case UMI_STUDIO_SURFACE_AI_REVIEW:
         case UMI_STUDIO_SURFACE_AI_APPROVALS:
@@ -422,6 +428,10 @@ static GtkWidget *runtime_build_surface_for_kind(
             return runtime_build_surface_ai_validation(runtime);
         case UMI_STUDIO_SURFACE_AI_MODEL_COMPARISON:
             return runtime_build_surface_ai_model_comparison(runtime);
+        case UMI_STUDIO_SURFACE_LEARNING:
+            return runtime_build_surface_learning(runtime);
+        case UMI_STUDIO_SURFACE_DOCUMENTATION:
+            return runtime_build_surface_documentation(runtime);
         default:
             return NULL;
     }

@@ -66,6 +66,8 @@
 #include "surfaces/ai_tools.inc"
 #include "surfaces/ai_validation.inc"
 #include "surfaces/ai_model_comparison.inc"
+#include "surfaces/documentation.inc"
+#include "surfaces/learning.inc"
 
 #include "runtime_surface_registry.inc"
 #include "runtime_window_catalogue.inc"

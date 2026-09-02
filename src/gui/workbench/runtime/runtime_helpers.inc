@@ -252,7 +252,9 @@ static int runtime_command_enabled(
         strcmp(command_id, "workspace.open-folder") == 0 ||
         strcmp(command_id, "application.exit") == 0 ||
         strcmp(command_id, "studio.command.search") == 0 ||
-        strcmp(command_id, "studio.layout.manager") == 0) {
+        strcmp(command_id, "studio.layout.manager") == 0 ||
+        strcmp(command_id, "help.ai-teacher") == 0 ||
+        strcmp(command_id, "help.documentation") == 0) {
         return 1;
     }
 

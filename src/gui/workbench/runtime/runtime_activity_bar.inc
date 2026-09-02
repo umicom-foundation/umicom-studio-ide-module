@@ -23,7 +23,9 @@ static GtkWidget *runtime_build_activity_bar(
         UMI_STUDIO_SURFACE_SOURCE_CONTROL,
         UMI_STUDIO_SURFACE_DEBUG,
         UMI_STUDIO_SURFACE_TEST_EXPLORER,
-        UMI_STUDIO_SURFACE_AI_CHAT
+        UMI_STUDIO_SURFACE_AI_CHAT,
+        UMI_STUDIO_SURFACE_LEARNING,
+        UMI_STUDIO_SURFACE_DOCUMENTATION
     };
     GtkWidget *bar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
     size_t index;

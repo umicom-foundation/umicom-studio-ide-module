@@ -40,6 +40,7 @@
 #include "umicom/studio/commands.h"
 #include "umicom/studio/debugger.h"
 #include "umicom/studio/language.h"
+#include "umicom/studio/learning_centre.h"
 #include "umicom/studio/new_project.h"
 #include "umicom/studio/source_control.h"
 #include "umicom/studio/terminal.h"
@@ -52,7 +53,7 @@
 #include "umicom/vcs/diff_document.h"
 #include "umicom/vcs/workspace.h"
 
-#define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 17U
+#define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 19U
 #define UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT 10U
 #define UMI_STUDIO_GTK_RUNTIME_REFRESH_MS 750U
 /* These bounds keep useful panels readable without allowing two tool regions
@@ -113,6 +114,11 @@ typedef struct UmiStudioGtkRuntimeChrome {
 
     GtkWidget *surface_panels[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     GtkWidget *surface_windows[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
+    /* Store each close-request connection by its GTK-assigned identifier.
+     * Programmatic redocking can then disconnect the exact callback without
+     * converting a C function pointer to an object pointer. */
+    gulong surface_close_handler_ids[
+        UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     GtkWidget *activity_buttons[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     GtkWidget *status_labels[UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT + 1U];
 
@@ -178,6 +184,13 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *debug_variables_list;
     GtkWidget *debug_watches_list;
     GtkWidget *debug_breakpoints_list;
+
+    /* Documentation and lessons are ordinary workbench surfaces, so they use
+     * the same docking, floating and layout persistence paths as every tool. */
+    GtkWidget *documentation_location_entry;
+    GtkWidget *documentation_summary_label;
+    GtkWidget *documentation_preview_view;
+    GtkWidget *learning_summary_label;
 
     GtkCssProvider *css_provider;
     guint refresh_source;
@@ -246,6 +259,11 @@ static void runtime_workspace_apply_geometry(
  */
 static void runtime_welcome_update_mode(
     UmiStudioGtkRuntimeChrome *runtime);
+
+/* Reveal a registered surface from local buttons such as lesson resources. */
+static void runtime_show_surface(
+    UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind);
 
 
 /*

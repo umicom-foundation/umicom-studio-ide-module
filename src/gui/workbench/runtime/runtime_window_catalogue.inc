@@ -84,10 +84,12 @@ static UmiStatus runtime_surface_place(
     if (runtime->surface_windows[kind] != NULL) {
         /* A programmatic redock owns the transfer and must not also run the
          * user-close callback, which would attempt to redock the same panel. */
-        g_signal_handlers_disconnect_by_func(
-            runtime->surface_windows[kind],
-            G_CALLBACK(runtime_on_floating_surface_close),
-            runtime);
+        if (runtime->surface_close_handler_ids[kind] != 0U) {
+            g_signal_handler_disconnect(
+                runtime->surface_windows[kind],
+                runtime->surface_close_handler_ids[kind]);
+            runtime->surface_close_handler_ids[kind] = 0U;
+        }
         gtk_window_destroy(GTK_WINDOW(runtime->surface_windows[kind]));
         runtime->surface_windows[kind] = NULL;
     }
@@ -194,6 +196,9 @@ static gboolean runtime_on_floating_surface_close(
     g_object_ref(panel);
     gtk_window_set_child(window, NULL);
     runtime->surface_windows[kind] = NULL;
+    /* GTK removes the active handler while it closes the native window. Clear
+     * our borrowed identifier so later cleanup never targets a stale object. */
+    runtime->surface_close_handler_ids[kind] = 0U;
     runtime->surface_floating[kind] = 0;
     status = runtime_surface_place(
         runtime,
@@ -270,7 +275,7 @@ static UmiStatus runtime_surface_float(
         G_OBJECT(window),
         "umicom-surface-kind",
         GINT_TO_POINTER((int)kind));
-    g_signal_connect(
+    runtime->surface_close_handler_ids[kind] = g_signal_connect(
         window,
         "close-request",
         G_CALLBACK(runtime_on_floating_surface_close),
