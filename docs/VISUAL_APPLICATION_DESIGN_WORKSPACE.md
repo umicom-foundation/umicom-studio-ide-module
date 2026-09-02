@@ -64,10 +64,24 @@ editable declarative source, mixed authoring, debounced validation and
 last-known-good preview. Framework also classifies C, HTML, JavaScript, CSS and
 script documents for future preview providers.
 
-Direct mouse movement, resize handles, drag-and-drop insertion, snapping,
-event wiring and data binding remain planned. Studio also has a separate Live
-Preview surface for ordinary active editor documents. It safely presents HTML
-as readable content and uses a plain-text fallback for other source families.
-Compiled and interpreted output still requires sandboxed preview-provider
-adapters. Those adapters belong behind Framework contracts first, with Studio
-remaining a thin presentation layer.
+The Design and Mixed canvases support direct component manipulation. Press and
+drag inside a component to move it. Drag near an edge or corner to resize it.
+Selected components show four visible handles, and a quiet grid gives placement
+feedback. **Snap to grid** is enabled by default and can be switched off from
+the Design toolbar for fine positioning.
+
+The canvas does not edit a GTK widget while the pointer moves. It asks the
+Framework interaction service for a preview rectangle, then stores the final
+rectangle as one semantic history operation when the pointer is released. This
+means **Undo** reverses the complete drag in one step, Code and Preview receive
+the same final geometry, and an interrupted gesture cannot leave a half-written
+design. Minimum sizes and canvas boundaries also prevent a component from being
+dragged into an unusable state.
+
+Palette drag-and-drop insertion, peer alignment guides, event wiring and data
+binding remain planned. Studio also has a separate Live Preview surface for
+ordinary active editor documents. It safely presents HTML as readable content
+and uses a plain-text fallback for other source families. Compiled and
+interpreted output still requires sandboxed preview-provider adapters. Those
+adapters belong behind Framework contracts first, with Studio remaining a thin
+presentation layer.

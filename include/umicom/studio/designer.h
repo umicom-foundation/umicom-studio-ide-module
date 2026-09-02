@@ -20,6 +20,7 @@
 
 #ifndef UMICOM_STUDIO_DESIGNER_H
 #define UMICOM_STUDIO_DESIGNER_H
+#include "umicom/designer/surface_interaction.h"
 #include "umicom/studio/declarative.h"
 #include "umicom/designer/workspace_model.h"
 #ifdef __cplusplus
@@ -68,8 +69,9 @@ UmiStatus umi_studio_designer_add_component(UmiStudioDesigner *designer,const ch
  */
 UmiStatus umi_studio_designer_set_property(UmiStudioDesigner *designer,const char *node_id,const char *property_name,const char *value_text);
 /**
- * Provide the studio designer select operation used by this module and its client
- * applications.
+ * Replace the current Studio selection with one existing semantic component.
+ * Lower-level Framework selection functions remain available for explicit
+ * multi-selection workflows.
  */
 UmiStatus umi_studio_designer_select(UmiStudioDesigner *designer,const char *node_id);
 /**
@@ -139,6 +141,33 @@ UmiStatus umi_studio_designer_apply_live_source(
     const char *source,
     uint64_t now_millis,
     UmiDeclDiagnosticList *diagnostics);
+/**
+ * Select the topmost component below a canvas point and begin either moving
+ * its body or resizing the handle under the pointer.
+ */
+UmiStatus umi_studio_designer_begin_surface_interaction(
+    UmiStudioDesigner *designer,
+    int32_t pointer_x,
+    int32_t pointer_y,
+    int32_t canvas_width,
+    int32_t canvas_height,
+    const UmiDesignerSurfaceOptions *options,
+    UmiDesignerSurfaceInteraction *out_interaction);
+/** Update a direct-manipulation preview without changing the saved design. */
+UmiStatus umi_studio_designer_update_surface_interaction(
+    UmiDesignerSurfaceInteraction *interaction,
+    int32_t pointer_x,
+    int32_t pointer_y);
+/**
+ * Commit a completed gesture through Studio's shared undo history and refresh
+ * the canonical source and preview projections.
+ */
+UmiStatus umi_studio_designer_commit_surface_interaction(
+    UmiStudioDesigner *designer,
+    UmiDesignerSurfaceInteraction *interaction);
+/** Cancel a gesture without changing document or history state. */
+void umi_studio_designer_cancel_surface_interaction(
+    UmiDesignerSurfaceInteraction *interaction);
 #ifdef __cplusplus
 }
 #endif

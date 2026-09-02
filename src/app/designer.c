@@ -187,7 +187,32 @@ UmiStatus umi_studio_designer_set_property(
  * Provide the studio designer select operation used by this module and its client
  * applications.
  */
-UmiStatus umi_studio_designer_select(UmiStudioDesigner *d,const char *id){return d!=NULL?umi_designer_selection_set_primary(&d->selection,id):UMI_STATUS_INVALID_ARGUMENT;}
+UmiStatus umi_studio_designer_select(
+    UmiStudioDesigner *designer,
+    const char *node_id)
+{
+    UmiDeclNode node;
+    UmiStatus status;
+
+    if (designer == NULL || !umi_decl_id_is_valid(node_id)) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    /* Keep the old selection when a frontend passes a well-formed identifier
+     * that is not present in the current document. */
+    status = umi_decl_document_find_node(
+        umi_designer_document_declarative(designer->document),
+        node_id,
+        &node);
+    if (status != UMI_STATUS_OK) return status;
+
+    /* An ordinary Studio click replaces the previous selection. Framework's
+     * lower-level add operation remains available to future modifier-key and
+     * marquee selection adapters. */
+    umi_designer_selection_clear(&designer->selection);
+    return umi_designer_selection_set_primary(
+        &designer->selection,
+        node_id);
+}
 /*
  * Provide the studio designer undo operation used by this module and its client
  * applications.
@@ -464,4 +489,101 @@ UmiStatus umi_studio_designer_apply_live_source(
         }
     }
     return status;
+}
+
+/* Translate one canvas press into a Framework-owned move or resize session.
+ * Hit-testing and selection happen together so every designer panel observes
+ * the same semantic component after the gesture completes. */
+UmiStatus umi_studio_designer_begin_surface_interaction(
+    UmiStudioDesigner *designer,
+    int32_t pointer_x,
+    int32_t pointer_y,
+    int32_t canvas_width,
+    int32_t canvas_height,
+    const UmiDesignerSurfaceOptions *options,
+    UmiDesignerSurfaceInteraction *out_interaction)
+{
+    UmiDesignerSurfaceHit hit;
+    UmiDesignerSurfaceInteractionKind kind;
+    UmiDesignerRect canvas_bounds = {0, 0, canvas_width, canvas_height};
+    UmiStatus status;
+
+    if (designer == NULL || canvas_width <= 0 || canvas_height <= 0 ||
+        out_interaction == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    status = umi_designer_surface_hit_test(
+        designer->document,
+        pointer_x,
+        pointer_y,
+        UMI_DESIGNER_SURFACE_DEFAULT_HANDLE_SIZE,
+        &hit);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_studio_designer_select(designer, hit.node_id);
+    if (status != UMI_STATUS_OK) return status;
+
+    /* A pointer in the handle band resizes its reported edges; all other
+     * points move the component without changing its dimensions. */
+    kind = hit.edges != UMI_DESIGNER_SURFACE_EDGE_NONE
+        ? UMI_DESIGNER_SURFACE_INTERACTION_RESIZE
+        : UMI_DESIGNER_SURFACE_INTERACTION_MOVE;
+    return umi_designer_surface_interaction_begin(
+        designer->document,
+        hit.node_id,
+        kind,
+        hit.edges,
+        pointer_x,
+        pointer_y,
+        canvas_bounds,
+        options,
+        out_interaction);
+}
+
+/* Delegate preview geometry to Framework so another frontend can use the
+ * exact same pointer-to-rectangle rules. */
+UmiStatus umi_studio_designer_update_surface_interaction(
+    UmiDesignerSurfaceInteraction *interaction,
+    int32_t pointer_x,
+    int32_t pointer_y)
+{
+    return umi_designer_surface_interaction_update(
+        interaction,
+        pointer_x,
+        pointer_y);
+}
+
+/* Store the final rectangle as one history operation, then synchronize Code,
+ * Mixed and Preview only after the semantic commit succeeds. */
+UmiStatus umi_studio_designer_commit_surface_interaction(
+    UmiStudioDesigner *designer,
+    UmiDesignerSurfaceInteraction *interaction)
+{
+    int changed;
+    UmiStatus status;
+
+    if (designer == NULL || interaction == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    changed = interaction->changed;
+    status = umi_designer_surface_interaction_commit(
+        interaction,
+        designer->document,
+        designer->history);
+    /* A simple selection click commits no geometry and therefore does not
+     * advance the canonical source revision. */
+    if (status == UMI_STATUS_OK && changed) {
+        /* Geometry is already committed and undoable at this point. Preview
+         * synchronization records its own health, so a renderer problem must
+         * not make the frontend treat the semantic commit as uncommitted. */
+        (void)synchronize_live_source(designer);
+    }
+    return status;
+}
+
+/* Cancel through the reusable session contract; Studio owns no second copy of
+ * the preview rectangle. */
+void umi_studio_designer_cancel_surface_interaction(
+    UmiDesignerSurfaceInteraction *interaction)
+{
+    umi_designer_surface_interaction_cancel(interaction);
 }

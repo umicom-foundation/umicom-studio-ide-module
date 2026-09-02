@@ -27,7 +27,12 @@ typedef struct UmiStudioGtkDesignerPropertyState {
 } UmiStudioGtkDesignerPropertyState;
 
 typedef struct UmiStudioGtkDesignerCanvasState {
+    UmiStudioGtkRuntimeChrome *runtime;
     UmiStudioDesigner *designer;
+    GtkWidget *canvas;
+    UmiDesignerSurfaceOptions options;
+    UmiDesignerSurfaceInteraction interaction;
+    int interactive;
 } UmiStudioGtkDesignerCanvasState;
 
 /* Keep one debounced editor callback alive for the lifetime of its panel. */
@@ -530,6 +535,143 @@ static GtkWidget *runtime_build_surface_object_inspector(
     return runtime_scroll(panel);
 }
 
+/* Convert toolkit coordinates only after guarding the fixed-width Framework
+ * range. Normal pointer values take the direct path without loss. */
+static int32_t runtime_designer_pointer_coordinate(double value)
+{
+    if (value < (double)G_MININT32) return INT32_MIN;
+    if (value > (double)G_MAXINT32) return INT32_MAX;
+    return (int32_t)value;
+}
+
+/* Begin a semantic move or resize when the pointer presses a component. The
+ * document remains unchanged until the gesture ends. */
+static void runtime_on_designer_drag_begin(
+    GtkGestureDrag *gesture,
+    double start_x,
+    double start_y,
+    gpointer user_data)
+{
+    UmiStudioGtkDesignerCanvasState *state =
+        (UmiStudioGtkDesignerCanvasState *)user_data;
+    UmiStatus status;
+
+    (void)gesture;
+    if (state == NULL || !state->interactive || state->canvas == NULL ||
+        state->designer == NULL) {
+        return;
+    }
+    status = umi_studio_designer_begin_surface_interaction(
+        state->designer,
+        runtime_designer_pointer_coordinate(start_x),
+        runtime_designer_pointer_coordinate(start_y),
+        gtk_widget_get_width(state->canvas),
+        gtk_widget_get_height(state->canvas),
+        &state->options,
+        &state->interaction);
+    if (status == UMI_STATUS_OK) {
+        gtk_widget_queue_draw(state->canvas);
+    } else if (status != UMI_STATUS_NOT_FOUND && state->runtime != NULL) {
+        runtime_show_notification(state->runtime, umi_status_text(status));
+    }
+}
+
+/* Refresh only the canvas while dragging. The expensive workbench projection
+ * is rebuilt once after the final rectangle is committed. */
+static void runtime_on_designer_drag_update(
+    GtkGestureDrag *gesture,
+    double offset_x,
+    double offset_y,
+    gpointer user_data)
+{
+    UmiStudioGtkDesignerCanvasState *state =
+        (UmiStudioGtkDesignerCanvasState *)user_data;
+    int32_t pointer_x;
+    int32_t pointer_y;
+
+    (void)gesture;
+    if (state == NULL || !state->interaction.active ||
+        state->canvas == NULL) {
+        return;
+    }
+    pointer_x = runtime_designer_pointer_coordinate(
+        (double)state->interaction.pointer_start_x + offset_x);
+    pointer_y = runtime_designer_pointer_coordinate(
+        (double)state->interaction.pointer_start_y + offset_y);
+    if (umi_studio_designer_update_surface_interaction(
+            &state->interaction,
+            pointer_x,
+            pointer_y) == UMI_STATUS_OK) {
+        gtk_widget_queue_draw(state->canvas);
+    }
+}
+
+/* Commit one geometry operation after the drag completes, making the complete
+ * action reversible with the existing Undo command. */
+static void runtime_on_designer_drag_end(
+    GtkGestureDrag *gesture,
+    double offset_x,
+    double offset_y,
+    gpointer user_data)
+{
+    UmiStudioGtkDesignerCanvasState *state =
+        (UmiStudioGtkDesignerCanvasState *)user_data;
+    UmiStatus status;
+
+    if (state == NULL || !state->interaction.active) return;
+    runtime_on_designer_drag_update(
+        gesture,
+        offset_x,
+        offset_y,
+        user_data);
+    status = umi_studio_designer_commit_surface_interaction(
+        state->designer,
+        &state->interaction);
+    if (state->runtime != NULL) {
+        runtime_show_notification(
+            state->runtime,
+            status == UMI_STATUS_OK
+                ? "Design geometry updated."
+                : umi_status_text(status));
+        if (status == UMI_STATUS_OK) {
+            runtime_queue_designer_refresh(state->runtime);
+        }
+    }
+    if (status != UMI_STATUS_OK) {
+        umi_studio_designer_cancel_surface_interaction(
+            &state->interaction);
+        if (state->canvas != NULL) gtk_widget_queue_draw(state->canvas);
+    }
+}
+
+/* Draw four visible handles around a selected rectangle. The same handle band
+ * is used by Framework hit-testing, so the visual affordance matches input. */
+static void runtime_designer_draw_selection_handles(
+    cairo_t *cr,
+    UmiDesignerRect rect)
+{
+    const double handle = 7.0;
+    const double half = handle / 2.0;
+    const double points[4][2] = {
+        {(double)rect.x, (double)rect.y},
+        {(double)rect.x + rect.width, (double)rect.y},
+        {(double)rect.x, (double)rect.y + rect.height},
+        {(double)rect.x + rect.width, (double)rect.y + rect.height}
+    };
+    size_t index;
+
+    cairo_set_source_rgb(cr, 0.96, 0.97, 1.0);
+    for (index = 0U; index < 4U; ++index) {
+        cairo_rectangle(
+            cr,
+            points[index][0] - half,
+            points[index][1] - half,
+            handle,
+            handle);
+        cairo_fill(cr);
+    }
+}
+
 /* Draw semantic component geometry from Framework. GTK owns pixels only; it
  * never becomes the source of component position, size or selection. */
 static void runtime_designer_draw_canvas(
@@ -549,6 +691,27 @@ static void runtime_designer_draw_canvas(
     cairo_set_source_rgb(cr, 0.10, 0.12, 0.16);
     cairo_rectangle(cr, 0.0, 0.0, (double)width, (double)height);
     cairo_fill(cr);
+    if (state->options.show_grid && state->options.grid_size > 0U) {
+        unsigned position;
+
+        /* A quiet grid gives placement feedback without competing with the
+         * component outlines or text. */
+        cairo_set_source_rgba(cr, 0.55, 0.61, 0.70, 0.16);
+        cairo_set_line_width(cr, 1.0);
+        for (position = state->options.grid_size;
+             position < (unsigned)width;
+             position += state->options.grid_size) {
+            cairo_move_to(cr, (double)position + 0.5, 0.0);
+            cairo_line_to(cr, (double)position + 0.5, (double)height);
+        }
+        for (position = state->options.grid_size;
+             position < (unsigned)height;
+             position += state->options.grid_size) {
+            cairo_move_to(cr, 0.0, (double)position + 0.5);
+            cairo_line_to(cr, (double)width, (double)position + 0.5);
+        }
+        cairo_stroke(cr);
+    }
     if (umi_studio_designer_workspace_model(
             state->designer,
             "",
@@ -565,6 +728,12 @@ static void runtime_designer_draw_canvas(
                 &rect) != UMI_STATUS_OK) {
             continue;
         }
+        /* During a drag only the canvas preview changes. The semantic node is
+         * committed once, when the pointer is released. */
+        if (state->interaction.active &&
+            strcmp(state->interaction.node_id, node->node_id) == 0) {
+            rect = state->interaction.preview;
+        }
         cairo_set_source_rgb(
             cr,
             node->selected ? 0.86 : 0.31,
@@ -580,33 +749,96 @@ static void runtime_designer_draw_canvas(
         cairo_stroke(cr);
         cairo_move_to(cr, (double)rect.x + 6.0, (double)rect.y + 17.0);
         cairo_show_text(cr, node->node_id);
+        if (node->selected) {
+            runtime_designer_draw_selection_handles(cr, rect);
+        }
     }
 }
 
+/* Cancel any unfinished gesture before releasing the canvas callback record. */
+static void runtime_designer_canvas_state_free(gpointer user_data)
+{
+    UmiStudioGtkDesignerCanvasState *state =
+        (UmiStudioGtkDesignerCanvasState *)user_data;
+
+    if (state == NULL) return;
+    if (state->interaction.active) {
+        umi_studio_designer_cancel_surface_interaction(
+            &state->interaction);
+    }
+    g_free(state);
+}
+
 /* Create a canvas that borrows the designer service and owns only its small
- * drawing callback record. This helper is shared by three workbench modes. */
+ * drawing callback record. The Preview mode disables input while Design and
+ * Mixed modes attach the same direct-manipulation gesture. */
 static GtkWidget *runtime_designer_canvas_new(
-    UmiStudioGtkRuntimeChrome *runtime)
+    UmiStudioGtkRuntimeChrome *runtime,
+    int interactive,
+    UmiStudioGtkDesignerCanvasState **out_state)
 {
     GtkWidget *canvas = gtk_drawing_area_new();
     UmiStudioGtkDesignerCanvasState *state;
 
+    if (out_state != NULL) *out_state = NULL;
     if (canvas == NULL || runtime_designer_service(runtime) == NULL) {
         return canvas;
     }
     state = g_try_new0(UmiStudioGtkDesignerCanvasState, 1);
     if (state != NULL) {
+        GtkEventController *drag;
+
+        state->runtime = runtime;
         state->designer = runtime_designer_service(runtime);
+        state->canvas = canvas;
+        state->interactive = interactive != 0;
+        umi_designer_surface_options_init(&state->options);
         gtk_drawing_area_set_draw_func(
             GTK_DRAWING_AREA(canvas),
             runtime_designer_draw_canvas,
             state,
-            g_free);
+            runtime_designer_canvas_state_free);
+        if (state->interactive) {
+            drag = GTK_EVENT_CONTROLLER(gtk_gesture_drag_new());
+            g_signal_connect(
+                drag,
+                "drag-begin",
+                G_CALLBACK(runtime_on_designer_drag_begin),
+                state);
+            g_signal_connect(
+                drag,
+                "drag-update",
+                G_CALLBACK(runtime_on_designer_drag_update),
+                state);
+            g_signal_connect(
+                drag,
+                "drag-end",
+                G_CALLBACK(runtime_on_designer_drag_end),
+                state);
+            gtk_widget_add_controller(canvas, drag);
+            gtk_widget_set_tooltip_text(
+                canvas,
+                "Drag a component to move it; drag an edge or corner to resize it");
+        }
+        if (out_state != NULL) *out_state = state;
     }
     gtk_widget_set_size_request(canvas, 360, 260);
     gtk_widget_set_hexpand(canvas, TRUE);
     gtk_widget_set_vexpand(canvas, TRUE);
     return canvas;
+}
+
+/* Let the user disable snapping for fine placement while keeping the policy
+ * in Framework-owned canvas options. */
+static void runtime_on_designer_snap_toggled(
+    GtkCheckButton *button,
+    gpointer user_data)
+{
+    UmiStudioGtkDesignerCanvasState *state =
+        (UmiStudioGtkDesignerCanvasState *)user_data;
+
+    if (state == NULL) return;
+    state->options.snap_to_grid = gtk_check_button_get_active(button);
 }
 
 /* Cancel a pending timeout before releasing the state referenced by it. */
@@ -761,10 +993,16 @@ static GtkWidget *runtime_build_surface_visual_designer(
     GtkWidget *toolbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     GtkWidget *undo = gtk_button_new_with_label("Undo");
     GtkWidget *redo = gtk_button_new_with_label("Redo");
-    GtkWidget *canvas = runtime_designer_canvas_new(runtime);
+    GtkWidget *snap = gtk_check_button_new_with_label("Snap to grid");
+    UmiStudioGtkDesignerCanvasState *canvas_state = NULL;
+    GtkWidget *canvas = runtime_designer_canvas_new(
+        runtime,
+        1,
+        &canvas_state);
 
     if (panel == NULL || toolbar == NULL || undo == NULL || redo == NULL ||
-        canvas == NULL || runtime_designer_service(runtime) == NULL) {
+        snap == NULL || canvas == NULL || canvas_state == NULL ||
+        runtime_designer_service(runtime) == NULL) {
         if (panel != NULL) {
             gtk_box_append(
                 GTK_BOX(panel),
@@ -774,6 +1012,15 @@ static GtkWidget *runtime_build_surface_visual_designer(
     }
     gtk_box_append(GTK_BOX(toolbar), undo);
     gtk_box_append(GTK_BOX(toolbar), redo);
+    gtk_check_button_set_active(
+        GTK_CHECK_BUTTON(snap),
+        canvas_state->options.snap_to_grid);
+    gtk_box_append(GTK_BOX(toolbar), snap);
+    gtk_box_append(
+        GTK_BOX(toolbar),
+        runtime_label(
+            "Drag to move; drag an edge or corner to resize.",
+            0.0F));
     gtk_box_append(GTK_BOX(panel), toolbar);
     gtk_box_append(GTK_BOX(panel), canvas);
     g_signal_connect(
@@ -786,6 +1033,11 @@ static GtkWidget *runtime_build_surface_visual_designer(
         "clicked",
         G_CALLBACK(runtime_on_designer_redo),
         runtime);
+    g_signal_connect(
+        snap,
+        "toggled",
+        G_CALLBACK(runtime_on_designer_snap_toggled),
+        canvas_state);
     return panel;
 }
 
@@ -813,7 +1065,7 @@ static GtkWidget *runtime_build_surface_design_mixed(
     GtkWidget *editor = runtime_designer_source_editor_new(
         runtime,
         UMI_STUDIO_SURFACE_DESIGN_MIXED);
-    GtkWidget *canvas = runtime_designer_canvas_new(runtime);
+    GtkWidget *canvas = runtime_designer_canvas_new(runtime, 1, NULL);
 
     if (panel == NULL || split == NULL || editor == NULL || canvas == NULL) {
         return panel;
@@ -837,7 +1089,7 @@ static GtkWidget *runtime_build_surface_design_preview(
 {
     GtkWidget *panel = runtime_panel_new("Preview");
     GtkWidget *split = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
-    GtkWidget *canvas = runtime_designer_canvas_new(runtime);
+    GtkWidget *canvas = runtime_designer_canvas_new(runtime, 0, NULL);
     GtkWidget *text_view = gtk_text_view_new();
     GtkWidget *scroll = runtime_scroll(text_view);
     UmiDesignerLiveSourceWorkspace workspace;

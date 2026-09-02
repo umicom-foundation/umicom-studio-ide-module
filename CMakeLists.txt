@@ -1579,6 +1579,7 @@ if(BUILD_TESTING)
             declarative
             designer
             designer_workspace_model
+            designer_surface_interaction
             designer_history
             designer_catalogue
             designer_preview
