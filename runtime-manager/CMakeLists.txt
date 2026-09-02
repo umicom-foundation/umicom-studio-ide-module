@@ -66,6 +66,7 @@ if(UMICOM_STUDIO_BUILD_GTK)
 
     target_link_libraries(umicom-studio-app-hub PRIVATE
         Umicom::StudioRuntimeManager
+        Umicom::ui_gtk4
         PkgConfig::GTK4
     )
 

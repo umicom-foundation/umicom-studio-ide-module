@@ -147,6 +147,16 @@ umi_project_open(UmiProjectManager *pm, const char *folder, GError **err)
      * If/when the Workspace exposes a clear setter, wire it here.              */
     g_message("UmiProjectManager: open → '%s'", folder);
 
+    /* Record a successful workspace open only after validation. Framework
+     * owns ordering and atomic persistence through Studio's compatibility
+     * adapter, so other launch surfaces can present the same recent work. */
+    if (pm->recent != NULL) {
+        umi_recent_add(pm->recent, folder);
+        if (!umi_recent_save(pm->recent)) {
+            g_warning("UmiProjectManager: recent work could not be saved");
+        }
+    }
+
     /* Success. Caller may trigger a refresh_index() next.                      */
     return TRUE;
 }

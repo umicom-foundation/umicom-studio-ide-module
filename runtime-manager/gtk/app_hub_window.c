@@ -28,6 +28,7 @@
 #include "umicom/studio/runtime_filter.h"
 #include "umicom/studio/runtime_launch_plan.h"
 #include "umicom/studio/runtime_snapshot.h"
+#include "umicom/ui/gtk4/drop_down.h"
 
 typedef struct AppHubWindow {
     UmiStudioRuntimeManager manager;
@@ -502,8 +503,7 @@ GtkWidget *umi_studio_app_hub_window_new(GtkApplication *application)
 
     categories = gtk_string_list_new(category_names);
     hub->category_dropdown =
-        gtk_drop_down_new(G_LIST_MODEL(categories), NULL);
-    g_object_unref(categories);
+        umi_ui_gtk4_drop_down_new_take_string_list(categories);
 
     hub->summary_label = make_meta_label("");
 

@@ -5,7 +5,8 @@
  * PURPOSE:
  *   Construct and own the shared Framework service container used by Studio.
  *   Typed settings are created first so their validated values can configure
- *   later services, including the retained diagnostic-store capacity.
+ *   later services, including recent-work persistence and the retained
+ *   diagnostic-store capacity.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
@@ -16,6 +17,7 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/services.h"
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +47,7 @@ struct UmiStudioServices {
     UmiTaskQueue *task_queue;
     UmiDocumentStore *documents;
     UmiSessionStore *session;
+    UmiRecentItemRegistry *recent_items;
     UmiRecoveryManager *recovery;
     UmiWorkspaceGraph *workspace;
     UmiFileIndex *file_index;
@@ -74,8 +77,57 @@ struct UmiStudioServices {
     UmiStudioExtensionPlatform *extension_platform;
     UmiStudioProductCentre *product_centre;
     UmiClock clock;
+    int recent_items_persistence_enabled;
+    int recent_items_dirty;
     int published;
 };
+
+static const char *STUDIO_RECENT_ITEMS_PATH = ".umicom/studio-recent-items";
+
+/* Record a workspace through the shared Framework model. The path is
+ * normalised before hashing so equivalent spellings do not create duplicates. */
+static UmiStatus studio_remember_workspace(UmiStudioServices *services,
+                                           const char *root)
+{
+    UmiRecentItemSnapshot item = {0};
+    UmiRecentItemSnapshot existing = {0};
+    UmiStatus status;
+
+    if (services == NULL || services->recent_items == NULL ||
+        root == NULL || root[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    status = umi_path_normalise(root, item.uri, sizeof(item.uri));
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_path_basename(item.uri, item.label, sizeof(item.label));
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_platform_recent_item_id_from_uri(
+        "studio-workspace", item.uri, item.id, sizeof(item.id));
+    if (status != UMI_STATUS_OK) return status;
+    (void)snprintf(item.kind, sizeof(item.kind), "%s", "workspace");
+    item.struct_size = (uint32_t)sizeof(item);
+    item.api_version = 1U;
+    item.last_opened = services->clock.wall_nanoseconds != NULL
+        ? services->clock.wall_nanoseconds(&services->clock)
+        : 0U;
+    item.open_count = 1U;
+
+    if (umi_platform_recent_items_registry_find(
+            services->recent_items, item.id, &existing) == UMI_STATUS_OK) {
+        item.open_count = existing.open_count < UINT64_MAX
+            ? existing.open_count + 1U
+            : UINT64_MAX;
+        item.pinned = existing.pinned;
+    }
+    status = umi_platform_recent_items_registry_upsert(
+        services->recent_items, &item);
+    if (status == UMI_STATUS_OK) {
+        status = umi_platform_recent_items_registry_trim(
+            services->recent_items, 50U);
+    }
+    return status;
+}
 
 /* Provide the studio watch sink operation used by this module and its client applications. */
 static void studio_watch_sink(const UmiWatchEvent *event, void *user_data)
@@ -185,6 +237,18 @@ static void destroy_partial(UmiStudioServices *services)
     services->process_supervisor = NULL;
     umi_recovery_manager_destroy(services->recovery);
     services->recovery = NULL;
+    /* Save recent work before releasing it. A registry loaded from malformed
+     * data is deliberately not allowed to overwrite the file that needs
+     * diagnosis or recovery. */
+    if (services->recent_items != NULL) {
+        if (services->recent_items_persistence_enabled != 0 &&
+            services->recent_items_dirty != 0) {
+            (void)umi_platform_recent_items_registry_save(
+                services->recent_items, STUDIO_RECENT_ITEMS_PATH);
+        }
+        umi_platform_recent_items_registry_destroy(services->recent_items);
+        services->recent_items = NULL;
+    }
     umi_session_store_destroy(services->session);
     services->session = NULL;
     umi_document_store_destroy(services->documents);
@@ -217,6 +281,7 @@ UmiStatus umi_studio_services_create(
     UmiStatus status;
     int settings_loaded = 0;
     int session_loaded = 0;
+    int recent_items_loaded = 0;
     int64_t diagnostic_capacity = 0;
     int64_t parallel_jobs = 0;
     int64_t ai_context_tokens = 0;
@@ -395,6 +460,26 @@ UmiStatus umi_studio_services_create(
         return status;
     }
     (void)session_loaded;
+
+    status = umi_platform_recent_items_registry_load(
+        STUDIO_RECENT_ITEMS_PATH,
+        &services->recent_items,
+        &recent_items_loaded);
+    if (status == UMI_STATUS_OK) {
+        services->recent_items_persistence_enabled = 1;
+    } else {
+        /* Keep Studio usable when the optional history file is damaged. The
+         * original file is preserved because this replacement model is marked
+         * read-only for the lifetime of the service container. */
+        services->recent_items_persistence_enabled = 0;
+        status = umi_platform_recent_items_registry_create(
+            &services->recent_items);
+    }
+    if (status != UMI_STATUS_OK) {
+        destroy_partial(services);
+        return status;
+    }
+    (void)recent_items_loaded;
 
     status = umi_recovery_manager_create(umi_studio_recovery_default_root(),
                                          &services->recovery);
@@ -815,6 +900,9 @@ UmiStatus umi_studio_services_publish(
     PUBLISH("umicom.studio.session",
             services->session,
             UMI_SERVICE_SINGLETON | UMI_SERVICE_THREAD_SAFE);
+    PUBLISH("umicom.studio.recent-items",
+            services->recent_items,
+            UMI_SERVICE_SINGLETON);
     PUBLISH("umicom.studio.recovery",
             services->recovery,
             UMI_SERVICE_SINGLETON | UMI_SERVICE_THREAD_SAFE);
@@ -1095,6 +1183,13 @@ UmiDocumentStore *umi_studio_services_documents(UmiStudioServices *services)
 UmiSessionStore *umi_studio_services_session(UmiStudioServices *services)
 {
     return services != NULL ? services->session : NULL;
+}
+
+/* Expose a borrowed registry to Studio surfaces without transferring ownership. */
+UmiRecentItemRegistry *umi_studio_services_recent_items(
+    UmiStudioServices *services)
+{
+    return services != NULL ? services->recent_items : NULL;
 }
 
 /*
@@ -1430,6 +1525,22 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
             status = umi_studio_test_service_set_workspace(
                 umi_studio_services_tests(services), root, project_id,
                 workspace_snapshot.revision);
+        }
+    }
+    if (status == UMI_STATUS_OK) {
+        UmiStatus recent_status;
+        /* Recent-work persistence is helpful but not required to open a
+         * workspace. A history-file error must not turn a successful open into
+         * a failed developer operation. */
+        recent_status = studio_remember_workspace(services, root);
+        if (recent_status == UMI_STATUS_OK) {
+            services->recent_items_dirty = 1;
+            if (services->recent_items_persistence_enabled != 0 &&
+                umi_platform_recent_items_registry_save(
+                    services->recent_items,
+                    STUDIO_RECENT_ITEMS_PATH) == UMI_STATUS_OK) {
+                services->recent_items_dirty = 0;
+            }
         }
     }
     return status;

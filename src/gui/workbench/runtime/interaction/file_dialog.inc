@@ -155,10 +155,41 @@ static void runtime_save_as_complete(
     (void)runtime_refresh_services(runtime);
 }
 
-/*
- * Provide the runtime open folder complete operation used by this module and its client
- * applications.
- */
+/* Open a known workspace path without displaying a second chooser. Welcome
+ * page recent-work buttons and the folder dialog both use this one route. */
+static UmiStatus runtime_open_workspace_path(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *path)
+{
+    UmiStudioServices *services;
+    char workspace_name[UMI_PATH_CAPACITY] = {0};
+    UmiStatus status;
+
+    if (runtime == NULL || runtime->owner == NULL || path == NULL ||
+        path[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    services = umi_studio_ui_services(runtime->owner->ui);
+    status = umi_studio_services_open_workspace(services, path, 1);
+    if (status == UMI_STATUS_OK) {
+        (void)snprintf(runtime->workspace_root,
+                       sizeof(runtime->workspace_root), "%s", path);
+        if (umi_path_basename(path, workspace_name,
+                              sizeof(workspace_name)) == UMI_STATUS_OK) {
+            (void)snprintf(runtime->workspace_name,
+                           sizeof(runtime->workspace_name), "%s",
+                           workspace_name);
+        }
+        runtime_show_notification(runtime, "Workspace opened.");
+    } else {
+        runtime_show_notification(runtime, umi_status_text(status));
+    }
+    (void)runtime_refresh_services(runtime);
+    return status;
+}
+
+/* Complete the asynchronous folder chooser and pass its local path to the
+ * same workspace service used by recent-work actions. */
 static void runtime_open_folder_complete(
     GObject *source_object,
     GAsyncResult *result,
@@ -166,13 +197,9 @@ static void runtime_open_folder_complete(
 {
     UmiStudioGtkRuntimeChrome *runtime =
         (UmiStudioGtkRuntimeChrome *)user_data;
-    UmiStudioServices *services;
-    UmiFileIndex *index;
     GError *error = NULL;
     GFile *folder;
     char *path;
-    char *name;
-    UmiStatus status;
 
     folder = gtk_file_dialog_select_folder_finish(
         GTK_FILE_DIALOG(source_object),
@@ -208,50 +235,10 @@ static void runtime_open_folder_complete(
         return;
     }
 
-    services = umi_studio_ui_services(runtime->owner->ui);
-
-    /*
-     * Selecting a folder in this explicit Open Folder command is treated as the
-     * user's trust decision for this local workspace. Framework still enforces
-     * command permissions and trust requirements after the workspace opens.
-     */
-    status = umi_studio_services_open_workspace(services, path, 1);
-
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK) {
-        index = umi_studio_services_file_index(services);
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (index != NULL) {
-            (void)umi_file_index_set_root(index, path);
-            (void)umi_file_index_rebuild(index);
-        }
-
-        name = g_path_get_basename(path);
-        /* Apply this branch only when its contract condition is satisfied. */
-        if (strlen(path) < sizeof(runtime->workspace_root)) {
-            (void)strcpy(runtime->workspace_root, path);
-        }
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (name != NULL &&
-            strlen(name) < sizeof(runtime->workspace_name)) {
-            (void)strcpy(runtime->workspace_name, name);
-        }
-        g_free(name);
-
-        runtime_show_notification(runtime, "Workspace opened.");
-    } /* Use this fallback path when the earlier condition does not apply. */ else {
-        runtime_show_notification(runtime, umi_status_text(status));
-    }
+    (void)runtime_open_workspace_path(runtime, path);
 
     g_free(path);
     g_object_unref(folder);
-    (void)runtime_refresh_services(runtime);
 }
 
 /*

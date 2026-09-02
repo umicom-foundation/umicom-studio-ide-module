@@ -50,7 +50,11 @@ static UmiStatus runtime_route_command(
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "workspace.open-folder") == 0) {
-        return runtime_choose_workspace_folder(runtime);
+        /* Recent-work actions already know their path, while ordinary menu
+         * actions still open the native folder chooser. */
+        return argument != NULL && argument[0] != '\0'
+            ? runtime_open_workspace_path(runtime, argument)
+            : runtime_choose_workspace_folder(runtime);
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "file.save") == 0) {

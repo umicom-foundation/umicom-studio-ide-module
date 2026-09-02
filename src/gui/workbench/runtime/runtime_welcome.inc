@@ -81,6 +81,11 @@ static GtkWidget *runtime_build_welcome_surface(
     GtkWidget *learn;
     GtkWidget *scroll;
     GtkWidget *empty_recent;
+    UmiRecentItemSnapshot recent_items[5] = {{0}};
+    UmiRecentItemQuery recent_query = {0};
+    UmiRecentItemRegistry *recent_registry;
+    size_t recent_count = 0U;
+    size_t recent_index;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -157,15 +162,44 @@ static GtkWidget *runtime_build_welcome_surface(
     recent = runtime_welcome_card(
         "Recent Work",
         "Projects and folders you open will appear here for quick access.");
-    empty_recent = runtime_label(
-        "No recent project is recorded yet.", 0.0F);
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (recent != NULL && empty_recent != NULL) {
-        gtk_widget_add_css_class(empty_recent, "umicom-runtime-muted");
-        gtk_box_append(GTK_BOX(recent), empty_recent);
+    recent_registry = umi_studio_services_recent_items(
+        umi_studio_ui_services(runtime->owner->ui));
+    recent_query.kind = "workspace";
+    recent_query.limit = 5U;
+    if (recent_registry != NULL) {
+        (void)umi_platform_recent_items_registry_query(
+            recent_registry,
+            &recent_query,
+            recent_items,
+            sizeof(recent_items) / sizeof(recent_items[0]),
+            &recent_count);
+    }
+
+    if (recent_count == 0U) {
+        empty_recent = runtime_label(
+            "No recent project is recorded yet.", 0.0F);
+        if (recent != NULL && empty_recent != NULL) {
+            gtk_widget_add_css_class(empty_recent, "umicom-runtime-muted");
+            gtk_box_append(GTK_BOX(recent), empty_recent);
+        }
+    } else if (recent != NULL) {
+        /* Each button stores its own copied path. The shared command router
+         * opens it directly, so resuming work does not show another chooser. */
+        for (recent_index = 0U; recent_index < recent_count; ++recent_index) {
+            GtkWidget *recent_button = runtime_make_command_button(
+                runtime,
+                recent_items[recent_index].label,
+                "workspace.open-folder",
+                recent_items[recent_index].uri);
+            if (recent_button == NULL) continue;
+            g_object_set_data_full(
+                G_OBJECT(recent_button),
+                "umicom-command-argument",
+                g_strdup(recent_items[recent_index].uri),
+                g_free);
+            gtk_widget_set_halign(recent_button, GTK_ALIGN_FILL);
+            gtk_box_append(GTK_BOX(recent), recent_button);
+        }
     }
     runtime_welcome_add_action(
         runtime, recent, "Browse for a Workspace", "workspace.open-folder",

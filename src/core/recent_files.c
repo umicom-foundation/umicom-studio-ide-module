@@ -3,8 +3,9 @@
  * File: src/core/recent_files.c
  *
  * PURPOSE:
- *   Implement the recent files behavior for
- *   Umicom Studio IDE.
+ *   Adapt Studio's original recent-file API to the Framework recent-work
+ *   registry. Existing JSON data is imported once, while new state uses the
+ *   shared bounded, queryable and atomically replaced representation.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
@@ -13,93 +14,187 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/*-----------------------------------------------------------------------------
- * Umicom Studio IDE
- * File: src/recent_files.c
- * PURPOSE: Implementation of MRU list (JSON-backed)
- * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
- *---------------------------------------------------------------------------*/
 
-#include <recent_files.h>
+#include "recent_files.h"
+
 #include <json-glib/json-glib.h>
+#include <stdio.h>
+#include <string.h>
 
-static const char *RECENT_JSON = "config/recent.json";
+static const char *RECENT_ITEMS_PATH = ".umicom/studio-recent-items";
+static const char *LEGACY_RECENT_JSON_PATH = "config/recent.json";
 
-/* Read recent into validated module state and return a status when input cannot be used. */
-UmiRecent *umi_recent_load(void){
-  UmiRecent *r = g_new0(UmiRecent,1);
-  r->items = g_ptr_array_new_with_free_func(g_free);
-  r->max_items = 20;
-  gchar *txt=NULL; gsize len=0;
-  /* Apply this branch only when its contract condition is satisfied. */
-  if(g_file_get_contents(RECENT_JSON,&txt,&len,NULL)){
-    JsonParser *p=json_parser_new();
-    /* Apply this branch only when its contract condition is satisfied. */
-    if(json_parser_load_from_data(p,txt,(gssize)len,NULL)){
-      JsonArray *a = json_node_get_array(json_parser_get_root(p));
-      /* Apply this branch only when its contract condition is satisfied. */
-      if(a){
-        guint n = json_array_get_length(a);
-        /* Visit each bounded item once so every record receives the same rule. */
-        for(guint i=0;i<n;i++){
-          JsonNode *node = json_array_get_element(a,i);
-          const char *s = json_node_get_string(node);
-          /* Apply this branch only when its contract condition is satisfied. */
-          if(s && *s) g_ptr_array_add(r->items, g_strdup(s));
+/* Build a complete Framework snapshot from Studio's older path-only API. */
+static gboolean recent_snapshot_from_path(const char *path,
+                                          guint64 opened_at,
+                                          UmiRecentItemSnapshot *out_item)
+{
+    gchar *canonical_path;
+    gchar *display_name;
+
+    if (path == NULL || path[0] == '\0' || out_item == NULL) return FALSE;
+    canonical_path = g_canonicalize_filename(path, NULL);
+    if (canonical_path == NULL) return FALSE;
+    display_name = g_path_get_basename(canonical_path);
+    if (display_name == NULL ||
+        strlen(canonical_path) >= sizeof(out_item->uri) ||
+        strlen(display_name) >= sizeof(out_item->label)) {
+        g_free(display_name);
+        g_free(canonical_path);
+        return FALSE;
+    }
+
+    (void)memset(out_item, 0, sizeof(*out_item));
+    out_item->struct_size = (uint32_t)sizeof(*out_item);
+    out_item->api_version = 1U;
+    (void)snprintf(out_item->uri, sizeof(out_item->uri),
+                   "%s", canonical_path);
+    if (umi_platform_recent_item_id_from_uri(
+            "studio-workspace", out_item->uri,
+            out_item->id, sizeof(out_item->id)) != UMI_STATUS_OK) {
+        g_free(display_name);
+        g_free(canonical_path);
+        return FALSE;
+    }
+    (void)snprintf(out_item->label, sizeof(out_item->label),
+                   "%s", display_name);
+    (void)snprintf(out_item->kind, sizeof(out_item->kind), "%s", "workspace");
+    out_item->last_opened = (uint64_t)opened_at;
+    out_item->open_count = 1U;
+
+    g_free(display_name);
+    g_free(canonical_path);
+    return TRUE;
+}
+
+/* Add or refresh one path while preserving user-controlled pinned state and
+ * the existing open counter. */
+static gboolean recent_upsert_path(UmiRecent *recent,
+                                   const char *path,
+                                   guint64 opened_at)
+{
+    UmiRecentItemSnapshot item;
+    UmiRecentItemSnapshot existing;
+
+    if (recent == NULL || recent->registry == NULL ||
+        !recent_snapshot_from_path(path, opened_at, &item)) {
+        return FALSE;
+    }
+    if (umi_platform_recent_items_registry_find(
+            recent->registry, item.id, &existing) == UMI_STATUS_OK) {
+        item.open_count = existing.open_count < UINT64_MAX
+            ? existing.open_count + 1U
+            : UINT64_MAX;
+        item.pinned = existing.pinned;
+    }
+    return umi_platform_recent_items_registry_upsert(
+               recent->registry, &item) == UMI_STATUS_OK;
+}
+
+/* Import the previous JSON array without deleting or rewriting it. Keeping
+ * that source file makes migration recoverable if a developer needs it. */
+static gboolean recent_import_legacy_json(UmiRecent *recent)
+{
+    gchar *text = NULL;
+    gsize text_length = 0U;
+    JsonParser *parser;
+    JsonNode *root;
+    JsonArray *items;
+    guint index;
+    guint item_count;
+    gboolean imported = FALSE;
+
+    if (!g_file_get_contents(
+            LEGACY_RECENT_JSON_PATH, &text, &text_length, NULL)) {
+        return FALSE;
+    }
+    parser = json_parser_new();
+    if (!json_parser_load_from_data(
+            parser, text, (gssize)text_length, NULL)) {
+        g_object_unref(parser);
+        g_free(text);
+        return FALSE;
+    }
+
+    root = json_parser_get_root(parser);
+    if (root == NULL || json_node_get_node_type(root) != JSON_NODE_ARRAY) {
+        g_object_unref(parser);
+        g_free(text);
+        return FALSE;
+    }
+    items = json_node_get_array(root);
+    item_count = json_array_get_length(items);
+    for (index = 0U; index < item_count && index < recent->max_items; ++index) {
+        const char *path = json_array_get_string_element(items, index);
+        guint64 ordering_time = (guint64)(item_count - index);
+        if (path != NULL && path[0] != '\0' &&
+            recent_upsert_path(recent, path, ordering_time)) {
+            imported = TRUE;
         }
-      }
     }
-    g_object_unref(p); g_free(txt);
-  }
-  return r;
+
+    g_object_unref(parser);
+    g_free(text);
+    (void)umi_platform_recent_items_registry_trim(
+        recent->registry, (size_t)recent->max_items);
+    return imported;
 }
 
-/*
- * Write recent in its stable representation and report capacity or input failures to the
- * caller.
- */
-gboolean umi_recent_save(const UmiRecent *r){
-  /* Apply this branch only when its contract condition is satisfied. */
-  if(!r) return FALSE;
-  g_mkdir_with_parents("config",0755);
-  JsonBuilder *b=json_builder_new(); json_builder_begin_array(b);
-  /* Visit each bounded item once so every record receives the same rule. */
-  for(guint i=0;i<r->items->len;i++){
-    json_builder_add_string_value(b, (const char*)r->items->pdata[i]);
-  }
-  json_builder_end_array(b);
-  JsonGenerator *g=json_generator_new(); JsonNode *root=json_builder_get_root(b);
-  json_generator_set_root(g,root); gchar *out=json_generator_to_data(g,NULL);
-  gboolean ok=g_file_set_contents(RECENT_JSON,out,-1,NULL);
-  g_free(out); json_node_free(root); g_object_unref(g); g_object_unref(b);
-  return ok;
-}
+/* Load shared recent work and perform a recoverable legacy import if needed. */
+UmiRecent *umi_recent_load(void)
+{
+    UmiRecent *recent = g_new0(UmiRecent, 1);
+    UmiStatus status;
+    int loaded = 0;
 
-/* Add recent only after its inputs and available capacity have been checked. */
-void umi_recent_add(UmiRecent *r, const char *path){
-  /* Apply this branch only when its contract condition is satisfied. */
-  if(!r || !path || !*path) return;
-  /* Visit each bounded item once so every record receives the same rule. */
-  for(guint i=0;i<r->items->len;i++){
-    const char *s = (const char*)r->items->pdata[i];
-    /* Use the stable identifier comparison to choose the matching record or policy. */
-    if(g_strcmp0(s,path)==0){
-      g_ptr_array_remove_index(r->items, i);
-      break;
+    recent->max_items = 20U;
+    status = umi_platform_recent_items_registry_load(
+        RECENT_ITEMS_PATH, &recent->registry, &loaded);
+    if (status != UMI_STATUS_OK) {
+        /* Preserve an unreadable file for diagnosis and continue with a safe
+         * empty model instead of making Studio startup fail. */
+        g_warning("Recent work could not be loaded: %s", umi_status_text(status));
+        if (umi_platform_recent_items_registry_create(&recent->registry) !=
+            UMI_STATUS_OK) {
+            g_free(recent);
+            return NULL;
+        }
+        recent->persistence_enabled = FALSE;
+    } else {
+        recent->persistence_enabled = TRUE;
     }
-  }
-  g_ptr_array_insert(r->items, 0, g_strdup(path));
-  /* Apply this branch only when its contract condition is satisfied. */
-  if(r->items->len > r->max_items){
-    g_free((char*)r->items->pdata[r->items->len-1]);
-    g_ptr_array_set_size(r->items, r->max_items);
-  }
+    if (loaded == 0 && recent_import_legacy_json(recent)) {
+        (void)umi_recent_save(recent);
+    }
+    return recent;
 }
 
-/* Provide the recent free operation used by this module and its client applications. */
-void umi_recent_free(UmiRecent *r){
-  /* Apply this branch only when its contract condition is satisfied. */
-  if(!r) return;
-  g_ptr_array_free(r->items, TRUE);
-  g_free(r);
+/* Save through Framework only when the source state was safe to replace. */
+gboolean umi_recent_save(const UmiRecent *recent)
+{
+    if (recent == NULL || recent->registry == NULL ||
+        !recent->persistence_enabled) return FALSE;
+    return umi_platform_recent_items_registry_save(
+               recent->registry, RECENT_ITEMS_PATH) == UMI_STATUS_OK;
+}
+
+/* Record one successful open and apply the configured history limit. */
+void umi_recent_add(UmiRecent *recent, const char *path)
+{
+    guint64 opened_at;
+
+    if (recent == NULL || path == NULL || path[0] == '\0') return;
+    opened_at = (guint64)(g_get_real_time() / G_USEC_PER_SEC);
+    if (recent_upsert_path(recent, path, opened_at)) {
+        (void)umi_platform_recent_items_registry_trim(
+            recent->registry, (size_t)recent->max_items);
+    }
+}
+
+/* Release the Framework registry and its small Studio compatibility owner. */
+void umi_recent_free(UmiRecent *recent)
+{
+    if (recent == NULL) return;
+    umi_platform_recent_items_registry_destroy(recent->registry);
+    g_free(recent);
 }

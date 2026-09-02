@@ -5,9 +5,9 @@
  * PURPOSE:
  *   Own the Umicom Framework services shared by Studio frontends and Slave
  *   Controllers.  The container creates one instance of each authoritative
- *   settings, diagnostics, task, document, session, recovery, workspace, file
- *   index, watcher, process-supervision, Data Server, Integration Fabric and
- *   clock service.
+ *   settings, diagnostics, task, document, session, recent-work, recovery,
+ *   workspace, file index, watcher, process-supervision, Data Server,
+ *   Integration Fabric and clock service.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
@@ -140,6 +140,12 @@ UmiDocumentStore *umi_studio_services_documents(UmiStudioServices *services);
  * applications.
  */
 UmiSessionStore *umi_studio_services_session(UmiStudioServices *services);
+/**
+ * Return Studio's Framework-owned recent-work registry. Callers receive a
+ * borrowed pointer and must not destroy it.
+ */
+UmiRecentItemRegistry *umi_studio_services_recent_items(
+    UmiStudioServices *services);
 /**
  * Provide the studio services recovery operation used by this module and its client
  * applications.

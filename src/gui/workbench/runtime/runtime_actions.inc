@@ -95,13 +95,17 @@ static void runtime_on_command_button(
         (const char *)g_object_get_data(
             G_OBJECT(button),
             "umicom-command-id");
+    const char *argument =
+        (const char *)g_object_get_data(
+            G_OBJECT(button),
+            "umicom-command-argument");
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
     if (runtime == NULL || command_id == NULL) return;
-    (void)runtime_execute_command(runtime, command_id, NULL);
+    (void)runtime_execute_command(runtime, command_id, argument);
 }
 
 /*

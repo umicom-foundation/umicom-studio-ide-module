@@ -37,6 +37,7 @@
 #include <glib.h>
 #include <math.h>
 #include "llm_lab.h"
+#include "umicom/ui/gtk4/drop_down.h"
 
 /* ── Provider shims (weak) ──────────────────────────────────────────────── */
 /* These declarations keep the Lab loosely coupled. If your backend library
@@ -245,7 +246,10 @@ static GtkWidget *build_lab(LlmLab **out_state)
     lab->provider_model = gtk_string_list_new(NULL);
     gtk_string_list_append(lab->provider_model, "zai");
     gtk_string_list_append(lab->provider_model, "openai");
-    lab->provider = GTK_DROP_DOWN(gtk_drop_down_new(G_LIST_MODEL(lab->provider_model), NULL));
+    /* The dropdown owns the list reference. provider_model is kept only as a
+     * borrowed pointer while the dropdown is alive so selections can be read. */
+    lab->provider = GTK_DROP_DOWN(
+        umi_ui_gtk4_drop_down_new_take_string_list(lab->provider_model));
     gtk_drop_down_set_selected(GTK_DROP_DOWN(lab->provider), 0);
 
     lab->stream_sw = GTK_SWITCH(gtk_switch_new());
