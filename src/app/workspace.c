@@ -38,6 +38,12 @@ UmiStatus umi_studio_workspace_open(UmiStudioServices *services,
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK && start_watcher) {
         status = umi_studio_watcher_start(services);
+        /* Opening and watching form one user-visible operation. If the watcher
+         * cannot start, close the services again so later commands do not see
+         * a workspace that the open command reported as failed. */
+        if (status != UMI_STATUS_OK) {
+            (void)umi_studio_services_close_workspace(services);
+        }
     }
     return status;
 }

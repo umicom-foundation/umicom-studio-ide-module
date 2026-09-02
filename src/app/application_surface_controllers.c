@@ -39,6 +39,9 @@ static const char *empty_guidance(const char *component_id)
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(component_id, "umicom.development.testing") == 0)
         return "Open a project to discover and run its tests.";
+    /* UAT starts empty because a user first chooses or records a journey. */
+    if (strcmp(component_id, "umicom.quality.automated-tests") == 0)
+        return "Create or select a user journey to test menus, buttons and fields.";
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(component_id, "umicom.development.source-control") == 0)
         return "Open a Git repository to inspect its changes.";

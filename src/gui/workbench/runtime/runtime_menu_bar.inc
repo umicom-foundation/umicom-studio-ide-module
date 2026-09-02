@@ -168,6 +168,10 @@ static GtkWidget *runtime_build_single_menu(
     }
 
     gtk_menu_button_set_label(GTK_MENU_BUTTON(menu_button), root->title);
+    /* A menu root keeps its contribution ID across themes and translations. */
+    (void)umi_gtk4_automation_tag_widget(
+        menu_button,
+        root->contribution_id);
     gtk_widget_add_css_class(menu_button, "flat");
 
     /* Visit each bounded item once so every record receives the same rule. */
@@ -208,6 +212,11 @@ static GtkWidget *runtime_build_single_menu(
             button,
             ((contribution.flags & UMI_APPLICATION_SHELL_ENABLED) != 0U) ||
             runtime_command_enabled(runtime, contribution.command_id));
+
+        /* Menu rows use their unique contribution ID to avoid ambiguous matches. */
+        (void)umi_gtk4_automation_tag_widget(
+            button,
+            contribution.contribution_id);
 
         g_object_set_data_full(
             G_OBJECT(button),

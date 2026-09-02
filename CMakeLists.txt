@@ -82,6 +82,7 @@ add_library(umicom_studio_core STATIC
     src/app/observability.c
     src/app/resilience.c
     src/app/ui.c
+    src/app/automation_audit.c
     src/app/application_surface.c
     src/app/application_surface_controllers.c
     src/app/application_surface_commands.c
@@ -670,7 +671,6 @@ if(UMICOM_STUDIO_BUILD_GTK)
         UMICOM_VERSION_MAJOR=0
         UMICOM_VERSION_MINOR=17
         UMICOM_VERSION_PATCH=0
-        gtk_widget_destroy=g_object_unref
     )
 
     target_link_libraries(umicom_studio_product
@@ -710,6 +710,29 @@ if(UMICOM_STUDIO_BUILD_GTK)
             -Wpedantic
             -Wno-unused-parameter
         )
+    endif()
+
+    # This focused non-visual test exercises StudioProduct's project lifecycle
+    # while also compiling its headers beside Framework's UmiStatus contract.
+    if(BUILD_TESTING)
+        add_executable(umicom-studio-project-manager-indexing-test
+            tests/test_project_manager_indexing.c)
+        target_include_directories(
+            umicom-studio-project-manager-indexing-test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/core/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/chrome/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/util/fs/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/util/log/include")
+        target_link_libraries(
+            umicom-studio-project-manager-indexing-test PRIVATE
+            Umicom::StudioProduct
+            PkgConfig::GTK4
+            PkgConfig::GLIB)
+        umicom_apply_warnings(umicom-studio-project-manager-indexing-test)
+        umicom_apply_sanitizers(umicom-studio-project-manager-indexing-test)
+        add_test(NAME studio.project_manager.indexing
+            COMMAND umicom-studio-project-manager-indexing-test)
     endif()
 
     add_executable(umicom-studio-workbench-demo
@@ -1152,6 +1175,15 @@ if(BUILD_TESTING)
     umicom_apply_warnings(umicom-studio-command-inventory-test)
     umicom_apply_sanitizers(umicom-studio-command-inventory-test)
     add_test(NAME studio.command_inventory COMMAND umicom-studio-command-inventory-test)
+
+    add_executable(umicom-studio-automation-audit-test
+        tests/test_automation_audit.c)
+    target_link_libraries(umicom-studio-automation-audit-test PRIVATE
+        Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-automation-audit-test)
+    umicom_apply_sanitizers(umicom-studio-automation-audit-test)
+    add_test(NAME studio.automation.wiring
+        COMMAND umicom-studio-automation-audit-test)
 
     add_executable(umicom-studio-command-inventory-partition-test tests/test_command_inventory_partition.c)
     target_link_libraries(umicom-studio-command-inventory-partition-test PRIVATE Umicom::StudioCore)

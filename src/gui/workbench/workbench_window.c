@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "context_link_centre.h"
+#include "umicom/studio/workspace.h"
 #include "umicom/ui/gtk4.h"
 #include "umicom/workbench_context_host/gtk4.h"
 
@@ -32,6 +33,7 @@ struct UmiStudioGtkWorkbench {
     GtkWidget *context_strip;
     GtkWidget *content_root;
     UmiStudioGtkRuntimeChrome *runtime_chrome;
+    UmiGtk4AutomationDriver *automation;
 };
 
 /*
@@ -347,6 +349,15 @@ UmiStatus umi_studio_gtk_workbench_create(
     if (status == UMI_STATUS_OK) {
         status = runtime_attach(workbench);
     }
+    /* Create UAT only after all runtime chrome is attached to the window tree. */
+    if (status == UMI_STATUS_OK) {
+        (void)umi_gtk4_automation_tag_widget(
+            workbench->window,
+            "studio.workbench.window");
+        status = umi_gtk4_automation_driver_create(
+            workbench->window,
+            &workbench->automation);
+    }
 
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
@@ -370,6 +381,10 @@ void umi_studio_gtk_workbench_destroy(
      * used.
      */
     if (workbench == NULL) return;
+
+    /* Release the retained root before the GTK adapter destroys its window. */
+    umi_gtk4_automation_driver_destroy(workbench->automation);
+    workbench->automation = NULL;
 
     runtime_detach(workbench);
 
@@ -396,6 +411,21 @@ GtkWindow *umi_studio_gtk_workbench_window(
     UmiStudioGtkWorkbench *workbench)
 {
     return workbench != NULL ? workbench->window : NULL;
+}
+
+/* Copy Studio's borrowed UAT interface for an in-process acceptance run. */
+UmiStatus umi_studio_gtk_workbench_automation(
+    UmiStudioGtkWorkbench *workbench,
+    UmiUiAutomationDriver *out_driver)
+{
+    if (workbench == NULL || workbench->automation == NULL ||
+        out_driver == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    *out_driver = umi_gtk4_automation_driver_interface(
+        workbench->automation);
+    return UMI_STATUS_OK;
 }
 
 /*

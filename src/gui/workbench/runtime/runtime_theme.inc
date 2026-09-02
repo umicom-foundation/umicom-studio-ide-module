@@ -51,12 +51,6 @@ static const char RUNTIME_CHROME_CSS[] =
     "button.umicom-runtime-appbar-action {"
     "  min-width: 26px; min-height: 26px; padding: 3px;"
     "}"
-    ".umicom-runtime-brand {"
-    "  min-height: 25px; padding: 1px 8px 1px 2px;"
-    "}"
-    ".umicom-workstation-identity-title {"
-    "  color: @umi_foreground; font-weight: 700; letter-spacing: 0.01em;"
-    "}"
     ".umicom-runtime-toolbar {"
     "  min-height: 31px; padding: 2px 6px;"
     "  background: @umi_surface_raised;"
@@ -159,6 +153,25 @@ static const char RUNTIME_CHROME_CSS[] =
     "}"
     ".umicom-runtime-diff-pane { font-family: monospace; }";
 
+/* Keep the small product identity visually joined to the application bar.
+ * The opposing inset highlights give it a quiet engraved edge without
+ * changing, tracing or replacing the supplied Umicom vector artwork. */
+static const char RUNTIME_IDENTITY_CSS[] =
+    ".umicom-runtime-brand {"
+    "  min-height: 25px; padding: 1px 8px 1px 4px; margin-right: 2px;"
+    "  border: 1px solid alpha(@umi_border,0.58); border-radius: 3px;"
+    "  background: alpha(@umi_background,0.34);"
+    "  box-shadow: inset 0 1px alpha(white,0.04),"
+    "              inset 0 -1px alpha(black,0.34);"
+    "}"
+    ".umicom-runtime-brand .umicom-workstation-identity-icon {"
+    "  opacity: 0.94; margin-right: 2px;"
+    "}"
+    ".umicom-workstation-identity-title {"
+    "  color: @umi_foreground; font-weight: 700; letter-spacing: 0.01em;"
+    "  text-shadow: 0 1px alpha(black,0.55);"
+    "}";
+
 static const char RUNTIME_WELCOME_CSS[] =
     ".umicom-welcome-scroll {"
     "  background: linear-gradient(135deg,"
@@ -193,6 +206,9 @@ _Static_assert(
     sizeof(RUNTIME_CHROME_CSS) <= 4096U,
     "Studio chrome CSS exceeds ISO C's portable string limit");
 _Static_assert(
+    sizeof(RUNTIME_IDENTITY_CSS) <= 4096U,
+    "Studio identity CSS exceeds ISO C's portable string limit");
+_Static_assert(
     sizeof(RUNTIME_WELCOME_CSS) <= 4096U,
     "Studio welcome CSS exceeds ISO C's portable string limit");
 
@@ -224,6 +240,7 @@ static UmiStatus runtime_apply_theme(UmiStudioGtkRuntimeChrome *runtime)
      * literal without weakening or dropping any visual styling rules. */
     complete_css = g_strconcat(
         RUNTIME_CHROME_CSS,
+        RUNTIME_IDENTITY_CSS,
         RUNTIME_WELCOME_CSS,
         NULL);
     /*

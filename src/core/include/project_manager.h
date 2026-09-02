@@ -27,7 +27,7 @@
 #include <gtk/gtk.h>
 #include "workspace.h"
 #include "file_index.h"
-#include "status.h"
+#include "status_util.h"
 #include "recent_files.h"
 #include "umi_output_sink.h"
 
@@ -44,11 +44,14 @@ typedef struct {
   UmiWorkspace *ws;
   UmiFileIndex *index;
   UmiRecent    *recent;
-  UmiStatus    *status;
+  UmiStatusBar *status;
 } UmiProjectManager;
 
 /* Create a new project manager by wiring the existing subsystems. */
-UmiProjectManager *umi_project_manager_new(UmiWorkspace *ws, UmiRecent *recent, UmiStatus *status);
+UmiProjectManager *umi_project_manager_new(
+    UmiWorkspace *ws,
+    UmiRecent *recent,
+    UmiStatusBar *status);
 
 /* Open a folder as the workspace root. This *also* triggers a re-index so that
  * the file tree shows up immediately for new contributors. */

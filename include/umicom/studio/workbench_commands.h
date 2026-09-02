@@ -36,6 +36,7 @@ typedef struct UmiStudioUi UmiStudioUi;
 #define UMI_STUDIO_COMMAND_AUXILIARY_TOGGLE "studio.ui.auxiliary-sidebar.toggle"
 #define UMI_STUDIO_COMMAND_STATUS_SET "studio.ui.status.set"
 #define UMI_STUDIO_COMMAND_LAYOUT_RESET "studio.ui.layout.reset"
+#define UMI_STUDIO_COMMAND_WORKSPACE_OPEN_FOLDER "workspace.open-folder"
 #define UMI_STUDIO_COMMAND_WORKSPACE_PROFILE_ACTIVATE \
     "studio.ui.workspace-profile.activate"
 #define UMI_STUDIO_COMMAND_NOTIFICATION_INFO "studio.ui.notification.info"
@@ -61,7 +62,7 @@ typedef struct UmiStudioUi UmiStudioUi;
 #define UMI_STUDIO_COMMAND_EDITOR_RESET_GROUPS \
     "studio.editor.reset-groups"
 
-#define UMI_STUDIO_WORKBENCH_COMMAND_COUNT 25U
+#define UMI_STUDIO_WORKBENCH_COMMAND_COUNT 26U
 
 /**
  * Add studio workbench commands only after its inputs and available capacity have been

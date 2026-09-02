@@ -16,60 +16,33 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/util/log/status_util.c
- * PURPOSE: Small helper abstraction over GtkStatusbar
+ * PURPOSE: Compatibility names for Studio's canonical GTK4 status bar
  * Created by: Umicom Foundation | Author: Sammy Hegab | Date: 2025-10-01 | MIT
  *---------------------------------------------------------------------------*/
 
-#include <glib.h>
-#include <gtk/gtk.h>
-#include "status_util.h"  /* UmiStatus API */
+#include "status_util.h"  /* UmiStatusBar API */
 
-UmiStatus *
-umi_status_new(GtkStatusbar *bar)
+/* Create the canonical GTK4 status bar through the compatibility API. */
+UmiStatusBar *
+umi_status_new(void)
 {
-    g_return_val_if_fail(GTK_IS_STATUSBAR(bar), NULL);         /* Validate input */
-
-    UmiStatus *st = g_new0(UmiStatus, 1);                      /* Allocate zeroed struct */
-    st->bar = bar;                                             /* Borrowed UI pointer */
-
-     /* GtkStatusbar is deprecated in GTK4; keep for now and silence warnings. */
-#if defined(G_GNUC_BEGIN_IGNORE_DEPRECATIONS)
-    G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
-    st->ctx_id = gtk_statusbar_get_context_id(bar, "umicom");  /* Obtain a context id */
-#if defined(G_GNUC_END_IGNORE_DEPRECATIONS)
-    G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
-    return st;                                                 /* Return wrapper */
+    return umi_status_bar_new();
 }
 
-/* Provide the status push operation used by this module and its client applications. */
+/* Replace the visible message through Studio's single GTK4 status component. */
 void
-umi_status_push(UmiStatus *st, const char *msg)
+umi_status_push(UmiStatusBar *st, const char *msg)
 {
-    /* Apply this branch only when its contract condition is satisfied. */
-    if (!st || !st->bar) return;                               /* Nothing to do if not bound */
-
-#if defined(G_GNUC_BEGIN_IGNORE_DEPRECATIONS)
-    G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
- /* GtkStatusbar shows the top of a per-context stack; use push()/pop() as needed. */
-if (!msg || !*msg) {
-
-       /* Empty: clear by pushing a blank or popping — push blank keeps behavior simple. */    
-       gtk_statusbar_push(st->bar, st->ctx_id, "");           /* Show empty text */
-    } /* Use this fallback path when the earlier condition does not apply. */ else {
-        gtk_statusbar_push(st->bar, st->ctx_id, msg);          /* Show provided message */
+    if (st == NULL) {
+        return;
     }
-#if defined(G_GNUC_END_IGNORE_DEPRECATIONS)
-    G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
+    umi_status_bar_set(st, msg);
 }
 
-/* Provide the status free operation used by this module and its client applications. */
+/* Release the canonical status component through its matching owner API. */
 void
-umi_status_free(UmiStatus *st)
+umi_status_free(UmiStatusBar *st)
 {
-    g_free(st);                                                /* Free wrapper (no UI destroy) */
+    umi_status_bar_free(st);
 }
 /*  END OF FILE */

@@ -58,6 +58,10 @@ UmiStatusBar *umi_status_bar_new(void)
     UmiStatusBar *sb = g_new0(UmiStatusBar, 1);
 
     sb->root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    /* The controller keeps one strong reference while a parent container may
+     * keep another. Releasing the controller therefore cannot leave a parent
+     * holding a pointer to an already destroyed widget. */
+    g_object_ref_sink(sb->root);
 
     GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_box_append(GTK_BOX(sb->root), sep);
@@ -110,13 +114,18 @@ void umi_status_bar_flash(UmiStatusBar *sb, const char *text, guint ms)
     sb->flash_id = g_timeout_add(ms, flash_clear_cb, sb);
 }
 
-/* Provide the status bar free operation used by this module and its client applications. */
+/* Release controller-owned state without destroying a view still owned by a window. */
 void umi_status_bar_free(UmiStatusBar *sb)
 {
-    /* Apply this branch only when its contract condition is satisfied. */
-    if (!sb) return;
-    /* Use the stable identifier comparison to choose the matching record or policy. */
-    if (sb->flash_id) { g_source_remove(sb->flash_id); sb->flash_id = 0; }
-    gtk_widget_destroy(sb->root);
+    if (sb == NULL) {
+        return;
+    }
+    /* A pending timeout stores the wrapper pointer, so cancel it before the
+     * wrapper is freed and can no longer receive the callback. */
+    if (sb->flash_id != 0U) {
+        g_source_remove(sb->flash_id);
+        sb->flash_id = 0U;
+    }
+    g_clear_object(&sb->root);
     g_free(sb);
 }

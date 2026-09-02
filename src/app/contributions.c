@@ -135,6 +135,7 @@ static const UmiUiActionSnapshot STUDIO_ACTIONS[] = {
      * document commands. GTK only collects arguments; Framework owns logic. */
     { "studio.action.file.new", UMI_DOCUMENT_COMMAND_NEW, "New File", "Create an untitled editor document", "document-new-symbolic", "Ctrl+N", 1, 1, 0, 0, 100, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.file.open", UMI_DOCUMENT_COMMAND_OPEN, "Open File…", "Open a file in the Framework editor", "document-open-symbolic", "Ctrl+O", 1, 1, 0, 0, 110, "", UMI_UI_ACTION_ARGUMENT_OPEN_PATH },
+    { "studio.action.workspace.open-folder", UMI_STUDIO_COMMAND_WORKSPACE_OPEN_FOLDER, "Open Folder…", "Open or switch the active Studio workspace", "folder-open-symbolic", "Ctrl+Alt+O", 1, 1, 0, 0, 115, "", UMI_UI_ACTION_ARGUMENT_FOLDER_PATH },
     { "studio.action.file.save", UMI_DOCUMENT_COMMAND_SAVE, "Save", "Save the active Framework working copy", "document-save-symbolic", "Ctrl+S", 1, 1, 0, 0, 120, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.file.save-as", UMI_DOCUMENT_COMMAND_SAVE_AS, "Save As…", "Save the active document to another path", "document-save-as-symbolic", "Ctrl+Shift+S", 1, 1, 0, 0, 130, "", UMI_UI_ACTION_ARGUMENT_SAVE_PATH },
     { "studio.action.file.close", UMI_DOCUMENT_COMMAND_CLOSE, "Close File", "Close the active document without data loss", "window-close-symbolic", "Ctrl+W", 1, 1, 0, 0, 135, "", UMI_UI_ACTION_ARGUMENT_NONE },
@@ -346,6 +347,7 @@ static const UmiUiActionSnapshot STUDIO_ACTIONS[] = {
 static const UmiUiMenuSnapshot STUDIO_MENUS[] = {
     { "menu.file.new", "file", "documents", "studio.action.file.new", "", 0, 10 },
     { "menu.file.open", "file", "documents", "studio.action.file.open", "", 0, 20 },
+    { "menu.file.open-folder", "file", "documents", "studio.action.workspace.open-folder", "", 0, 25 },
     { "menu.file.sep", "file", "save", "", "", 1, 30 },
     { "menu.file.save", "file", "save", "studio.action.file.save", "", 0, 40 },
     { "menu.file.save-as", "file", "save", "studio.action.file.save-as", "", 0, 50 },

@@ -170,7 +170,10 @@ static UmiStatus runtime_open_workspace_path(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     services = umi_studio_ui_services(runtime->owner->ui);
-    status = umi_studio_services_open_workspace(services, path, 1);
+    /* Use the same transactional workspace route as menus, headless clients
+     * and automation. A newly selected folder starts untrusted and receives a
+     * watcher; trust can be granted later through the explicit trust workflow. */
+    status = umi_studio_workspace_open(services, path, 0, 1);
     if (status == UMI_STATUS_OK) {
         (void)snprintf(runtime->workspace_root,
                        sizeof(runtime->workspace_root), "%s", path);

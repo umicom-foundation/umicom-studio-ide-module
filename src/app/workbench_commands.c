@@ -27,6 +27,49 @@
 
 #include "umicom/studio/ui.h"
 #include "umicom/studio/workbench.h"
+#include "umicom/studio/workspace.h"
+
+/* Open the selected directory through Studio's shared workspace services, then
+ * refresh every view model before the presentation adapter redraws. This keeps
+ * menus, Explorer data, build tools and context keys on one authoritative root. */
+static UmiStatus workspace_open_folder(void *user_data,
+                                       const char *argument,
+                                       char *out_message,
+                                       size_t capacity)
+{
+    UmiStudioUi *ui = (UmiStudioUi *)user_data;
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status;
+
+    if (ui == NULL || argument == NULL || argument[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    status = umi_studio_workspace_open(
+        umi_studio_ui_services(ui), argument, 0, 1);
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_ui_refresh(ui);
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_workspace_snapshot(
+            umi_studio_ui_services(ui), &workspace);
+    }
+
+    /* Return a useful summary to the status bar and automation clients instead
+     * of requiring each frontend to inspect Studio's private service objects. */
+    if (out_message != NULL && capacity > 0U) {
+        if (status == UMI_STATUS_OK) {
+            (void)snprintf(out_message, capacity,
+                           "Workspace opened: %s (%zu files, %zu projects)",
+                           workspace.graph.root,
+                           workspace.files.files,
+                           workspace.graph.project_count);
+        } else {
+            (void)snprintf(out_message, capacity, "Open workspace failed: %s",
+                           umi_status_text(status));
+        }
+    }
+    return status;
+}
 
 /*
  * Provide the perspective activate operation used by this module and its client
@@ -992,6 +1035,10 @@ UmiStatus umi_studio_workbench_commands_register(UmiCommandRegistry *registry,
         { UMI_STUDIO_COMMAND_LAYOUT_RESET,
           "Reset Layout", "Restore the default Studio workbench layout",
           layout_reset, UMI_COMMAND_MUTATES_STATE },
+        { UMI_STUDIO_COMMAND_WORKSPACE_OPEN_FOLDER,
+          "Open Folder",
+          "Open or switch the active Studio workspace directory",
+          workspace_open_folder, UMI_COMMAND_MUTATES_STATE },
         { UMI_STUDIO_COMMAND_WORKSPACE_PROFILE_ACTIVATE,
           "Activate Workspace Profile",
           "Switch the visible Studio tool regions to a named workspace profile",

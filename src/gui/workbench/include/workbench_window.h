@@ -47,6 +47,13 @@ void umi_studio_gtk_workbench_destroy(
 GtkWindow *umi_studio_gtk_workbench_window(
     UmiStudioGtkWorkbench *workbench);
 /**
+ * Copy the live in-process UAT driver used by Studio's automated-test panel.
+ * The returned interface borrows the workbench and is valid until destruction.
+ */
+UmiStatus umi_studio_gtk_workbench_automation(
+    UmiStudioGtkWorkbench *workbench,
+    UmiUiAutomationDriver *out_driver);
+/**
  * Provide the studio gtk workbench refresh operation used by this module and its client
  * applications.
  */

@@ -152,6 +152,12 @@ static GtkWidget *runtime_make_local_button(
      * used.
      */
     if (button == NULL || runtime == NULL) return button;
+    /* Stable IDs let UAT select these local controls without using captions. */
+    (void)umi_gtk4_automation_tag_widget(
+        button,
+        show_layouts
+            ? "studio.local.layout-browser"
+            : "studio.local.command-palette");
     gtk_widget_set_tooltip_text(button, tooltip != NULL ? tooltip : "");
     g_signal_connect(
         button,
@@ -194,6 +200,8 @@ static GtkWidget *runtime_make_command_button(
      * used.
      */
     if (command_id != NULL && command_id[0] != '\0') {
+        /* The canonical command ID is also the control's automation address. */
+        (void)umi_gtk4_automation_tag_widget(button, command_id);
         g_object_set_data_full(
             G_OBJECT(button),
             "umicom-command-id",
@@ -240,6 +248,8 @@ static GtkWidget *runtime_make_icon_command_button(
      * used.
      */
     if (command_id != NULL && command_id[0] != '\0') {
+        /* Icon-only buttons remain discoverable even when their label is hidden. */
+        (void)umi_gtk4_automation_tag_widget(button, command_id);
         g_object_set_data_full(
             G_OBJECT(button),
             "umicom-command-id",

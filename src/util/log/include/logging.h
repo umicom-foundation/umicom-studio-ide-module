@@ -27,7 +27,7 @@
 #include <glib.h>   /* G_GNUC_PRINTF, GLogWriterOutput */
 #include <gtk/gtk.h>/* GtkTextView */
 
-#include "status_util.h"   /* UmiStatus */
+#include "status_util.h"   /* UmiStatusBar */
 
 /**
  * ustudio_logging_init:
@@ -58,11 +58,11 @@ void ustudio_log_fmt(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 
 /**
  * ustudio_log_bind:
- * @status: Optional UmiStatus wrapper for mirroring last message into the status bar
+ * @status: Optional UmiStatusBar wrapper for mirroring the last message
  *
  * If provided, each logged message also updates the status bar text.
  */
-void ustudio_log_bind(UmiStatus *status);
+void ustudio_log_bind(UmiStatusBar *status);
 
 #endif /* UMICOM_LOGGING_H */
 /* End of src/util/log/include/logging.h */

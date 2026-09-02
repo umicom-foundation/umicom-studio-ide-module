@@ -53,7 +53,7 @@
 /* Global sinks; guarded by a mutex so worker threads may also log safely. */
 static GMutex        g_log_mutex;        /* Protects sink pointers */
 static GtkTextView  *g_log_view = NULL;  /* Borrowed; owned by UI */
-static UmiStatus    *g_status   = NULL;  /* Borrowed; owned by UI */
+static UmiStatusBar *g_status   = NULL;  /* Borrowed; owned by UI */
 
 /* Internal: push a single message into UI + status bar (runs on main thread). */
 static void
@@ -87,7 +87,7 @@ idle_append_line(gpointer data)
 
 /* Public: bind the status bar mirror. */
 void
-ustudio_log_bind(UmiStatus *status)
+ustudio_log_bind(UmiStatusBar *status)
 {
     g_mutex_lock(&g_log_mutex);                 /* Serialize updates to sinks */
     g_status = status;                          /* Borrowed pointer */

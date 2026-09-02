@@ -60,7 +60,9 @@ typedef struct _UmiFileIndex UmiFileIndex;
  * Build a fresh index from 'root' (recursive).
  *
  * RETURNS:
- *   Newly-allocated UmiFileIndex* or NULL if 'root' is invalid/unreachable.
+ *   Newly-allocated UmiFileIndex* or NULL when 'root' is empty. A traversal
+ *   failure produces a valid empty index so a later refresh can recover when
+ *   a temporarily unavailable directory becomes readable again.
  *-------------------------------------------------------------------------*/
 UmiFileIndex *umi_index_build(const char *root);
 

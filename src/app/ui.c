@@ -24,6 +24,7 @@
 #include "umicom/studio/view_models.h"
 #include "umicom/studio/workbench.h"
 #include "umicom/studio/workbench_commands.h"
+#include "umicom/studio/workspace.h"
 
 struct UmiStudioUi {
     UmiStudioServices *services;
@@ -36,6 +37,46 @@ struct UmiStudioUi {
     UmiStudioApplicationSurface *application_surface;
     int published;
 };
+
+/* Mirror authoritative workspace state into the workbench context store. Menu
+ * enablement, command-palette filtering and presentation adapters can consume
+ * these values without reaching into Studio's private service container. */
+static UmiStatus sync_workspace_context(UmiStudioUi *ui)
+{
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiUiContextStore *context;
+    UmiStatus status;
+
+    if (ui == NULL || ui->services == NULL || ui->workbench == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    status = umi_studio_workspace_snapshot(ui->services, &workspace);
+    if (status != UMI_STATUS_OK) {
+        return status;
+    }
+    context = umi_ui_workbench_context(ui->workbench);
+    status = umi_ui_context_set_boolean(
+        context, "studio.workspace.open", workspace.graph.open);
+    if (status == UMI_STATUS_OK) {
+        status = umi_ui_context_set_string(
+            context, "studio.workspace.root", workspace.graph.root);
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_ui_context_set_boolean(
+            context, "studio.workspace.trusted", workspace.graph.trusted);
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_ui_context_set_integer(
+            context, "studio.workspace.project-count",
+            (int64_t)workspace.graph.project_count);
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_ui_context_set_integer(
+            context, "studio.workspace.file-count",
+            (int64_t)workspace.files.files);
+    }
+    return status;
+}
 
 /* Provide the destroy partial operation used by this module and its client applications. */
 static void destroy_partial(UmiStudioUi *ui)
@@ -116,6 +157,9 @@ UmiStatus umi_studio_ui_create(UmiStudioServices *services,
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_workbench_restore_session(
         ui->workbench, umi_studio_services_session(services));
+    /* Establish the same context keys used after later open, refresh and close
+     * commands, even when Studio starts without an active workspace. */
+    if (status == UMI_STATUS_OK) status = sync_workspace_context(ui);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(ui);
@@ -196,6 +240,9 @@ UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui)
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     status = umi_studio_view_models_refresh(ui->view_models);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+    status = sync_workspace_context(ui);
+    /* Context must match the refreshed models before adapters evaluate menus. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_application_surface_refresh(ui->application_surface);
     /* Preserve the original failure result so the caller can respond to the correct cause. */

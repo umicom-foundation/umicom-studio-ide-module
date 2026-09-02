@@ -97,6 +97,9 @@ GtkWidget *umi_app_menu_llm_new(UmiSimpleAction on_save, gpointer user)
 {
     /* Horizontal bar with spacing and margins (no CSS). */
     GtkWidget *bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    /* Keep one controller-owned reference so releasing this component cannot
+     * destroy a widget that is still displayed by its parent container. */
+    g_object_ref_sink(bar);
     gtk_widget_set_margin_top   (bar, 6);
     gtk_widget_set_margin_bottom(bar, 6);
     gtk_widget_set_margin_start (bar, 6);
@@ -122,10 +125,11 @@ GtkWidget *umi_app_menu_llm_new(UmiSimpleAction on_save, gpointer user)
     return bar;
 }
 
-/* Provide the app menu llm free operation used by this module and its client applications. */
+/* Release the component's own reference; a parent keeps its displayed child alive. */
 void umi_app_menu_llm_free(GtkWidget *w)
 {
-    /* Apply this branch only when its contract condition is satisfied. */
-    if (!w) return;
-    gtk_widget_destroy(w);
+    if (w == NULL) {
+        return;
+    }
+    g_object_unref(w);
 }

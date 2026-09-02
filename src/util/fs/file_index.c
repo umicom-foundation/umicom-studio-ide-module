@@ -54,11 +54,12 @@ struct _UmiFileIndex {
 static void
 clear_files(UmiFileIndex *idx)
 {
-    /* Apply this branch only when its contract condition is satisfied. */
-    if (!idx || !idx->files) return;
-    /* GPtrArray does not have a clear-with-free; remove one by one to free. */
-    for (guint i = 0; i < idx->files->len; ++i) {
-        g_free(idx->files->pdata[i]);
+    /* The array was created with g_free as its element destructor. Reducing
+     * its size therefore releases every removed path exactly once. Manually
+     * freeing each path first would leave the array holding dangling pointers
+     * and would make this call free the same memory a second time. */
+    if (idx == NULL || idx->files == NULL) {
+        return;
     }
     g_ptr_array_set_size(idx->files, 0);
 }
@@ -87,10 +88,16 @@ on_visit(const char *path, gboolean is_dir, gpointer user)
 static gint
 cmp_paths(gconstpointer a, gconstpointer b, gpointer user_data)
 {
+    const char *const *left_path = (const char *const *)a;
+    const char *const *right_path = (const char *const *)b;
+
     (void)user_data;
-    const char *sa = (const char *)a;
-    const char *sb = (const char *)b;
-    return g_strcmp0(sa, sb);
+
+    /* GPtrArray passes the addresses of its pointer slots to the comparator.
+     * Dereferencing each slot produces the actual path string that should be
+     * compared. Treating the slot address itself as text reads unrelated
+     * memory and can cause unstable ordering or an access violation. */
+    return g_strcmp0(*left_path, *right_path);
 }
 
 /*---------------------------------------------------------------------------

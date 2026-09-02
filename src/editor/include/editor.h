@@ -51,10 +51,9 @@ typedef struct _UmiOutputPane  UmiOutputPane;
  * Represent the problem list data shared with callers of this public contract.
  */
 typedef struct _UmiProblemList UmiProblemList;
-/**
- * Represent the status data shared with callers of this public contract.
- */
-typedef struct _UmiStatus      UmiStatus;
+/* Forward-declare Studio's GTK4 status component. Framework's UmiStatus name
+ * remains reserved for operation result codes. */
+typedef struct _UmiStatusBar UmiStatusBar;
 
 /* Public editor state used across the app. */
 typedef struct _UmiEditor {
@@ -64,7 +63,7 @@ typedef struct _UmiEditor {
 
   GtkTextBuffer  *buffer;       /* detached text buffer (no view yet)            */
   char           *current_file; /* full path of current file (or NULL)           */
-  UmiStatus      *status;       /* optional status object                         */
+  UmiStatusBar   *status;       /* optional GTK4 status component                 */
 } UmiEditor;
 
 /**
