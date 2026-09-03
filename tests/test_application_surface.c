@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "umicom/application/component/recipe_catalogue.h"
 #include "umicom/studio/application_surface.h"
 
 /*

@@ -175,13 +175,16 @@ static UmiStatus runtime_open_workspace_path(
      * watcher; trust can be granted later through the explicit trust workflow. */
     status = umi_studio_workspace_open(services, path, 0, 1);
     if (status == UMI_STATUS_OK) {
-        (void)snprintf(runtime->workspace_root,
-                       sizeof(runtime->workspace_root), "%s", path);
+        runtime_copy_selection(
+            runtime->workspace_root,
+            sizeof(runtime->workspace_root),
+            path);
         if (umi_path_basename(path, workspace_name,
                               sizeof(workspace_name)) == UMI_STATUS_OK) {
-            (void)snprintf(runtime->workspace_name,
-                           sizeof(runtime->workspace_name), "%s",
-                           workspace_name);
+            runtime_copy_selection(
+                runtime->workspace_name,
+                sizeof(runtime->workspace_name),
+                workspace_name);
         }
         runtime_show_notification(runtime, "Workspace opened.");
     } else {

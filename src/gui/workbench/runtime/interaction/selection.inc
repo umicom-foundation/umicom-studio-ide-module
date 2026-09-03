@@ -19,6 +19,8 @@ static void runtime_copy_selection(
     size_t capacity,
     const char *value)
 {
+    size_t length;
+
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -32,7 +34,12 @@ static void runtime_copy_selection(
      */
     if (value == NULL) return;
 
-    (void)snprintf(destination, capacity, "%s", value);
+    length = strlen(value);
+    if (length >= capacity) length = capacity - 1U;
+    if (length > 0U) {
+        (void)memmove(destination, value, length);
+    }
+    destination[length] = '\0';
 }
 
 /*
