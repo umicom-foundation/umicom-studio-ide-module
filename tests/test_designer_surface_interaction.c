@@ -30,9 +30,12 @@ int main(void)
     UmiDesignerSurfaceInteraction interaction;
     UmiDesignerLiveSourceWorkspace before_source;
     UmiDesignerLiveSourceWorkspace after_source;
+    UmiStudioDesignerSnapshot designer_snapshot;
     UmiDesignerRect start = {16, 24, 96, 40};
     UmiDesignerRect moved;
+    UmiDesignerRect dropped;
     char node_id[UMI_DECL_ID_CAPACITY];
+    char dropped_id[UMI_DECL_ID_CAPACITY];
 
     assert(umi_studio_declarative_create(&declarative) == UMI_STATUS_OK);
     assert(umi_studio_designer_create(declarative, &designer) ==
@@ -47,6 +50,27 @@ int main(void)
         node_id,
         start) == UMI_STATUS_OK);
     umi_designer_surface_options_init(&options);
+
+    /* Studio delegates palette placement to Framework, selects the inserted
+     * node, and publishes its snapped geometry to the live source document. */
+    assert(umi_studio_designer_place_palette_component(
+        designer,
+        "label",
+        397,
+        297,
+        400,
+        300,
+        &options,
+        dropped_id,
+        sizeof(dropped_id),
+        &dropped) == UMI_STATUS_OK);
+    assert(dropped.x == 280 && dropped.y == 260);
+    assert(umi_studio_designer_undo(designer) == UMI_STATUS_OK);
+    /* Undoing a newly inserted selected component also clears its stale
+     * selection, allowing the next palette insertion to use the root safely. */
+    assert(umi_studio_designer_snapshot(designer, &designer_snapshot) ==
+           UMI_STATUS_OK);
+    assert(designer_snapshot.selected_items == 0U);
     assert(umi_studio_designer_live_source_snapshot(
         designer,
         &before_source) == UMI_STATUS_OK);

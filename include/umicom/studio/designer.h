@@ -118,6 +118,22 @@ UmiStatus umi_studio_designer_add_palette_component(
     char *out_node_id,
     size_t node_id_capacity);
 /**
+ * Place a registered palette component at a canvas position. The reusable
+ * Framework engine bounds and snaps its default rectangle and records the
+ * insertion as one undoable operation.
+ */
+UmiStatus umi_studio_designer_place_palette_component(
+    UmiStudioDesigner *designer,
+    const char *component_type,
+    int32_t x,
+    int32_t y,
+    int32_t canvas_width,
+    int32_t canvas_height,
+    const UmiDesignerSurfaceOptions *options,
+    char *out_node_id,
+    size_t node_id_capacity,
+    UmiDesignerRect *out_rect);
+/**
  * Change a property on the currently selected component through the existing
  * undoable designer operation path.
  */

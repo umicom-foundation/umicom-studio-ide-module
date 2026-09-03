@@ -154,6 +154,28 @@ static void runtime_on_designer_add_component(
     if (status == UMI_STATUS_OK) runtime_queue_designer_refresh(runtime);
 }
 
+/* Publish only the stable component type during a palette drag. The semantic
+ * component is not created until a canvas accepts the drop location. */
+static GdkContentProvider *runtime_on_designer_palette_drag_prepare(
+    GtkDragSource *source,
+    double x,
+    double y,
+    gpointer user_data)
+{
+    GtkWidget *button = GTK_WIDGET(user_data);
+    const char *component_type;
+
+    (void)source;
+    (void)x;
+    (void)y;
+    if (button == NULL) return NULL;
+    component_type = (const char *)g_object_get_data(
+        G_OBJECT(button),
+        "umicom-designer-component-type");
+    if (component_type == NULL || component_type[0] == '\0') return NULL;
+    return gdk_content_provider_new_typed(G_TYPE_STRING, component_type);
+}
+
 /* Select a semantic node so the canvas, structure and property inspector all
  * project the same selection on their next refresh. */
 static void runtime_on_designer_select_node(
@@ -274,6 +296,7 @@ static void runtime_designer_palette_populate(
         GtkWidget *content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
         GtkWidget *name = runtime_label(item->display_name, 0.0F);
         char detail[320];
+        GtkDragSource *drag_source;
 
         (void)snprintf(
             detail,
@@ -297,6 +320,18 @@ static void runtime_designer_palette_populate(
             "clicked",
             G_CALLBACK(runtime_on_designer_add_component),
             state->runtime);
+        /* A copy drag preserves the palette item and carries no widget or
+         * document pointer beyond the lifetime of the source button. */
+        drag_source = gtk_drag_source_new();
+        gtk_drag_source_set_actions(drag_source, GDK_ACTION_COPY);
+        g_signal_connect(
+            drag_source,
+            "prepare",
+            G_CALLBACK(runtime_on_designer_palette_drag_prepare),
+            button);
+        gtk_widget_add_controller(
+            button,
+            GTK_EVENT_CONTROLLER(drag_source));
         gtk_box_append(GTK_BOX(state->list), button);
     }
 }
@@ -769,6 +804,52 @@ static void runtime_designer_canvas_state_free(gpointer user_data)
     g_free(state);
 }
 
+/* Convert a palette drop into one Framework-owned insertion. The drop target
+ * reports success only after the node, geometry, selection, and history entry
+ * have all been accepted. */
+static gboolean runtime_on_designer_palette_drop(
+    GtkDropTarget *target,
+    const GValue *value,
+    double x,
+    double y,
+    gpointer user_data)
+{
+    UmiStudioGtkDesignerCanvasState *state =
+        (UmiStudioGtkDesignerCanvasState *)user_data;
+    const char *component_type;
+    char node_id[UMI_DECL_ID_CAPACITY];
+    UmiDesignerRect placed_rect;
+    UmiStatus status;
+
+    (void)target;
+    if (state == NULL || state->canvas == NULL || state->designer == NULL ||
+        value == NULL || !G_VALUE_HOLDS_STRING(value)) {
+        return FALSE;
+    }
+    component_type = g_value_get_string(value);
+    status = umi_studio_designer_place_palette_component(
+        state->designer,
+        component_type,
+        runtime_designer_pointer_coordinate(x),
+        runtime_designer_pointer_coordinate(y),
+        gtk_widget_get_width(state->canvas),
+        gtk_widget_get_height(state->canvas),
+        &state->options,
+        node_id,
+        sizeof(node_id),
+        &placed_rect);
+    runtime_show_notification(
+        state->runtime,
+        status == UMI_STATUS_OK
+            ? "Component placed on the design canvas."
+            : umi_status_text(status));
+    if (status == UMI_STATUS_OK) {
+        runtime_queue_designer_refresh(state->runtime);
+        return TRUE;
+    }
+    return FALSE;
+}
+
 /* Create a canvas that borrows the designer service and owns only its small
  * drawing callback record. The Preview mode disables input while Design and
  * Mixed modes attach the same direct-manipulation gesture. */
@@ -787,6 +868,7 @@ static GtkWidget *runtime_designer_canvas_new(
     state = g_try_new0(UmiStudioGtkDesignerCanvasState, 1);
     if (state != NULL) {
         GtkEventController *drag;
+        GtkDropTarget *drop_target;
 
         state->runtime = runtime;
         state->designer = runtime_designer_service(runtime);
@@ -816,9 +898,20 @@ static GtkWidget *runtime_designer_canvas_new(
                 G_CALLBACK(runtime_on_designer_drag_end),
                 state);
             gtk_widget_add_controller(canvas, drag);
+            /* Accept palette component types as copy data while leaving all
+             * insertion and bounds policy inside the Framework contract. */
+            drop_target = gtk_drop_target_new(G_TYPE_STRING, GDK_ACTION_COPY);
+            g_signal_connect(
+                drop_target,
+                "drop",
+                G_CALLBACK(runtime_on_designer_palette_drop),
+                state);
+            gtk_widget_add_controller(
+                canvas,
+                GTK_EVENT_CONTROLLER(drop_target));
             gtk_widget_set_tooltip_text(
                 canvas,
-                "Drag a component to move it; drag an edge or corner to resize it");
+                "Drop a palette item to place it; drag components or their edges to edit geometry");
         }
         if (out_state != NULL) *out_state = state;
     }
@@ -1019,7 +1112,7 @@ static GtkWidget *runtime_build_surface_visual_designer(
     gtk_box_append(
         GTK_BOX(toolbar),
         runtime_label(
-            "Drag to move; drag an edge or corner to resize.",
+            "Drop from Components to place; drag to move or resize.",
             0.0F));
     gtk_box_append(GTK_BOX(panel), toolbar);
     gtk_box_append(GTK_BOX(panel), canvas);

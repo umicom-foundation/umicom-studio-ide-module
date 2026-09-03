@@ -217,9 +217,51 @@ UmiStatus umi_studio_designer_select(
  * Provide the studio designer undo operation used by this module and its client
  * applications.
  */
-UmiStatus umi_studio_designer_undo(UmiStudioDesigner *d){UmiStatus s;if(d==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_designer_history_undo(d->history);/* Undo changes the shared semantic revision, so refresh every projection together. */ if(s==UMI_STATUS_OK)(void)synchronize_live_source(d);return s;}
-/* Reapply the latest reverted designer operation so every frontend shares the same history semantics. */
-UmiStatus umi_studio_designer_redo(UmiStudioDesigner *d){UmiStatus s;if(d==NULL)return UMI_STATUS_INVALID_ARGUMENT;s=umi_designer_history_redo(d->history);/* Redo changes the shared semantic revision, so refresh every projection together. */ if(s==UMI_STATUS_OK)(void)synchronize_live_source(d);return s;}
+/* Clear a selection when history has removed its component. Keeping a stale
+ * identifier would make later property edits or child insertion fail in a way
+ * that appears unrelated to the user's Undo command. */
+static void reconcile_selection(UmiStudioDesigner *designer)
+{
+    UmiDeclNode selected;
+
+    if (designer == NULL || designer->selection.primary[0] == '\0') return;
+    if (umi_decl_document_find_node(
+            umi_designer_document_declarative(designer->document),
+            designer->selection.primary,
+            &selected) != UMI_STATUS_OK) {
+        umi_designer_selection_clear(&designer->selection);
+    }
+}
+
+/* Reverse the latest semantic edit, then update selection and generated source
+ * so every open designer panel observes one consistent document state. */
+UmiStatus umi_studio_designer_undo(UmiStudioDesigner *designer)
+{
+    UmiStatus status;
+
+    if (designer == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_designer_history_undo(designer->history);
+    if (status == UMI_STATUS_OK) {
+        reconcile_selection(designer);
+        (void)synchronize_live_source(designer);
+    }
+    return status;
+}
+
+/* Reapply the latest reverted semantic edit and refresh generated source so
+ * code, design, mixed, structure and preview panels remain synchronized. */
+UmiStatus umi_studio_designer_redo(UmiStudioDesigner *designer)
+{
+    UmiStatus status;
+
+    if (designer == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_designer_history_redo(designer->history);
+    if (status == UMI_STATUS_OK) {
+        reconcile_selection(designer);
+        (void)synchronize_live_source(designer);
+    }
+    return status;
+}
 /*
  * Provide the studio designer preview operation used by this module and its client
  * applications.
@@ -279,6 +321,11 @@ static UmiStatus palette_parent_id(
         umi_designer_document_declarative(designer->document),
         designer->selection.primary,
         &selected);
+    /* A selection removed by history is treated like an empty selection, so
+     * the root remains a useful and predictable insertion parent. */
+    if (status == UMI_STATUS_NOT_FOUND) {
+        return UMI_STATUS_OK;
+    }
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -286,6 +333,11 @@ static UmiStatus palette_parent_id(
         umi_studio_declarative_components(designer->declarative),
         selected.component_type,
         &component);
+    /* An unregistered selected type cannot safely own children, so insertion
+     * falls back to the root while real registry failures are preserved. */
+    if (status == UMI_STATUS_NOT_FOUND) {
+        return UMI_STATUS_OK;
+    }
     if (status != UMI_STATUS_OK) {
         return status;
     }
@@ -342,43 +394,94 @@ UmiStatus umi_studio_designer_add_palette_component(
     char *out_node_id,
     size_t node_id_capacity)
 {
-    UmiDeclComponentDescriptor component;
-    char parent_id[UMI_DECL_ID_CAPACITY];
-    UmiStatus status;
+    UmiDesignerDocumentSnapshot snapshot;
+    size_t slot;
 
     if (designer == NULL || component_type == NULL ||
         out_node_id == NULL || node_id_capacity == 0U) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    if (umi_designer_document_snapshot(designer->document, &snapshot) !=
+        UMI_STATUS_OK) {
+        return UMI_STATUS_INVALID_STATE;
+    }
+    /* Keyboard and click insertion use a small repeating cascade so several
+     * new components remain individually visible before the user arranges them. */
+    slot = snapshot.component_count % 12U;
+    return umi_studio_designer_place_palette_component(
+        designer,
+        component_type,
+        16 + (int32_t)(slot * 16U),
+        16 + (int32_t)(slot * 16U),
+        960,
+        640,
+        NULL,
+        out_node_id,
+        node_id_capacity,
+        NULL);
+}
+
+/* Place a palette item through Framework geometry and history services. This
+ * keeps GTK drag data, semantic ownership, snapping, and undo responsibilities
+ * separate while publishing the completed design to every Studio view. */
+UmiStatus umi_studio_designer_place_palette_component(
+    UmiStudioDesigner *designer,
+    const char *component_type,
+    int32_t x,
+    int32_t y,
+    int32_t canvas_width,
+    int32_t canvas_height,
+    const UmiDesignerSurfaceOptions *options,
+    char *out_node_id,
+    size_t node_id_capacity,
+    UmiDesignerRect *out_rect)
+{
+    UmiDeclComponentDescriptor component;
+    char parent_id[UMI_DECL_ID_CAPACITY];
+    UmiDesignerRect requested = {x, y, 120, 40};
+    UmiDesignerRect canvas = {0, 0, canvas_width, canvas_height};
+    UmiStatus status;
+
+    if (designer == NULL || component_type == NULL || out_node_id == NULL ||
+        node_id_capacity == 0U || canvas_width <= 0 || canvas_height <= 0) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
     out_node_id[0] = '\0';
+    if (out_rect != NULL) *out_rect = (UmiDesignerRect){0, 0, 0, 0};
     status = umi_decl_component_registry_find(
         umi_studio_declarative_components(designer->declarative),
         component_type,
         &component);
     if (status == UMI_STATUS_OK) {
-        status = palette_parent_id(
-            designer,
-            parent_id,
-            sizeof(parent_id));
+        status = palette_parent_id(designer, parent_id, sizeof(parent_id));
     }
     if (status == UMI_STATUS_OK) {
         status = palette_node_id(
             designer,
-            component_type,
+            component.component_type,
             out_node_id,
             node_id_capacity);
     }
     if (status == UMI_STATUS_OK) {
-        status = umi_studio_designer_add_component(
-            designer,
+        status = umi_designer_surface_insert_component(
+            designer->document,
+            designer->history,
             out_node_id,
             component.component_type,
-            parent_id);
+            parent_id,
+            requested,
+            canvas,
+            options,
+            out_rect);
     }
     if (status == UMI_STATUS_OK) {
         status = umi_studio_designer_select(designer, out_node_id);
     }
-    if (status != UMI_STATUS_OK) {
+    if (status == UMI_STATUS_OK) {
+        /* The history operation has already succeeded, so preview failure is
+         * retained as live-source health instead of losing the user edit. */
+        (void)synchronize_live_source(designer);
+    } else {
         out_node_id[0] = '\0';
     }
     return status;
