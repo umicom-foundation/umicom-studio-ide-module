@@ -23,6 +23,8 @@
 #include <glib/gstdio.h>
 
 #include "umicom/application_shell/persona.h"
+#include "umicom/application/component_catalogue.h"
+#include "umicom/application/presentation/presentation.h"
 #include "umicom/browser/source_preview.h"
 #include "umicom/ide_integration/ide_integration.h"
 #include "umicom/diagnostics/store.h"

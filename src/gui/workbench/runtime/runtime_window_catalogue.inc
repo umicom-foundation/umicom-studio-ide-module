@@ -505,10 +505,16 @@ static UmiStatus runtime_build_window_catalogue(
         GtkWidget *centre;
         GtkWidget *floating;
         GtkWidget *hide;
-        char search_text[512];
+        const char *component_id;
+        const UmiApplicationComponentDefinition *definition;
+        char *search_text;
 
         /* Apply this branch only when its contract condition is satisfied. */
         if (profile->region == UMI_STUDIO_GTK_REGION_EDITOR) continue;
+        component_id = runtime_surface_component_id(profile->kind);
+        definition = component_id != NULL
+            ? umi_application_component_catalogue_find(component_id)
+            : NULL;
         row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
         identity = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
         title = runtime_label(profile->title, 0.0F);
@@ -563,17 +569,21 @@ static UmiStatus runtime_build_window_catalogue(
         gtk_box_append(GTK_BOX(actions), hide);
         gtk_box_append(GTK_BOX(row), identity);
         gtk_box_append(GTK_BOX(row), actions);
-        (void)snprintf(
-            search_text,
-            sizeof(search_text),
-            "%s %s %s",
+        /* Framework aliases and descriptions let users find a surface by the
+         * job they want to perform, not only by remembering its exact title. */
+        search_text = g_strdup_printf(
+            "%s %s %s %s %s",
             profile->title,
             profile->stack_name,
-            runtime_region_text(profile->region));
+            runtime_region_text(profile->region),
+            definition != NULL ? definition->description : "",
+            definition != NULL ? definition->search_terms : "");
+        if (definition != NULL)
+            gtk_widget_set_tooltip_text(row, definition->description);
         g_object_set_data_full(
             G_OBJECT(row),
             "umicom-window-search-text",
-            g_strdup(search_text),
+            search_text,
             g_free);
         gtk_list_box_append(GTK_LIST_BOX(runtime->window_catalogue_list), row);
     }

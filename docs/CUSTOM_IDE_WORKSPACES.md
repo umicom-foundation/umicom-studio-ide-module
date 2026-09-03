@@ -44,6 +44,13 @@ The editor remains the normal document region. A tool panel can temporarily
 join the Centre tab stack, while source documents continue to use the Framework
 editor-group and document-tab services.
 
+The New Window search now reads the canonical Framework description and
+plain-language aliases for each Studio surface. A user can therefore search by
+an intended job such as building, diagnostics, source history, visual design
+or model comparison without memorising the panel's exact title. Each catalogue
+row also reports its compact policy so the result of moving to a smaller screen
+is understandable before the layout changes.
+
 ## Why locking matters
 
 Large IDEs contain many small surfaces. An accidental drag can make a familiar

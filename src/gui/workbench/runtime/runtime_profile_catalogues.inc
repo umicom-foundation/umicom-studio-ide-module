@@ -366,6 +366,59 @@ static const UmiStudioGtkSurfaceProfile RUNTIME_SURFACE_PROFILES[] = {
 };
 #undef UMI_STUDIO_GTK_SURFACE_PROFILE
 
+/* Link each Studio presentation surface to the canonical Framework component
+ * that explains its purpose and policy. Several specialised views can share
+ * one component because they are alternate presentations of the same model. */
+static const char *runtime_surface_component_id(UmiStudioRuntimeSurfaceKind kind)
+{
+    switch (kind) {
+    case UMI_STUDIO_SURFACE_EXPLORER:
+    case UMI_STUDIO_SURFACE_OUTLINE:
+    case UMI_STUDIO_SURFACE_SEARCH:
+        return "umicom.development.explorer";
+    case UMI_STUDIO_SURFACE_EDITOR:
+    case UMI_STUDIO_SURFACE_DESIGN_CODE:
+        return "umicom.development.editor";
+    case UMI_STUDIO_SURFACE_PROBLEMS:
+    case UMI_STUDIO_SURFACE_OUTPUT:
+        return "umicom.shared.diagnostics";
+    case UMI_STUDIO_SURFACE_TERMINAL:
+        return "umicom.development.terminal";
+    case UMI_STUDIO_SURFACE_SOURCE_CONTROL:
+        return "umicom.development.source-control";
+    case UMI_STUDIO_SURFACE_TEST_EXPLORER:
+        return "umicom.development.testing";
+    case UMI_STUDIO_SURFACE_DEBUG:
+        return "umicom.development.debug";
+    case UMI_STUDIO_SURFACE_BUILD:
+        return "umicom.development.build";
+    case UMI_STUDIO_SURFACE_AI_CHAT:
+        return "umicom.ai.chat";
+    case UMI_STUDIO_SURFACE_AI_TOOLS:
+        return "umicom.ai.tools";
+    case UMI_STUDIO_SURFACE_AI_MODEL_COMPARISON:
+        return "umicom.ai.models";
+    case UMI_STUDIO_SURFACE_AI_REVIEW:
+    case UMI_STUDIO_SURFACE_AI_APPROVALS:
+    case UMI_STUDIO_SURFACE_AI_VALIDATION:
+        return "umicom.ai.evaluation";
+    case UMI_STUDIO_SURFACE_LEARNING:
+    case UMI_STUDIO_SURFACE_DOCUMENTATION:
+        return "umicom.education.course";
+    case UMI_STUDIO_SURFACE_VISUAL_DESIGNER:
+    case UMI_STUDIO_SURFACE_COMPONENT_PALETTE:
+    case UMI_STUDIO_SURFACE_COMPONENT_STRUCTURE:
+    case UMI_STUDIO_SURFACE_OBJECT_INSPECTOR:
+    case UMI_STUDIO_SURFACE_DESIGN_MIXED:
+        return "umicom.development.designer";
+    case UMI_STUDIO_SURFACE_DESIGN_PREVIEW:
+    case UMI_STUDIO_SURFACE_LIVE_PREVIEW:
+        return "umicom.development.live-preview";
+    default:
+        return NULL;
+    }
+}
+
 #define UMI_STUDIO_GTK_COMMAND_PROFILE(id_, command_, label_, icon_, category_, tooltip_) \
     {id_, command_, label_, icon_, category_, tooltip_},
 static const UmiStudioGtkCommandProfile RUNTIME_COMMAND_PROFILES[] = {

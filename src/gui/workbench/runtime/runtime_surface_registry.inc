@@ -190,7 +190,9 @@ static void runtime_surface_location_refresh(
     UmiStudioRuntimeSurfaceKind kind)
 {
     GtkWidget *label;
-    char text[96];
+    const char *component_id;
+    const UmiApplicationPresentationPanelSpec *panel_spec;
+    char text[128];
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -205,15 +207,25 @@ static void runtime_surface_location_refresh(
      * used.
      */
     if (label == NULL) return;
+    component_id = runtime_surface_component_id(kind);
+    panel_spec = component_id != NULL
+        ? umi_application_presentation_panel_catalogue_find(component_id)
+        : NULL;
+    /* Include the small-screen rule in the catalogue status so users know
+     * whether a panel stays visible, becomes a tab, auto-hides or is deferred. */
     (void)snprintf(
         text,
         sizeof(text),
-        "%s · %s",
+        "%.24s · %.12s · %.12s",
         runtime->surface_floating[kind]
             ? "Floating"
             : runtime_region_text(
                   (UmiStudioGtkRuntimeRegion)runtime->surface_regions[kind]),
-        runtime->surface_visible[kind] ? "open" : "hidden");
+        runtime->surface_visible[kind] ? "open" : "hidden",
+        panel_spec != NULL
+            ? umi_application_presentation_compact_policy_text(
+                  panel_spec->compact_policy)
+            : "unclassified");
     gtk_label_set_text(GTK_LABEL(label), text);
 }
 
