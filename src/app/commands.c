@@ -3320,6 +3320,104 @@ static UmiStatus trading_reset_kill_switch_handler(
     return UMI_STATUS_OK;
 }
 
+/* Parse direction[:minimum-size] as one bounded value so the command palette,
+ * menus, automation, and future consoles all configure the tape identically. */
+static UmiStatus parse_trade_tape_filter_argument(
+    const char *argument,
+    UmiTradingTradeTapeFilter *out_filter,
+    double *out_minimum_size)
+{
+    char buffer[64U];
+    char *separator;
+    size_t length;
+    UmiStatus status = UMI_STATUS_OK;
+
+    if (!has_argument(argument) || out_filter == NULL ||
+        out_minimum_size == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    length = strlen(argument);
+    if (length >= sizeof(buffer)) return UMI_STATUS_CAPACITY_EXCEEDED;
+    (void)memcpy(buffer, argument, length + 1U);
+    separator = strchr(buffer, ':');
+    if (separator != NULL) {
+        *separator = '\0';
+        status = parse_real_argument(separator + 1, out_minimum_size);
+        if (status != UMI_STATUS_OK || *out_minimum_size < 0.0) {
+            return UMI_STATUS_INVALID_ARGUMENT;
+        }
+    } else {
+        *out_minimum_size = 0.0;
+    }
+
+    /* Direction words are deliberately provider-neutral and remain stable for
+     * saved command history even when the connected market feed changes. */
+    if (strcmp(buffer, "all") == 0) {
+        *out_filter = UMI_TRADING_TRADE_TAPE_ALL;
+    } else if (strcmp(buffer, "buyer") == 0) {
+        *out_filter = UMI_TRADING_TRADE_TAPE_BUYER_INITIATED;
+    } else if (strcmp(buffer, "seller") == 0) {
+        *out_filter = UMI_TRADING_TRADE_TAPE_SELLER_INITIATED;
+    } else if (strcmp(buffer, "unknown") == 0) {
+        *out_filter = UMI_TRADING_TRADE_TAPE_UNKNOWN;
+    } else {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    return UMI_STATUS_OK;
+}
+
+/* Apply a non-destructive Time and Sales filter to Studio's shared Framework
+ * workspace. Existing trades remain available when the filter changes. */
+static UmiStatus trading_filter_trade_tape_handler(
+    void *user_data, const char *argument,
+    char *out_message, size_t message_capacity)
+{
+    UmiTradingTradeTapeFilter filter;
+    double minimum_size = 0.0;
+    UmiStatus status = parse_trade_tape_filter_argument(
+        argument, &filter, &minimum_size);
+
+    if (status == UMI_STATUS_OK) {
+        status = umi_trading_workspace_set_trade_tape_filter(
+            trading_workspace(user_data), filter, minimum_size);
+    }
+    trading_message(out_message, message_capacity,
+                    "Time and Sales filter updated", status);
+    return status;
+}
+
+/* Freeze Studio's visible tape cursor while provider ingestion continues in
+ * the Framework workspace, ready for a later resume. */
+static UmiStatus trading_pause_trade_tape_handler(
+    void *user_data, const char *argument,
+    char *out_message, size_t message_capacity)
+{
+    UmiStatus status;
+
+    (void)argument;
+    status = umi_trading_workspace_set_trade_tape_paused(
+        trading_workspace(user_data), 1);
+    trading_message(out_message, message_capacity,
+                    "Time and Sales display paused; ingestion continues",
+                    status);
+    return status;
+}
+
+/* Resume the visible tape cursor and reveal trades retained during a pause. */
+static UmiStatus trading_resume_trade_tape_handler(
+    void *user_data, const char *argument,
+    char *out_message, size_t message_capacity)
+{
+    UmiStatus status;
+
+    (void)argument;
+    status = umi_trading_workspace_set_trade_tape_paused(
+        trading_workspace(user_data), 0);
+    trading_message(out_message, message_capacity,
+                    "Time and Sales display resumed", status);
+    return status;
+}
+
 /*
  * Provide the developer report handler operation used by this module and its client
  * applications.
@@ -4823,6 +4921,29 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_REQUIRES_TRUST |
                                   UMI_COMMAND_AUDITED,
                               trading_reset_kill_switch_handler);
+    /* Time and Sales controls change presentation policy only; they never
+     * bypass the order, broker, risk, or live-environment safety gates. */
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_TRADING_FILTER_TRADE_TAPE,
+                              "Filter Time and Sales", "Trading",
+                              "Use direction[:minimum-size], such as buyer:100.",
+                              "studio.trading.read", UMI_COMMAND_MUTATES_STATE,
+                              trading_filter_trade_tape_handler);
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_TRADING_PAUSE_TRADE_TAPE,
+                              "Pause Time and Sales", "Trading",
+                              "Freeze visible trades while ingestion continues.",
+                              "studio.trading.read", UMI_COMMAND_MUTATES_STATE,
+                              trading_pause_trade_tape_handler);
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_TRADING_RESUME_TRADE_TAPE,
+                              "Resume Time and Sales", "Trading",
+                              "Reveal trades retained while the display was paused.",
+                              "studio.trading.read", UMI_COMMAND_MUTATES_STATE,
+                              trading_resume_trade_tape_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,

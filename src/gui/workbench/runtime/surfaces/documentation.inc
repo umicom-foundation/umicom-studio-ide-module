@@ -182,6 +182,43 @@ static void runtime_on_documentation_open(
     (void)runtime_documentation_display_location(runtime, location, 1);
 }
 
+/* Find the first matching phrase in the current readable document preview. */
+static void runtime_on_documentation_search(
+    GtkSearchEntry *entry,
+    gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+    const char *query;
+    GtkTextBuffer *buffer;
+    GtkTextIter start;
+    GtkTextIter match_start;
+    GtkTextIter match_end;
+
+    if (runtime == NULL || entry == NULL ||
+        runtime->documentation_preview_view == NULL) {
+        return;
+    }
+    query = gtk_editable_get_text(GTK_EDITABLE(entry));
+    buffer = gtk_text_view_get_buffer(
+        GTK_TEXT_VIEW(runtime->documentation_preview_view));
+    gtk_text_buffer_get_start_iter(buffer, &start);
+    /* An empty query clears the selection and leaves the document at its start. */
+    if (query == NULL || query[0] == '\0') {
+        gtk_text_buffer_place_cursor(buffer, &start);
+        return;
+    }
+    /* Case-insensitive search is friendlier for prose and C identifiers. */
+    if (gtk_text_iter_forward_search(
+            &start, query, GTK_TEXT_SEARCH_CASE_INSENSITIVE,
+            &match_start, &match_end, NULL)) {
+        gtk_text_buffer_select_range(buffer, &match_start, &match_end);
+        gtk_text_view_scroll_to_iter(
+            GTK_TEXT_VIEW(runtime->documentation_preview_view),
+            &match_start, 0.15, FALSE, 0.0, 0.0);
+    }
+}
+
 /* Move through browser history and refresh the local readable preview. */
 static void runtime_documentation_history_move(
     UmiStudioGtkRuntimeChrome *runtime,
@@ -257,6 +294,7 @@ static GtkWidget *runtime_build_surface_documentation(
 
     if (panel == NULL || runtime == NULL) return panel;
     runtime->documentation_location_entry = gtk_entry_new();
+    runtime->documentation_search_entry = gtk_search_entry_new();
     runtime->documentation_summary_label = runtime_label(
         "Enter an HTML file path or file URL.", 0.0F);
     runtime->documentation_preview_view = gtk_text_view_new();
@@ -297,6 +335,18 @@ static GtkWidget *runtime_build_surface_documentation(
         gtk_box_append(GTK_BOX(navigation), open);
     }
     gtk_box_append(GTK_BOX(panel), navigation);
+    if (runtime->documentation_search_entry != NULL) {
+        gtk_search_entry_set_placeholder_text(
+            GTK_SEARCH_ENTRY(runtime->documentation_search_entry),
+            "Find in documentation");
+        g_signal_connect(
+            runtime->documentation_search_entry,
+            "search-changed",
+            G_CALLBACK(runtime_on_documentation_search),
+            runtime);
+        gtk_box_append(
+            GTK_BOX(panel), runtime->documentation_search_entry);
+    }
     if (runtime->documentation_summary_label != NULL) {
         gtk_widget_add_css_class(
             runtime->documentation_summary_label, "umicom-runtime-muted");

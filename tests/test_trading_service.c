@@ -40,6 +40,8 @@ int main(void)
     assert(snapshot.watchlist_count == 3U);
     assert(snapshot.visible_instrument_count == 3U);
     assert(snapshot.market_data_ready);
+    assert(snapshot.trade_tape.provider_ready);
+    assert(snapshot.trade_tape.retained_count == 3U);
     assert(snapshot.risk_ready);
     assert(!snapshot.broker_ready);
     assert(!snapshot.live_armed);

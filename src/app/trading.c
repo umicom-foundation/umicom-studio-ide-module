@@ -52,11 +52,14 @@ static UmiStatus seed_market(UmiTradingWorkspace *workspace,
                              const UmiInstrument *instrument,
                              double bid, double ask, double previous_close,
                              double open, double high, double low, double close,
-                             double volume, int64_t event_time_ms)
+                             double volume, int64_t event_time_ms,
+                             uint64_t trade_sequence)
 {
     UmiQuote quote = {0};
     UmiBar bar = {0};
     UmiMarketDepth depth = {0};
+    UmiTradeTick trade = {0};
+    UmiTradingTradeTapeRecord tape_record;
     double price_step = (ask - bid) > 0.0 ? (ask - bid) : 0.01;
     UmiStatus status = umi_trading_workspace_add_instrument(
         workspace, instrument);
@@ -114,6 +117,25 @@ static UmiStatus seed_market(UmiTradingWorkspace *workspace,
         status = umi_trading_workspace_set_market_state(
             workspace, instrument->instrument_id.value, UMI_MARKET_OPEN);
     }
+    /* Seed one separate public trade for the Time and Sales lesson. It is
+     * labelled reference data and never reuses an account execution record. */
+    if (status == UMI_STATUS_OK) {
+        trade.instrument = *instrument;
+        trade.price = close;
+        trade.size = volume > 1000.0 ? volume / 1000.0 : volume;
+        trade.event_time_ms = event_time_ms;
+        status = umi_trading_trade_tape_record_init(
+            &tape_record,
+            trade_sequence,
+            &trade,
+            close >= open
+                ? UMI_TRADING_TRADE_DIRECTION_BUYER_INITIATED
+                : UMI_TRADING_TRADE_DIRECTION_SELLER_INITIATED,
+            "reference");
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_trading_workspace_update_trade(workspace, &tape_record);
+    }
     return status;
 }
 
@@ -160,19 +182,19 @@ UmiStatus umi_studio_trading_service_create(
     if (status == UMI_STATUS_OK) {
         status = seed_market(service->workspace, &es,
             5624.75, 5625.00, 5610.25, 5612.00, 5631.50, 5608.25,
-            5624.75, 128450.0, 1000000);
+            5624.75, 128450.0, 1000000, 1U);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = seed_market(service->workspace, &nq,
             20324.25, 20324.75, 20270.50, 20282.00, 20351.25, 20261.75,
-            20324.50, 86420.0, 1000000);
+            20324.50, 86420.0, 1000000, 2U);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = seed_market(service->workspace, &eurusd,
             1.09120, 1.09124, 1.08980, 1.09010, 1.09205, 1.08972,
-            1.09122, 42150.0, 1000000);
+            1.09122, 42150.0, 1000000, 3U);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {

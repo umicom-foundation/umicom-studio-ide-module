@@ -180,9 +180,15 @@ extern "C" {
     "studio.trading.engage-kill-switch"
 #define UMI_STUDIO_COMMAND_TRADING_RESET_KILL_SWITCH \
     "studio.trading.reset-kill-switch"
+#define UMI_STUDIO_COMMAND_TRADING_FILTER_TRADE_TAPE \
+    "studio.trading.filter-trade-tape"
+#define UMI_STUDIO_COMMAND_TRADING_PAUSE_TRADE_TAPE \
+    "studio.trading.pause-trade-tape"
+#define UMI_STUDIO_COMMAND_TRADING_RESUME_TRADE_TAPE \
+    "studio.trading.resume-trade-tape"
 #define UMI_STUDIO_COMMAND_DEVELOPER_REPORT "studio.developer.report"
 
-#define UMI_STUDIO_CORE_COMMAND_COUNT 139U
+#define UMI_STUDIO_CORE_COMMAND_COUNT 142U
 
 /**
  * Add studio commands only after its inputs and available capacity have been checked.

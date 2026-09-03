@@ -12,6 +12,14 @@ Choose the **C Learning** layout when you want the editor, lessons, documentatio
 
 Open a folder to create a workspace, then open a `.c` or `.h` file in the editor. Studio uses the existing Framework document, language, compiler, build, diagnostic, test, terminal, and debugger services. The GTK workbench only presents those services; it does not contain a second compiler or debugger implementation.
 
+Studio activates Framework's offline C language-assistance provider at startup.
+It supplies prefix-filtered keywords, headers, common library functions,
+snippets, function signatures and safer-use notes for both `c` and `c23`
+documents. Completion records carry a replacement range and document revision
+so the editor can reject stale edits. The same provider registry can combine
+these local results with project indexes, language servers, community
+extensions and optional model providers.
+
 The Build surface reports the active build profile, build directory, diagnostics, artifacts, and last status. Its commands configure, compile, test, clean, run, install, retry, cancel, and inspect build results through the registered Studio command service.
 
 The Run and Debug surface works with the existing debugger service. It presents breakpoints, threads, stack frames, variables, watches, pause, continue, step over, step in, step out, and stop operations.
@@ -32,13 +40,20 @@ explicit permission are supplied.
 
 ## Reading documentation
 
-Open **Help > Documentation** to reveal the Documentation surface. Enter a local HTML file path such as `docs/index.html`, or a `file://` URL, and choose **Open**. The Framework browser records navigation history while the Framework document-preview service extracts the page title and readable content into a bounded buffer.
+Open **Help > Documentation** to reveal the Documentation surface. Enter a local HTML file path such as `docs/index.html`, or a `file://` URL, and choose **Open**. The Framework browser records navigation history while the Framework document-preview service extracts the page title and readable content into a bounded buffer. Use **Find in documentation** to locate a phrase in the current page without leaving the workbench.
 
 This readable preview is useful on systems where a native web rendering provider has not been installed. The browser contract deliberately remains provider-neutral, so a fully interactive renderer can be added later without changing Studio commands, saved layouts, or application code.
 
 ## Following lessons
 
 Open **Help > AI Teacher** or select **Open Interactive Learning** on the welcome page. The Guided Learning surface reads the Framework-owned foundations curriculum and shows each lesson in sequence. Expand a lesson to read its explanation, practical exercise, expected score, estimated time, and required tools.
+
+Select **Open C language and safer programming reference** for the built-in
+offline wiki. It covers program structure, types, control flow, functions,
+arrays, strings, pointers, ownership, allocation, integer arithmetic, input,
+files, modules, cleanup, tests, analysis and concurrency. Completion details
+and quick documentation use the same trusted C catalogue, so an explanation is
+consistent whether it is opened from a suggestion or the documentation panel.
 
 When a lesson supplies a resource path, **Open lesson resource** sends it to the same Documentation surface. Curriculum, progression, assessment, and resource identity remain in Umicom Framework, which means another Umicom application can present the same learning material without copying the lesson logic.
 
@@ -49,3 +64,4 @@ When a lesson supplies a resource path, **Open lesson resource** sends it to the
 - The Application Shell catalogue keeps every surface discoverable and gives future frontends the same stable identifiers.
 - Layout persistence remembers visibility, placement, docking, and floating state independently from the services shown inside each panel.
 - The source-preview service selects providers, checks revisions and enforces the no-execution default independently from Studio's GTK widgets.
+- C completion and documentation are offline defaults, while richer providers remain replaceable and independently governed.

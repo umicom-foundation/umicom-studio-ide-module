@@ -16,6 +16,7 @@
 #include "umicom/studio/commands.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/platform_contract.h"
+#include "umicom/studio/trading.h"
 #include "umicom/studio/workbench_commands.h"
 #include "umicom/studio/tests.h"
 
@@ -32,6 +33,7 @@ int main(void)
     UmiCommandRegistry *registry;
     UmiCommandSnapshot snapshot;
     UmiStudioPlatformContractSnapshot contract;
+    UmiTradingWorkspaceSnapshot trading_snapshot;
     char message[512];
 
     (void)umi_fs_remove_tree(".umicom");
@@ -251,6 +253,30 @@ int main(void)
                registry, UMI_STUDIO_COMMAND_TRADING_PREVIEW_ORDER,
                "", message, sizeof(message)) == UMI_STATUS_OK);
     assert(strstr(message, "allowed") != NULL);
+
+    /* Command-palette tape controls must reach the same Framework workspace
+     * used by Studio's dockable Time and Sales view. */
+    assert(umi_command_registry_execute(
+               registry, UMI_STUDIO_COMMAND_TRADING_FILTER_TRADE_TAPE,
+               "buyer:10", message, sizeof(message)) == UMI_STATUS_OK);
+    assert(umi_studio_trading_service_snapshot(
+               umi_studio_services_trading(
+                   umi_studio_bootstrap_services(bootstrap)),
+               &trading_snapshot) == UMI_STATUS_OK);
+    assert(trading_snapshot.trade_tape.filter ==
+           UMI_TRADING_TRADE_TAPE_BUYER_INITIATED);
+    assert(trading_snapshot.trade_tape.minimum_size == 10.0);
+    assert(umi_command_registry_execute(
+               registry, UMI_STUDIO_COMMAND_TRADING_PAUSE_TRADE_TAPE,
+               "", message, sizeof(message)) == UMI_STATUS_OK);
+    assert(umi_studio_trading_service_snapshot(
+               umi_studio_services_trading(
+                   umi_studio_bootstrap_services(bootstrap)),
+               &trading_snapshot) == UMI_STATUS_OK);
+    assert(trading_snapshot.trade_tape.paused);
+    assert(umi_command_registry_execute(
+               registry, UMI_STUDIO_COMMAND_TRADING_RESUME_TRADE_TAPE,
+               "", message, sizeof(message)) == UMI_STATUS_OK);
 
     {
         UmiTestPlatformItemSnapshot item = {0};

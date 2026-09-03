@@ -100,6 +100,7 @@ static int is_trading_workspace_pane(const char *pane_id)
            strcmp(pane_id, UMI_STUDIO_PANE_TRADING_ORDER_TICKET) == 0 ||
            strcmp(pane_id, UMI_STUDIO_PANE_TRADING_ORDERS) == 0 ||
            strcmp(pane_id, UMI_STUDIO_PANE_TRADING_EXECUTIONS) == 0 ||
+           strcmp(pane_id, UMI_STUDIO_PANE_TRADING_TIME_AND_SALES) == 0 ||
            strcmp(pane_id, UMI_STUDIO_PANE_TRADING_PORTFOLIO_RISK) == 0;
 }
 

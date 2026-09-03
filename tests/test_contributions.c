@@ -110,6 +110,11 @@ int main(void)
                umi_ui_workbench_panes(workbench),
                UMI_STUDIO_PANE_TRADING_ORDERS, &pane) == UMI_STATUS_OK);
     assert(pane.visible && pane.placement == UMI_UI_PLACEMENT_BOTTOM);
+    assert(umi_ui_pane_model_find(
+               umi_ui_workbench_panes(workbench),
+               UMI_STUDIO_PANE_TRADING_TIME_AND_SALES, &pane) ==
+           UMI_STATUS_OK);
+    assert(pane.visible && pane.placement == UMI_UI_PLACEMENT_BOTTOM);
 
     umi_studio_bootstrap_destroy(bootstrap);
     return 0;

@@ -37,6 +37,12 @@ how Studio uses shared refresh, background, context and checkpoint rules and
 how a developer should connect them to a graphical event loop.
 [Professional startup and workspace design](docs/PROFESSIONAL_STARTUP_AND_WORKSPACE_DESIGN.md)
 explains the visible workbench hierarchy, layout lock and shared panel rules.
+The [community extension development guide](docs/COMMUNITY_EXTENSION_DEVELOPMENT.md)
+documents the Framework-owned extension starter, lifecycle, contribution,
+permission, compatibility, package and testing model. The
+[C development and learning workspace](docs/C_DEVELOPMENT_AND_LEARNING_WORKSPACE.md)
+includes offline completion, quick documentation and the built-in safer C
+reference.
 
 Studio's public headers follow the same SDK contract audit as Framework. The
 [catalogue include-order repair](docs/EXPERIENCE_CATALOGUE_INCLUDE_ORDER.md)

@@ -200,6 +200,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     /* Documentation and lessons are ordinary workbench surfaces, so they use
      * the same docking, floating and layout persistence paths as every tool. */
     GtkWidget *documentation_location_entry;
+    GtkWidget *documentation_search_entry;
     GtkWidget *documentation_summary_label;
     GtkWidget *documentation_preview_view;
     GtkWidget *learning_summary_label;

@@ -104,6 +104,8 @@ static GtkWidget *runtime_build_surface_learning(
 {
     GtkWidget *panel = runtime_panel_new("Guided Learning");
     UmiStudioLearningCentreSnapshot centre;
+    UmiStudioLearningLessonSnapshot c_lesson;
+    GtkWidget *reference_button = NULL;
     size_t index;
     char summary[512];
 
@@ -128,6 +130,28 @@ static GtkWidget *runtime_build_surface_learning(
         gtk_widget_add_css_class(
             runtime->learning_summary_label, "umicom-runtime-muted");
         gtk_box_append(GTK_BOX(panel), runtime->learning_summary_label);
+    }
+
+    /* Give the shared C wiki one stable entry point above the ordered lessons. */
+    if (umi_studio_learning_centre_find_lesson(
+            "foundations.c-hello", &c_lesson) == UMI_STATUS_OK &&
+        c_lesson.resource_path[0] != '\0') {
+        reference_button = gtk_button_new_with_label(
+            "Open C language and safer programming reference");
+    }
+    if (reference_button != NULL) {
+        g_object_set_data_full(
+            G_OBJECT(reference_button),
+            "umicom-learning-resource",
+            g_strdup(c_lesson.resource_path),
+            g_free);
+        g_signal_connect(
+            reference_button,
+            "clicked",
+            G_CALLBACK(runtime_on_learning_resource),
+            runtime);
+        gtk_widget_set_halign(reference_button, GTK_ALIGN_START);
+        gtk_box_append(GTK_BOX(panel), reference_button);
     }
 
     for (index = 0U; index < centre.lesson_count; ++index) {

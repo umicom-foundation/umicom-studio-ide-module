@@ -3,7 +3,7 @@
  * File: applications/studio/tests/test_trading_workspace_views.c
  *
  * PURPOSE:
- *   Verify Studio composes all eight Framework trading panes and activates
+ *   Verify Studio composes its Framework trading panes and activates
  *   their left, right and bottom placements through the Trading profile.
  *
  * AUTHOR AND ORGANISATION:
@@ -72,6 +72,9 @@ int main(void)
                 UMI_STUDIO_PANE_TRADING_ORDERS, "trading-orders");
     verify_view(workbench, "studio.trading-executions",
                 UMI_STUDIO_PANE_TRADING_EXECUTIONS, "trading-executions");
+    verify_view(workbench, "studio.trading-time-and-sales",
+                UMI_STUDIO_PANE_TRADING_TIME_AND_SALES,
+                "trading-time-and-sales");
     verify_view(workbench, "studio.trading-portfolio-risk",
                 UMI_STUDIO_PANE_TRADING_PORTFOLIO_RISK,
                 "trading-portfolio-risk");
@@ -102,6 +105,11 @@ int main(void)
     assert(umi_ui_pane_model_find(
                umi_ui_workbench_panes(workbench),
                UMI_STUDIO_PANE_TRADING_ORDERS, &pane) == UMI_STATUS_OK);
+    assert(pane.visible && pane.placement == UMI_UI_PLACEMENT_BOTTOM);
+    assert(umi_ui_pane_model_find(
+               umi_ui_workbench_panes(workbench),
+               UMI_STUDIO_PANE_TRADING_TIME_AND_SALES, &pane) ==
+           UMI_STATUS_OK);
     assert(pane.visible && pane.placement == UMI_UI_PLACEMENT_BOTTOM);
 
     umi_studio_bootstrap_destroy(bootstrap);

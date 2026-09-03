@@ -81,6 +81,7 @@
 #define VIEW_TRADING_ORDER_TICKET "studio.trading-order-ticket"
 #define VIEW_TRADING_ORDERS "studio.trading-orders"
 #define VIEW_TRADING_EXECUTIONS "studio.trading-executions"
+#define VIEW_TRADING_TIME_AND_SALES "studio.trading-time-and-sales"
 #define VIEW_TRADING_PORTFOLIO_RISK "studio.trading-portfolio-risk"
 #define VIEW_DESIGNER      "studio.designer"
 #define VIEW_APPLICATIONS  "studio.application-hub"
@@ -891,6 +892,8 @@ DEFINE_TRADING_VIEW_FACTORY(create_trading_orders,
                             umi_trading_ui_orders_view_create)
 DEFINE_TRADING_VIEW_FACTORY(create_trading_executions,
                             umi_trading_ui_executions_view_create)
+DEFINE_TRADING_VIEW_FACTORY(create_trading_time_and_sales,
+                            umi_trading_ui_time_and_sales_view_create)
 DEFINE_TRADING_VIEW_FACTORY(create_trading_portfolio_risk,
                             umi_trading_ui_portfolio_risk_view_create)
 #undef DEFINE_TRADING_VIEW_FACTORY
@@ -1386,6 +1389,7 @@ static const StudioViewDefinition DEFINITIONS[] = {
     { VIEW_TRADING_ORDER_TICKET, create_trading_order_ticket },
     { VIEW_TRADING_ORDERS, create_trading_orders },
     { VIEW_TRADING_EXECUTIONS, create_trading_executions },
+    { VIEW_TRADING_TIME_AND_SALES, create_trading_time_and_sales },
     { VIEW_TRADING_PORTFOLIO_RISK, create_trading_portfolio_risk },
     { VIEW_DESIGNER, create_designer },
     { VIEW_APPLICATIONS, create_applications },

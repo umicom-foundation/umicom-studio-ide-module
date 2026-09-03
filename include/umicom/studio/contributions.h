@@ -76,6 +76,8 @@ extern "C" {
     "studio.pane.trading-order-ticket"
 #define UMI_STUDIO_PANE_TRADING_ORDERS "studio.pane.trading-orders"
 #define UMI_STUDIO_PANE_TRADING_EXECUTIONS "studio.pane.trading-executions"
+#define UMI_STUDIO_PANE_TRADING_TIME_AND_SALES \
+    "studio.pane.trading-time-and-sales"
 #define UMI_STUDIO_PANE_TRADING_PORTFOLIO_RISK \
     "studio.pane.trading-portfolio-risk"
 #define UMI_STUDIO_PANE_DESIGNER "studio.pane.designer"

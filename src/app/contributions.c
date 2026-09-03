@@ -81,6 +81,7 @@ static const UmiUiPaneSnapshot STUDIO_PANES[] = {
     { UMI_STUDIO_PANE_TRADING_ORDER_TICKET, "Order Ticket", "studio.trading-order-ticket", "document-edit-symbolic", UMI_UI_PLACEMENT_RIGHT, 126, 0, 1, 1, { 420, 500 } },
     { UMI_STUDIO_PANE_TRADING_ORDERS, "Orders", "studio.trading-orders", "view-list-symbolic", UMI_UI_PLACEMENT_BOTTOM, 127, 0, 1, 1, { 820, 300 } },
     { UMI_STUDIO_PANE_TRADING_EXECUTIONS, "Executions", "studio.trading-executions", "emblem-ok-symbolic", UMI_UI_PLACEMENT_BOTTOM, 128, 0, 1, 1, { 820, 280 } },
+    { UMI_STUDIO_PANE_TRADING_TIME_AND_SALES, "Time and Sales", "studio.trading-time-and-sales", "view-list-symbolic", UMI_UI_PLACEMENT_BOTTOM, 129, 0, 1, 1, { 820, 300 } },
     { UMI_STUDIO_PANE_TRADING_PORTFOLIO_RISK, "Portfolio & Risk", "studio.trading-portfolio-risk", "security-high-symbolic", UMI_UI_PLACEMENT_RIGHT, 129, 0, 1, 1, { 480, 520 } },
     { UMI_STUDIO_PANE_DESIGNER, "Designer", "studio.designer", "applications-graphics-symbolic", UMI_UI_PLACEMENT_LEFT, 120, 0, 1, 1, { 320, 500 } },
     { UMI_STUDIO_PANE_APPLICATIONS, "Applications", "studio.application-hub", "view-app-grid-symbolic", UMI_UI_PLACEMENT_LEFT, 130, 0, 1, 1, { 320, 500 } },
@@ -334,6 +335,9 @@ static const UmiUiActionSnapshot STUDIO_ACTIONS[] = {
     { "studio.action.trading.cancel-order", UMI_STUDIO_COMMAND_TRADING_CANCEL_ORDER, "Cancel Selected Order", "Cancel the selected non-terminal order", "media-playback-stop-symbolic", "", 1, 1, 0, 0, 662, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.trading.engage-kill-switch", UMI_STUDIO_COMMAND_TRADING_ENGAGE_KILL_SWITCH, "Stop Trading…", "Engage the kill switch and retain an operator reason", "process-stop-symbolic", "", 1, 1, 0, 0, 663, "", UMI_UI_ACTION_ARGUMENT_TEXT },
     { "studio.action.trading.reset-kill-switch", UMI_STUDIO_COMMAND_TRADING_RESET_KILL_SWITCH, "Reset Trading Stop", "Reset the kill switch after reviewing its cause", "view-refresh-symbolic", "", 1, 1, 0, 0, 664, "", UMI_UI_ACTION_ARGUMENT_NONE },
+    { "studio.action.trading.filter-trade-tape", UMI_STUDIO_COMMAND_TRADING_FILTER_TRADE_TAPE, "Filter Time and Sales…", "Filter public trades by direction and minimum size", "view-filter-symbolic", "", 1, 1, 0, 0, 665, "", UMI_UI_ACTION_ARGUMENT_TEXT },
+    { "studio.action.trading.pause-trade-tape", UMI_STUDIO_COMMAND_TRADING_PAUSE_TRADE_TAPE, "Pause Time and Sales", "Freeze visible trades while ingestion continues", "media-playback-pause-symbolic", "", 1, 1, 0, 0, 666, "", UMI_UI_ACTION_ARGUMENT_NONE },
+    { "studio.action.trading.resume-trade-tape", UMI_STUDIO_COMMAND_TRADING_RESUME_TRADE_TAPE, "Resume Time and Sales", "Reveal trades retained during a display pause", "media-playback-start-symbolic", "", 1, 1, 0, 0, 667, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.pane.trading-dashboard", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Trading Dashboard", "Show or hide the Trading Dashboard", "view-statistics-symbolic", "", 1, 1, 1, 1, 670, UMI_STUDIO_PANE_TRADING_DASHBOARD, UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.pane.trading-watchlist", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Watchlist", "Show or hide the trading Watchlist", "view-list-symbolic", "", 1, 1, 1, 1, 671, UMI_STUDIO_PANE_TRADING_WATCHLIST, UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.pane.trading-depth", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Market Depth", "Show or hide Market Depth", "view-list-tree-symbolic", "", 1, 1, 1, 1, 672, UMI_STUDIO_PANE_TRADING_DEPTH, UMI_UI_ACTION_ARGUMENT_NONE },
@@ -341,7 +345,8 @@ static const UmiUiActionSnapshot STUDIO_ACTIONS[] = {
     { "studio.action.pane.trading-order-ticket", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Order Ticket", "Show or hide the Order Ticket", "document-edit-symbolic", "", 1, 1, 1, 1, 674, UMI_STUDIO_PANE_TRADING_ORDER_TICKET, UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.pane.trading-orders", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Orders", "Show or hide trading Orders", "view-list-symbolic", "", 1, 1, 1, 1, 675, UMI_STUDIO_PANE_TRADING_ORDERS, UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.pane.trading-executions", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Executions", "Show or hide trading Executions", "emblem-ok-symbolic", "", 1, 1, 1, 1, 676, UMI_STUDIO_PANE_TRADING_EXECUTIONS, UMI_UI_ACTION_ARGUMENT_NONE },
-    { "studio.action.pane.trading-portfolio-risk", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Portfolio & Risk", "Show or hide Portfolio and Risk", "security-high-symbolic", "", 1, 1, 1, 1, 677, UMI_STUDIO_PANE_TRADING_PORTFOLIO_RISK, UMI_UI_ACTION_ARGUMENT_NONE }
+    { "studio.action.pane.trading-portfolio-risk", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Portfolio & Risk", "Show or hide Portfolio and Risk", "security-high-symbolic", "", 1, 1, 1, 1, 677, UMI_STUDIO_PANE_TRADING_PORTFOLIO_RISK, UMI_UI_ACTION_ARGUMENT_NONE },
+    { "studio.action.pane.trading-time-and-sales", UMI_STUDIO_COMMAND_PANE_TOGGLE, "Time and Sales", "Show or hide public market trades", "view-list-symbolic", "", 1, 1, 1, 1, 678, UMI_STUDIO_PANE_TRADING_TIME_AND_SALES, UMI_UI_ACTION_ARGUMENT_NONE }
 };
 
 static const UmiUiMenuSnapshot STUDIO_MENUS[] = {
@@ -493,6 +498,9 @@ static const UmiUiMenuSnapshot STUDIO_MENUS[] = {
     { "menu.trading.environment", "trading", "workspace", "studio.action.trading.set-environment", "", 0, 20 },
     { "menu.trading.filter-instruments", "trading", "market", "studio.action.trading.filter-instruments", "", 0, 30 },
     { "menu.trading.select-instrument", "trading", "market", "studio.action.trading.select-instrument", "", 0, 40 },
+    { "menu.trading.filter-trade-tape", "trading", "market", "studio.action.trading.filter-trade-tape", "", 0, 45 },
+    { "menu.trading.pause-trade-tape", "trading", "market", "studio.action.trading.pause-trade-tape", "", 0, 46 },
+    { "menu.trading.resume-trade-tape", "trading", "market", "studio.action.trading.resume-trade-tape", "", 0, 47 },
     { "menu.trading.side", "trading", "order-ticket", "studio.action.trading.set-side", "", 0, 50 },
     { "menu.trading.type", "trading", "order-ticket", "studio.action.trading.set-type", "", 0, 60 },
     { "menu.trading.quantity", "trading", "order-ticket", "studio.action.trading.set-quantity", "", 0, 70 },
@@ -512,6 +520,7 @@ static const UmiUiMenuSnapshot STUDIO_MENUS[] = {
     { "menu.trading.orders", "trading", "views", "studio.action.pane.trading-orders", "", 0, 210 },
     { "menu.trading.executions", "trading", "views", "studio.action.pane.trading-executions", "", 0, 220 },
     { "menu.trading.portfolio-risk", "trading", "views", "studio.action.pane.trading-portfolio-risk", "", 0, 230 },
+    { "menu.trading.time-and-sales", "trading", "views", "studio.action.pane.trading-time-and-sales", "", 0, 240 },
     { "menu.help.about", "help", "about", "studio.action.notification.info", "", 0, 10 }
 };
 
@@ -582,6 +591,7 @@ static const UmiUiContributionSnapshot STUDIO_CONTRIBUTIONS[] = {
     { "studio.contribution.trading-orders", "org.umicom.studio.shell", "umicom.ui.panes", UMI_STUDIO_PANE_TRADING_ORDERS, 127, 1 },
     { "studio.contribution.trading-executions", "org.umicom.studio.shell", "umicom.ui.panes", UMI_STUDIO_PANE_TRADING_EXECUTIONS, 128, 1 },
     { "studio.contribution.trading-portfolio-risk", "org.umicom.studio.shell", "umicom.ui.panes", UMI_STUDIO_PANE_TRADING_PORTFOLIO_RISK, 129, 1 },
+    { "studio.contribution.trading-time-and-sales", "org.umicom.studio.shell", "umicom.ui.panes", UMI_STUDIO_PANE_TRADING_TIME_AND_SALES, 130, 1 },
     { "studio.contribution.designer", "org.umicom.studio.shell", "umicom.ui.panes", UMI_STUDIO_PANE_DESIGNER, 120, 1 },
     { "studio.contribution.applications", "org.umicom.studio.shell", "umicom.ui.panes", UMI_STUDIO_PANE_APPLICATIONS, 130, 1 },
     { "studio.contribution.application-components", "org.umicom.studio.shell", "umicom.ui.panes", UMI_STUDIO_PANE_APPLICATION_COMPONENTS, 131, 1 },
