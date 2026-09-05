@@ -22,8 +22,8 @@
  *   Orchestrates build/run/test for a given project root.
  *
  * DESIGN:
- *   No direct UI types. Streams diagnostics through UmiOutputSink; uses
- *   UmiDiagParser to normalize output.
+ *   No direct UI types. Streams process diagnostics through UmiOutputSink and
+ *   delegates safe process execution to the shared UmiBuildRunner.
  *
  * API:
  *   umi_build_tasks_new/free/build/run/test/root
@@ -35,12 +35,14 @@
 #include <glib.h>
 #include <gio/gio.h>
 #include "build_tasks.h"
-#include "diagnostic_parsers.h"
+#include "build_runner.h"
+#include "build_system.h"
 #include "umi_output_sink.h"
 
 struct _UmiBuildTasks {
   gchar          *root;         /* project root directory (UTF-8)         */
   UmiOutputSink  *sink;         /* where we print user-visible messages   */
+  UmiBuildSys    *system;       /* detected commands for this workspace   */
 };
 
 /* Emit a simple message to the sink (defensive if sink is NULL). */
@@ -60,12 +62,15 @@ UmiBuildTasks *umi_build_tasks_new(const char *root, UmiOutputSink *sink) {
   UmiBuildTasks *t = g_new0(UmiBuildTasks, 1);
   t->root = g_strdup(root ? root : ".");
   t->sink = sink;
+  t->system = umi_buildsys_detect(t->root);
   emit(t, UMI_DIAG_NOTE, "BuildTasks: initialized for root='%s'", t->root);
   return t;
 }
 
 void umi_build_tasks_free(UmiBuildTasks *t) {
   if (!t) return;
+  umi_buildsys_free(t->system);
+  t->system = NULL;
   g_clear_pointer(&t->root, g_free);
   g_free(t);
 }
@@ -80,65 +85,66 @@ const char *umi_build_tasks_root(const UmiBuildTasks *t) {
   return t ? t->root : NULL;
 }
 
-/* Minimal probe: runs "ninja --version" and streams output through parser.
- * Replace later with real build/run invocations (tool-specific argv).
- */
-static gboolean run_tool_and_parse(UmiBuildTasks *t,
-                                   const char   *cmd,
-                                   char * const  argv[],
-                                   GError      **error)
+/* Run one detected command in the selected project root without a shell. */
+static gboolean run_detected_command(UmiBuildTasks *t,
+                                     GPtrArray *command,
+                                     GError **error)
 {
-  if (!t || !cmd) { g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "invalid args"); return FALSE; }
+  const gchar *executable;
+  UmiBuildRunner *runner;
+  gboolean success;
 
-  /* Use varargs constructor; tolerate argv[1] being NULL (no extra arg). */
-  GSubprocessFlags flags = G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_PIPE;
-  GSubprocess *sp = (argv && argv[1])
-                    ? g_subprocess_new(flags, error, cmd, argv[1], NULL)
-                    : g_subprocess_new(flags, error, cmd, NULL);
-  if (!sp) return FALSE;
-
-  GInputStream *out = g_subprocess_get_stdout_pipe(sp);
-  GDataInputStream *din = g_data_input_stream_new(out);
-
-  UmiDiagParser *parser = umi_diag_parser_new("ninja");
-  while (TRUE) {
-    gsize len = 0; GError *e = NULL;
-    gchar *line = g_data_input_stream_read_line(din, &len, NULL, &e);
-    if (!line || e) { g_clear_error(&e); g_free(line); break; }
-
-    UmiDiag *diag = NULL;
-    if (umi_diag_parser_feed_line(parser, line, &diag)) {
-      umi_output_sink_emit(t->sink, diag);
-      umi_diag_free(diag);
-    } else {
-      emit(t, UMI_DIAG_NOTE, "%s", line);
+  if (!t || !t->system || !command || command->len < 2U ||
+      g_ptr_array_index(command, 0) == NULL) {
+    if (command != NULL) g_ptr_array_free(command, TRUE);
+    if (error != NULL) {
+      g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+                          "no build command is configured");
     }
-    g_free(line);
+    return FALSE;
   }
-
-  g_object_unref(din);
-  g_subprocess_wait(sp, NULL, NULL);
-  g_object_unref(sp);
-  umi_diag_parser_free(parser);
-  return TRUE;
+  executable = (const gchar *)g_ptr_array_index(command, 0);
+  runner = umi_build_runner_new();
+  if (runner == NULL) {
+    g_ptr_array_free(command, TRUE);
+    if (error != NULL) {
+      g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NO_SPACE,
+                          "could not create the build runner");
+    }
+    return FALSE;
+  }
+  umi_build_runner_set_sink(runner, t->sink);
+  /* Parenthesised function name bypasses the legacy variadic compatibility
+   * macro and calls the canonical six-argument runner API. */
+  success = (umi_build_runner_run)(
+      runner,
+      t->root,
+      executable,
+      (const gchar * const *)&command->pdata[1],
+      NULL,
+      FALSE);
+  umi_build_runner_free(runner);
+  g_ptr_array_free(command, TRUE);
+  if (!success && error != NULL) {
+    g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                        "the build command returned a failure status");
+  }
+  return success;
 }
 
 gboolean umi_build_tasks_build(UmiBuildTasks *t, GError **error) {
-  if (!t) return FALSE;
-  char * const argv[] = { "ninja", "--version", NULL };
-  return run_tool_and_parse(t, "ninja", argv, error);
+  if (!t || !t->system) return FALSE;
+  return run_detected_command(t, umi_buildsys_build_argv(t->system), error);
 }
 
 gboolean umi_build_tasks_run(UmiBuildTasks *t, GError **error) {
-  (void)error;
-  emit(t, UMI_DIAG_NOTE, "Run not implemented yet");
-  return TRUE;
+  if (!t || !t->system) return FALSE;
+  return run_detected_command(t, umi_buildsys_run_argv(t->system), error);
 }
 
 gboolean umi_build_tasks_test(UmiBuildTasks *t, GError **error) {
-  (void)error;
-  emit(t, UMI_DIAG_NOTE, "Test not implemented yet");
-  return TRUE;
+  if (!t || !t->system) return FALSE;
+  return run_detected_command(t, umi_buildsys_test_argv(t->system), error);
 }
 
 /*  END OF FILE */

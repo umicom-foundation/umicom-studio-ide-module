@@ -9,6 +9,7 @@
  *
  * DESIGN:
  *   - No UI headers here; caller provides an UmiOutputSink instance.
+ *   - The selected root is used for discovery and as each command's working directory.
  *   - Opaque UmiBuildTasks handle; implementation is private to .c
  *
  * API:

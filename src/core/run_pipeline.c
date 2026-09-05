@@ -108,6 +108,19 @@ umi_run_pipeline_start(UmiOutputPane *out, UmiProblemList *plist, GError **err)
 
   /* Build a sink that forwards lines to our router.                          */
   UmiOutputSink *sink = umi_output_sink_new(on_runner_line, NULL, s_ctx);
+  /* Allocation failure must unwind the same transient state as a failed
+   * process start; otherwise the next Run command sees a stale context. */
+  if (!sink) {
+    if (argv) g_strfreev(argv);
+    if (envp) g_strfreev(envp);
+    umi_run_config_free(rc);
+    umi_diag_router_end(&s_ctx->router);
+    g_free(s_ctx);
+    s_ctx = NULL;
+    g_set_error(err, g_quark_from_static_string("uside-run"), 7,
+                "failed to allocate output sink");
+    return FALSE;
+  }
   umi_build_runner_set_sink(s_runner, sink);       /* set concrete sink       */
 
   /* Split exe and argv-rest for the runner API.                              */
@@ -123,6 +136,13 @@ umi_run_pipeline_start(UmiOutputPane *out, UmiProblemList *plist, GError **err)
                   (const char * const *)envp,
                   TRUE /* merge stderr to stdout */);
 
+  /* The runner only borrows this concrete sink.  It is safe to release it
+   * now because the runner waits for both output reader threads before it
+   * returns.  Keeping the sink alive here would leak one callback context per
+   * Run command. */
+  umi_output_sink_free(sink);
+  umi_build_runner_set_sink(s_runner, NULL);
+
   /* Cleanup transient vectors and config.                                    */
   if (argv) g_strfreev(argv);
   /* Apply this branch only when its contract condition is satisfied. */
@@ -132,8 +152,6 @@ umi_run_pipeline_start(UmiOutputPane *out, UmiProblemList *plist, GError **err)
   /* Finalise router and context.                                             */
   umi_diag_router_end(&s_ctx->router);
   g_free(s_ctx); s_ctx = NULL;
-
-  /* NOTE: if umi_output_sink_free() exists in your tree, call it here.       */
 
   if (!ok) {
     g_set_error(err, g_quark_from_static_string("uside-run"), 6,

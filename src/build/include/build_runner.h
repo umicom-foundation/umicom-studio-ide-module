@@ -24,9 +24,15 @@ G_BEGIN_DECLS
 typedef struct UmiBuildRunner UmiBuildRunner;
 
 /* Canonical APIs */
+/* Allocate a runner before configuring its output destination. */
 UmiBuildRunner *umi_build_runner_new(void);
+/* Release the runner and any sink whose ownership was transferred to it. */
 void            umi_build_runner_free(UmiBuildRunner *br);
+/* Attach a caller-owned sink; the runner never frees this pointer. */
 void            umi_build_runner_set_sink(UmiBuildRunner *br, UmiOutputSink *sink);
+/* Install a callback-created sink whose ownership transfers to the runner. */
+void            umi_build_runner_set_owned_sink(UmiBuildRunner *br,
+                                                UmiOutputSink *sink);
 
 gboolean        umi_build_runner_run(UmiBuildRunner        *br,
                                      const char            *cwd,
@@ -44,7 +50,7 @@ umi_build_runner_set_sink_from_cb(UmiBuildRunner *br,
                                   void           *user)
 {
   UmiOutputSink *sink = umi_output_sink_new(line_cb, NULL, user);
-  umi_build_runner_set_sink(br, sink);
+  umi_build_runner_set_owned_sink(br, sink);
 }
 
 /* Variadic macro overload shim for set_sink */

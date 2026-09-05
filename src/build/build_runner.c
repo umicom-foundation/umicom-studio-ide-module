@@ -44,14 +44,59 @@
  *---------------------------------------------------------------------------*/
 struct UmiBuildRunner {
   UmiOutputSink *sink;            /* not owned; caller manages lifetime    */
+  UmiOutputSink *owned_sink;      /* compatibility sink created from callback */
 };
 
-/* Constructor / Destructor / Sink setter */
+/* Allocate an empty runner whose sink can be supplied by the caller. */
 UmiBuildRunner *umi_build_runner_new(void) { return g_new0(UmiBuildRunner, 1); }
-void umi_build_runner_free(UmiBuildRunner *br) { g_free(br); }
-void umi_build_runner_set_sink(UmiBuildRunner *br, UmiOutputSink *sink)
+
+/* Release the runner and any callback-created sink it owns. */
+void umi_build_runner_free(UmiBuildRunner *br)
+{
+  /* Release a sink made by the legacy callback adapter before releasing the
+   * runner itself.  Concrete sinks remain caller-owned and are never freed
+   * here. */
+  if (!br) return;
+  if (br->owned_sink) {
+    umi_output_sink_free(br->owned_sink);
+    br->owned_sink = NULL;
+  }
+  g_free(br);
+}
+/* Parenthesise the exported symbol so the legacy variadic call macro in the
+ * header cannot rewrite this function definition. */
+void (umi_build_runner_set_sink)(UmiBuildRunner *br, UmiOutputSink *sink)
 {
   if (!br) return;
+  /* Re-applying the same owned sink must not free it and then retain a
+   * dangling pointer.  This can happen when a caller refreshes its callback
+   * wiring without replacing the output channel. */
+  if (br->owned_sink == sink) {
+    br->sink = sink;
+    return;
+  }
+  if (br->owned_sink) {
+    umi_output_sink_free(br->owned_sink);
+    br->owned_sink = NULL;
+  }
+  br->sink = sink;
+}
+
+/* Install a callback-backed sink and record ownership so it cannot leak when
+ * a caller switches sinks or destroys the runner. */
+void umi_build_runner_set_owned_sink(UmiBuildRunner *br, UmiOutputSink *sink)
+{
+  if (!br) {
+    umi_output_sink_free(sink);
+    return;
+  }
+  /* The setter is idempotent for the already-owned sink. */
+  if (br->owned_sink == sink) {
+    br->sink = sink;
+    return;
+  }
+  if (br->owned_sink) umi_output_sink_free(br->owned_sink);
+  br->owned_sink = sink;
   br->sink = sink;
 }
 
@@ -84,7 +129,14 @@ typedef struct ReaderCtx {
 static gpointer reader_thread(gpointer data)
 {
   ReaderCtx *ctx = (ReaderCtx *)data;
-  if (!ctx || !ctx->stream || !ctx->sink) { g_free(ctx); return NULL; }
+  if (!ctx) return NULL;
+  /* A silent build is valid. Release the borrowed-stream reference before
+   * leaving rather than leaking one pipe for every background task. */
+  if (!ctx->stream || !ctx->sink) {
+    if (ctx->stream) g_object_unref(ctx->stream);
+    g_free(ctx);
+    return NULL;
+  }
 
   GDataInputStream *din = g_data_input_stream_new(ctx->stream);
   for (;;) {
@@ -113,7 +165,8 @@ static gchar **build_vector_with_exe(const char *exe, const char * const argv[])
 }
 
 /* Public run(): spawns the child, streams output, and returns TRUE on exit 0. */
-gboolean umi_build_runner_run(UmiBuildRunner        *br,
+/* Parenthesise the exported symbol for the same macro-definition safeguard. */
+gboolean (umi_build_runner_run)(UmiBuildRunner        *br,
                               const char            *cwd,
                               const char            *exe,
                               const char * const     argv[],

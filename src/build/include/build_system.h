@@ -19,7 +19,9 @@ typedef struct {
   gchar *test_cmd;
 } UmiBuildSys;
 
-/* Detect a likely build tool in 'root' (presence-based heuristic). */
+/* Detect a likely build tool in 'root'.  CMake projects reuse a matching
+ * nested preset output and ignore caches whose source directory belongs to a
+ * different checkout. */
 UmiBuildSys *umi_buildsys_detect(const char *root);
 
 /* Override with custom commands. */
