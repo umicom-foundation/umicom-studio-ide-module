@@ -59,17 +59,17 @@ gchar *umi_fim_build_prompt(const char *prompt,
   const char *A = prompt ? prompt : "";
   const char *B = suffix ? suffix : "";
 
-  /* Precompute length to allocate once. */
-  gsize len = strlen(P) + strlen(A) + strlen(M) + strlen(B) + strlen(S);
-  gchar *out = g_malloc(len + 1);
+  /* Build through GLib's length-aware string buffer.  This keeps every append
+   * bounded by the buffer implementation and avoids the overflow risk of
+   * repeated strcat calls when an editor supplies a large suffix. */
+  GString *builder = g_string_new(P);
+  if (builder == NULL) return NULL;
+  g_string_append(builder, A);
+  g_string_append(builder, M);
+  g_string_append(builder, B);
+  g_string_append(builder, S);
 
-  /* Concatenate in order. */
-  out[0] = '\0';
-  strcat(out, P);
-  strcat(out, A);
-  strcat(out, M);
-  strcat(out, B);
-  strcat(out, S);
-
-  return out; /* caller frees with g_free() */
+  /* Transfer the finished allocation to the caller, who releases it with
+   * g_free() as documented by this helper's public declaration. */
+  return g_string_free(builder, FALSE);
 }

@@ -26,10 +26,15 @@ int main(void)
 {
     UmiStudioDeclarative *declarative = NULL;
     UmiStudioDesigner *designer = NULL;
-    UmiDesignerWorkspaceModel model;
+    UmiDesignerWorkspaceModel *model;
     UmiDesignerLiveSourceWorkspace live_source;
     UmiDeclDiagnosticList diagnostics;
     char node_id[UMI_DECL_ID_CAPACITY];
+
+    /* The synchronized model includes bounded palette, hierarchy and
+     * inspector arrays. Heap storage keeps the test independent of stack size. */
+    model = (UmiDesignerWorkspaceModel *)calloc(1U, sizeof(*model));
+    assert(model != NULL);
 
     assert(umi_studio_declarative_create(&declarative) == UMI_STATUS_OK);
     assert(umi_studio_designer_create(
@@ -56,15 +61,15 @@ int main(void)
     assert(umi_studio_designer_workspace_model(
         designer,
         "button",
-        &model) == UMI_STATUS_OK);
-    assert(model.document.component_count == 2U);
-    assert(model.has_inspector);
-    assert(model.has_inspector_schema);
-    assert(strcmp(model.selected_node_id, "button-1") == 0);
-    assert(model.inspector.attribute_count == 2U);
-    assert(model.inspector.attributes[1].value.kind == UMI_DECL_VALUE_BOOLEAN);
-    assert(model.inspector_schema.property_count > 0U);
-    assert(model.palette_count > 0U);
+        model) == UMI_STATUS_OK);
+    assert(model->document.component_count == 2U);
+    assert(model->has_inspector);
+    assert(model->has_inspector_schema);
+    assert(strcmp(model->selected_node_id, "button-1") == 0);
+    assert(model->inspector.attribute_count == 2U);
+    assert(model->inspector.attributes[1].value.kind == UMI_DECL_VALUE_BOOLEAN);
+    assert(model->inspector_schema.property_count > 0U);
+    assert(model->palette_count > 0U);
 
     /* Code mode consumes the same canonical source that produced the design. */
     assert(umi_studio_designer_live_source_snapshot(
@@ -94,5 +99,6 @@ int main(void)
 
     umi_studio_designer_destroy(designer);
     umi_studio_declarative_destroy(declarative);
+    free(model);
     return EXIT_SUCCESS;
 }

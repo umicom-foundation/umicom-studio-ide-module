@@ -80,3 +80,21 @@ UmiStatus umi_studio_workspace_apply_panel_settings(
     return umi_ui_workspace_customisation_apply_panel_settings(
         model, settings);
 }
+
+/* Stage a multi-panel Studio edit through the Framework-owned model. */
+UmiStatus umi_studio_workspace_apply_panel_batch(
+    UmiStudioProfessionalWorkspace *workspace,
+    const UmiUiWorkspacePanelSettings *settings,
+    size_t setting_count)
+{
+    UmiUiWorkspaceCustomisation *model =
+        umi_studio_professional_workspace_model(workspace);
+
+    /* Studio contributes only the selected requests; Framework owns rollback
+     * and the capability rules shared by every application. */
+    if (model == NULL || settings == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    return umi_ui_workspace_customisation_apply_panel_batch(
+        model, settings, setting_count);
+}

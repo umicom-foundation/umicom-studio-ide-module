@@ -13,6 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include <assert.h>
+#include "umicom/application/runtime/readiness.h"
 #include "umicom/studio/experience_acceptance.h"
 /*
  * Start this command or application, report setup failures, and return a process exit code
@@ -22,6 +23,7 @@ int main(void)
 {
     UmiApplicationJourneyEvidenceRegistry evidence;
     UmiStudioExperienceAcceptance acceptance;
+    UmiApplicationLaunchReadiness readiness;
     umi_application_journey_evidence_registry_init(&evidence);
     assert(umi_studio_experience_acceptance_build(
                &evidence, &acceptance) == UMI_STATUS_OK);
@@ -30,6 +32,10 @@ int main(void)
     assert(acceptance.report.step_count == 40U);
     assert(acceptance.report.pending_step_count == 40U);
     assert(!acceptance.product_ready);
+    assert(umi_application_launch_readiness_check(
+               "org.umicom.studio", &readiness) == UMI_STATUS_OK);
+    assert(readiness.state == UMI_APPLICATION_LAUNCH_READINESS_READY);
+    assert(readiness.launchable);
     return 0;
 }
 

@@ -62,6 +62,30 @@ int main(void)
         assert(umi_studio_workspace_apply_panel_settings(
                    workspace, &settings) == UMI_STATUS_OK);
     }
+    {
+        UmiUiWorkspacePanelSettings batch[2];
+        UmiUiWorkspaceLayout before_batch = *active;
+
+        /* A bad second request must not leave the first panel moved. */
+        batch[0] = umi_ui_workspace_panel_settings_default(
+            active->windows[0].window_id);
+        batch[0].placement_id = "left";
+        batch[0].stack_id = "studio-editor";
+        batch[1] = umi_ui_workspace_panel_settings_default("missing-panel");
+        assert(umi_studio_workspace_apply_panel_batch(
+                   workspace, batch, 2U) == UMI_STATUS_NOT_FOUND);
+        assert(memcmp(&before_batch, active, sizeof(before_batch)) == 0);
+
+        /* The same two requests succeed after the target identity is fixed. */
+        batch[1] = umi_ui_workspace_panel_settings_default(
+            active->windows[1].window_id);
+        batch[1].placement_id = "right";
+        batch[1].stack_id = "studio-inspector";
+        assert(umi_studio_workspace_apply_panel_batch(
+                   workspace, batch, 2U) == UMI_STATUS_OK);
+        assert(strcmp(active->windows[0].placement_id, "left") == 0);
+        assert(strcmp(active->windows[1].placement_id, "right") == 0);
+    }
     umi_ui_workspace_customisation_snapshot(model, &customisation_snapshot);
     assert(customisation_snapshot.editing);
     assert(umi_studio_workspace_execute(workspace,UMI_STUDIO_WORKSPACE_COMMAND_LOCK) == UMI_STATUS_OK);

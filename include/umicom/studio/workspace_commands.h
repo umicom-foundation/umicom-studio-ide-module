@@ -14,6 +14,8 @@
  *---------------------------------------------------------------------------*/
 #ifndef UMICOM_STUDIO_WORKSPACE_COMMANDS_H
 #define UMICOM_STUDIO_WORKSPACE_COMMANDS_H
+#include <stddef.h>
+
 #include "umicom/studio/workspace_themes.h"
 /**
  * List the named studio workspace command values accepted by this public contract.
@@ -46,4 +48,9 @@ UmiStatus umi_studio_workspace_execute(UmiStudioProfessionalWorkspace *workspace
 UmiStatus umi_studio_workspace_apply_panel_settings(
     UmiStudioProfessionalWorkspace *workspace,
     const UmiUiWorkspacePanelSettings *settings);
+/* Apply several Studio panel changes without publishing a partial edit. */
+UmiStatus umi_studio_workspace_apply_panel_batch(
+    UmiStudioProfessionalWorkspace *workspace,
+    const UmiUiWorkspacePanelSettings *settings,
+    size_t setting_count);
 #endif
