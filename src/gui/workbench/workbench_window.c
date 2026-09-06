@@ -21,12 +21,14 @@
 #include "context_link_centre.h"
 #include "umicom/studio/workspace.h"
 #include "umicom/ui/gtk4.h"
+#include "umicom/ui/gtk4/workstation/window_fit.h"
 #include "umicom/workbench_context_host/gtk4.h"
 
 typedef struct UmiStudioGtkRuntimeChrome UmiStudioGtkRuntimeChrome;
 
 struct UmiStudioGtkWorkbench {
     UmiStudioUi *ui;
+    UmiStudioGtkWorkbenchOptions options;
     UmiGtk4Adapter *adapter;
     GtkWindow *window;
     UmiStudioContextLinkCentre *context_links;
@@ -268,6 +270,14 @@ static UmiStatus bind_context_interactions(
  */
 #include "runtime/runtime_unity.inc"
 
+/* Keep ordinary startup behaviour explicit while making isolated hosts easy
+ * to request without global environment switches or a second GTK code path. */
+UmiStudioGtkWorkbenchOptions umi_studio_gtk_workbench_options_default(void)
+{
+    UmiStudioGtkWorkbenchOptions options = {1, 1, 1, 1};
+    return options;
+}
+
 /*
  * Initialise studio gtk workbench from caller-provided values so later operations receive
  * a known state.
@@ -276,6 +286,19 @@ UmiStatus umi_studio_gtk_workbench_create(
     GtkApplication *application,
     UmiStudioUi *ui,
     UmiDesktopShellModel *desktop_shell,
+    UmiStudioGtkWorkbench **out_workbench)
+{
+    return umi_studio_gtk_workbench_create_with_options(
+        application, ui, desktop_shell, NULL, out_workbench);
+}
+
+/* Use the production composition while separating presentation and persistent
+ * background policy from GTK object construction. */
+UmiStatus umi_studio_gtk_workbench_create_with_options(
+    GtkApplication *application,
+    UmiStudioUi *ui,
+    UmiDesktopShellModel *desktop_shell,
+    const UmiStudioGtkWorkbenchOptions *options,
     UmiStudioGtkWorkbench **out_workbench)
 {
     UmiStudioGtkWorkbench *workbench;
@@ -298,6 +321,8 @@ UmiStatus umi_studio_gtk_workbench_create(
      */
     if (workbench == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     workbench->ui = ui;
+    workbench->options = options != NULL ? *options
+        : umi_studio_gtk_workbench_options_default();
     status = umi_gtk4_adapter_create(application, &workbench->adapter);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
@@ -306,7 +331,7 @@ UmiStatus umi_studio_gtk_workbench_create(
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
-        status = umi_gtk4_adapter_present(
+        status = umi_gtk4_adapter_prepare(
             workbench->adapter,
             umi_studio_ui_shell(ui));
     }
@@ -366,6 +391,10 @@ UmiStatus umi_studio_gtk_workbench_create(
     }
 
     *out_workbench = workbench;
+    /* Present only after all production chrome is attached. This also avoids
+     * flashing the intermediate reference-adapter layout during startup. */
+    if (workbench->options.present_window)
+        gtk_window_present(workbench->window);
     return UMI_STATUS_OK;
 }
 
@@ -381,6 +410,11 @@ void umi_studio_gtk_workbench_destroy(
      * used.
      */
     if (workbench == NULL) return;
+
+    /* The retained editor body also owns linked-context controls. Their
+     * borrowed host differs from the runtime pointer and needs its own guard. */
+    umi_workbench_context_host_gtk4_invalidate(workbench->context_strip,
+        umi_studio_context_link_centre_host(workbench->context_links));
 
     /* Release the retained root before the GTK adapter destroys its window. */
     umi_gtk4_automation_driver_destroy(workbench->automation);
@@ -459,4 +493,135 @@ UmiStatus umi_studio_gtk_workbench_refresh(
     return umi_workbench_context_host_gtk4_strip_refresh(
         workbench->context_strip,
         umi_studio_context_link_centre_host(workbench->context_links));
+}
+
+/* Return a value snapshot so automation never receives mutable layout state. */
+UmiStatus umi_studio_gtk_workbench_workspace_snapshot(
+    UmiStudioGtkWorkbench *workbench, UmiUiWorkspaceLayout *out_layout)
+{
+    const UmiUiWorkspaceLayout *layout;
+    if (workbench == NULL || out_layout == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    layout = runtime_workspace_active(workbench->runtime_chrome);
+    if (layout == NULL) return UMI_STATUS_INVALID_STATE;
+    *out_layout = *layout;
+    return UMI_STATUS_OK;
+}
+
+/* Inspect the rendered host independently of the accepted portable model. */
+UmiStatus umi_studio_gtk_workbench_workspace_host_snapshot(
+    UmiStudioGtkWorkbench *workbench, UmiGtk4WorkspaceLayoutHostSnapshot *out_snapshot)
+{
+    if (workbench == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (workbench->runtime_chrome == NULL ||
+        workbench->runtime_chrome->workspace_host == NULL) return UMI_STATUS_INVALID_STATE;
+    *out_snapshot = umi_gtk4_workspace_layout_host_snapshot(
+        workbench->runtime_chrome->workspace_host);
+    return UMI_STATUS_OK;
+}
+
+/* Create the same empty arrangement as New Layout without showing a prompt. */
+UmiStatus umi_studio_gtk_workbench_workspace_create_blank(
+    UmiStudioGtkWorkbench *workbench, const char *layout_id, const char *name)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_create_blank(workbench->runtime_chrome, layout_id, name);
+}
+
+/* Begin the existing shared edit baseline, including its lock rules. */
+UmiStatus umi_studio_gtk_workbench_workspace_begin_edit(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_begin_edit(workbench->runtime_chrome);
+}
+
+/* Apply an arrangement through the same native completion path as the UI. */
+UmiStatus umi_studio_gtk_workbench_workspace_commit_edit(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_commit_edit(workbench->runtime_chrome);
+}
+
+/* Restore the shared edit baseline and rebuild its native presentation. */
+UmiStatus umi_studio_gtk_workbench_workspace_cancel_edit(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_cancel_edit(workbench->runtime_chrome);
+}
+
+/* Route tool opening through the real catalogue singleton and panel factory. */
+UmiStatus umi_studio_gtk_workbench_workspace_open_surface(
+    UmiStudioGtkWorkbench *workbench, UmiStudioRuntimeSurfaceKind kind,
+    const char *placement_id)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_open_surface(workbench->runtime_chrome, kind, placement_id);
+}
+
+/* Reuse the shared host's deferred gesture guard rather than mutating a model
+ * behind GTK. The registered production callback owns acceptance and rebuild. */
+UmiStatus umi_studio_gtk_workbench_workspace_request_canvas_geometry(
+    UmiStudioGtkWorkbench *workbench, const char *window_id,
+    const UmiApplicationSuiteLayoutRect *rect, uint64_t expected_layout_revision)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_gtk4_workspace_layout_host_request_canvas_geometry(
+        workbench->runtime_chrome->workspace_host, window_id, rect,
+        expected_layout_revision);
+}
+
+/* Drive the ordinary status/timer path without creating a recurring source. */
+UmiStatus umi_studio_gtk_workbench_workspace_synchronise(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_refresh_services(workbench->runtime_chrome);
+}
+
+/* Use the production binding path with a caller-owned, isolated test backend. */
+UmiStatus umi_studio_gtk_workbench_workspace_bind_storage(
+    UmiStudioGtkWorkbench *workbench, UmiDataServer *server, int restore_saved)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_bind_storage(workbench->runtime_chrome, server, restore_saved);
+}
+
+/* Dispatch an explicit checkpoint save without opening a dialog or tool. */
+UmiStatus umi_studio_gtk_workbench_workspace_save(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_save(workbench->runtime_chrome);
+}
+
+/* Use the same staged native restore as the footer and menu command. */
+UmiStatus umi_studio_gtk_workbench_workspace_restore(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_restore(workbench->runtime_chrome);
+}
+
+/* Report observed storage revision and durability without revealing filenames. */
+UmiStatus umi_studio_gtk_workbench_workspace_storage_snapshot(
+    UmiStudioGtkWorkbench *workbench, UmiUiWorkspaceCheckpointReport *out_report)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL || out_report == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    *out_report = workbench->runtime_chrome->workspace_checkpoint;
+    return workbench->runtime_chrome->workspace_storage != NULL ? UMI_STATUS_OK : UMI_STATUS_UNAVAILABLE;
+}
+
+/* Report active native background policy without revealing personal paths. */
+UmiStatus umi_studio_gtk_workbench_activity_snapshot(
+    UmiStudioGtkWorkbench *workbench, UmiStudioGtkWorkbenchActivitySnapshot *out_snapshot)
+{
+    if (workbench == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (workbench->runtime_chrome == NULL) return UMI_STATUS_INVALID_STATE;
+    out_snapshot->automatic_refresh_active = workbench->runtime_chrome->refresh_source != 0U;
+    out_snapshot->session_storage_configured = workbench->runtime_chrome->session_path[0] != '\0';
+    return UMI_STATUS_OK;
 }

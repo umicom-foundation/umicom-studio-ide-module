@@ -758,6 +758,31 @@ if(UMICOM_STUDIO_BUILD_GTK)
     umicom_apply_warnings(umicom-studio-workbench-demo)
     umicom_apply_sanitizers(umicom-studio-workbench-demo)
 
+    # Compile the actual Studio GTK adapter into an isolated acceptance host.
+    # The native C fixture disables presentation, tool discovery and personal
+    # session storage; it checks real editor bodies rather than a suite preview.
+    if(BUILD_TESTING)
+        add_executable(umicom-studio-workspace-canvas-test
+            tests/test_workspace_canvas_gtk4.c
+            src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-workspace-canvas-test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-workspace-canvas-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4
+            PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-workspace-canvas-test)
+        umicom_apply_sanitizers(umicom-studio-workspace-canvas-test)
+        add_test(NAME studio.workspace.canvas.gtk4
+            COMMAND umicom-studio-workspace-canvas-test)
+        set_tests_properties(studio.workspace.canvas.gtk4 PROPERTIES
+            SKIP_RETURN_CODE 77
+            TIMEOUT 60
+            LABELS "studio;gtk4;workspace;canvas;acceptance")
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-workspace-canvas-test)
+        endif()
+    endif()
+
     add_executable(umicom-studio-designer-demo
         src/gtk/designer_main.c
         src/gui/designer/designer_window.c
@@ -2061,6 +2086,7 @@ endif()
 if(BUILD_TESTING)
 # Visit each bounded item once so every record receives the same rule.
 foreach(UMICOM_STUDIO_WORKSPACE_TEST
+        source_control_offline
         operations_centre
         operations_views_commands
         workspace_catalogue
@@ -2088,6 +2114,12 @@ foreach(UMICOM_STUDIO_WORKSPACE_TEST
     add_test(NAME studio.${UMICOM_STUDIO_WORKSPACE_TEST}
         COMMAND umicom-studio-${UMICOM_STUDIO_WORKSPACE_TEST_TARGET}-test)
 endforeach()
+    # Keep explicit discovery-off verification in the shared validation build.
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-source-control-offline-test)
+    endif()
+    set_tests_properties(studio.source_control_offline PROPERTIES
+        LABELS "studio;source-control;offline;acceptance")
 endif()
 
 # Register verification targets only when the developer has enabled testing.

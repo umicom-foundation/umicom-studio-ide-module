@@ -15,6 +15,7 @@
  *---------------------------------------------------------------------------*/
 /* Umicom Studio IDE | Professional workspace v2 | Sammy Hegab | Umicom Foundation | MIT */
 #include "umicom/studio/professional_workspace.h"
+#include "umicom/studio_runtime/workspace_canvas.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,3 +96,12 @@ UmiStatus umi_studio_professional_workspace_snapshot(const UmiStudioProfessional
  * client applications.
  */
 UmiUiWorkspaceCustomisation *umi_studio_professional_workspace_model(UmiStudioProfessionalWorkspace *workspace) { return workspace == NULL ? NULL : &workspace->customisation; }
+
+/* The native IDE supplies only its existing model. Framework determines the
+ * available tools, starting layouts and all subsequent editing rules. */
+UmiStatus umi_studio_professional_workspace_seed_native(
+    UmiStudioProfessionalWorkspace *workspace)
+{
+    if (workspace == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_studio_runtime_workspace_seed(&workspace->customisation);
+}

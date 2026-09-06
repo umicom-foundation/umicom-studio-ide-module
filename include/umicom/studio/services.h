@@ -42,6 +42,24 @@ extern "C" {
  * Represent the studio services data shared with callers of this public contract.
  */
 typedef struct UmiStudioServices UmiStudioServices;
+
+/** Creation-time discovery permission, copied by the service graph.
+ * Zero means the repository has not been inspected, not that it is clean.
+ * Storage still follows Studio's configured paths; isolated hosts must use an
+ * owned working directory and must not pass private data-storage paths. */
+typedef struct UmiStudioServicesOptions {
+    int discover_repository;
+} UmiStudioServicesOptions;
+
+/** Return the ordinary interactive discovery policy. */
+UmiStudioServicesOptions umi_studio_services_options_default(void);
+
+/** Create the existing service graph with explicit startup permissions.
+ * NULL options retain normal behaviour; no environment setting can turn a
+ * false discover_repository option back on during construction. */
+UmiStatus umi_studio_services_create_with_options(
+    UmiDiagnosticSink initial_sink, void *initial_user_data,
+    const UmiStudioServicesOptions *options, UmiStudioServices **out_services);
 /**
  * Represent the studio operations data shared with callers of this public contract.
  */

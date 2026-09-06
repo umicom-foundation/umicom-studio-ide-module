@@ -58,15 +58,7 @@ static UmiStatus runtime_host_present_surface(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
-    gtk_revealer_set_reveal_child(
-        GTK_REVEALER(runtime->primary_revealer),
-        state->primary_sidebar_visible != 0);
-    gtk_revealer_set_reveal_child(
-        GTK_REVEALER(runtime->secondary_revealer),
-        state->secondary_sidebar_visible != 0);
-    gtk_revealer_set_reveal_child(
-        GTK_REVEALER(runtime->bottom_revealer),
-        state->bottom_panel_visible != 0);
+    /* Outer-panel visibility belongs exclusively to the professional layout. */
 
     gtk_widget_set_visible(
         runtime->status_bar,
@@ -88,9 +80,9 @@ static UmiStatus runtime_host_present_surface(
         runtime,
         state->active_view_id);
 
-    runtime_show_surface(runtime, active);
+    if (active != runtime->last_presented_surface)
+        runtime_workspace_focus_surface(runtime, active);
     runtime_update_activity_selection(runtime, active);
-    runtime_workspace_apply_geometry(runtime);
     return UMI_STATUS_OK;
 }
 
@@ -130,6 +122,8 @@ static UmiStatus runtime_host_update_workflow(
         workflow->blocked_count);
 
     gtk_label_set_text(GTK_LABEL(runtime->workflow_badge), text);
+    /* Show the complete report when its compact header label is shortened. */
+    gtk_widget_set_tooltip_text(runtime->workflow_badge, text);
 
     /* Apply this operation only while the related capability or state is available. */
     if (workflow->ready) {

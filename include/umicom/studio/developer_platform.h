@@ -57,6 +57,12 @@ UmiStatus umi_studio_developer_platform_create(
     UmiClock *clock,
     UmiStudioDeveloperPlatform **out_platform
 );
+/** Compose developer models with an explicit repository-discovery policy.
+ * Zero suppresses the source-control startup probe; other services are the
+ * normal command-driven models and do not execute build commands here. */
+UmiStatus umi_studio_developer_platform_create_with_discovery(
+    const char *workspace_root, UmiClock *clock, int discover_repository,
+    UmiStudioDeveloperPlatform **out_platform);
 /**
  * Release or reset state held by studio developer platform so the same storage can be
  * reused safely.

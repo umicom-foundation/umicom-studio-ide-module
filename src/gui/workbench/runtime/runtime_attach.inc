@@ -97,10 +97,12 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
         G_CALLBACK(runtime_on_close_request),
         runtime);
 
-    runtime->refresh_source = g_timeout_add(
-        UMI_STUDIO_GTK_RUNTIME_REFRESH_MS,
-        runtime_refresh_timer,
-        runtime);
+    if (workbench->options.automatic_refresh) {
+        runtime->refresh_source = g_timeout_add(
+            UMI_STUDIO_GTK_RUNTIME_REFRESH_MS,
+            runtime_refresh_timer,
+            runtime);
+    }
 
     runtime->runtime_ready = 1;
 

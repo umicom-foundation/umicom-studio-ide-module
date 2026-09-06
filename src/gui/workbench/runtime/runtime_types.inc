@@ -9,8 +9,8 @@
  *   user selections and non-owning service references.
  *
  * PRESERVATION:
- *   Phase 2 extends the Phase 1 structure. Existing fields and behaviors remain
- *   available; no feature is removed to make room for the interactive panels.
+ *   Real editor and tool bodies remain intact. Legacy outer splitter fields
+ *   are replaced by one Framework host; compatibility arrays are projections.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
@@ -37,6 +37,11 @@
 #include "umicom/ui/gtk4/workstation/command_bar.h"
 #include "umicom/ui/gtk4/workstation/panel_frame.h"
 #include "umicom/ui/gtk4/workstation/shell_header.h"
+#include "umicom/ui/gtk4/workstation/workspace_layout_host.h"
+#include "umicom/ui/gtk4/workstation/workspace_storage.h"
+#include "umicom/ui/workspace_checkpoint.h"
+#include "umicom/studio/professional_workspace.h"
+#include "umicom/studio_runtime/workspace_canvas.h"
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/coding_assistant.h"
@@ -86,6 +91,18 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiStudioRuntimeBootstrap *runtime_bootstrap;
     UmiStudioRuntimeHostController host_controller;
     UmiStudioRuntimeHostAdapter host_adapter;
+    /* The professional workspace is the only outer-panel layout owner. GTK
+     * retains presentation through one Framework host, not a second canvas. */
+    UmiStudioProfessionalWorkspace *professional_workspace;
+    UmiGtk4WorkspaceLayoutHost *workspace_host;
+    /* One optional Data Server connection stores explicit layout checkpoints.
+     * A caller-supplied server is borrowed; only the native default is owned. */
+    UmiDataServer *workspace_storage;
+    int owns_workspace_storage;
+    UmiUiWorkspaceCheckpointReport workspace_checkpoint;
+    UmiStatus workspace_storage_status;
+    int syncing_workspace_controls;
+    UmiStudioRuntimeSurfaceKind last_presented_surface;
     /* Framework owns provider selection and preview safety; Studio stores the
      * service handle and only presents its bounded result. */
     UmiBrowserSourcePreviewService *source_preview_service;
@@ -98,34 +115,23 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *menu_bar;
     GtkWidget *toolbar;
     GtkWidget *body;
-    GtkWidget *workspace_paned;
-    GtkWidget *primary_paned;
-    GtkWidget *secondary_paned;
-    GtkWidget *primary_cluster;
     GtkWidget *centre_stack;
     GtkWidget *welcome_surface;
     GtkWidget *workbench_surface;
+    GtkWidget *editor_adapter_root;
     GtkWidget *activity_bar;
-    GtkWidget *primary_revealer;
-    GtkWidget *primary_stack;
-    GtkWidget *secondary_revealer;
-    GtkWidget *secondary_stack;
-    GtkWidget *bottom_revealer;
-    GtkWidget *bottom_stack;
     GtkWidget *document_tabs;
     GtkWidget *layout_tabs;
+    GtkWidget *workspace_layout_selector;
+    GtkWidget *workspace_save_button;
+    GtkWidget *workspace_restore_button;
+    GtkWidget *workspace_storage_label;
     GtkWidget *layout_lock_button;
     GtkWidget *status_bar;
     GtkWidget *workflow_badge;
     GtkWidget *notification_label;
 
     GtkWidget *surface_panels[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
-    GtkWidget *surface_windows[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
-    /* Store each close-request connection by its GTK-assigned identifier.
-     * Programmatic redocking can then disconnect the exact callback without
-     * converting a C function pointer to an object pointer. */
-    gulong surface_close_handler_ids[
-        UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     GtkWidget *activity_buttons[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     GtkWidget *status_labels[UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT + 1U];
 
@@ -198,7 +204,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *debug_breakpoints_list;
 
     /* Documentation and lessons are ordinary workbench surfaces, so they use
-     * the same docking, floating and layout persistence paths as every tool. */
+     * the same docking and floating owner as every tool. Canvas edits are session-only. */
     GtkWidget *documentation_location_entry;
     GtkWidget *documentation_search_entry;
     GtkWidget *documentation_summary_label;
@@ -208,12 +214,14 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkCssProvider *css_provider;
     guint refresh_source;
     guint designer_refresh_source;
+    guint notification_source;
+    /* Avoid rebuilding search presentation on unchanged timer ticks. */
+    int application_bar_width;
     uint32_t panel_refresh_tick;
     uint64_t appearance_revision;
     int force_close;
     int runtime_ready;
     int interaction_busy;
-    int applying_workspace_geometry;
     int layout_locked;
     int layout_baseline_valid;
     UmiStudioRuntimeSurfaceKind designer_active_surface;
@@ -221,11 +229,6 @@ typedef struct UmiStudioGtkRuntimeChrome {
     int surface_visible[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     int surface_floating[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
     int surface_state_initialised[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
-    int layout_surface_region_baseline[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
-    int layout_surface_visible_baseline[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
-    int layout_surface_floating_baseline[UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT + 1U];
-
-    UmiUiWorkbenchState layout_edit_baseline;
 
     char workspace_root[UMI_STUDIO_RUNTIME_PATH_CAPACITY];
     char workspace_name[256];
@@ -263,14 +266,7 @@ static void runtime_show_layout_browser(UmiStudioGtkRuntimeChrome *runtime);
  * applications.
  */
 static void runtime_show_window_catalogue(UmiStudioGtkRuntimeChrome *runtime);
-/*
- * Provide the runtime workspace apply geometry operation used by this module and its
- * client applications.
- */
-static void runtime_workspace_apply_geometry(
-    UmiStudioGtkRuntimeChrome *runtime);
-/* Rebuild designer panels after a semantic edit has completed. Deferring the
- * rebuild avoids destroying a button or entry while GTK is dispatching it. */
+/* Rebuild shared workspace chrome while retaining its real operational bodies. */
 static UmiStatus runtime_rebuild_surface_panels(
     UmiStudioGtkRuntimeChrome *runtime);
 /*
@@ -285,9 +281,31 @@ static void runtime_show_surface(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind);
 
-/* Apply Framework's current semantic visibility to every native panel. */
-static UmiStatus runtime_apply_shell_layout_visibility(
-    UmiStudioGtkRuntimeChrome *runtime);
+/* Select a native preset or custom named layout through the sole owner. */
+static UmiStatus runtime_workspace_select_layout(
+    UmiStudioGtkRuntimeChrome *runtime, const char *layout_id);
+
+/* Borrow the sole professional layout owner for command policy checks. */
+static UmiUiWorkspaceCustomisation *runtime_workspace_model(UmiStudioGtkRuntimeChrome *runtime);
+/* Open the strict native singleton through the existing layout owner. */
+static UmiStatus runtime_workspace_open_surface(UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind, const char *placement_id);
+/* Project the existing professional model through the single shared host. */
+static UmiStatus runtime_workspace_rebuild(UmiStudioGtkRuntimeChrome *runtime);
+/* Explicit save and staged restore share Framework checkpoint validation. */
+static UmiStatus runtime_workspace_save(UmiStudioGtkRuntimeChrome *runtime);
+static UmiStatus runtime_workspace_restore(UmiStudioGtkRuntimeChrome *runtime);
+static UmiStatus runtime_workspace_bind_storage(UmiStudioGtkRuntimeChrome *runtime,
+    UmiDataServer *server, int restore_saved);
+static void runtime_workspace_prepare_storage(UmiStudioGtkRuntimeChrome *runtime);
+static void runtime_workspace_update_storage_controls(UmiStudioGtkRuntimeChrome *runtime);
+/* Focus an already visible model surface without changing its visibility. */
+static void runtime_workspace_focus_surface(UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioRuntimeSurfaceKind kind);
+/* Invalidate borrowed runtime callbacks before releasing or replacing a body. */
+static void runtime_invalidate_surface_tree(GtkWidget *root, UmiStudioGtkRuntimeChrome *runtime);
+/* Refresh only deliberately rebuilt designer providers, retaining other drafts. */
+static UmiStatus runtime_workspace_refresh_designer(UmiStudioGtkRuntimeChrome *runtime);
 
 /* Refresh the active-document preview from Framework provider output. */
 static UmiStatus runtime_live_preview_refresh(

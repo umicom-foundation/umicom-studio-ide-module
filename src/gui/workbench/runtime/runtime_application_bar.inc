@@ -151,32 +151,34 @@ static void runtime_on_command_bar_activated(
 
 /* Give the reusable component a proportional part of the header. Its portable
  * policy chooses full, compact or button presentation for the resulting width. */
-static void runtime_on_application_bar_width_changed(
-    GObject *object,
-    GParamSpec *property,
-    gpointer user_data)
+static void runtime_update_application_bar_width(
+    UmiStudioGtkRuntimeChrome *runtime)
 {
-    UmiStudioGtkRuntimeChrome *runtime =
-        (UmiStudioGtkRuntimeChrome *)user_data;
     int width;
     int command_width;
-    (void)property;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (runtime == NULL || runtime->command_bar == NULL || object == NULL) {
+    if (runtime == NULL || runtime->command_bar == NULL ||
+        runtime->application_bar == NULL) {
         return;
     }
-    width = gtk_widget_get_width(GTK_WIDGET(object));
+    width = gtk_widget_get_width(runtime->application_bar);
     /* Keep the operation inside its valid bounds before reading, writing or adding data. */
-    if (width <= 0) return;
+    if (width <= 0 || width == runtime->application_bar_width) return;
+    runtime->application_bar_width = width;
     command_width = width / 4;
     /* Apply this branch only when its contract condition is satisfied. */
     if (command_width > 420) command_width = 420;
     (void)umi_gtk4_ws_command_bar_set_available_width(
         runtime->command_bar, command_width);
+    /* Keep the identity and search reachable when there is less room. The
+     * complete workflow report remains available in the status surfaces. */
+    if (runtime->workflow_badge != NULL) {
+        gtk_widget_set_visible(runtime->workflow_badge, width >= 900);
+    }
 }
 
 /* Create a compact icon button while keeping a readable accessible name and
@@ -314,6 +316,8 @@ static GtkWidget *runtime_build_application_bar(
     UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *bar;
+    GtkWidget *header;
+    GtkWidget *identity_scroll;
     GtkWidget *menu_scroll;
     GtkWidget *commands;
     GtkWidget *layouts;
@@ -329,6 +333,8 @@ static GtkWidget *runtime_build_application_bar(
     if (runtime == NULL) return NULL;
 
     bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    header = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    identity_scroll = gtk_scrolled_window_new();
     menu_scroll = gtk_scrolled_window_new();
     commands = runtime_application_bar_icon_button(
         "system-search-symbolic",
@@ -367,11 +373,14 @@ static GtkWidget *runtime_build_application_bar(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (bar == NULL || menu_scroll == NULL || brand == NULL ||
+    if (bar == NULL || header == NULL || identity_scroll == NULL ||
+        menu_scroll == NULL || brand == NULL ||
         commands == NULL || layouts == NULL || new_window == NULL ||
         command_status != UMI_STATUS_OK || runtime->command_bar == NULL) {
         /* None are parented yet, so release every successful allocation. */
         if (bar != NULL) g_object_unref(bar);
+        if (header != NULL) g_object_unref(header);
+        if (identity_scroll != NULL) g_object_unref(identity_scroll);
         /*
          * Protect caller-owned memory by checking that required state is available before it is
          * used.
@@ -402,12 +411,15 @@ static GtkWidget *runtime_build_application_bar(
         return NULL;
     }
 
-    gtk_widget_add_css_class(bar, "umicom-runtime-appbar");
-    g_signal_connect(
-        bar,
-        "notify::width",
-        G_CALLBACK(runtime_on_application_bar_width_changed),
-        runtime);
+    /* Identity and search sit above the menus. Each row can scroll on a small
+     * display without forcing the whole workbench beyond the screen edge. */
+    gtk_widget_add_css_class(header, "umicom-runtime-appbar");
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(identity_scroll),
+        GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+    gtk_scrolled_window_set_propagate_natural_width(
+        GTK_SCROLLED_WINDOW(identity_scroll), FALSE);
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(identity_scroll), bar);
+    gtk_box_append(GTK_BOX(header), identity_scroll);
 
     g_signal_connect(
         commands,
@@ -432,6 +444,9 @@ static GtkWidget *runtime_build_application_bar(
      * used.
      */
     if (runtime->workflow_badge != NULL) {
+        gtk_label_set_ellipsize(
+            GTK_LABEL(runtime->workflow_badge), PANGO_ELLIPSIZE_END);
+        gtk_label_set_max_width_chars(GTK_LABEL(runtime->workflow_badge), 24);
         gtk_widget_add_css_class(
             runtime->workflow_badge,
             "umicom-runtime-muted");
@@ -472,13 +487,13 @@ static GtkWidget *runtime_build_application_bar(
         gtk_widget_set_hexpand(menu_scroll, TRUE);
         gtk_widget_add_css_class(
             menu_scroll, "umicom-runtime-menu-scroll");
-        gtk_box_append(GTK_BOX(bar), menu_scroll);
+        gtk_box_append(GTK_BOX(header), menu_scroll);
     } /* Use this fallback path when the earlier condition does not apply. */ else {
         /* A missing menu registry should not leak the unparented scroller. */
         g_object_unref(menu_scroll);
     }
-    /* Search sits after the menus, following the reading order while keeping
-     * project content and status messages to its right. */
+    /* Search and short status messages share the identity row, leaving the
+     * complete second row available to menus. */
     gtk_box_append(
         GTK_BOX(bar),
         umi_gtk4_ws_command_bar_widget(runtime->command_bar));
@@ -500,5 +515,5 @@ static GtkWidget *runtime_build_application_bar(
     gtk_box_append(GTK_BOX(bar), new_window);
     gtk_box_append(GTK_BOX(bar), layouts);
 
-    return bar;
+    return header;
 }

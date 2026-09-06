@@ -153,7 +153,10 @@ static UmiStatus runtime_create_framework(
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
-    status = runtime_prepare_session_path(runtime);
+    /* Isolated native tests and embedding callers may disable all session
+     * storage; do not even create the user configuration directory then. */
+    status = runtime->owner->options.persist_session
+        ? runtime_prepare_session_path(runtime) : UMI_STATUS_OK;
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
@@ -306,9 +309,11 @@ static UmiStatus runtime_create_framework(
     (void)memset(&options, 0, sizeof(options));
     options.workspace_name = runtime->workspace_name;
     options.actor_id = "umicom-studio-user";
-    options.session_path = runtime->session_path;
+    options.session_path = runtime->owner->options.persist_session
+        ? runtime->session_path : NULL;
     options.session_prefix = "studio.gtk.runtime";
-    options.restore_session = 1;
+    options.restore_session = runtime->owner->options.persist_session &&
+        runtime->owner->options.restore_session;
 
     status = umi_studio_runtime_bootstrap_create(
         &runtime_bindings,
@@ -323,10 +328,105 @@ static UmiStatus runtime_create_framework(
     return status;
 }
 
-/*
- * Provide the runtime destroy framework operation used by this module and its client
- * applications.
- */
+/* Remove callbacks with one borrowed data pointer from widgets, text buffers
+ * and controllers, including objects held by callers after their old frame dies. */
+static void runtime_disconnect_signal_data_tree(GtkWidget *root, gpointer data)
+{
+    GtkWidget *child;
+    GListModel *controllers;
+    guint index;
+    if (root == NULL || data == NULL) return;
+    g_signal_handlers_disconnect_by_data(root, data);
+    if (GTK_IS_TEXT_VIEW(root))
+        g_signal_handlers_disconnect_by_data(gtk_text_view_get_buffer(GTK_TEXT_VIEW(root)), data);
+    controllers = gtk_widget_observe_controllers(root);
+    for (index = 0U; index < g_list_model_get_n_items(controllers); ++index) {
+        GObject *controller = g_list_model_get_item(controllers, index);
+        g_signal_handlers_disconnect_by_data(controller, data);
+        g_object_unref(controller);
+    }
+    g_object_unref(controllers);
+    for (child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child))
+        runtime_disconnect_signal_data_tree(child, data);
+}
+
+/* Nested designer records borrow services too. Cancel their work before either
+ * a deliberate provider refresh or final host teardown releases their bodies. */
+static void runtime_invalidate_surface_nodes(GtkWidget *widget, GtkWidget *scope)
+{
+    UmiStudioGtkDesignerPaletteState *palette;
+    UmiStudioGtkDesignerPropertyState *property;
+    UmiStudioGtkDesignerCanvasState *canvas;
+    UmiStudioGtkDesignerSourceState *source;
+    GtkWidget *child;
+    palette = g_object_get_data(G_OBJECT(widget), "umicom-designer-palette-state");
+    property = g_object_get_data(G_OBJECT(widget), "umicom-designer-property-state");
+    canvas = g_object_get_data(G_OBJECT(widget), "umicom-designer-canvas-state");
+    source = g_object_get_data(G_OBJECT(widget), "umicom-designer-source-state");
+    if (palette != NULL) {
+        palette->runtime = NULL;
+        runtime_disconnect_signal_data_tree(scope, palette);
+    }
+    if (property != NULL) {
+        property->runtime = NULL;
+        runtime_disconnect_signal_data_tree(scope, property);
+    }
+    if (canvas != NULL) {
+        if (canvas->interaction.active)
+            umi_studio_designer_cancel_surface_interaction(&canvas->interaction);
+        canvas->runtime = NULL;
+        canvas->designer = NULL;
+        runtime_disconnect_signal_data_tree(scope, canvas);
+    }
+    if (source != NULL) {
+        if (source->debounce_source != 0U) {
+            g_source_remove(source->debounce_source);
+            source->debounce_source = 0U;
+        }
+        source->runtime = NULL;
+        runtime_disconnect_signal_data_tree(scope, source);
+    }
+    for (child = gtk_widget_get_first_child(widget); child != NULL;
+         child = gtk_widget_get_next_sibling(child))
+        runtime_invalidate_surface_nodes(child, scope);
+}
+
+/* Disconnect view callbacks while their real retained bodies are still alive. */
+static void runtime_invalidate_surface_tree(GtkWidget *root, UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (root == NULL) return;
+    runtime_disconnect_signal_data_tree(root, runtime);
+    runtime_invalidate_surface_nodes(root, root);
+}
+
+/* Close only this runtime's text prompts and invalidate retained prompt
+ * controls before their borrowed host or accepted callback becomes invalid. */
+static void runtime_destroy_text_prompts(UmiStudioGtkRuntimeChrome *runtime)
+{
+    GListModel *windows = gtk_window_get_toplevels();
+    GPtrArray *owned = g_ptr_array_new_with_free_func(g_object_unref);
+    guint index;
+    for (index = 0U; index < g_list_model_get_n_items(windows); ++index) {
+        GtkWindow *window = g_list_model_get_item(windows, index);
+        UmiStudioGtkPromptContext *prompt =
+            g_object_get_data(G_OBJECT(window), "umicom-prompt-context");
+        if (prompt != NULL && prompt->runtime == runtime) g_ptr_array_add(owned, window);
+        else g_object_unref(window);
+    }
+    for (index = 0U; index < owned->len; ++index) {
+        GtkWidget *window = g_ptr_array_index(owned, index);
+        UmiStudioGtkPromptContext *prompt =
+            g_object_get_data(G_OBJECT(window), "umicom-prompt-context");
+        prompt->runtime = NULL;
+        prompt->accepted = NULL;
+        runtime_disconnect_signal_data_tree(window, prompt);
+        gtk_window_destroy(GTK_WINDOW(window));
+    }
+    g_ptr_array_unref(owned);
+}
+
+/* Release callbacks and retained GTK bodies before their Framework services. */
 static void runtime_destroy_framework(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -336,6 +436,23 @@ static void runtime_destroy_framework(
      * used.
      */
     if (runtime == NULL) return;
+
+    runtime_destroy_text_prompts(runtime);
+    /* Stop runtime-owned callbacks before the host releases retained bodies. */
+    if (runtime->owner != NULL && runtime->owner->window != NULL)
+        runtime_disconnect_signal_data_tree(GTK_WIDGET(runtime->owner->window), runtime);
+    runtime_invalidate_surface_tree(runtime->outer_root, runtime);
+    runtime_invalidate_surface_tree(runtime->centre_stack, runtime);
+    for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
+         kind <= (int)UMI_STUDIO_SURFACE_LAST; ++kind)
+        runtime_invalidate_surface_tree(runtime->surface_panels[kind], runtime);
+    runtime_invalidate_surface_tree(runtime->command_window, runtime);
+    runtime_invalidate_surface_tree(runtime->layout_window, runtime);
+    runtime_invalidate_surface_tree(runtime->window_catalogue_window, runtime);
+    if (runtime->notification_source != 0U) {
+        g_source_remove(runtime->notification_source);
+        runtime->notification_source = 0U;
+    }
 
     /* Apply this branch only when its contract condition is satisfied. */
     if (runtime->refresh_source != 0U) {
@@ -383,27 +500,27 @@ static void runtime_destroy_framework(
     umi_gtk4_ws_shell_header_destroy(runtime->brand_identity);
     runtime->brand_identity = NULL;
 
-    /* Detached panels are top-level GTK windows and therefore must be closed
-     * explicitly before the runtime state they reference is released. */
-    for (kind = (int)UMI_STUDIO_SURFACE_EXPLORER;
-         kind <= (int)UMI_STUDIO_SURFACE_LAST;
-        ++kind) {
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (runtime->surface_windows[kind] != NULL) {
-            if (runtime->surface_close_handler_ids[kind] != 0U) {
-                g_signal_handler_disconnect(
-                    runtime->surface_windows[kind],
-                    runtime->surface_close_handler_ids[kind]);
-                runtime->surface_close_handler_ids[kind] = 0U;
-            }
-            gtk_window_destroy(GTK_WINDOW(runtime->surface_windows[kind]));
-            runtime->surface_windows[kind] = NULL;
-            runtime->surface_floating[kind] = 0;
-        }
+    /* The shared host cancels gestures and owns every detached native window.
+     * Restore the original adapter tree before its established teardown runs. */
+    umi_gtk4_workspace_layout_host_destroy(runtime->workspace_host);
+    runtime->workspace_host = NULL;
+    if (runtime->editor_adapter_root != NULL) {
+        GtkWidget *parent = gtk_widget_get_parent(runtime->editor_adapter_root);
+        if (parent != NULL && GTK_IS_BOX(parent))
+            gtk_box_remove(GTK_BOX(parent), runtime->editor_adapter_root);
+        if (runtime->owner != NULL && runtime->owner->window != NULL)
+            gtk_window_set_child(runtime->owner->window, runtime->editor_adapter_root);
+        g_clear_object(&runtime->editor_adapter_root);
     }
+    g_clear_object(&runtime->centre_stack);
+    g_clear_object(&runtime->outer_root);
+    umi_studio_professional_workspace_destroy(runtime->professional_workspace);
+    runtime->professional_workspace = NULL;
+    /* Borrowed test or service connections remain with their original owner. */
+    if (runtime->owns_workspace_storage)
+        umi_data_server_destroy(runtime->workspace_storage);
+    runtime->workspace_storage = NULL;
+    runtime->owns_workspace_storage = 0;
 
     umi_studio_runtime_bootstrap_destroy(
         runtime->runtime_bootstrap);

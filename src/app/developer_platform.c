@@ -71,6 +71,16 @@ UmiStatus umi_studio_developer_platform_create(
     UmiClock *clock,
     UmiStudioDeveloperPlatform **out_platform)
 {
+    return umi_studio_developer_platform_create_with_discovery(
+        workspace_root, clock, 1, out_platform);
+}
+
+/* Reuse the same developer services while allowing a host to defer repository
+ * discovery until a user explicitly enables or requests it. */
+UmiStatus umi_studio_developer_platform_create_with_discovery(
+    const char *workspace_root, UmiClock *clock, int discover_repository,
+    UmiStudioDeveloperPlatform **out_platform)
+{
     UmiStudioDeveloperPlatform *platform;
     UmiStatus status;
     char root_uri[UMI_PROTOCOL_URI_CAPACITY];
@@ -114,8 +124,8 @@ UmiStatus umi_studio_developer_platform_create(
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
-        status = umi_studio_source_control_service_create(
-            workspace_root, &platform->source_control);
+        status = umi_studio_source_control_service_create_with_discovery(
+            workspace_root, discover_repository, &platform->source_control);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {

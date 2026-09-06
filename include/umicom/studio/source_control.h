@@ -60,6 +60,11 @@ UmiStatus umi_studio_source_control_service_create(
     const char *root,
     UmiStudioSourceControlService **out_service
 );
+/** Create the same service with explicit repository-discovery permission.
+ * Zero retains unavailable models and never probes source-control tools. */
+UmiStatus umi_studio_source_control_service_create_with_discovery(
+    const char *root, int discover_repository,
+    UmiStudioSourceControlService **out_service);
 /**
  * Release or reset state held by studio source control service so the same storage can be
  * reused safely.

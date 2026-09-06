@@ -55,4 +55,10 @@ UmiStatus umi_studio_professional_workspace_snapshot(const UmiStudioProfessional
  * client applications.
  */
 UmiUiWorkspaceCustomisation *umi_studio_professional_workspace_model(UmiStudioProfessionalWorkspace *workspace);
+/* Prepare an empty workspace for the native IDE using Framework's real Studio
+ * surface and preset catalogues. The frontend owns this workspace and borrows
+ * the model; its services must outlive it. Existing layouts are never replaced.
+ * This is separate from the general desktop workspace used by other tools. */
+UmiStatus umi_studio_professional_workspace_seed_native(
+    UmiStudioProfessionalWorkspace *workspace);
 #endif

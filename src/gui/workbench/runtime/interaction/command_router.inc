@@ -44,6 +44,23 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /* Layout commands use the Data Server checkpoint, not the older shell
+     * session file, and never replace source-document saving. */
+    if (strcmp(command_id, "studio.layout.save") == 0)
+        return runtime_workspace_save(runtime);
+    if (strcmp(command_id, "studio.layout.restore") == 0)
+        return runtime_workspace_restore(runtime);
+    /* Reject before a legacy named-layout command can mutate shell state. */
+    if ((strncmp(command_id, "studio.layout.", 14U) == 0 &&
+         strcmp(command_id, "studio.layout.manager") != 0) ||
+        strcmp(command_id, "designer.open") == 0) {
+        UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+        if (model != NULL && model->edit_active) {
+            runtime_show_notification(runtime, "Apply or cancel this layout edit first.");
+            return UMI_STATUS_BUSY;
+        }
+    }
+
     /* File/workspace commands requiring native GTK path selection. */
     if (strcmp(command_id, "file.open") == 0) {
         return runtime_choose_file_to_open(runtime);
@@ -210,73 +227,19 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_OK;
     }
 
-    /* The named source-preview layout applies the Framework visibility policy,
-     * then selects the preview page in the secondary GTK stack. The editor
-     * remains in the centre, so both views are visible and independently
-     * movable through the normal workspace controls. */
-    if (strcmp(command_id, "studio.layout.code-preview") == 0) {
-        UmiStatus status = runtime_execute_registered_command(
-            runtime,
-            "studio.layout.code-preview",
-            argument);
-        /* Select native pages only after Framework accepts the layout change. */
-        if (status == UMI_STATUS_OK) {
-            status = runtime_apply_shell_layout_visibility(runtime);
-        }
-        /* The two workflow pages are selected only after every placement has
-         * been synchronized with the named layout. */
-        if (status == UMI_STATUS_OK) {
-            runtime_show_surface(runtime, UMI_STUDIO_SURFACE_EDITOR);
-            runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
+    /* Native named presets use the same professional model as the selector.
+     * The shell receives only its accepted one-way projection afterward. */
+    if (strncmp(command_id, "studio.layout.", 14U) == 0 ||
+        strcmp(command_id, "designer.open") == 0) {
+        const char *layout_id = strcmp(command_id, "designer.open") == 0
+            ? "visual-design" : command_id + 14U;
+        UmiStatus status = runtime_workspace_select_layout(runtime, layout_id);
+        if (status == UMI_STATUS_OK && strcmp(layout_id, "code-preview") == 0) {
+            runtime_workspace_focus_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
             (void)runtime_live_preview_refresh(runtime, 1);
-        }
-        return status;
-    }
-
-    /* Both the long-lived Tools menu identifier and the named layout button
-     * open the complete visual-design workspace. The Framework command applies
-     * semantic layout state; these calls select the corresponding GTK pages. */
-    if (strcmp(command_id, "designer.open") == 0 ||
-        strcmp(command_id, "studio.layout.visual-design") == 0) {
-        UmiStatus status = runtime_execute_registered_command(
-            runtime,
-            "studio.layout.visual-design",
-            argument);
-        /* First hide panels omitted by the new semantic layout. */
-        if (status == UMI_STATUS_OK) {
-            status = runtime_apply_shell_layout_visibility(runtime);
-        }
-        /* Then select the designer pages that share the central tab group. */
-        if (status == UMI_STATUS_OK) {
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_COMPONENT_PALETTE);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_COMPONENT_STRUCTURE);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_OBJECT_INSPECTOR);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_DESIGN_CODE);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_DESIGN_MIXED);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_DESIGN_PREVIEW);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_VISUAL_DESIGNER);
-        }
-        return status;
-    }
-
-    /* All remaining named layout commands share the same application path:
-     * Framework changes semantic state, then GTK mirrors the complete visible
-     * set. This also synchronizes a restored layout. Manager was handled above
-     * and Save does not change the active arrangement. */
-    if (strncmp(command_id, "studio.layout.", 14U) == 0 &&
-        strcmp(command_id, "studio.layout.save") != 0) {
-        UmiStatus status = runtime_execute_registered_command(
-            runtime, command_id, argument);
-        /* Do not alter native widgets when Framework rejected the command. */
-        if (status == UMI_STATUS_OK) {
-            status = runtime_apply_shell_layout_visibility(runtime);
+        } else if (status == UMI_STATUS_OK && strcmp(layout_id, "visual-design") == 0) {
+            runtime->designer_active_surface = UMI_STUDIO_SURFACE_VISUAL_DESIGNER;
+            runtime_workspace_focus_surface(runtime, UMI_STUDIO_SURFACE_VISUAL_DESIGNER);
         }
         return status;
     }
@@ -318,5 +281,17 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_OK;
     }
 
+    /* View/activity navigation opens a canonical singleton through the same
+     * owner used by the catalogue. No legacy shell placement is imported. */
+    {
+        size_t index;
+        for (index = 0U; index < sizeof(RUNTIME_SURFACE_PROFILES) /
+                sizeof(RUNTIME_SURFACE_PROFILES[0]); ++index) {
+            const UmiStudioGtkSurfaceProfile *profile = &RUNTIME_SURFACE_PROFILES[index];
+            if (profile->command_id[0] != '\0' &&
+                strcmp(profile->command_id, command_id) == 0)
+                return runtime_workspace_open_surface(runtime, profile->kind, NULL);
+        }
+    }
     return runtime_execute_phase1_host_command(runtime, command_id, argument);
 }

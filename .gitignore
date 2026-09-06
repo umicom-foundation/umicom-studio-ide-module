@@ -1,0 +1,100 @@
+# -----------------------------------------------------------------------------
+# Umicom Studio IDE
+# File: .gitignore
+# Purpose: Keep generated output, private working notes and credentials local.
+# Author: Sammy Hegab, Umicom Foundation
+# Licence: MIT
+# -----------------------------------------------------------------------------
+
+# Studio is a separate repository. Its parent repository's ignore rules do not
+# protect files staged here. These rules do not untrack files already committed.
+/build/
+/build-*/
+/build_*/
+/cmake-build-*/
+/out/
+/dist/
+/install/
+/coverage/
+/CMakeUserPresets.json
+/compile_commands.json
+**/CMakeFiles/
+**/CMakeCache.txt
+**/CTestTestfile.cmake
+**/Testing/
+**/build.ninja
+**/.ninja_deps
+**/.ninja_log
+**/cmake_install.cmake
+*.exe
+*.dll
+*.a
+*.lib
+*.so
+*.dylib
+*.o
+*.obj
+*.pdb
+*.dmp
+*.stackdump
+
+# Research and test evidence may remain on the developer's computer without
+# becoming public documentation. Keep private material in one of these areas.
+/.umicom/
+/tmp/
+/temp/
+/analysis/
+/research/
+/notes/
+/private/
+/local-only/
+/scratch/
+/docs/private/
+/docs/internal/
+*.log
+*.tmp
+*.temp
+*.private.*
+*.local.*
+*.zip
+*.7z
+*.rar
+
+# Ignore secret-bearing local configuration; placeholder examples remain usable.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+!**/.env.template
+**/credentials.json
+**/credentials.yaml
+**/credentials.yml
+**/secrets.json
+**/secrets.yaml
+**/secrets.yml
+**/service-account*.json
+**/oauth-client*.json
+*.secret
+*.token
+*.credentials
+*.key
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+
+# Editor and operating-system caches are not part of the product source.
+/.vs/
+/.clangd/
+/.idea/workspace.xml
+/.vscode/*.local.json
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

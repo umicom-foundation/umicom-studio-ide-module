@@ -16,7 +16,9 @@
 
 static gboolean runtime_clear_notification(gpointer user_data)
 {
-    GtkWidget *label = GTK_WIDGET(user_data);
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    GtkWidget *label = runtime->notification_label;
+    runtime->notification_source = 0U;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -48,10 +50,12 @@ static void runtime_show_notification(
         runtime_safe(message));
     gtk_widget_set_visible(runtime->notification_label, TRUE);
 
-    (void)g_timeout_add(
-        4200U,
-        runtime_clear_notification,
-        runtime->notification_label);
+    if (runtime->notification_source != 0U) {
+        g_source_remove(runtime->notification_source);
+        runtime->notification_source = 0U;
+    }
+    if (runtime->owner->options.automatic_refresh)
+        runtime->notification_source = g_timeout_add(4200U, runtime_clear_notification, runtime);
 }
 
 /*

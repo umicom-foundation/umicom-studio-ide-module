@@ -274,6 +274,23 @@ UmiStatus umi_studio_services_create(
     void *initial_user_data,
     UmiStudioServices **out_services)
 {
+    return umi_studio_services_create_with_options(
+        initial_sink, initial_user_data, NULL, out_services);
+}
+
+/* Existing products continue to discover their repository during startup. */
+UmiStudioServicesOptions umi_studio_services_options_default(void)
+{
+    UmiStudioServicesOptions options = {1};
+    return options;
+}
+
+/* An explicit discovery-off policy is independent of workspace configuration
+ * and environment variables, so native acceptance hosts cannot spawn probes. */
+UmiStatus umi_studio_services_create_with_options(
+    UmiDiagnosticSink initial_sink, void *initial_user_data,
+    const UmiStudioServicesOptions *options, UmiStudioServices **out_services)
+{
     UmiDiagnosticStoreConfig store_config;
     UmiDiagnosticPipelineConfig pipeline_config;
     UmiTaskQueueConfig task_config;
@@ -600,9 +617,10 @@ UmiStatus umi_studio_services_create(
         return status;
     }
 
-    status = umi_studio_developer_platform_create(
+    status = umi_studio_developer_platform_create_with_discovery(
         current_directory,
         &services->clock,
+        options != NULL ? options->discover_repository : 1,
         &services->developer_platform
     );
     /* Preserve the original failure result so the caller can respond to the correct cause. */

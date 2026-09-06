@@ -110,6 +110,14 @@ static void studio_shell_destroy(UmiModuleContext *context)
  */
 UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
 {
+    return umi_studio_bootstrap_create_with_options(NULL, out_bootstrap);
+}
+
+/* Keep composition identical while forwarding explicit service permissions;
+ * the graphical host independently controls presentation and persistence. */
+UmiStatus umi_studio_bootstrap_create_with_options(
+    const UmiStudioServicesOptions *options, UmiStudioBootstrap **out_bootstrap)
+{
     UmiStudioBootstrap *bootstrap;
     UmiMasterControllerConfig config;
     UmiStatus status;
@@ -132,8 +140,8 @@ UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap)
         return UMI_STATUS_OUT_OF_MEMORY;
     }
 
-    status = umi_studio_services_create(studio_diagnostic_sink, bootstrap,
-                                        &bootstrap->services);
+    status = umi_studio_services_create_with_options(studio_diagnostic_sink,
+        bootstrap, options, &bootstrap->services);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         free(bootstrap);

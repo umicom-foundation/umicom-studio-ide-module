@@ -71,6 +71,8 @@
 #include "surfaces/designer.inc"
 #include "surfaces/live_preview.inc"
 
+#include "runtime_workspace_host.inc"
+#include "runtime_workspace_storage.inc"
 #include "runtime_surface_registry.inc"
 #include "runtime_window_catalogue.inc"
 #include "runtime_command_palette.inc"

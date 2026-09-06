@@ -37,6 +37,11 @@ typedef struct UmiStudioBootstrap UmiStudioBootstrap;
  * known state.
  */
 UmiStatus umi_studio_bootstrap_create(UmiStudioBootstrap **out_bootstrap);
+/** Create the ordinary Studio composition with explicit service permissions.
+ * NULL options preserve normal startup. This does not start the application
+ * lifecycle; callers still choose whether to invoke bootstrap_start. */
+UmiStatus umi_studio_bootstrap_create_with_options(
+    const UmiStudioServicesOptions *options, UmiStudioBootstrap **out_bootstrap);
 /**
  * Provide the studio bootstrap start operation used by this module and its client
  * applications.

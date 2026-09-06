@@ -19,7 +19,8 @@ typedef enum UmiStudioGtkRuntimeRegion {
     UMI_STUDIO_GTK_REGION_PRIMARY = 1,
     UMI_STUDIO_GTK_REGION_SECONDARY = 2,
     UMI_STUDIO_GTK_REGION_BOTTOM = 3,
-    UMI_STUDIO_GTK_REGION_EDITOR = 4
+UMI_STUDIO_GTK_REGION_EDITOR = 4,
+    UMI_STUDIO_GTK_REGION_CANVAS = 5
 } UmiStudioGtkRuntimeRegion;
 
 typedef struct UmiStudioGtkSurfaceProfile {

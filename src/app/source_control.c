@@ -81,6 +81,15 @@ UmiStatus umi_studio_source_control_service_create(
     const char *root,
     UmiStudioSourceControlService **out_service)
 {
+    return umi_studio_source_control_service_create_with_discovery(root, 1, out_service);
+}
+
+/* Discovery is a caller permission, never an ambient setting. The disabled
+ * path keeps honest unavailable models without invoking a Git executable. */
+UmiStatus umi_studio_source_control_service_create_with_discovery(
+    const char *root, int discover_repository,
+    UmiStudioSourceControlService **out_service)
+{
     UmiStudioSourceControlService *service;
     UmiStatus status;
 
@@ -102,8 +111,9 @@ UmiStatus umi_studio_source_control_service_create(
     status = umi_source_control_service_create(&service->foundation);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
-        status = umi_source_control_service_open_workspace(
-            service->foundation, root);
+        status = discover_repository
+            ? umi_source_control_service_open_workspace(service->foundation, root)
+            : umi_source_control_service_open_workspace_unavailable(service->foundation, root);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {

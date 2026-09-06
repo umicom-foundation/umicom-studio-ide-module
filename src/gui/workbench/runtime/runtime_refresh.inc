@@ -110,6 +110,9 @@ static gboolean runtime_refresh_timer(gpointer user_data)
         return G_SOURCE_REMOVE;
     }
 
+    /* GTK4 has no widget-width notify property. Reuse the existing timer to
+     * adapt search after allocation instead of connecting an inert signal. */
+    runtime_update_application_bar_width(runtime);
     (void)runtime_refresh_services(runtime);
     return G_SOURCE_CONTINUE;
 }

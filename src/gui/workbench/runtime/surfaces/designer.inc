@@ -87,29 +87,13 @@ static gboolean runtime_designer_refresh_idle(gpointer user_data)
     if (runtime == NULL) return G_SOURCE_REMOVE;
     runtime->designer_refresh_source = 0U;
     if (runtime->runtime_ready) {
-        if (runtime_rebuild_surface_panels(runtime) == UMI_STATUS_OK) {
-            /* Re-select the design workspace after replacing its widgets so
-             * the centre stack cannot fall back to the editor unexpectedly. */
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_COMPONENT_PALETTE);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_COMPONENT_STRUCTURE);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_OBJECT_INSPECTOR);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_DESIGN_CODE);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_DESIGN_MIXED);
-            runtime_show_surface(
-                runtime, UMI_STUDIO_SURFACE_DESIGN_PREVIEW);
-            runtime_show_surface(
-                runtime,
-                runtime->designer_active_surface >=
-                        UMI_STUDIO_SURFACE_VISUAL_DESIGNER &&
-                    runtime->designer_active_surface <=
-                        UMI_STUDIO_SURFACE_DESIGN_PREVIEW
-                    ? runtime->designer_active_surface
-                    : UMI_STUDIO_SURFACE_VISUAL_DESIGNER);
+        if (runtime_workspace_refresh_designer(runtime) == UMI_STATUS_OK) {
+            /* Refresh provider state without reopening panels the user hid or
+             * adding absent tools to a deliberately sparse custom canvas. */
+            runtime_workspace_focus_surface(runtime,
+                runtime->designer_active_surface >= UMI_STUDIO_SURFACE_VISUAL_DESIGNER &&
+                runtime->designer_active_surface <= UMI_STUDIO_SURFACE_DESIGN_PREVIEW
+                    ? runtime->designer_active_surface : UMI_STUDIO_SURFACE_VISUAL_DESIGNER);
         }
     }
     return G_SOURCE_REMOVE;
@@ -874,6 +858,8 @@ static GtkWidget *runtime_designer_canvas_new(
         state->designer = runtime_designer_service(runtime);
         state->canvas = canvas;
         state->interactive = interactive != 0;
+        /* Borrowed lookup supports invalidation before retained bodies are discarded. */
+        g_object_set_data(G_OBJECT(canvas), "umicom-designer-canvas-state", state);
         umi_designer_surface_options_init(&state->options);
         gtk_drawing_area_set_draw_func(
             GTK_DRAWING_AREA(canvas),
@@ -940,7 +926,7 @@ static void runtime_designer_source_state_free(gpointer user_data)
     UmiStudioGtkDesignerSourceState *state =
         (UmiStudioGtkDesignerSourceState *)user_data;
 
-    if (state == NULL) return;
+    if (state == NULL || state->runtime == NULL) return;
     if (state->debounce_source != 0U) {
         g_source_remove(state->debounce_source);
         state->debounce_source = 0U;
