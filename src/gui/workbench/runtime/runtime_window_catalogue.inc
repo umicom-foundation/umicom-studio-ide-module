@@ -39,6 +39,17 @@ static UmiStatus runtime_surface_place(UmiStudioGtkRuntimeChrome *runtime,
     return runtime_workspace_open_surface(runtime, kind, placement);
 }
 
+/* Normal Open focuses or restores one existing singleton. Arrangement actions
+ * below remain guarded by the Framework edit transaction. */
+static void runtime_on_surface_open(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    UmiStudioRuntimeSurfaceKind kind = (UmiStudioRuntimeSurfaceKind)GPOINTER_TO_INT(
+        g_object_get_data(G_OBJECT(button), "umicom-surface-kind"));
+    UmiStatus status = runtime_workspace_open_surface(runtime, kind, NULL);
+    if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+}
+
 /* Hiding is an explicit arrangement edit; View commands may reopen a singleton. */
 static UmiStatus runtime_surface_hide(UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind)
@@ -215,8 +226,8 @@ static UmiStatus runtime_build_window_catalogue(
     root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     heading = runtime_section_title("New Window");
     help = runtime_label(
-         "Place panels on the canvas, dock left, right, bottom or centre, or detach into native "
-        "windows. Unlock the current layout before changing its arrangement.",
+         "Open or focus a panel without unlocking. To change its arrangement, unlock the "
+        "layout and choose a canvas, dock or detached-window destination.",
         0.0F);
     scroll = gtk_scrolled_window_new();
     /*
@@ -260,6 +271,7 @@ static UmiStatus runtime_build_window_catalogue(
         GtkWidget *title;
         GtkWidget *location;
         GtkWidget *actions;
+        GtkWidget *open;
         GtkWidget *left;
         GtkWidget *right;
         GtkWidget *bottom;
@@ -283,6 +295,7 @@ static UmiStatus runtime_build_window_catalogue(
         location = runtime_label(
             runtime_region_text(profile->region), 0.0F);
         actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+        open = gtk_button_new_with_label("Open / Focus");
         left = runtime_surface_place_button(
             runtime, profile->kind, UMI_STUDIO_GTK_REGION_PRIMARY, "Left");
         right = runtime_surface_place_button(
@@ -300,7 +313,7 @@ static UmiStatus runtime_build_window_catalogue(
          * used.
          */
         if (row == NULL || identity == NULL || title == NULL ||
-            location == NULL || actions == NULL || left == NULL ||
+            location == NULL || actions == NULL || open == NULL || left == NULL ||
             right == NULL || bottom == NULL || centre == NULL ||
             canvas == NULL || floating == NULL || hide == NULL) {
             continue;
@@ -310,6 +323,10 @@ static UmiStatus runtime_build_window_catalogue(
         gtk_widget_set_hexpand(identity, TRUE);
         gtk_box_append(GTK_BOX(identity), title);
         gtk_box_append(GTK_BOX(identity), location);
+        g_object_set_data(G_OBJECT(open), "umicom-surface-kind", GINT_TO_POINTER((int)profile->kind));
+        g_signal_connect(open, "clicked", G_CALLBACK(runtime_on_surface_open), runtime);
+        gtk_widget_set_tooltip_text(open, "Open or focus this panel in normal mode");
+        gtk_box_append(GTK_BOX(actions), open);
         gtk_box_append(GTK_BOX(actions), left);
         gtk_box_append(GTK_BOX(actions), right);
         gtk_box_append(GTK_BOX(actions), bottom);

@@ -108,7 +108,6 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiBrowserSourcePreviewService *source_preview_service;
 
     GtkWidget *outer_root;
-    UmiGtk4WorkstationShellHeader *brand_identity;
     UmiGtk4WorkstationCommandBar *command_bar;
     UmiWsCommandBarModel command_bar_model;
     GtkWidget *application_bar;
@@ -218,7 +217,6 @@ typedef struct UmiStudioGtkRuntimeChrome {
     /* Avoid rebuilding search presentation on unchanged timer ticks. */
     int application_bar_width;
     uint32_t panel_refresh_tick;
-    uint64_t appearance_revision;
     int force_close;
     int runtime_ready;
     int interaction_busy;

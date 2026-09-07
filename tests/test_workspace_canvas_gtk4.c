@@ -50,6 +50,18 @@ static GtkWidget *find_tag(GtkWidget *widget, const char *tag)
     return NULL;
 }
 
+/* Exercise the real shared search and Enter callbacks without showing its
+ * popover or calling a private Studio navigation helper. */
+static int navigate_to(GtkWidget *root, const char *query)
+{
+    GtkWidget *entry = find_tag(root, "umicom.command.search");
+    if (!GTK_IS_SEARCH_ENTRY(entry)) return 0;
+    gtk_editable_set_text(GTK_EDITABLE(entry), query);
+    g_signal_emit_by_name(entry, "search-changed");
+    g_signal_emit_by_name(entry, "activate");
+    return 1;
+}
+
 /* Select the operational text editor, not Output, Terminal or a summary card. */
 static GtkWidget *find_editor(GtkWidget *widget)
 {
@@ -399,6 +411,10 @@ int main(void)
     GtkWidget *old_context_button = NULL;
     GtkWidget *last_context_button = NULL;
     GtkWidget *native_window;
+    GtkWidget *titlebar;
+    GtkWidget *identity;
+    GtkWidget *tool_control;
+    char tool_tag[UMI_UI_WORKSPACE_LAYOUT_ID_CAPACITY + 32U];
     GtkTextBuffer *buffer = NULL;
     GtkTextIter insert;
     GtkTextIter bound;
@@ -459,6 +475,38 @@ int main(void)
     REQUIRE(!activity.automatic_refresh_active && !activity.session_storage_configured);
     REQUIRE(all_windows_unpresented());
     native_window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    /* The actual Studio constructor must put branding in GtkWindow's title
+     * slot, not merely render a convincing identity inside its content root. */
+    titlebar = gtk_window_get_titlebar(GTK_WINDOW(native_window));
+    REQUIRE(GTK_IS_HEADER_BAR(titlebar));
+    identity = find_tag(titlebar, "workstation.identity.title");
+    REQUIRE(GTK_IS_LABEL(identity) &&
+        strcmp(gtk_label_get_text(GTK_LABEL(identity)), "Umicom Studio IDE") == 0);
+    REQUIRE(find_tag(titlebar, "workstation.identity.icon") != NULL);
+    REQUIRE(find_tag(gtk_window_get_child(GTK_WINDOW(native_window)),
+        "workstation.identity.title") == NULL);
+    REQUIRE(find_tag(native_window, "studio.workspace.command-strip") != NULL);
+    /* The fresh product default exposes named Structure and Inspector tabs.
+     * A real tab click switches the actual provider, then X collapses it. */
+    (void)snprintf(tool_tag, sizeof(tool_tag), "workstation.tool-tab.%s",
+        umi_studio_runtime_workspace_surface_id(UMI_STUDIO_SURFACE_OUTLINE));
+    tool_control = find_tag(native_window, tool_tag);
+    REQUIRE(GTK_IS_TOGGLE_BUTTON(tool_control));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tool_control), TRUE);
+    REQUIRE(drain_context());
+    identity = find_tag(native_window, "workstation.tool-title.left");
+    REQUIRE(GTK_IS_LABEL(identity) && strcmp(gtk_label_get_text(GTK_LABEL(identity)), "Structure") == 0);
+    (void)snprintf(tool_tag, sizeof(tool_tag), "workstation.tool-tab.%s",
+        umi_studio_runtime_workspace_surface_id(UMI_STUDIO_SURFACE_OBJECT_INSPECTOR));
+    tool_control = find_tag(native_window, tool_tag);
+    REQUIRE(GTK_IS_TOGGLE_BUTTON(tool_control));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tool_control), TRUE);
+    REQUIRE(drain_context());
+    REQUIRE(strcmp(gtk_label_get_text(GTK_LABEL(identity)), "Object Inspector") == 0);
+    tool_control = find_tag(native_window, "workstation.tool-close.left");
+    REQUIRE(GTK_IS_BUTTON(tool_control));
+    g_signal_emit_by_name(tool_control, "clicked");
+    REQUIRE(drain_context() && all_windows_unpresented());
     editor_root = find_tag(native_window, "studio.workspace.editor-root");
     REQUIRE(editor_root != NULL);
     g_object_ref(editor_root);
@@ -537,6 +585,22 @@ int main(void)
     REQUIRE(layout->window_count == 0U && buffer_contains(buffer, draft) && has_unicode_selection(buffer));
     REQUIRE(!gtk_widget_get_sensitive(old_context_button));
     g_signal_emit_by_name(old_context_button, "clicked");
+
+    /* Normal-mode discovery reopens Editor from a locked empty canvas. A
+     * second Open is focus only, without duplicate records or lost drafts. */
+    REQUIRE(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
+    REQUIRE(navigate_to(native_window, "+Editor"));
+    REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+    REQUIRE(layout->locked && layout->window_count == 1U);
+    editor_record = umi_ui_workspace_layout_find_window(layout, editor_id);
+    REQUIRE(editor_record != NULL && editor_record->visible);
+    REQUIRE(find_tag(native_window, "studio.workspace.editor-root") == editor_root);
+    REQUIRE(find_editor(editor_root) == editor && buffer_contains(buffer, draft));
+    before_revision = layout->revision;
+    REQUIRE(navigate_to(native_window, "+Editor"));
+    REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+    REQUIRE(layout->revision == before_revision && layout->window_count == 1U);
+    REQUIRE(umi_studio_gtk_workbench_workspace_begin_edit(workbench) == UMI_STATUS_OK);
 
     /* Catalogue opening must restore the operational editor, not a summary. */
     REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench,

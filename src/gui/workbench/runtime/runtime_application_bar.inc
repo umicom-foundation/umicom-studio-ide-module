@@ -63,6 +63,19 @@ static UmiWsCommandScope runtime_command_bar_scope(
     return UMI_WS_COMMAND_SCOPE_COMMAND;
 }
 
+/* A panel already receives a normal Open/Focus entry from the Framework
+ * surface catalogue; avoid a second search row for its toolbar alias. */
+static int runtime_command_has_surface(const char *command_id)
+{
+    size_t index;
+    for (index = 0U; index < sizeof(RUNTIME_SURFACE_PROFILES) /
+            sizeof(RUNTIME_SURFACE_PROFILES[0]); ++index) {
+        const char *surface_command = RUNTIME_SURFACE_PROFILES[index].command_id;
+        if (surface_command[0] != '\0' && strcmp(surface_command, command_id) == 0) return 1;
+    }
+    return 0;
+}
+
 /* Build Studio's portable command catalogue from the existing profile tables.
  * Those tables remain the single source for labels, commands and help text. */
 static UmiStatus runtime_build_command_bar_model(
@@ -85,6 +98,7 @@ static UmiStatus runtime_build_command_bar_model(
          ++index) {
         const UmiStudioGtkCommandProfile *profile =
             &RUNTIME_COMMAND_PROFILES[index];
+        if (runtime_command_has_surface(profile->command_id)) continue;
         status = umi_ws_command_bar_model_add(
             &runtime->command_bar_model,
             profile->command_id,
@@ -103,6 +117,25 @@ static UmiStatus runtime_build_command_bar_model(
             &runtime->command_bar_model,
             profile->command_id,
             runtime_command_enabled(runtime, profile->command_id) != 0);
+    }
+
+    /* Every real native surface, including Editor, is reachable in normal
+     * mode. Placement remains a separate transaction in the existing editor. */
+    for (index = 0U; index < umi_studio_surface_catalogue_count(); ++index) {
+        const UmiStudioRuntimeSurfaceBinding *binding = umi_studio_surface_catalogue_at(index);
+        const char *id;
+        char item_id[UMI_UI_ID_CAPACITY];
+        int written;
+        if (binding == NULL || runtime_surface_profile(binding->kind) == NULL) continue;
+        id = umi_studio_runtime_workspace_surface_id(binding->kind);
+        if (id == NULL) continue;
+        written = snprintf(item_id, sizeof(item_id), "studio.window.%s", id);
+        if (written < 0 || (size_t)written >= sizeof(item_id)) return UMI_STATUS_CAPACITY_EXCEEDED;
+        status = umi_ws_command_bar_model_add(&runtime->command_bar_model,
+            item_id, binding->title,
+            "Open or focus this existing Studio panel. No layout unlock is needed.",
+            id, "window tool panel open focus restore", UMI_WS_COMMAND_SCOPE_PANEL, 95U);
+        if (status != UMI_STATUS_OK) return status;
     }
 
     /* Visit each bounded item once so every record receives the same rule. */
@@ -146,6 +179,13 @@ static void runtime_on_command_bar_activated(
      * used.
      */
     if (runtime == NULL || item == NULL || !item->enabled) return;
+    if (strncmp(item->item_id, "studio.window.", sizeof("studio.window.") - 1U) == 0) {
+        UmiStudioRuntimeSurfaceKind kind;
+        UmiStatus status = umi_studio_runtime_workspace_surface_kind(item->command_id, &kind);
+        if (status == UMI_STATUS_OK) status = runtime_workspace_open_surface(runtime, kind, NULL);
+        if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+        return;
+    }
     (void)runtime_route_command(runtime, item->command_id, NULL);
 }
 
@@ -174,7 +214,7 @@ static void runtime_update_application_bar_width(
     if (command_width > 420) command_width = 420;
     (void)umi_gtk4_ws_command_bar_set_available_width(
         runtime->command_bar, command_width);
-    /* Keep the identity and search reachable when there is less room. The
+    /* Keep menus and search reachable when there is less room. The
      * complete workflow report remains available in the status surfaces. */
     if (runtime->workflow_badge != NULL) {
         gtk_widget_set_visible(runtime->workflow_badge, width >= 900);
@@ -214,306 +254,81 @@ static GtkWidget *runtime_application_bar_icon_button(
     return button;
 }
 
-/* Ask the Framework-owned identity component to compose the SVG mark and
- * native application name. Studio supplies only its product identity. */
-static GtkWidget *runtime_build_brand_identity(
-    UmiStudioGtkRuntimeChrome *runtime)
-{
-    UmiUiAppearanceProfile appearance;
-    UmiUiWorkbench *workbench;
-    UmiGtk4WorkstationShellHeaderConfig config;
-    GtkWidget *identity;
-    UmiStatus status;
-
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime == NULL || runtime->owner == NULL ||
-        runtime->owner->ui == NULL) return NULL;
-    config = umi_gtk4_ws_shell_header_config_default(
-        "org.umicom.studio", "Umicom Studio IDE");
-    config.compact = true;
-    status = umi_gtk4_ws_shell_header_create_managed(
-        &config, &runtime->brand_identity);
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status != UMI_STATUS_OK) return NULL;
-    identity = umi_gtk4_ws_shell_header_widget(runtime->brand_identity);
-
-    /* The workbench owns the appearance model; the shared header copies the
-     * selected SVG resource and safely falls back to text if it is absent. */
-    workbench = umi_studio_ui_workbench(runtime->owner->ui);
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (workbench != NULL &&
-        umi_ui_appearance_model_active(
-            umi_ui_workbench_appearance(workbench), &appearance) ==
-            UMI_STATUS_OK) {
-        (void)umi_gtk4_ws_shell_header_apply_appearance(
-            runtime->brand_identity, &appearance);
-        runtime->appearance_revision = umi_ui_appearance_model_revision(
-            umi_ui_workbench_appearance(workbench));
-    }
-
-    /* Keep Studio's spacing hook while all identity content uses Framework
-     * classes shared with the suite workstations. */
-    gtk_widget_add_css_class(identity, "umicom-runtime-brand");
-    return identity;
-}
-
-/* Refresh the icon only when Studio's toolkit-neutral appearance model has
- * changed. The regular service timer makes direct and restored choices visible
- * without adding a second product-specific theme event system. */
+/* Refresh the shared top-level title bar from the existing appearance model.
+ * The command strip contains actions only; it never owns application branding. */
 static UmiStatus runtime_refresh_brand_appearance(
     UmiStudioGtkRuntimeChrome *runtime)
 {
-    UmiUiAppearanceModel *model;
-    UmiUiAppearanceProfile appearance;
-    UmiUiWorkbench *workbench;
-    uint64_t revision;
-    UmiStatus status;
-
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime == NULL || runtime->brand_identity == NULL ||
-        runtime->owner == NULL || runtime->owner->ui == NULL) {
-        return UMI_STATUS_INVALID_ARGUMENT;
-    }
-    workbench = umi_studio_ui_workbench(runtime->owner->ui);
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (workbench == NULL) return UMI_STATUS_INVALID_STATE;
-    model = umi_ui_workbench_appearance(workbench);
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (model == NULL) return UMI_STATUS_INVALID_STATE;
-    revision = umi_ui_appearance_model_revision(model);
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (revision == runtime->appearance_revision) return UMI_STATUS_OK;
-
-    status = umi_ui_appearance_model_active(model, &appearance);
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK) {
-        status = umi_gtk4_ws_shell_header_apply_appearance(
-            runtime->brand_identity, &appearance);
-    }
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK) runtime->appearance_revision = revision;
-    return status;
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_studio_gtk_workbench_refresh_titlebar(runtime->owner);
 }
 
-/* Build the top-level menu strip and its compact workspace actions. The menu
- * receives flexible width so the central editor is never forced off-screen. */
-static GtkWidget *runtime_build_application_bar(
-    UmiStudioGtkRuntimeChrome *runtime)
+/* Keep menus directly below the real window title bar. Search and workspace
+ * actions share this row; scrolling the menu does not widen the editor. */
+static GtkWidget *runtime_build_application_bar(UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *bar;
-    GtkWidget *header;
-    GtkWidget *identity_scroll;
     GtkWidget *menu_scroll;
     GtkWidget *commands;
     GtkWidget *layouts;
     GtkWidget *new_window;
-    GtkWidget *brand;
-    UmiGtk4WorkstationCommandBarConfig command_config;
-    UmiStatus command_status;
-
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
+    UmiGtk4WorkstationCommandBarConfig config;
+    UmiStatus status;
     if (runtime == NULL) return NULL;
-
-    bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-    header = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    identity_scroll = gtk_scrolled_window_new();
-    menu_scroll = gtk_scrolled_window_new();
-    commands = runtime_application_bar_icon_button(
-        "system-search-symbolic",
-        "Search commands",
-        "Search commands and actions (Ctrl+Shift+P)");
-    layouts = runtime_application_bar_icon_button(
-        "view-grid-symbolic",
-        "Manage layouts",
-        "Switch or manage layouts (Ctrl+Shift+L)");
-    new_window = runtime_application_bar_icon_button(
-        "window-new-symbolic",
-        "Add a window",
-        "Add, show, hide or move Framework panels in the current layout");
-    brand = runtime_build_brand_identity(runtime);
-    command_status = runtime_build_command_bar_model(runtime);
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (command_status == UMI_STATUS_OK) {
-        command_config = umi_gtk4_ws_command_bar_config_default();
-        command_config.placeholder = "Search Studio commands and windows";
-        command_config.compact_placeholder = "Quick action";
-        command_config.initial_available_width = 220;
-        command_status = umi_gtk4_ws_command_bar_create_managed(
-            &command_config,
-            &runtime->command_bar_model,
-            &runtime->command_bar);
-    }
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (command_status == UMI_STATUS_OK) {
-        command_status = umi_gtk4_ws_command_bar_set_activated_handler(
-            runtime->command_bar,
-            runtime_on_command_bar_activated,
-            runtime);
-    }
-
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (bar == NULL || header == NULL || identity_scroll == NULL ||
-        menu_scroll == NULL || brand == NULL ||
-        commands == NULL || layouts == NULL || new_window == NULL ||
-        command_status != UMI_STATUS_OK || runtime->command_bar == NULL) {
-        /* None are parented yet, so release every successful allocation. */
-        if (bar != NULL) g_object_unref(bar);
-        if (header != NULL) g_object_unref(header);
-        if (identity_scroll != NULL) g_object_unref(identity_scroll);
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (menu_scroll != NULL) g_object_unref(menu_scroll);
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (brand != NULL) g_object_unref(brand);
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (commands != NULL) g_object_unref(commands);
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (layouts != NULL) g_object_unref(layouts);
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (new_window != NULL) g_object_unref(new_window);
+    status = runtime_build_command_bar_model(runtime);
+    if (status != UMI_STATUS_OK) return NULL;
+    config = umi_gtk4_ws_command_bar_config_default();
+    config.placeholder = "Search Studio commands and windows";
+    config.compact_placeholder = "Quick action";
+    config.initial_available_width = 220;
+    status = umi_gtk4_ws_command_bar_create_managed(&config,
+        &runtime->command_bar_model, &runtime->command_bar);
+    if (status != UMI_STATUS_OK) return NULL;
+    status = umi_gtk4_ws_command_bar_set_activated_handler(runtime->command_bar,
+        runtime_on_command_bar_activated, runtime);
+    if (status != UMI_STATUS_OK) {
         umi_gtk4_ws_command_bar_destroy(runtime->command_bar);
         runtime->command_bar = NULL;
         return NULL;
     }
-
-    /* Identity and search sit above the menus. Each row can scroll on a small
-     * display without forcing the whole workbench beyond the screen edge. */
-    gtk_widget_add_css_class(header, "umicom-runtime-appbar");
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(identity_scroll),
-        GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
-    gtk_scrolled_window_set_propagate_natural_width(
-        GTK_SCROLLED_WINDOW(identity_scroll), FALSE);
-    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(identity_scroll), bar);
-    gtk_box_append(GTK_BOX(header), identity_scroll);
-
-    g_signal_connect(
-        commands,
-        "clicked",
-        G_CALLBACK(runtime_on_commands_clicked),
-        runtime);
-    g_signal_connect(
-        layouts,
-        "clicked",
-        G_CALLBACK(runtime_on_layouts_clicked),
-        runtime);
-    g_signal_connect(
-        new_window,
-        "clicked",
-        G_CALLBACK(runtime_on_new_window_clicked),
-        runtime);
-
-    runtime->workflow_badge = gtk_label_new("Workflow");
-    runtime->notification_label = gtk_label_new("");
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime->workflow_badge != NULL) {
-        gtk_label_set_ellipsize(
-            GTK_LABEL(runtime->workflow_badge), PANGO_ELLIPSIZE_END);
-        gtk_label_set_max_width_chars(GTK_LABEL(runtime->workflow_badge), 24);
-        gtk_widget_add_css_class(
-            runtime->workflow_badge,
-            "umicom-runtime-muted");
-    }
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime->notification_label != NULL) {
-        gtk_widget_add_css_class(
-            runtime->notification_label,
-            "umicom-runtime-muted");
-        gtk_widget_set_visible(runtime->notification_label, FALSE);
-        gtk_label_set_ellipsize(
-            GTK_LABEL(runtime->notification_label), PANGO_ELLIPSIZE_END);
-        gtk_label_set_max_width_chars(
-            GTK_LABEL(runtime->notification_label), 24);
-    }
-
+    bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    menu_scroll = gtk_scrolled_window_new();
+    gtk_widget_add_css_class(bar, "umicom-runtime-appbar");
+    (void)umi_gtk4_automation_tag_widget(bar, "studio.workspace.command-strip");
     runtime->menu_bar = runtime_build_menu_bar(runtime);
-
-    gtk_box_append(GTK_BOX(bar), brand);
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime->menu_bar != NULL) {
-        /* The menu strip may be wider than a small monitor. A horizontal
-         * scroller keeps actions reachable without widening the whole window. */
-        gtk_scrolled_window_set_policy(
-            GTK_SCROLLED_WINDOW(menu_scroll),
-            GTK_POLICY_AUTOMATIC,
-            GTK_POLICY_NEVER);
-        gtk_scrolled_window_set_propagate_natural_width(
-            GTK_SCROLLED_WINDOW(menu_scroll), FALSE);
-        gtk_scrolled_window_set_child(
-            GTK_SCROLLED_WINDOW(menu_scroll), runtime->menu_bar);
-        gtk_widget_set_hexpand(menu_scroll, TRUE);
-        gtk_widget_add_css_class(
-            menu_scroll, "umicom-runtime-menu-scroll");
-        gtk_box_append(GTK_BOX(header), menu_scroll);
-    } /* Use this fallback path when the earlier condition does not apply. */ else {
-        /* A missing menu registry should not leak the unparented scroller. */
-        g_object_unref(menu_scroll);
-    }
-    /* Search and short status messages share the identity row, leaving the
-     * complete second row available to menus. */
-    gtk_box_append(
-        GTK_BOX(bar),
-        umi_gtk4_ws_command_bar_widget(runtime->command_bar));
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime->notification_label != NULL) {
-        gtk_box_append(GTK_BOX(bar), runtime->notification_label);
-    }
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime->workflow_badge != NULL) {
-        gtk_box_append(GTK_BOX(bar), runtime->workflow_badge);
-    }
+    /* GTK owns these ordinary widgets; the menu's natural width never becomes
+     * a minimum width for the whole application. Keyboard navigation remains. */
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(menu_scroll),
+        GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+    gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(menu_scroll), FALSE);
+    gtk_widget_set_hexpand(menu_scroll, TRUE);
+    gtk_widget_add_css_class(menu_scroll, "umicom-runtime-menu-scroll");
+    if (runtime->menu_bar != NULL)
+        gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(menu_scroll), runtime->menu_bar);
+    gtk_box_append(GTK_BOX(bar), menu_scroll);
+    gtk_box_append(GTK_BOX(bar), umi_gtk4_ws_command_bar_widget(runtime->command_bar));
+    runtime->notification_label = gtk_label_new("");
+    gtk_widget_set_visible(runtime->notification_label, FALSE);
+    gtk_label_set_ellipsize(GTK_LABEL(runtime->notification_label), PANGO_ELLIPSIZE_END);
+    gtk_label_set_max_width_chars(GTK_LABEL(runtime->notification_label), 20);
+    gtk_box_append(GTK_BOX(bar), runtime->notification_label);
+    runtime->workflow_badge = gtk_label_new("Workflow");
+    gtk_label_set_ellipsize(GTK_LABEL(runtime->workflow_badge), PANGO_ELLIPSIZE_END);
+    gtk_label_set_max_width_chars(GTK_LABEL(runtime->workflow_badge), 20);
+    gtk_widget_add_css_class(runtime->workflow_badge, "umicom-runtime-muted");
+    gtk_box_append(GTK_BOX(bar), runtime->workflow_badge);
+    commands = runtime_application_bar_icon_button("system-search-symbolic",
+        "Search commands", "Search commands and actions (Ctrl+Shift+P)");
+    layouts = runtime_application_bar_icon_button("view-grid-symbolic",
+        "Manage layouts", "Switch or manage layouts (Ctrl+Shift+L)");
+    new_window = runtime_application_bar_icon_button("window-new-symbolic",
+        "Add a window", "Add or restore Framework panels");
+    /* Every action still uses the command registry or the existing catalogue. */
+    g_signal_connect(commands, "clicked", G_CALLBACK(runtime_on_commands_clicked), runtime);
+    g_signal_connect(layouts, "clicked", G_CALLBACK(runtime_on_layouts_clicked), runtime);
+    g_signal_connect(new_window, "clicked", G_CALLBACK(runtime_on_new_window_clicked), runtime);
     gtk_box_append(GTK_BOX(bar), commands);
     gtk_box_append(GTK_BOX(bar), new_window);
     gtk_box_append(GTK_BOX(bar), layouts);
-
-    return header;
+    return bar;
 }

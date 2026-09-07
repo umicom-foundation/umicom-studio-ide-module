@@ -6,6 +6,8 @@ application:
   short_name: Studio
   version: 0.23.0
   executable: umicom-studio-ide
+  native_executable: umicom-studio-ide
+  console_executable: umicom-studio-console
   aliases: [usi, ustudio]
 
 framework:

@@ -10,4 +10,4 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-UMI_STUDIO_GTK_LAYOUT_PROFILE("default", "Default", "studio.layout.default", "Explorer, Editor, Problems and Output")
+UMI_STUDIO_GTK_LAYOUT_PROFILE("default", "Default", "studio.layout.default", "Editor, named side tools, Problems and Output")

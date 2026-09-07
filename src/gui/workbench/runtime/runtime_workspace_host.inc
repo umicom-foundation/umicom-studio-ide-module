@@ -67,9 +67,14 @@ static void runtime_workspace_update_cache(UmiStudioGtkRuntimeChrome *runtime)
         int region = UMI_STUDIO_GTK_REGION_EDITOR;
 
         if (window != NULL) {
-            if (strcmp(window->placement_id, "left") == 0) region = UMI_STUDIO_GTK_REGION_PRIMARY;
-            else if (strcmp(window->placement_id, "right") == 0) region = UMI_STUDIO_GTK_REGION_SECONDARY;
-            else if (strcmp(window->placement_id, "bottom") == 0) region = UMI_STUDIO_GTK_REGION_BOTTOM;
+            const char *placement = window->placement_id;
+            /* A collapsed tool still belongs to its saved dock edge. This is
+             * a read-only label projection, never an implicit rail reveal. */
+            if (strncmp(placement, "auto-hide:", sizeof("auto-hide:") - 1U) == 0)
+                placement += sizeof("auto-hide:") - 1U;
+            if (strcmp(placement, "left") == 0) region = UMI_STUDIO_GTK_REGION_PRIMARY;
+            else if (strcmp(placement, "right") == 0) region = UMI_STUDIO_GTK_REGION_SECONDARY;
+            else if (strcmp(placement, "bottom") == 0) region = UMI_STUDIO_GTK_REGION_BOTTOM;
         }
         runtime->surface_regions[kind] = region;
         runtime->surface_visible[kind] = window != NULL && window->visible;
@@ -97,6 +102,36 @@ static UmiStatus runtime_workspace_rebuild(UmiStudioGtkRuntimeChrome *runtime)
             &runtime->shell_state, &runtime->shell_layout);
         runtime_workspace_update_cache(runtime);
     }
+    return status;
+}
+
+/* Build native presentation from a validated heap candidate before publishing
+ * its model. A failed rebuild keeps the old authority and attempts to restore
+ * its widgets; policy failures never reach this presentation boundary. */
+static UmiStatus runtime_workspace_publish_candidate(
+    UmiStudioGtkRuntimeChrome *runtime, const UmiUiWorkspaceCustomisation *candidate)
+{
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    const UmiUiWorkspaceLayout *previous = runtime_workspace_active(runtime);
+    const UmiUiWorkspaceLayout *next = candidate != NULL
+        ? umi_ui_workspace_customisation_active_const(candidate) : NULL;
+    UmiStatus status;
+    if (model == NULL || previous == NULL || next == NULL || runtime->workspace_host == NULL)
+        return UMI_STATUS_INVALID_STATE;
+    if (candidate->revision == model->revision) return UMI_STATUS_OK;
+    status = umi_gtk4_workspace_layout_host_rebuild(runtime->workspace_host, next);
+    /* The Framework projection validates all bindings before updating its
+     * compatibility outputs. Complete it before publishing native authority. */
+    if (status == UMI_STATUS_OK)
+        status = umi_studio_runtime_workspace_project_shell(candidate, runtime->shell_registry,
+            &runtime->shell_state, &runtime->shell_layout);
+    if (status != UMI_STATUS_OK) {
+        (void)umi_gtk4_workspace_layout_host_rebuild(runtime->workspace_host, previous);
+        return status;
+    }
+    *model = *candidate;
+    (void)umi_gtk4_workspace_layout_host_set_context_groups(runtime->workspace_host, &model->groups);
+    runtime_workspace_update_cache(runtime);
     return status;
 }
 
@@ -141,7 +176,14 @@ static void runtime_workspace_focus_surface(
     UmiStudioGtkRuntimeChrome *runtime, UmiStudioRuntimeSurfaceKind kind)
 {
     const char *id = umi_studio_runtime_workspace_surface_id(kind);
+    const UmiUiWorkspaceLayout *layout = runtime_workspace_active(runtime);
+    const UmiUiWorkspaceWindow *window = layout != NULL && id != NULL
+        ? umi_ui_workspace_layout_find_window(layout, id) : NULL;
     if (runtime == NULL || runtime->workspace_host == NULL || id == NULL) return;
+    /* Periodic command/status focus is not explicit Open. Even an adapter
+     * capable of revealing rails must never receive that implicit request. */
+    if (window == NULL || !window->visible ||
+        umi_ui_workspace_customisation_window_is_auto_hidden(runtime_workspace_model(runtime), id)) return;
     if (umi_gtk4_workspace_layout_host_focus_window(runtime->workspace_host, id) == UMI_STATUS_OK) {
         const UmiStudioRuntimeSurfaceBinding *binding = umi_studio_surface_catalogue_for_kind(kind);
         UmiApplicationShellContribution contribution;
@@ -173,10 +215,28 @@ static UmiStatus runtime_workspace_open_surface(
 
     if (model == NULL || id == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     if (placement_id != NULL && !model->edit_active) return UMI_STATUS_PERMISSION_DENIED;
+    layout = runtime_workspace_active(runtime);
+    window = umi_ui_workspace_layout_find_window(layout, id);
+    if (window != NULL && strcmp(window->tool_id, id) != 0) return UMI_STATUS_INVALID_STATE;
+    /* Explicit Open on an existing rail is a transient reveal. It must not
+     * set visible=true on an auto-hide record, change a revision or rebuild
+     * unrelated native tools. Periodic focus never uses this explicit path. */
+    if (placement_id == NULL && window != NULL &&
+        umi_ui_workspace_customisation_window_is_auto_hidden(model, id))
+        return umi_gtk4_workspace_layout_host_reveal_tool_window(runtime->workspace_host, id);
+    /* Ordinary focus must not rebuild provider widgets or dirty an unchanged
+     * layout. The shared host also restores an internally maximised sibling. */
+    if (placement_id == NULL && window != NULL && window->visible) {
+        status = umi_gtk4_workspace_layout_host_focus_window(runtime->workspace_host, id);
+        if (status == UMI_STATUS_OK) runtime_workspace_focus_surface(runtime, kind);
+        return status;
+    }
     candidate = g_try_new(UmiUiWorkspaceCustomisation, 1);
     if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     *candidate = *model;
-    status = umi_studio_runtime_workspace_set_visible(candidate, kind, true);
+    status = placement_id == NULL
+        ? umi_studio_runtime_workspace_set_tool_presentation(candidate, kind, true, false)
+        : umi_studio_runtime_workspace_set_visible(candidate, kind, true);
     if (status != UMI_STATUS_OK) { g_free(candidate); return status; }
     layout = umi_ui_workspace_customisation_active_const(candidate);
     window = umi_ui_workspace_layout_find_window(layout, id);
@@ -205,16 +265,8 @@ static UmiStatus runtime_workspace_open_surface(
     }
     /* Publish only after visibility, placement and native host validation all
      * succeed. A rejected placement never partially opens a hidden panel. */
-    status = umi_gtk4_workspace_layout_host_rebuild(runtime->workspace_host,
-        umi_ui_workspace_customisation_active_const(candidate));
-    if (status == UMI_STATUS_OK) {
-        *model = *candidate;
-        (void)umi_gtk4_workspace_layout_host_set_context_groups(runtime->workspace_host, &model->groups);
-        status = umi_studio_runtime_workspace_project_shell(model, runtime->shell_registry,
-            &runtime->shell_state, &runtime->shell_layout);
-        runtime_workspace_update_cache(runtime);
-        runtime_workspace_focus_surface(runtime, kind);
-    }
+    status = runtime_workspace_publish_candidate(runtime, candidate);
+    if (status == UMI_STATUS_OK) runtime_workspace_focus_surface(runtime, kind);
     g_free(candidate);
     return status;
 }
@@ -229,6 +281,7 @@ static void runtime_workspace_on_panel_action(
     const UmiUiWorkspaceWindow *window;
     UmiStudioRuntimeSurfaceKind kind;
     UmiUiWorkspacePanelSettings settings;
+    UmiUiWorkspaceCustomisation *candidate;
     UmiStatus status = UMI_STATUS_OK;
 
     if (model == NULL || layout == NULL ||
@@ -243,16 +296,34 @@ static void runtime_workspace_on_panel_action(
         runtime_show_notification(runtime, "Use the linked-context strip in the editor to group document contexts.");
         return;
     }
+    /* The flyout's X normally stays inside the Framework host. Keep this
+     * defensive route transient too if an adapter forwards the action. */
+    if (action == UMI_WS_PANEL_ACTION_CLOSE &&
+        umi_ui_workspace_customisation_window_is_auto_hidden(model, window_id)) {
+        umi_gtk4_workspace_layout_host_collapse_tool_windows(runtime->workspace_host);
+        return;
+    }
+    if (action == UMI_WS_PANEL_ACTION_MAXIMISE_TOGGLE && !window->floating) {
+        runtime_show_notification(runtime, "Maximise is currently available for detached native windows only.");
+        return;
+    }
+    candidate = g_try_new(UmiUiWorkspaceCustomisation, 1);
+    if (candidate == NULL) {
+        runtime_show_notification(runtime, "The panel change could not allocate workspace state.");
+        return;
+    }
+    *candidate = *model;
     if (action == UMI_WS_PANEL_ACTION_CLOSE) {
-        status = umi_studio_runtime_workspace_set_visible(model, kind, false);
+        status = !window->floating && strcmp(window->placement_id, UMI_UI_WORKSPACE_CANVAS_PLACEMENT) != 0
+            ? umi_studio_runtime_workspace_set_tool_presentation(candidate, kind, false, false)
+            : umi_studio_runtime_workspace_set_visible(candidate, kind, false);
+    } else if (action == UMI_WS_PANEL_ACTION_AUTO_HIDE_TOGGLE) {
+        status = umi_studio_runtime_workspace_set_tool_presentation(candidate, kind, true,
+            !umi_ui_workspace_customisation_window_is_auto_hidden(model, window_id));
     } else if (action == UMI_WS_PANEL_ACTION_PIN_TOGGLE) {
-        status = umi_studio_runtime_workspace_set_pinned(model, window_id, !window->pinned);
+        status = umi_studio_runtime_workspace_set_pinned(candidate, window_id, !window->pinned);
     } else if (action == UMI_WS_PANEL_ACTION_MAXIMISE_TOGGLE) {
-        if (!window->floating) {
-            runtime_show_notification(runtime, "Maximise is currently available for detached native windows only.");
-            return;
-        }
-        status = umi_studio_runtime_workspace_set_maximised(model, window_id, !window->maximised);
+        status = umi_studio_runtime_workspace_set_maximised(candidate, window_id, !window->maximised);
     } else if (action == UMI_WS_PANEL_ACTION_FLOAT_TOGGLE) {
         const char *id = window_id;
         settings = umi_ui_workspace_panel_settings_default(window_id);
@@ -265,13 +336,15 @@ static void runtime_workspace_on_panel_action(
         settings.y = 0.10;
         settings.width = 0.60;
         settings.height = 0.65;
-        status = umi_studio_runtime_workspace_apply_panel_settings(model, &settings);
+        status = umi_studio_runtime_workspace_apply_panel_settings(candidate, &settings);
     } else {
+        g_free(candidate);
         return;
     }
-    if (status == UMI_STATUS_OK) status = runtime_workspace_rebuild(runtime);
+    if (status == UMI_STATUS_OK) status = runtime_workspace_publish_candidate(runtime, candidate);
+    g_free(candidate);
     if (status != UMI_STATUS_OK)
-        runtime_show_notification(runtime, "Panel change rejected; unlock the layout and check pinned panels.");
+        runtime_show_notification(runtime, "Panel change was not applied. Check whether the panel is protected or the action needs Edit Layout.");
 }
 
 /* Initialise the professional model and one empty shared host before enabling
@@ -290,9 +363,11 @@ static UmiStatus runtime_workspace_create(UmiStudioGtkRuntimeChrome *runtime)
     if (empty == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     status = umi_ui_workspace_layout_init(empty, "umicom.studio.layout.host-empty", "Studio workspace");
     if (status == UMI_STATUS_OK)
-        status = umi_gtk4_workspace_layout_host_create_interactive(empty,
+        status = umi_gtk4_workspace_layout_host_create_with_options(empty,
             runtime_workspace_panel_factory, runtime,
-            runtime_workspace_on_panel_action, runtime, &runtime->workspace_host);
+            runtime_workspace_on_panel_action, runtime,
+            &(const UmiGtk4WorkspaceLayoutHostOptions){ .tool_presentation_actions = 1 },
+            &runtime->workspace_host);
     g_free(empty);
     if (status != UMI_STATUS_OK) return status;
     status = umi_gtk4_workspace_layout_host_set_content_retention(runtime->workspace_host, 1);

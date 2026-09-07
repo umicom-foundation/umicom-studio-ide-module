@@ -91,6 +91,56 @@ static void runtime_on_new_canvas_clicked(GtkButton *button, gpointer data)
         "Custom canvas", "Create", runtime_on_blank_canvas_named);
 }
 
+/* Keep restored/default layouts intact while opening a newly named copy of
+ * the current product arrangement. Native rendering succeeds before the live
+ * model changes; editor bodies and the saved checkpoint retain their owners. */
+static UmiStatus runtime_on_product_default_named(UmiStudioGtkRuntimeChrome *runtime, const char *name)
+{
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    UmiUiWorkspaceCustomisation *candidate;
+    char id[UMI_UI_WORKSPACE_LAYOUT_ID_CAPACITY];
+    unsigned int serial;
+    size_t index;
+    UmiStatus status;
+    if (model == NULL || name == NULL || name[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
+    if (model->layout_count > UMI_UI_CUSTOM_WORKSPACE_MAX_LAYOUTS) return UMI_STATUS_INVALID_STATE;
+    if (model->edit_active) return UMI_STATUS_BUSY;
+    for (serial = 1U; serial <= UMI_UI_CUSTOM_WORKSPACE_MAX_LAYOUTS; ++serial) {
+        int written = snprintf(id, sizeof(id), "umicom.studio.layout.product-default-%u", serial);
+        if (written < 0 || (size_t)written >= sizeof(id)) return UMI_STATUS_CAPACITY_EXCEEDED;
+        for (index = 0U; index < model->layout_count; ++index)
+            if (strcmp(model->layouts[index].layout_id, id) == 0) break;
+        if (index == model->layout_count) break;
+    }
+    if (serial > UMI_UI_CUSTOM_WORKSPACE_MAX_LAYOUTS) return UMI_STATUS_CAPACITY_EXCEEDED;
+    candidate = malloc(sizeof(*candidate));
+    if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    *candidate = *model;
+    status = umi_studio_runtime_workspace_create_default(candidate, id, name);
+    if (status == UMI_STATUS_OK) status = runtime_workspace_publish_candidate(runtime, candidate);
+    free(candidate);
+    if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+    else runtime_show_notification(runtime,
+        "New default layout opened. Existing layouts and drafts were kept; use Save layout to save this arrangement.");
+    return status;
+}
+
+/* An explicit named action avoids resetting a layout restored from storage. */
+static void runtime_on_new_default_clicked(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    (void)button;
+    if (model == NULL) return;
+    if (model->edit_active) {
+        runtime_show_notification(runtime, "Apply or cancel this edit before creating a default layout.");
+        return;
+    }
+    (void)runtime_prompt_text(runtime, "New default layout",
+        "Name a new copy of the current product layout. Existing layouts and saved checkpoints are kept.",
+        "Product default", "Create", runtime_on_product_default_named);
+}
+
 /* Compose model selection and explicit edit controls in the existing footer. */
 static GtkWidget *runtime_build_layout_tabs(
     UmiStudioGtkRuntimeChrome *runtime)
@@ -99,6 +149,7 @@ static GtkWidget *runtime_build_layout_tabs(
     GtkWidget *profile_strip = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
     GtkWidget *scroller = gtk_scrolled_window_new();
     GtkWidget *new_canvas;
+    GtkWidget *new_default;
     GtkWidget *manage;
     GtkWidget *restore;
     GtkWidget *save;
@@ -125,6 +176,12 @@ static GtkWidget *runtime_build_layout_tabs(
     (void)umi_gtk4_automation_tag_widget(new_canvas, "studio.workspace.new-canvas");
     g_signal_connect(new_canvas, "clicked", G_CALLBACK(runtime_on_new_canvas_clicked), runtime);
     gtk_box_append(GTK_BOX(profile_strip), new_canvas);
+    new_default = gtk_button_new_with_label("New default layout");
+    (void)umi_gtk4_automation_tag_widget(new_default, "studio.workspace.new-default-layout");
+    gtk_widget_set_tooltip_text(new_default,
+        "Create a named copy of the current product layout without replacing your existing layouts");
+    g_signal_connect(new_default, "clicked", G_CALLBACK(runtime_on_new_default_clicked), runtime);
+    gtk_box_append(GTK_BOX(profile_strip), new_default);
     runtime_workspace_update_selector(runtime);
 
     /* Visit each bounded item once so every record receives the same rule. */

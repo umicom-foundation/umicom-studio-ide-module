@@ -491,14 +491,12 @@ static void runtime_destroy_framework(
         runtime->window_catalogue_window = NULL;
     }
 
-    /* The GTK tree owns the visible widgets. These calls release the Framework
-     * controllers that track command and identity state. */
+    /* The GTK tree owns the visible widgets. Release the command controller
+     * here; the workbench owns the separate topmost titlebar controller. */
     (void)umi_gtk4_ws_command_bar_set_activated_handler(
         runtime->command_bar, NULL, NULL);
     umi_gtk4_ws_command_bar_destroy(runtime->command_bar);
     runtime->command_bar = NULL;
-    umi_gtk4_ws_shell_header_destroy(runtime->brand_identity);
-    runtime->brand_identity = NULL;
 
     /* The shared host cancels gestures and owns every detached native window.
      * Restore the original adapter tree before its established teardown runs. */

@@ -8,7 +8,7 @@
 UMI_STUDIO_GTK_SURFACE_PROFILE(
     UMI_STUDIO_SURFACE_OBJECT_INSPECTOR,
     "object-inspector",
-    "Properties",
+    "Object Inspector",
     "document-properties-symbolic",
     "designer.inspector.open",
     UMI_STUDIO_GTK_REGION_SECONDARY,

@@ -21,6 +21,7 @@
 #include "umicom/studio/ui.h"
 #include "umicom/studio_runtime/types.h"
 #include "umicom/ui/gtk4/workstation/workspace_layout_host.h"
+#include "umicom/ui/gtk4/workstation/shell_header.h"
 #include "umicom/ui/workspace_checkpoint.h"
 
 /**
@@ -93,6 +94,11 @@ UmiStatus umi_studio_gtk_workbench_automation(
  */
 UmiStatus umi_studio_gtk_workbench_refresh(
     UmiStudioGtkWorkbench *workbench);
+
+/** Refresh the topmost product identity from the existing appearance owner.
+ * Window-title notifications independently update centred document/project
+ * context. No inner application strip or layout model is created. */
+UmiStatus umi_studio_gtk_workbench_refresh_titlebar(UmiStudioGtkWorkbench *workbench);
 
 /** Copy the authoritative outer-panel layout into caller-owned storage. The
  * record is large; acceptance tools should allocate it on the heap. */

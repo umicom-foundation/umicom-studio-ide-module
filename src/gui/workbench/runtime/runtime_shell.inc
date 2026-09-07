@@ -80,6 +80,10 @@ static UmiStatus runtime_build_shell(UmiStudioGtkRuntimeChrome *runtime)
     gtk_widget_set_hexpand(runtime->body, TRUE);
     gtk_widget_set_vexpand(runtime->body, TRUE);
     gtk_box_append(GTK_BOX(runtime->body), runtime->activity_bar);
+    /* Named Framework edge tabs now provide visible tool navigation. Keep
+     * the old action widgets parent-owned for existing command bindings,
+     * without displaying a second oversized icon rail beside the tools. */
+    gtk_widget_set_visible(runtime->activity_bar, FALSE);
     gtk_box_append(GTK_BOX(runtime->body), host_widget);
     runtime->layout_tabs = runtime_build_layout_tabs(runtime);
     if (runtime->layout_tabs == NULL) return UMI_STATUS_OUT_OF_MEMORY;

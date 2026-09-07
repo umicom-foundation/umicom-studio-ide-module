@@ -31,6 +31,9 @@ struct UmiStudioGtkWorkbench {
     UmiStudioGtkWorkbenchOptions options;
     UmiGtk4Adapter *adapter;
     GtkWindow *window;
+    UmiGtk4WorkstationWindowTitlebar *titlebar;
+    uint64_t titlebar_appearance_revision;
+    int titlebar_appearance_applied;
     UmiStudioContextLinkCentre *context_links;
     GtkWidget *context_strip;
     GtkWidget *content_root;
@@ -348,6 +351,17 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
         }
     }
 
+    /* The brand belongs to the real titlebar, not a second content row.
+     * Install before realization so GTK owns dragging and window controls. */
+    if (status == UMI_STATUS_OK) {
+        UmiGtk4WorkstationShellHeaderConfig titlebar_config =
+            umi_gtk4_ws_shell_header_config_default("org.umicom.studio", "Umicom Studio IDE");
+        status = umi_gtk4_ws_window_titlebar_create(workbench->window,
+            &titlebar_config, "Umicom Studio", &workbench->titlebar);
+        if (status == UMI_STATUS_OK)
+            (void)umi_studio_gtk_workbench_refresh_titlebar(workbench);
+    }
+
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_studio_context_link_centre_create(
@@ -421,6 +435,10 @@ void umi_studio_gtk_workbench_destroy(
     workbench->automation = NULL;
 
     runtime_detach(workbench);
+    /* Disconnect title observations before GTK disposes its native window.
+     * The installed widget remains parent-owned until adapter destruction. */
+    umi_gtk4_ws_window_titlebar_destroy(workbench->titlebar);
+    workbench->titlebar = NULL;
 
     /*
      * Destroy GTK first so signal closures carrying the borrowed host pointer
@@ -493,6 +511,34 @@ UmiStatus umi_studio_gtk_workbench_refresh(
     return umi_workbench_context_host_gtk4_strip_refresh(
         workbench->context_strip,
         umi_studio_context_link_centre_host(workbench->context_links));
+}
+
+/* Use the existing appearance owner; no product-specific theme model or
+ * font override is introduced for the topmost titlebar. */
+UmiStatus umi_studio_gtk_workbench_refresh_titlebar(UmiStudioGtkWorkbench *workbench)
+{
+    UmiUiWorkbench *model;
+    UmiUiAppearanceModel *appearance_model;
+    UmiUiAppearanceProfile appearance;
+    uint64_t revision;
+    UmiStatus status;
+    if (workbench == NULL || workbench->titlebar == NULL || workbench->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    model = umi_studio_ui_workbench(workbench->ui);
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    appearance_model = umi_ui_workbench_appearance(model);
+    if (appearance_model == NULL) return UMI_STATUS_INVALID_STATE;
+    revision = umi_ui_appearance_model_revision(appearance_model);
+    if (workbench->titlebar_appearance_applied && revision == workbench->titlebar_appearance_revision)
+        return UMI_STATUS_OK;
+    status = umi_ui_appearance_model_active(appearance_model, &appearance);
+    if (status == UMI_STATUS_OK)
+        status = umi_gtk4_ws_window_titlebar_apply_appearance(workbench->titlebar, &appearance);
+    if (status == UMI_STATUS_OK) {
+        workbench->titlebar_appearance_revision = revision;
+        workbench->titlebar_appearance_applied = 1;
+    }
+    return status;
 }
 
 /* Return a value snapshot so automation never receives mutable layout state. */

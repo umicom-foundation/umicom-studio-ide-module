@@ -16,6 +16,25 @@ MIT
 
 # Custom IDE Workspaces
 
+## Title bar and side tools
+
+The topmost title bar contains the official Umicom SVG and application name.
+The document and project appear beside that fixed identity. Menus and the
+toolbar are separate rows beneath it.
+
+In the current default layout, click Structure or Object Inspector on the left
+edge. The selected tool opens over the workspace. Click another tab to switch,
+or use X to collapse it. Its contents remain available when reopened. Escape
+and clicking outside the panel also collapse it. Use the dock control to keep
+the tool open as an ordinary docked panel.
+
+Saved layouts are not silently replaced by a new product default. Choose
+**New default layout**, give the new copy a name, and test it before saving.
+Your other layouts remain available in the layout selector.
+
+This behaviour is implemented in source and has native regression tests.
+It has not yet been compiled or tested in a running application for this update.
+
 Studio's main window now uses the shared Framework workspace host in source.
 Its professional-workspace model owns panel placement and the edit baseline.
 The native integration and new regression tests have not been compiled or run
@@ -35,8 +54,9 @@ card or another editor implementation.
 3. Select **New Window** and search for Editor, Explorer, Problems, Terminal,
    Source Control, Tests, Debug, Build or a design tool.
 4. Use **Canvas** to place the selected tool as an independent rectangle.
-   Its title handle moves it; its lower-right handle resizes it. Movement uses
-   the shared edit grid and remains inside the available host area.
+   Its title handle moves it. Drag any edge or corner to resize it while keeping
+   the opposite edge in place. Movement uses the shared edit grid and remains
+   inside the available host area.
 5. The same catalogue offers dock destinations, **Float** and **Hide**.
    A floating panel is a separate operating-system window. A canvas panel is
    still inside Studio. These are two different arrangements.
@@ -47,6 +67,15 @@ Closing a detachable native panel is a guarded model action. Locked or pinned
 panels cannot be removed accidentally. Hiding Editor hides its panel, not its
 open documents. Reopen Editor from New Window to return to those documents.
 Moving a panel does not create another instance of its service.
+
+For keyboard control, use Tab to focus the panel title during Edit Layout.
+Arrow keys preview movement by one grid step. Hold Shift with an arrow to
+resize the bottom or right edge. Enter applies the preview to the current
+layout edit. Escape or leaving the title cancels the preview. Apply and Lock
+still finishes the layout edit; Save remains a separate storage operation.
+These shortcuts belong to the title only, so typing in a tool or editor does
+not move its panel. Protected panels cannot be moved, and fixed-size panels
+cannot be resized.
 
 The New Window search now reads the canonical Framework description and
 plain-language aliases for each Studio surface. A user can therefore search by
@@ -149,8 +178,25 @@ The shared host keeps at most 64 retained panel instances. A full cache reports
 a capacity error; it does not silently evict a hidden draft. A deliberate
 provider refresh can replace a body, such as after a design-model change.
 Provider refresh is distinct from rearranging a panel and needs its own draft
-policy. Internal panel maximisation, resizing from every edge, movable menus,
-keyboard dragging and full monitor recovery remain outstanding.
+policy. Eligible internal panels now offer temporary maximisation through the
+shared host. Restore returns the same provider body to its original frame;
+saved geometry and the layout lock do not change. Protected, fixed-size,
+detached and auto-hide panels do not use this mode. Movable menus, visual
+docking targets and full monitor recovery remain outstanding. The new controls
+still need native interaction acceptance.
+
+## Find and focus a tool
+
+Use command search to find a registered panel, including Editor. Open/Focus
+selects its existing view; it does not reposition it. A hidden ordinary tool is
+reopened through the workspace model, while an auto-hide tool is revealed
+temporarily. The Window catalogue also provides Open/Focus alongside its
+existing placement actions. Choosing a new position still requires Edit Layout.
+
+Maximise an eligible panel to use the available workspace. Choose Restore panel
+to return to the earlier view. Escape restores when the panel has not consumed
+that key itself. Selecting another tool also restores the normal arrangement.
+This is a view operation, not Save, Apply or an operating-system window change.
 
 The new native test uses Studio's actual constructor with explicit offline,
 unpresented options and a temporary service directory. Production constructors
