@@ -39,7 +39,9 @@
 #include "umicom/ui/gtk4/workstation/shell_header.h"
 #include "umicom/ui/gtk4/workstation/workspace_layout_host.h"
 #include "umicom/ui/gtk4/workstation/workspace_storage.h"
+#include "umicom/ui/gtk4/workstation/layout_library.h"
 #include "umicom/ui/workspace_checkpoint.h"
+#include "umicom/ui/workspace_library_checkpoint.h"
 #include "umicom/studio/professional_workspace.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
 #include "umicom/studio/ai_platform.h"
@@ -95,11 +97,20 @@ typedef struct UmiStudioGtkRuntimeChrome {
      * retains presentation through one Framework host, not a second canvas. */
     UmiStudioProfessionalWorkspace *professional_workspace;
     UmiGtk4WorkspaceLayoutHost *workspace_host;
+    /* The library borrows the existing workspace owner and stores copied rows only. */
+    UmiGtk4WorkspaceLayoutLibrary *workspace_library;
     /* One optional Data Server connection stores explicit layout checkpoints.
      * A caller-supplied server is borrowed; only the native default is owned. */
     UmiDataServer *workspace_storage;
     int owns_workspace_storage;
     UmiUiWorkspaceCheckpointReport workspace_checkpoint;
+    /* Whole-library evidence has its own storage namespace and never replaces
+     * the active checkpoint's CAS token or silently restores at startup. */
+    UmiUiWorkspaceLibraryCheckpointReport workspace_library_checkpoint;
+    UmiStatus workspace_library_storage_status;
+    uint64_t workspace_library_storage_generation;
+    bool workspace_library_has_saved;
+    bool workspace_library_save_conflict;
     UmiStatus workspace_storage_status;
     int syncing_workspace_controls;
     UmiStudioRuntimeSurfaceKind last_presented_surface;

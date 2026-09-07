@@ -85,6 +85,8 @@ static void runtime_workspace_update_cache(UmiStudioGtkRuntimeChrome *runtime)
     runtime_workspace_update_lock_button(runtime);
     runtime_workspace_update_selector(runtime);
     runtime_workspace_update_storage_controls(runtime);
+    if (runtime->workspace_library != NULL)
+        (void)umi_gtk4_ws_layout_library_refresh(runtime->workspace_library);
 }
 
 /* Render one accepted model revision; persistent bodies keep native drafts. */
@@ -132,6 +134,67 @@ static UmiStatus runtime_workspace_publish_candidate(
     *model = *candidate;
     (void)umi_gtk4_workspace_layout_host_set_context_groups(runtime->workspace_host, &model->groups);
     runtime_workspace_update_cache(runtime);
+    return status;
+}
+
+/* Read the Framework owner's named layouts without exposing live pointers to GTK. */
+static UmiStatus runtime_workspace_library_read(
+    UmiUiWorkspaceLibrarySnapshot *out_snapshot, void *context)
+{
+    return umi_ui_workspace_library_snapshot(
+        runtime_workspace_model(context),
+        &(const UmiUiWorkspaceLibraryPolicy){ UMI_STUDIO_RUNTIME_WORKSPACE_PREFIX },
+        out_snapshot);
+}
+
+/* Stage Framework validation first, then reuse the native transactional publish
+ * path. A failed renderer cannot replace the live layout or editor drafts. */
+static UmiStatus runtime_workspace_library_apply(
+    const UmiUiWorkspaceLibraryRequest *request, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    UmiUiWorkspaceCustomisation *candidate;
+    const UmiUiWorkspaceLayout *previous;
+    const UmiUiWorkspaceLayout *next;
+    UmiStatus status;
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    candidate = malloc(sizeof(*candidate));
+    if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    *candidate = *model;
+    status = umi_ui_workspace_library_apply(candidate,
+        &(const UmiUiWorkspaceLibraryPolicy){ UMI_STUDIO_RUNTIME_WORKSPACE_PREFIX },
+        request, NULL);
+    if (status == UMI_STATUS_OK && candidate->revision != model->revision) {
+        previous = umi_ui_workspace_customisation_active_const(model);
+        next = umi_ui_workspace_customisation_active_const(candidate);
+        if (previous == NULL || next == NULL) status = UMI_STATUS_INVALID_STATE;
+        else if (strcmp(previous->layout_id, next->layout_id) != 0) {
+            status = runtime_workspace_publish_candidate(runtime, candidate);
+        } else {
+            /* An inactive-library change affects no native panel. An active
+             * rename changes only metadata: preserve wrappers, focus, drafts
+             * and temporary maximisation instead of rebuilding the shell. */
+            const bool renamed = previous->revision != next->revision;
+            const size_t title_length = strlen(next->name);
+            if (renamed && (title_length >= sizeof(runtime->shell_layout.title) ||
+                    runtime->shell_layout.revision == UINT64_MAX))
+                status = UMI_STATUS_CAPACITY_EXCEEDED;
+            else if (renamed)
+                status = umi_gtk4_workspace_layout_host_update_metadata(runtime->workspace_host, next);
+            if (status == UMI_STATUS_OK) {
+                if (renamed) {
+                    /* Only this copied compatibility label changes; the
+                     * Framework contribution bindings and selection do not. */
+                    memcpy(runtime->shell_layout.title, next->name, title_length + 1U);
+                    ++runtime->shell_layout.revision;
+                }
+                *model = *candidate;
+                runtime_workspace_update_cache(runtime);
+            }
+        }
+    }
+    free(candidate);
     return status;
 }
 

@@ -368,6 +368,43 @@ static int verify_durable_canvas(GtkApplication *application, const char *fixtur
     REQUIRE(memcmp(before, layout, sizeof(*layout)) == 0 && umi_data_server_count(server) == record_count);
     REQUIRE(buffer_contains(buffer, retained_draft) && all_windows_unpresented());
 
+    /* The whole-library namespace stays usable even when the independent
+     * active-layout checkpoint is damaged. Drive the actual shared buttons;
+     * restore replaces the list only after confirmation and retains drafts. */
+    {
+        GtkWidget *library_button = find_tag(window, "studio.workspace.layout-library");
+        GtkWidget *popover;
+        GtkWidget *library_save;
+        GtkWidget *library_restore;
+        GtkWidget *confirm;
+        GtkWidget *layout_selector = find_tag(window, "studio.workspace.layout-selector");
+        guint saved_layout_count;
+        REQUIRE(GTK_IS_MENU_BUTTON(library_button) && GTK_IS_DROP_DOWN(layout_selector));
+        popover = GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(library_button)));
+        REQUIRE(popover != NULL);
+        library_save = find_tag(popover, "workstation.layout-library.save-library");
+        library_restore = find_tag(popover, "workstation.layout-library.restore-library");
+        confirm = find_tag(popover, "workstation.layout-library.confirm-restore");
+        REQUIRE(GTK_IS_BUTTON(library_save) && GTK_IS_BUTTON(library_restore) && GTK_IS_CHECK_BUTTON(confirm));
+        saved_layout_count = g_list_model_get_n_items(gtk_drop_down_get_model(GTK_DROP_DOWN(layout_selector)));
+        REQUIRE(gtk_widget_get_sensitive(library_save));
+        g_signal_emit_by_name(library_save, "clicked");
+        REQUIRE(drain_context());
+        REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench,
+            "umicom.studio.layout.library-unsaved", "Unsaved library addition") == UMI_STATUS_OK);
+        REQUIRE(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
+        REQUIRE(!gtk_widget_get_sensitive(library_restore));
+        gtk_check_button_set_active(GTK_CHECK_BUTTON(confirm), TRUE);
+        REQUIRE(gtk_widget_get_sensitive(library_restore));
+        g_signal_emit_by_name(library_restore, "clicked");
+        REQUIRE(drain_context());
+        REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+        REQUIRE(strcmp(layout->layout_id, before->layout_id) == 0 && layout->revision > before->revision);
+        REQUIRE(g_list_model_get_n_items(gtk_drop_down_get_model(GTK_DROP_DOWN(layout_selector))) == saved_layout_count);
+        REQUIRE(!gtk_check_button_get_active(GTK_CHECK_BUTTON(confirm)));
+        REQUIRE(buffer_contains(buffer, retained_draft) && all_windows_unpresented());
+    }
+
 cleanup:
     umi_studio_gtk_workbench_destroy(workbench);
     if (editor != NULL) g_object_unref(editor);
@@ -706,6 +743,43 @@ int main(void)
     gtk_text_buffer_get_iter_at_mark(buffer, &insert, gtk_text_buffer_get_insert(buffer));
     gtk_text_buffer_get_iter_at_mark(buffer, &bound, gtk_text_buffer_get_selection_bound(buffer));
     REQUIRE(gtk_text_iter_get_offset(&insert) == 0 && gtk_text_iter_get_offset(&bound) == 0);
+
+    /* The production Layout Library is wired to Studio's existing workspace,
+     * not a private list. Rename keeps the real editor and its current text. */
+    {
+        GtkWidget *library_button = find_tag(native_window, "studio.workspace.layout-library");
+        GtkWidget *popover;
+        GtkWidget *name;
+        GtkWidget *action;
+        GtkWidget *list;
+        GtkWidget *selected_row;
+        char row_tag[UMI_UI_WORKSPACE_LAYOUT_ID_CAPACITY + 40U];
+        int written;
+        REQUIRE(GTK_IS_MENU_BUTTON(library_button));
+        popover = GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(library_button)));
+        REQUIRE(popover != NULL);
+        action = find_tag(popover, "workstation.layout-library.refresh");
+        REQUIRE(GTK_IS_BUTTON(action));
+        g_signal_emit_by_name(action, "clicked");
+        REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+        written = snprintf(row_tag, sizeof(row_tag), "workstation.layout-library.row.%s", layout->layout_id);
+        REQUIRE(written >= 0 && (size_t)written < sizeof(row_tag));
+        list = find_tag(popover, "workstation.layout-library.list");
+        selected_row = find_tag(popover, row_tag);
+        REQUIRE(GTK_IS_LIST_BOX(list) && GTK_IS_LIST_BOX_ROW(selected_row));
+        gtk_list_box_select_row(GTK_LIST_BOX(list), GTK_LIST_BOX_ROW(selected_row));
+        name = find_tag(popover, "workstation.layout-library.name");
+        action = find_tag(popover, "workstation.layout-library.rename");
+        REQUIRE(GTK_IS_EDITABLE(name) && GTK_IS_BUTTON(action) && gtk_widget_get_sensitive(action));
+        gtk_editable_set_text(GTK_EDITABLE(name), "Studio library acceptance");
+        g_signal_emit_by_name(action, "clicked");
+        REQUIRE(drain_context());
+        REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+        REQUIRE(strcmp(layout->name, "Studio library acceptance") == 0);
+        REQUIRE(find_editor(editor_root) == editor &&
+            gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)) == buffer && buffer_contains(buffer, external_text));
+        REQUIRE(all_windows_unpresented());
+    }
 
     /* Closing the real owner cancels a queued callback before services die. */
     last_context_button = find_context_group(editor_root);

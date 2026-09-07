@@ -12,6 +12,120 @@ static const UmiUiWorkspaceCheckpointScope STUDIO_CANVAS_SCOPE = {
     "org.umicom.studio", "desktop", UMI_STUDIO_RUNTIME_WORKSPACE_PREFIX
 };
 
+/* An explicit backend binding reads library evidence once without publishing
+ * it. Normal status refreshes remain cached and do not perform database I/O. */
+static void runtime_workspace_probe_library_storage(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiUiWorkspaceCustomisation *candidate;
+    memset(&runtime->workspace_library_checkpoint, 0, sizeof(runtime->workspace_library_checkpoint));
+    /* Preserve known backend capability when a probe cannot allocate its
+     * candidate; an allocation failure must not relabel disk as memory-only. */
+    runtime->workspace_library_checkpoint.checkpoint.durable = runtime->workspace_checkpoint.durable;
+    runtime->workspace_library_has_saved = false;
+    runtime->workspace_library_save_conflict = false;
+    runtime->workspace_library_storage_status = UMI_STATUS_UNAVAILABLE;
+    if (runtime->workspace_storage == NULL) return;
+    candidate = malloc(sizeof(*candidate));
+    if (candidate == NULL) { runtime->workspace_library_storage_status = UMI_STATUS_OUT_OF_MEMORY; return; }
+    runtime->workspace_library_storage_status = umi_ui_workspace_library_checkpoint_load_candidate(
+        runtime->workspace_storage, &STUDIO_CANVAS_SCOPE, runtime_workspace_model(runtime),
+        candidate, &runtime->workspace_library_checkpoint);
+    runtime->workspace_library_has_saved = runtime->workspace_library_storage_status != UMI_STATUS_NOT_FOUND;
+    free(candidate);
+}
+
+/* Studio only projects cached Framework storage evidence into the shared view. */
+static UmiStatus runtime_workspace_library_storage_read(
+    UmiGtk4WorkspaceLayoutLibraryStorageState *out_state, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    const UmiUiWorkspaceCheckpointReport *report = &runtime->workspace_library_checkpoint.checkpoint;
+    const char *message;
+    const UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    bool all_locked = model != NULL && model->layout_count != 0U &&
+        model->layout_count <= UMI_UI_CUSTOM_WORKSPACE_MAX_LAYOUTS;
+    for (size_t index = 0U; all_locked && index < model->layout_count; ++index)
+        all_locked = model->layouts[index].locked;
+    memset(out_state, 0, sizeof(*out_state));
+    out_state->supported = runtime->workspace_storage != NULL;
+    out_state->durable = report->durable;
+    out_state->revision_known = report->storage_revision_known;
+    out_state->has_saved = runtime->workspace_library_has_saved;
+    out_state->save_enabled = report->storage_revision_known && all_locked && !runtime->workspace_library_save_conflict;
+    out_state->restore_enabled = runtime->workspace_storage != NULL;
+    out_state->storage_revision = report->storage_revision;
+    out_state->storage_generation = runtime->workspace_library_storage_generation;
+    message = !out_state->supported ? "No Data Server is connected for library storage."
+        : !all_locked ? "Apply and lock every layout before saving the library."
+        : runtime->workspace_library_save_conflict ? "Another writer changed the saved library. Restore and review it before saving again."
+        : runtime->workspace_library_storage_status == UMI_STATUS_NOT_FOUND ? "No saved library. Save library stores all committed layouts."
+        : runtime->workspace_library_storage_status != UMI_STATUS_OK ? "Library storage needs attention. Restore re-reads saved data; current layouts are kept on failure."
+        : report->recovered_last_good ? "Previous valid library recovered. Review it before saving."
+        : report->durable ? "Library checkpoint on disk. Unsaved library changes still need Save library."
+        : "Memory-only library checkpoint; it will not survive process exit.";
+    (void)g_strlcpy(out_state->message, message, sizeof(out_state->message));
+    return UMI_STATUS_OK;
+}
+
+/* Dispatch through Framework storage, then use the existing staged native
+ * publication path. No alternate database, layout parser or session owner is
+ * created here, and a failed Save never adopts a competing writer's revision. */
+static UmiStatus runtime_workspace_library_storage_operation(
+    const UmiGtk4WorkspaceLayoutLibraryStorageRequest *request, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    UmiUiWorkspaceCustomisation *candidate = NULL;
+    UmiUiWorkspaceLibraryCheckpointReport report = {0};
+    UmiStatus status;
+    if (model == NULL || runtime->workspace_storage == NULL) return UMI_STATUS_UNAVAILABLE;
+    if (model->edit_active) return UMI_STATUS_BUSY;
+    if (request->expected_customisation_revision != model->revision ||
+        request->expected_storage_generation != runtime->workspace_library_storage_generation ||
+        request->expected_storage_revision != runtime->workspace_library_checkpoint.checkpoint.storage_revision)
+        return UMI_STATUS_INVALID_STATE;
+    if (request->action == UMI_GTK4_WORKSPACE_LAYOUT_LIBRARY_STORAGE_SAVE) {
+        const gint64 now = g_get_real_time();
+        const uint64_t saved_at_ns = now > 0 && (uint64_t)now <= UINT64_MAX / UINT64_C(1000)
+            ? (uint64_t)now * UINT64_C(1000) : 0U;
+        if (!runtime->workspace_library_checkpoint.checkpoint.storage_revision_known)
+            return UMI_STATUS_INVALID_STATE;
+        status = umi_ui_workspace_library_checkpoint_save(runtime->workspace_storage,
+            &STUDIO_CANVAS_SCOPE, model, saved_at_ns, request->expected_storage_revision, &report);
+    } else if (request->action == UMI_GTK4_WORKSPACE_LAYOUT_LIBRARY_STORAGE_RESTORE) {
+        if (!request->restore_confirmed) return UMI_STATUS_PERMISSION_DENIED;
+        candidate = malloc(sizeof(*candidate));
+        if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+        status = umi_ui_workspace_library_checkpoint_load_candidate(runtime->workspace_storage,
+            &STUDIO_CANVAS_SCOPE, model, candidate, &report);
+        if (status == UMI_STATUS_OK) status = runtime_workspace_publish_candidate(runtime, candidate);
+    } else return UMI_STATUS_INVALID_ARGUMENT;
+    free(candidate);
+    runtime->workspace_library_storage_status = status;
+    if (status == UMI_STATUS_OK) {
+        runtime->workspace_library_checkpoint = report;
+        runtime->workspace_library_has_saved = true;
+        runtime->workspace_library_save_conflict = false;
+    } else if (request->action == UMI_GTK4_WORKSPACE_LAYOUT_LIBRARY_STORAGE_RESTORE &&
+               status == UMI_STATUS_NOT_FOUND && report.checkpoint.storage_revision_known &&
+               report.checkpoint.storage_revision == 0U) {
+        /* A confirmed retry found no saved copies. The current session stays
+         * intact and may now create a new library at known storage revision 0. */
+        runtime->workspace_library_checkpoint = report;
+        runtime->workspace_library_has_saved = false;
+        runtime->workspace_library_save_conflict = false;
+    } else {
+        if (report.checkpoint.storage_revision_known &&
+            report.checkpoint.storage_revision != request->expected_storage_revision)
+            runtime->workspace_library_save_conflict = true;
+        if (report.checkpoint.primary_status != UMI_STATUS_NOT_FOUND)
+            runtime->workspace_library_has_saved = true;
+        if (!report.checkpoint.storage_revision_known && report.checkpoint.primary_status != UMI_STATUS_NOT_FOUND)
+            runtime->workspace_library_checkpoint.checkpoint.storage_revision_known = false;
+    }
+    return status;
+}
+
 /* Describe a stored checkpoint without claiming the current arrangement has
  * no newer edits. Unsupported storage never looks like a successful disk save. */
 static void runtime_workspace_update_storage_controls(UmiStudioGtkRuntimeChrome *runtime)
@@ -168,6 +282,7 @@ static UmiStatus runtime_workspace_bind_storage(UmiStudioGtkRuntimeChrome *runti
     UmiStatus status;
     if (runtime == NULL || model == NULL || server == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     if (model->edit_active) return UMI_STATUS_BUSY;
+    if (runtime->workspace_library_storage_generation == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
     text = g_try_malloc(UMI_UI_LAYOUT_ENCODED_CAPACITY);
     if (text == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     if (runtime->workspace_storage != server) {
@@ -183,6 +298,10 @@ static UmiStatus runtime_workspace_bind_storage(UmiStudioGtkRuntimeChrome *runti
     runtime->workspace_storage_status = status;
     runtime_workspace_update_storage_controls(runtime);
     /* An empty database is usable: its first Save compares against revision 0. */
+    ++runtime->workspace_library_storage_generation;
+    runtime_workspace_probe_library_storage(runtime);
+    if (runtime->workspace_library != NULL)
+        (void)umi_gtk4_ws_layout_library_refresh(runtime->workspace_library);
     return status == UMI_STATUS_NOT_FOUND ? UMI_STATUS_OK : status;
 }
 

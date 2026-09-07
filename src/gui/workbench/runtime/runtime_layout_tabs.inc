@@ -251,11 +251,21 @@ static GtkWidget *runtime_build_layout_tabs(
         gtk_box_append(GTK_BOX(bar), runtime->layout_cancel_button);
     }
 
-    manage = runtime_make_local_button(
-        runtime,
-        "Manage",
-        "Browse, apply and inspect workspace layouts",
-        1);
+    /* The shared view invokes Framework library operations against Studio's
+     * existing owner. It never edits the separate catalogue of product presets. */
+    manage = gtk_menu_button_new();
+    gtk_menu_button_set_label(GTK_MENU_BUTTON(manage), "Layout Library");
+    (void)umi_gtk4_automation_tag_widget(manage, "studio.workspace.layout-library");
+    if (umi_gtk4_ws_layout_library_create(runtime_workspace_library_read,
+            runtime_workspace_library_apply, runtime, &runtime->workspace_library) == UMI_STATUS_OK) {
+        gtk_menu_button_set_popover(GTK_MENU_BUTTON(manage),
+            umi_gtk4_ws_layout_library_popover(runtime->workspace_library));
+        (void)umi_gtk4_ws_layout_library_set_storage_handlers(runtime->workspace_library,
+            runtime_workspace_library_storage_read, runtime_workspace_library_storage_operation, runtime);
+    } else {
+        gtk_widget_set_sensitive(manage, FALSE);
+        gtk_widget_set_tooltip_text(manage, "Layout library unavailable; existing layout selection and Save remain available");
+    }
     restore = runtime_make_command_button(
         runtime,
         "Restore saved",
