@@ -175,6 +175,7 @@ static const char *const WORKBENCH_COMMAND_IDS[] = {
     UMI_STUDIO_COMMAND_AUXILIARY_TOGGLE,
     UMI_STUDIO_COMMAND_STATUS_SET,
     UMI_STUDIO_COMMAND_LAYOUT_RESET,
+    UMI_STUDIO_COMMAND_WORKSPACE_OPEN_FOLDER,
     UMI_STUDIO_COMMAND_WORKSPACE_PROFILE_ACTIVATE,
     UMI_STUDIO_COMMAND_NOTIFICATION_INFO,
     UMI_STUDIO_COMMAND_QUICK_ACCESS_SHOW,
@@ -244,6 +245,11 @@ static const char *const REQUIRED_SERVICE_IDS[] = {
 };
 
 #define ARRAY_COUNT(values) (sizeof(values) / sizeof((values)[0]))
+
+/* Keep the public workbench count and the semantic inventory in agreement.
+ * A missing command is a composition defect, not a reason to lower the count. */
+_Static_assert(ARRAY_COUNT(WORKBENCH_COMMAND_IDS) == UMI_STUDIO_WORKBENCH_COMMAND_COUNT,
+               "Studio workbench command inventory must match its public contract");
 
 /*
  * Return the number of records represented by studio platform contract core command
