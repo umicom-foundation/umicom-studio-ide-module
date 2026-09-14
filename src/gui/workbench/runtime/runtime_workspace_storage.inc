@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/gui/workbench/runtime/runtime_workspace_storage.inc
- * Purpose: Present explicit Framework canvas checkpoints and safe recovery.
- * Author: Sammy Hegab, Umicom Foundation
- * Licence: MIT
+ * PURPOSE: Present explicit Framework canvas checkpoints and safe recovery.
+ * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
+ * LICENCE: MIT
  *---------------------------------------------------------------------------*/
 
 /* Layout preference belongs to this application, not to an open source file.
