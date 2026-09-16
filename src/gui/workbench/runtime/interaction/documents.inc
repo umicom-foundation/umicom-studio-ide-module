@@ -91,13 +91,12 @@ static UmiStatus runtime_document_save(
  * applications.
  */
 static UmiStatus runtime_document_close_force(
-    UmiStudioGtkRuntimeChrome *runtime)
+    UmiStudioGtkRuntimeChrome *runtime, UmiDocumentId documentId)
 {
     UmiStatus status;
 
-    status = umi_document_coordinator_close_active(
-        umi_studio_ui_documents(runtime->owner->ui),
-        1);
+    status = UmiDocumentCoordinatorClose(
+        umi_studio_ui_documents(runtime->owner->ui), documentId, 1);
     (void)runtime_refresh_services(runtime);
     return status;
 }
@@ -136,13 +135,12 @@ static UmiStatus runtime_document_close(
 
     /* Apply this operation only while the related capability or state is available. */
     if (active.dirty) {
-        return runtime_confirm(
-            runtime,
-            "Close Modified Document?",
-            "The active document has unsaved changes. Closing it will "
-            "discard those changes.",
-            "Discard and Close",
-            runtime_document_close_force);
+        char message[512];
+        (void)snprintf(message, sizeof message,
+            "\"%s\" has unsaved changes. Discard and Close removes those edits. "
+            "Choose Cancel to return to the document and save it first.", active.display_name);
+        return runtime_confirm_document(runtime, "Close Modified Document?", message,
+            "Discard and Close", active.document_id, runtime_document_close_force);
     }
 
     status = umi_document_coordinator_close_active(documents, 0);

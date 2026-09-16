@@ -16,8 +16,9 @@
 
 static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
 {
-    UmiStudioGtkRuntimeChrome *runtime =
-        (UmiStudioGtkRuntimeChrome *)user_data;
+    UmiStudioFileDialogRequest *request = user_data;
+    GObject *ownerWindow = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request, &ownerWindow);
     GtkWidget *dialog =
         GTK_WIDGET(gtk_widget_get_root(GTK_WIDGET(button)));
 
@@ -27,6 +28,8 @@ static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
      */
     if (runtime == NULL || runtime->owner == NULL ||
         runtime->owner->window == NULL) {
+        if (GTK_IS_WINDOW(dialog)) gtk_window_destroy(GTK_WINDOW(dialog));
+        g_clear_object(&ownerWindow);
         return;
     }
 
@@ -36,7 +39,9 @@ static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
     if (GTK_IS_WINDOW(dialog)) {
         gtk_window_destroy(GTK_WINDOW(dialog));
     }
-    gtk_window_destroy(runtime->owner->window);
+    /* Keep the owner alive through both destroys; the dialog owns request. */
+    gtk_window_destroy(GTK_WINDOW(ownerWindow));
+    g_clear_object(&ownerWindow);
 }
 
 /*
@@ -68,6 +73,8 @@ static void runtime_show_close_confirmation(
     GtkWidget *buttons;
     GtkWidget *cancel;
     GtkWidget *close_anyway;
+    UmiStudioFileDialogRequest *request;
+    char explanation[384];
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -94,7 +101,16 @@ static void runtime_show_close_confirmation(
         return;
     }
 
+    request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) {
+        gtk_window_destroy(GTK_WINDOW(dialog));
+        runtime_show_notification(runtime, "Unable to show close confirmation. Your window remains open.");
+        return;
+    }
+    g_object_set_data_full(G_OBJECT(dialog), "umicom-close-owner", request,
+        (GDestroyNotify)runtime_file_dialog_request_free);
     gtk_window_set_title(GTK_WINDOW(dialog), "Close Umicom Studio?");
+    gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
     gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
     gtk_window_set_transient_for(
         GTK_WINDOW(dialog),
@@ -109,9 +125,14 @@ static void runtime_show_close_confirmation(
     gtk_box_append(
         GTK_BOX(root),
         runtime_section_title("Unsaved or running work requires confirmation"));
-    gtk_box_append(
-        GTK_BOX(root),
-        runtime_label(report->summary, 0.0F));
+    (void)snprintf(explanation, sizeof(explanation),
+        "%zu document(s) have unsaved changes.%s Cancel to return to your work. "
+        "Close Anyway discards unsaved edits and ends this Studio session.",
+        report->dirty_document_count,
+        report->decision == UMI_STUDIO_CLOSE_CONFIRM_RUNNING ||
+        report->decision == UMI_STUDIO_CLOSE_CONFIRM_DIRTY_AND_RUNNING
+            ? " A build or another operation is still running." : "");
+    gtk_box_append(GTK_BOX(root), runtime_label(explanation, 0.0F));
 
     gtk_widget_set_halign(buttons, GTK_ALIGN_END);
     gtk_box_append(GTK_BOX(buttons), cancel);
@@ -128,7 +149,7 @@ static void runtime_show_close_confirmation(
         close_anyway,
         "clicked",
         G_CALLBACK(runtime_close_confirmed),
-        runtime);
+        request);
 
     gtk_window_present(GTK_WINDOW(dialog));
 }
@@ -154,7 +175,8 @@ static gboolean runtime_on_close_request(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (runtime == NULL || runtime->force_close) return FALSE;
+    if (runtime == NULL) return TRUE;
+    if (runtime->force_close) return FALSE;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -162,14 +184,18 @@ static gboolean runtime_on_close_request(
      */
     if (runtime->runtime_bootstrap == NULL ||
         runtime->runtime_bootstrap->platform == NULL) {
-        return FALSE;
+        runtime_show_notification(runtime, "Unable to check open documents. Studio has kept this window open.");
+        return TRUE;
     }
 
     status = umi_studio_runtime_platform_snapshot(
         runtime->runtime_bootstrap->platform,
         &snapshot);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status != UMI_STATUS_OK) return FALSE;
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime, "Unable to check unsaved or running work. Studio has kept this window open.");
+        return TRUE;
+    }
 
     bindings = umi_studio_runtime_platform_bindings(
         runtime->runtime_bootstrap->platform);
@@ -177,14 +203,23 @@ static gboolean runtime_on_close_request(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (bindings == NULL || bindings->documents == NULL) return FALSE;
+    if (bindings == NULL || bindings->documents == NULL) {
+        runtime_show_notification(runtime, "The document service is unavailable. Studio has kept this window open.");
+        return TRUE;
+    }
 
-    status = umi_studio_close_guard_evaluate(
+    status = UmiStudioCloseGuardEvaluateWithActivity(
         bindings->documents,
         &snapshot.ide.context,
+        UmiStudioBuildBusy(umi_studio_services_build(
+            umi_studio_ui_services(runtime->owner->ui))) ||
+            runtime->debugger_snapshot.session_count > 0U,
         &report);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status != UMI_STATUS_OK) return FALSE;
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime, "Unable to check unsaved or running work. Studio has kept this window open.");
+        return TRUE;
+    }
 
     /*
      * The older Studio debugger wrapper and the new DAP Runtime use different

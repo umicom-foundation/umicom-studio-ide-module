@@ -2219,3 +2219,24 @@ if(BUILD_TESTING)
         umicom_register_validation_target(umicom-studio-project-settings-test)
     endif()
 endif()
+
+# Verify editing through Studio's real service composition, without a display.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-editor-workflow-test tests/test_editor_workflow.c)
+    target_link_libraries(umicom-studio-editor-workflow-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-editor-workflow-test)
+    umicom_apply_sanitizers(umicom-studio-editor-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/editor-workflow")
+    add_test(NAME studio.editor_workflow COMMAND umicom-studio-editor-workflow-test)
+    set_tests_properties(studio.editor_workflow PROPERTIES TIMEOUT 60
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/editor-workflow"
+        LABELS "studio;editor;integration")
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-editor-workflow-test)
+    endif()
+endif()
+
+# Ship the same beginner editing guide used by source-tree readers.
+install(FILES docs/EDITING_FILES.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs
+    COMPONENT Studio)

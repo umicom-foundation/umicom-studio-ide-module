@@ -51,3 +51,10 @@ explains why two different catalogue families must have distinct guards.
 The Windows suite installer exposes Studio as the optional **Studio**
 component. Umicom Desk registers the real `umicom-studio-ide` executable and
 can launch Studio together with other installed Umicom applications.
+
+## Learn the everyday editor workflow
+
+[Editing and saving files](docs/EDITING_FILES.html) follows an Umicom Notes
+practice project through tabs, unsaved text, next/previous search, replacement,
+Undo, Save All, builds and close confirmation. It explains the current editor
+size limit and how to respond to a file conflict.

@@ -17,10 +17,15 @@
 typedef UmiStatus (*UmiStudioGtkConfirmAccepted)(
     UmiStudioGtkRuntimeChrome *runtime);
 
+typedef UmiStatus (*UmiStudioGtkDocumentConfirmAccepted)(
+    UmiStudioGtkRuntimeChrome *runtime, UmiDocumentId documentId);
+
 typedef struct UmiStudioGtkConfirmContext {
     UmiStudioGtkRuntimeChrome *runtime;
     GtkWidget *window;
     UmiStudioGtkConfirmAccepted accepted;
+    UmiStudioGtkDocumentConfirmAccepted documentAccepted;
+    UmiStudioFileDialogRequest *ownerRequest;
 } UmiStudioGtkConfirmContext;
 
 /*
@@ -29,7 +34,10 @@ typedef struct UmiStudioGtkConfirmContext {
  */
 static void runtime_confirm_context_destroy(gpointer data)
 {
-    free(data);
+    UmiStudioGtkConfirmContext *context = data;
+    if (context == NULL) return;
+    runtime_file_dialog_request_free(context->ownerRequest);
+    free(context);
 }
 
 /*
@@ -70,25 +78,35 @@ static void runtime_confirm_accept(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (context == NULL || context->runtime == NULL ||
-        context->accepted == NULL) {
+    if (context == NULL || (context->accepted == NULL && context->documentAccepted == NULL)) return;
+    GObject *ownerWindow = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context->ownerRequest, &ownerWindow);
+    GtkWindow *dialog = g_object_ref(GTK_WINDOW(context->window));
+    if (runtime == NULL) {
+        gtk_window_destroy(dialog);
+        g_clear_object(&ownerWindow);
+        g_object_unref(dialog);
         return;
     }
-
-    status = context->accepted(context->runtime);
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK && GTK_IS_WINDOW(context->window)) {
-        gtk_window_destroy(GTK_WINDOW(context->window));
-    }
+    status = context->documentAccepted != NULL
+        ? context->documentAccepted(runtime, context->ownerRequest->documentId)
+        : context->accepted(runtime);
+    if (status == UMI_STATUS_OK || (context->documentAccepted != NULL && status == UMI_STATUS_NOT_FOUND))
+        gtk_window_destroy(dialog);
+    else runtime_show_notification(runtime, umi_status_text(status));
+    g_object_unref(ownerWindow);
+    g_object_unref(dialog);
 }
 
 /* Provide the runtime confirm operation used by this module and its client applications. */
-static UmiStatus runtime_confirm(
+static UmiStatus runtime_confirm_full(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *title,
     const char *message,
     const char *accept_label,
-    UmiStudioGtkConfirmAccepted accepted)
+    UmiStudioGtkConfirmAccepted accepted,
+    UmiStudioGtkDocumentConfirmAccepted documentAccepted,
+    UmiDocumentId documentId)
 {
     UmiStudioGtkConfirmContext *context;
     GtkWidget *window;
@@ -102,7 +120,7 @@ static UmiStatus runtime_confirm(
      * used.
      */
     if (runtime == NULL || runtime->owner == NULL ||
-        runtime->owner->window == NULL || accepted == NULL) {
+        runtime->owner->window == NULL || (accepted == NULL && documentAccepted == NULL)) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
@@ -135,12 +153,20 @@ static UmiStatus runtime_confirm(
     context->runtime = runtime;
     context->window = window;
     context->accepted = accepted;
+    context->documentAccepted = documentAccepted;
+    context->ownerRequest = runtime_file_dialog_request_new(runtime, documentId);
+    if (context->ownerRequest == NULL) {
+        gtk_window_destroy(GTK_WINDOW(window));
+        free(context);
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
 
     gtk_window_set_title(GTK_WINDOW(window), title);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
     gtk_window_set_transient_for(
         GTK_WINDOW(window),
         runtime->owner->window);
+    gtk_window_set_destroy_with_parent(GTK_WINDOW(window), TRUE);
     gtk_window_set_default_size(GTK_WINDOW(window), 500, 200);
 
     gtk_widget_set_margin_top(root, 16);
@@ -175,4 +201,20 @@ static UmiStatus runtime_confirm(
 
     gtk_window_present(GTK_WINDOW(window));
     return UMI_STATUS_OK;
+}
+
+/* Existing callers retain the same confirmation interface. */
+static UmiStatus runtime_confirm(UmiStudioGtkRuntimeChrome *runtime,
+    const char *title, const char *message, const char *accept_label,
+    UmiStudioGtkConfirmAccepted accepted)
+{
+    return runtime_confirm_full(runtime, title, message, accept_label, accepted, NULL, 0U);
+}
+
+/* Capture the document identity when the question is asked, not when answered. */
+static UmiStatus runtime_confirm_document(UmiStudioGtkRuntimeChrome *runtime,
+    const char *title, const char *message, const char *accept_label,
+    UmiDocumentId documentId, UmiStudioGtkDocumentConfirmAccepted accepted)
+{
+    return runtime_confirm_full(runtime, title, message, accept_label, NULL, accepted, documentId);
 }

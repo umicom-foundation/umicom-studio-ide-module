@@ -167,22 +167,21 @@ static void runtime_on_editor_find(
      */
     if (needle == NULL || needle[0] == '\0') return;
 
-    status = umi_document_coordinator_find(
-        runtime_documents(runtime),
-        needle,
-        &offset);
+    status = UmiDocumentCoordinatorFindNext(
+        runtime_documents(runtime), needle, 0, &offset, NULL);
 
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         (void)snprintf(
             message,
             sizeof(message),
-            "Found at document offset %zu.",
+            "Match selected at byte %zu.",
             offset);
         runtime_show_notification(runtime, message);
     } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_show_notification(runtime, umi_status_text(status));
     }
+    (void)runtime_refresh_services(runtime);
 }
 
 /*
@@ -226,7 +225,7 @@ static void runtime_on_editor_replace(
         return;
     }
 
-    status = umi_document_coordinator_replace(
+    status = UmiDocumentCoordinatorReplaceNext(
         runtime_documents(runtime),
         needle,
         replacement,
@@ -244,6 +243,38 @@ static void runtime_on_editor_replace(
         runtime_show_notification(runtime, umi_status_text(status));
     }
 
+    (void)runtime_refresh_services(runtime);
+}
+
+/* Search backwards using the same Framework case and wrapping rules. */
+static void runtime_on_editor_find_previous(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    (void)button;
+    if (runtime == NULL || runtime->editor_find_entry == NULL) return;
+    const char *needle = gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry));
+    if (needle == NULL || needle[0] == '\0') return;
+    UmiStatus status = UmiDocumentCoordinatorFindNext(runtime_documents(runtime), needle, 1, NULL, NULL);
+    if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+    (void)runtime_refresh_services(runtime);
+}
+
+/* Replace every occurrence as one undoable Framework edit. */
+static void runtime_on_editor_replace_all(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    size_t count = 0U;
+    char message[160];
+    (void)button;
+    if (runtime == NULL || runtime->editor_find_entry == NULL || runtime->editor_replace_entry == NULL) return;
+    const char *needle = gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry));
+    const char *replacement = gtk_editable_get_text(GTK_EDITABLE(runtime->editor_replace_entry));
+    UmiStatus status = UmiDocumentCoordinatorReplaceAll(runtime_documents(runtime), needle, replacement, &count);
+    if (status == UMI_STATUS_OK) {
+        (void)snprintf(message, sizeof message, "Replaced %zu occurrence%s. Use Undo to reverse the change.",
+            count, count == 1U ? "" : "s");
+        runtime_show_notification(runtime, message);
+    } else runtime_show_notification(runtime, umi_status_text(status));
     (void)runtime_refresh_services(runtime);
 }
 
@@ -354,6 +385,8 @@ static GtkWidget *runtime_build_editor_command_bar(
     GtkWidget *redo;
     GtkWidget *save;
     GtkWidget *find;
+    GtkWidget *previous;
+    GtkWidget *replace_all;
     GtkWidget *replace;
     GtkWidget *go_to;
     GtkWidget *external;
@@ -375,6 +408,8 @@ static GtkWidget *runtime_build_editor_command_bar(
     redo = gtk_button_new_with_label("Redo");
     save = gtk_button_new_with_label("Save");
     find = gtk_button_new_with_label("Find");
+    previous = gtk_button_new_with_label("Previous");
+    replace_all = gtk_button_new_with_label("Replace All");
     replace = gtk_button_new_with_label("Replace");
     go_to = gtk_button_new_with_label("Go");
     external = gtk_button_new_with_label("External?");
@@ -390,7 +425,7 @@ static GtkWidget *runtime_build_editor_command_bar(
         runtime->editor_goto_entry == NULL ||
         runtime->editor_info_label == NULL ||
         undo == NULL || redo == NULL || save == NULL ||
-        find == NULL || replace == NULL || go_to == NULL ||
+        find == NULL || previous == NULL || replace_all == NULL || replace == NULL || go_to == NULL ||
         external == NULL) {
         return bar;
     }
@@ -436,13 +471,24 @@ static GtkWidget *runtime_build_editor_command_bar(
         external, "clicked",
         G_CALLBACK(runtime_on_editor_external_check), runtime);
 
+    gtk_widget_set_tooltip_text(find, "Find the next occurrence. Search wraps at the end of the document.");
+    gtk_widget_set_tooltip_text(previous, "Find the previous occurrence. Search wraps at the beginning.");
+    gtk_widget_set_tooltip_text(replace_all, "Replace all non-overlapping occurrences in this document. Undo restores the previous text.");
+    (void)umi_gtk4_automation_tag_widget(find, "studio.editor.find-next");
+    (void)umi_gtk4_automation_tag_widget(previous, "studio.editor.find-previous");
+    (void)umi_gtk4_automation_tag_widget(replace_all, "studio.editor.replace-all");
+    g_signal_connect(previous, "clicked", G_CALLBACK(runtime_on_editor_find_previous), runtime);
+    g_signal_connect(replace_all, "clicked", G_CALLBACK(runtime_on_editor_replace_all), runtime);
+
     gtk_box_append(GTK_BOX(bar), undo);
     gtk_box_append(GTK_BOX(bar), redo);
     gtk_box_append(GTK_BOX(bar), save);
     gtk_box_append(GTK_BOX(bar), runtime->editor_find_entry);
     gtk_box_append(GTK_BOX(bar), find);
+    gtk_box_append(GTK_BOX(bar), previous);
     gtk_box_append(GTK_BOX(bar), runtime->editor_replace_entry);
     gtk_box_append(GTK_BOX(bar), replace);
+    gtk_box_append(GTK_BOX(bar), replace_all);
     gtk_box_append(GTK_BOX(bar), runtime->editor_goto_entry);
     gtk_box_append(GTK_BOX(bar), go_to);
     gtk_box_append(GTK_BOX(bar), external);
@@ -454,6 +500,12 @@ static GtkWidget *runtime_build_editor_command_bar(
     if (more != NULL) gtk_box_append(GTK_BOX(bar), more);
 
     runtime_editor_update_info(runtime);
-    runtime->editor_command_bar = bar;
-    return bar;
+    /* Keep every control reachable on a narrow workbench without increasing
+     * the window's minimum width or removing existing actions. */
+    GtkWidget *scroller = gtk_scrolled_window_new();
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+    gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scroller), TRUE);
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), bar);
+    runtime->editor_command_bar = scroller;
+    return scroller;
 }

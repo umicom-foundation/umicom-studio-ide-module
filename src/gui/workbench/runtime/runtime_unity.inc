@@ -26,9 +26,9 @@
 
 #include "interaction/selection.inc"
 #include "interaction/registered_command.inc"
+#include "interaction/file_dialog.inc"
 #include "interaction/prompt_dialog.inc"
 #include "interaction/confirm_dialog.inc"
-#include "interaction/file_dialog.inc"
 #include "interaction/documents.inc"
 #include "interaction/explorer.inc"
 #include "interaction/problems.inc"

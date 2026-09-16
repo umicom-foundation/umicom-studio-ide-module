@@ -23,6 +23,7 @@ typedef struct UmiStudioGtkPromptContext {
     GtkWidget *window;
     GtkWidget *entry;
     UmiStudioGtkPromptAccepted accepted;
+    UmiStudioFileDialogRequest *ownerRequest;
 } UmiStudioGtkPromptContext;
 
 /*
@@ -33,6 +34,7 @@ static void runtime_prompt_context_destroy(gpointer data)
 {
     UmiStudioGtkPromptContext *context =
         (UmiStudioGtkPromptContext *)data;
+    if (context != NULL) runtime_file_dialog_request_free(context->ownerRequest);
     free(context);
 }
 
@@ -80,6 +82,13 @@ static void runtime_prompt_accepted(
         return;
     }
 
+    GObject *ownerWindow = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context->ownerRequest, &ownerWindow);
+    if (runtime == NULL) {
+        gtk_window_destroy(GTK_WINDOW(context->window));
+        g_clear_object(&ownerWindow);
+        return;
+    }
     value = gtk_editable_get_text(GTK_EDITABLE(context->entry));
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -87,16 +96,19 @@ static void runtime_prompt_accepted(
      */
     if (value == NULL || value[0] == '\0') {
         runtime_show_notification(
-            context->runtime,
+            runtime,
             "A value is required.");
+        g_object_unref(ownerWindow);
         return;
     }
 
-    status = context->accepted(context->runtime, value);
+    GtkWindow *dialog = g_object_ref(GTK_WINDOW(context->window));
+    status = context->accepted(runtime, value);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK && GTK_IS_WINDOW(context->window)) {
-        gtk_window_destroy(GTK_WINDOW(context->window));
-    }
+    if (status == UMI_STATUS_OK) gtk_window_destroy(dialog);
+    else runtime_show_notification(runtime, umi_status_text(status));
+    g_object_unref(ownerWindow);
+    g_object_unref(dialog);
 }
 
 /*
@@ -157,6 +169,12 @@ static UmiStatus runtime_prompt_text(
     context->runtime = runtime;
     context->window = window;
     context->accepted = accepted;
+    context->ownerRequest = runtime_file_dialog_request_new(runtime, 0U);
+    if (context->ownerRequest == NULL) {
+        gtk_window_destroy(GTK_WINDOW(window));
+        free(context);
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
 
     gtk_window_set_title(
         GTK_WINDOW(window),
@@ -165,6 +183,7 @@ static UmiStatus runtime_prompt_text(
     gtk_window_set_transient_for(
         GTK_WINDOW(window),
         runtime->owner->window);
+    gtk_window_set_destroy_with_parent(GTK_WINDOW(window), TRUE);
     gtk_window_set_default_size(GTK_WINDOW(window), 540, 220);
 
     gtk_widget_set_margin_top(root, 16);
