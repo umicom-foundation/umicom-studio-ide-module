@@ -522,6 +522,10 @@ static void runtime_destroy_framework(
     g_clear_object(&runtime->outer_root);
     umi_studio_professional_workspace_destroy(runtime->professional_workspace);
     runtime->professional_workspace = NULL;
+    /* Detach the build-profile borrower before the native owner releases its
+     * Data Server. Service-owned and test connections keep their original owner. */
+    if (runtime->owner != NULL && runtime->owner->ui != NULL)
+        UmiStudioBuildProfilesDetach(umi_studio_ui_services(runtime->owner->ui));
     /* Borrowed test or service connections remain with their original owner. */
     if (runtime->owns_workspace_storage)
         umi_data_server_destroy(runtime->workspace_storage);

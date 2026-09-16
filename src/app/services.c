@@ -18,6 +18,7 @@
 #include "umicom/studio/services.h"
 #include "umicom/studio/build.h"
 #include "umicom/build/project_profile.h"
+#include "umicom/build/profile_store.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -56,6 +57,11 @@ struct UmiStudioServices {
     UmiWatcher *watcher;
     UmiProcessSupervisor *process_supervisor;
     UmiDataServer *data_server;
+    /* Borrowed when the native host supplies its existing user-state server.
+     * The service-owned Data Server remains the headless default. */
+    UmiDataServer *build_profile_server;
+    uint64_t build_profile_revision;
+    int build_profile_revision_known;
     UmiStore store;
     UmiSchemaRegistry *schemas;
     UmiDispatcher *dispatcher;
@@ -1488,6 +1494,79 @@ UmiStudioTradingService *umi_studio_services_trading(
     return services != NULL ? services->trading : NULL;
 }
 
+/* Project settings use the existing Framework Data Server, not a second
+ * filesystem format. These facades run on the service-owning thread. */
+static UmiDataServer *BuildProfileServer(UmiStudioServices *services)
+{
+    return services->build_profile_server != NULL
+        ? services->build_profile_server : services->data_server;
+}
+
+UmiStatus UmiStudioBuildProfilesBind(UmiStudioServices *services,
+    UmiDataServer *server)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiBuildProfile stored;
+    uint64_t revision = 0U;
+    UmiStatus status;
+    if (services == NULL || server == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    status = umi_workspace_graph_snapshot(services->workspace, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (workspace.open) {
+        status = UmiBuildProfileStoreLoad(server, workspace.root, &stored, &revision);
+        if (status == UMI_STATUS_OK) {
+            status = umi_studio_build_service_set_profile(
+                umi_studio_services_build(services), &stored);
+            if (status != UMI_STATUS_OK) return status;
+        } else if (status != UMI_STATUS_NOT_FOUND) {
+            return status; /* Keep the old binding and profile on corrupt input. */
+        }
+    }
+    services->build_profile_server = server;
+    services->build_profile_revision = revision;
+    services->build_profile_revision_known = workspace.open;
+    return UMI_STATUS_OK;
+}
+
+void UmiStudioBuildProfilesDetach(UmiStudioServices *services)
+{
+    if (services == NULL) return;
+    services->build_profile_server = NULL;
+    services->build_profile_revision = 0U;
+    services->build_profile_revision_known = 0;
+}
+
+UmiStatus UmiStudioBuildProfileSave(UmiStudioServices *services,
+    const UmiBuildProfile *profile)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiBuildProfile expected;
+    uint64_t revision;
+    UmiStatus status;
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_build_profile_validate(profile, NULL, 0U);
+    if (status != UMI_STATUS_OK) return status;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    status = umi_workspace_graph_snapshot(services->workspace, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.open || !services->build_profile_revision_known)
+        return UMI_STATUS_INVALID_STATE;
+    status = UmiBuildProfileForWorkspace(workspace.root, &expected);
+    if (status != UMI_STATUS_OK) return status;
+    if (!umi_path_equal(expected.source_directory, profile->source_directory))
+        return UMI_STATUS_INVALID_ARGUMENT;
+    status = UmiBuildProfileStoreSave(BuildProfileServer(services), profile,
+        services->build_profile_revision, &revision);
+    if (status != UMI_STATUS_OK) return status;
+    /* Validation and the busy check above make this assignment non-fallible
+     * under the owning-thread contract. Storage errors never change the engine. */
+    status = umi_studio_build_service_set_profile(
+        umi_studio_services_build(services), profile);
+    if (status == UMI_STATUS_OK) services->build_profile_revision = revision;
+    return status;
+}
+
 /*
  * Provide the studio services open workspace operation used by this module and its client
  * applications.
@@ -1498,6 +1577,7 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
 {
     UmiStatus status;
     UmiBuildProfile projectProfile;
+    uint64_t profileRevision = 0U;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -1509,6 +1589,12 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
     if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
     status = UmiBuildProfileForWorkspace(root, &projectProfile);
     if (status != UMI_STATUS_OK) return status;
+    /* Inspect saved settings before changing the current workspace. A corrupt
+     * record is reported and preserved, never treated as absent. Trust is not
+     * part of the stored profile; the caller supplies it for this open. */
+    status = UmiBuildProfileStoreLoad(BuildProfileServer(services), root,
+        &projectProfile, &profileRevision);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) return status;
     status = umi_watcher_stop(services->watcher);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
@@ -1556,6 +1642,8 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
             umi_studio_services_build(services), &projectProfile);
     }
     if (status == UMI_STATUS_OK) {
+        services->build_profile_revision = profileRevision;
+        services->build_profile_revision_known = 1;
         UmiStatus recent_status;
         /* Recent-work persistence is helpful but not required to open a
          * workspace. A history-file error must not turn a successful open into
@@ -1597,6 +1685,10 @@ UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
     if (status == UMI_STATUS_OK) {
         status = umi_studio_test_service_set_workspace(
             umi_studio_services_tests(services), "", "", 0U);
+    }
+    if (status == UMI_STATUS_OK) {
+        services->build_profile_revision = 0U;
+        services->build_profile_revision_known = 0;
     }
     return status;
 }

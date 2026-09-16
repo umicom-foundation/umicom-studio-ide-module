@@ -285,6 +285,17 @@ static UmiStatus runtime_workspace_bind_storage(UmiStudioGtkRuntimeChrome *runti
     if (runtime->workspace_library_storage_generation == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
     text = g_try_malloc(UMI_UI_LAYOUT_ENCODED_CAPACITY);
     if (text == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    /* Share this existing per-user connection with the Framework profile store.
+     * Rebind before releasing the old server; an invalid saved profile leaves
+     * both the old connection and the current engine settings intact. */
+    status = UmiStudioBuildProfilesBind(
+        umi_studio_ui_services(runtime->owner->ui), server);
+    if (status != UMI_STATUS_OK) {
+        g_free(text);
+        runtime_show_notification(runtime,
+            "Project settings storage could not be loaded. Existing settings were kept; check the saved data before retrying.");
+        return status;
+    }
     if (runtime->workspace_storage != server) {
         if (runtime->owns_workspace_storage) umi_data_server_destroy(runtime->workspace_storage);
         runtime->workspace_storage = server;

@@ -16,8 +16,12 @@ static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
     char viewId[UMI_UI_ID_CAPACITY];
     UmiStatus status = runtime_open_workspace_path(runtime, model->root);
     if (status != UMI_STATUS_OK) return status;
-    status = umi_studio_build_service_set_profile(umi_studio_services_build(services), profile);
-    if (status != UMI_STATUS_OK) return status;
+    status = UmiStudioBuildProfileSave(services, profile);
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime,
+            "The project files were created, but its build settings could not be saved. Keep the project folder and check settings storage.");
+        return status;
+    }
     if (umi_fs_join(mainPath, sizeof(mainPath), model->root, "src/main.c") == UMI_STATUS_OK &&
         umi_fs_is_file(mainPath)) {
         status = umi_document_coordinator_open(umi_studio_ui_documents(runtime->owner->ui),
@@ -45,13 +49,29 @@ static UmiStatus RuntimeBuildSettingsApplied(const UmiBuildProfile *profile,
     if (!workspace.graph.open || !umi_path_equal(workspace.graph.root, profile->source_directory))
         return UMI_STATUS_INVALID_STATE;
     if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    /* A rejected/stale settings write must not grant execution trust. Persist
+     * the reviewed profile first; trust remains a separate explicit decision. */
+    status = UmiStudioBuildProfileSave(services, profile);
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime, status == UMI_STATUS_INVALID_STATE
+            ? "Project settings changed elsewhere. Reopen the workspace to read the latest settings before applying changes."
+            : "Project settings could not be saved. The previous profile and workspace trust were kept.");
+        return status;
+    }
     status = umi_studio_security_set_workspace_trust(services, workspace.graph.root,
         trusted ? UMI_WORKSPACE_TRUSTED : UMI_WORKSPACE_UNTRUSTED);
-    if (status != UMI_STATUS_OK) return status;
-    status = umi_studio_workspace_set_trusted(services, trusted);
-    if (status != UMI_STATUS_OK) return status;
-    status = umi_studio_build_service_set_profile(umi_studio_services_build(services), profile);
-    if (status == UMI_STATUS_OK) runtime_show_notification(runtime, "Build settings applied for this session.");
+    if (status == UMI_STATUS_OK)
+        status = umi_studio_workspace_set_trusted(services, trusted);
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime,
+            "Project settings were saved, but workspace trust could not be changed. No build has been started.");
+        return status;
+    }
+    if (status == UMI_STATUS_OK) runtime_show_notification(runtime,
+        runtime->workspace_storage != NULL &&
+        umi_data_server_backend(runtime->workspace_storage) == UMI_DATA_BACKEND_SQLITE
+            ? "Project settings saved. Workspace trust must be reviewed again after reopening."
+            : "Project settings applied in memory. Persistent user storage is not bound.");
     (void)runtime_refresh_services(runtime);
     return status;
 }

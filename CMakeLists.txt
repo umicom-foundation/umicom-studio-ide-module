@@ -2200,3 +2200,22 @@ if(BUILD_TESTING)
         endif()
     endforeach()
 endif()
+
+# Persist and reopen reviewed project settings with the real service container.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-project-settings-test tests/test_project_settings.c)
+    target_link_libraries(umicom-studio-project-settings-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-project-settings-test)
+    umicom_apply_sanitizers(umicom-studio-project-settings-test)
+    foreach(settings_backend IN ITEMS memory durable)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-settings-${settings_backend}")
+        add_test(NAME "studio.project_settings.${settings_backend}"
+            COMMAND umicom-studio-project-settings-test "${settings_backend}")
+        set_tests_properties("studio.project_settings.${settings_backend}" PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-settings-${settings_backend}"
+            TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;operational-state;regression")
+    endforeach()
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-project-settings-test)
+    endif()
+endif()

@@ -387,6 +387,21 @@ size_t umi_studio_services_diagnostic_sink_count(
     const UmiStudioServices *services
 );
 
+/** Borrow an existing Data Server for build profiles. The caller retains it
+ * until Detach or a successful rebind. Binding restores the active workspace's
+ * saved profile when present; failure preserves the old binding and profile.
+ * Call only on the owning thread and while no build is active. */
+UmiStatus UmiStudioBuildProfilesBind(UmiStudioServices *services,
+    UmiDataServer *server);
+/** Detach before releasing a borrowed server. No storage is read or written.
+ * Open the workspace again before saving through the default server. */
+void UmiStudioBuildProfilesDetach(UmiStudioServices *services);
+/** Persist all settings through Framework's revision-checked profile store,
+ * then apply them to the current workspace. Reject stale writers and wrong
+ * workspaces. This never stores or grants workspace trust. */
+UmiStatus UmiStudioBuildProfileSave(UmiStudioServices *services,
+    const UmiBuildProfile *profile);
+
 #ifdef __cplusplus
 }
 #endif
