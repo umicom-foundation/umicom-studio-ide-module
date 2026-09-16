@@ -136,6 +136,8 @@ static const char *runtime_mapped_studio_command(const char *command_id)
      * used.
      */
     if (command_id == NULL) return NULL;
+    if (strcmp(command_id, "build.test") == 0) return UMI_STUDIO_COMMAND_BUILD_TEST;
+    if (strcmp(command_id, "build.cancel") == 0) return UMI_STUDIO_COMMAND_BUILD_CANCEL;
 
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "file.save-all") == 0) {
@@ -220,7 +222,7 @@ static int runtime_command_enabled(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (runtime == NULL ||
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL ||
         runtime->runtime_bootstrap == NULL ||
         runtime->runtime_bootstrap->platform == NULL ||
         command_id == NULL ||
@@ -236,71 +238,55 @@ static int runtime_command_enabled(
      */
     if (bindings == NULL || bindings->commands == NULL) return 0;
 
-    /* Studio owns the native workspace transition for this externally declared
-     * Tools command, so it remains usable even when the generic command record
-     * has no toolkit-independent action handler. */
-    if (strcmp(command_id, "designer.open") == 0 ||
-        strcmp(command_id, "view.live-preview") == 0) {
-        return 1;
+    /* The same route must decide availability and execute the command. Native
+     * input collection comes before argument-dependent registry predicates. */
+    if (strcmp(command_id, "project.new") == 0 ||
+        strcmp(command_id, "workspace.open-folder") == 0) {
+        return runtime->owner != NULL && runtime->owner->ui != NULL &&
+            !UmiStudioBuildBusy(umi_studio_services_build(
+                umi_studio_ui_services(runtime->owner->ui)));
     }
-
-    /* Use the stable identifier comparison to choose the matching record or policy. */
-    if (umi_command_registry_contains(bindings->commands, command_id)) {
-        return umi_command_registry_is_enabled(
-            bindings->commands,
-            command_id,
-            NULL);
+    if (strcmp(command_id, "build.settings") == 0) {
+        UmiStudioWorkspaceSnapshot workspace;
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        return umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK &&
+            workspace.graph.open && !UmiStudioBuildBusy(umi_studio_services_build(services));
     }
-
-    /*
-     * File and workspace pickers are operational GTK entry points whose path
-     * selection happens before the Framework document/workspace service call.
-     */
-    if (strcmp(command_id, "file.open") == 0 ||
-        strcmp(command_id, "workspace.open-folder") == 0 ||
+    if (strcmp(command_id, "file.new") == 0 || strcmp(command_id, "file.open") == 0 ||
         strcmp(command_id, "application.exit") == 0 ||
         strcmp(command_id, "studio.command.search") == 0 ||
         strcmp(command_id, "studio.layout.manager") == 0 ||
         strcmp(command_id, "help.ai-teacher") == 0 ||
-        strcmp(command_id, "help.documentation") == 0) {
-        return 1;
-    }
-
-    /* Use the stable identifier comparison to choose the matching record or policy. */
+        strcmp(command_id, "help.documentation") == 0 ||
+        strcmp(command_id, "designer.open") == 0 ||
+        strcmp(command_id, "view.live-preview") == 0) return 1;
     if (strcmp(command_id, "file.save") == 0 ||
-        strcmp(command_id, "file.close") == 0) {
+        strcmp(command_id, "file.save-as") == 0 || strcmp(command_id, "file.close") == 0) {
         UmiDocumentWorkingCopySnapshot active;
-        return runtime->owner != NULL &&
-            runtime->owner->ui != NULL &&
+        return runtime->owner != NULL && runtime->owner->ui != NULL &&
             umi_document_coordinator_active_snapshot(
-                umi_studio_ui_documents(runtime->owner->ui),
-                &active) == UMI_STATUS_OK;
+                umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
     }
-
     mapped = runtime_mapped_studio_command(command_id);
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (mapped != NULL &&
-        umi_command_registry_contains(bindings->commands, mapped)) {
-        /*
-         * Argument-requiring mapped commands such as Commit and Diff are
-         * operational even when their enabled predicate cannot be evaluated
-         * until GTK has collected the actual message/path.
-         */
-        if (strcmp(command_id, "source-control.commit") == 0) {
-            return 1;
-        }
-        /* Use the stable identifier comparison to choose the matching record or policy. */
-        if (strcmp(command_id, "source-control.diff") == 0) {
+    if (mapped != NULL) {
+        UmiCommandRegistry *commands = umi_ui_workbench_commands(
+            umi_studio_ui_workbench(runtime->owner->ui));
+        if (!umi_command_registry_contains(commands, mapped)) return 0;
+        if (strcmp(command_id, "source-control.commit") == 0) return 1;
+        if (strcmp(command_id, "source-control.diff") == 0)
             return runtime->selected_vcs_path[0] != '\0';
+        if (strncmp(command_id, "build.", 6U) == 0 || strcmp(command_id, "run.start") == 0) {
+            UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+            UmiStudioWorkspaceSnapshot workspace;
+            int busy = UmiStudioBuildBusy(umi_studio_services_build(services));
+            if (strcmp(command_id, "build.cancel") == 0) return busy;
+            if (busy || umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+                !workspace.graph.open) return 0;
         }
-        return umi_command_registry_is_enabled(
-            bindings->commands,
-            mapped,
-            NULL);
+        return umi_command_registry_is_enabled(commands, mapped, NULL);
     }
+    if (umi_command_registry_contains(bindings->commands, command_id))
+        return umi_command_registry_is_enabled(bindings->commands, command_id, NULL);
 
     return 0;
 }

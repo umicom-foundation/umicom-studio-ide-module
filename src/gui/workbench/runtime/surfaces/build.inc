@@ -52,12 +52,18 @@ static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime
     }
 
     {
-        static const char *const labels[] = {"Build", "Clean", "Package"};
-        static const char *const commands[] = {
-            "build.build", "build.clean", "build.package"
+        static const char *const labels[] = {
+            "Project Settings", "Configure", "Build", "Test", "Run", "Install", "Cancel", "Clean", "Package"
         };
-        runtime_panel_add_commands(runtime, panel, labels, commands, 3U);
+        static const char *const commands[] = {
+            "build.settings", "build.configure", "build.build", "build.test", "run.start",
+            "build.install", "build.cancel", "build.clean", "build.package"
+        };
+        runtime_panel_add_commands(runtime, panel, labels, commands, 9U);
     }
+    runtime->build_progress_label = runtime_label("Ready.", 0.0F);
+    gtk_box_append(GTK_BOX(panel), runtime->build_progress_label);
+    RuntimeRefreshBuildOutput(runtime);
 
     runtime_append_context_actions(runtime, panel, "build");
 

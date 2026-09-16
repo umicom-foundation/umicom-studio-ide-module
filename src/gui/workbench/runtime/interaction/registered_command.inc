@@ -73,6 +73,29 @@ static UmiStatus runtime_execute_registered_command_capture(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /* Canonical Build commands also appear in Search Everywhere and context
+     * menus. They must use the same background workflow as the main menu,
+     * rather than running a blocking compiler through the raw registry. */
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CONFIGURE) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_COMPILE) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_TEST) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CLEAN) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_INSTALL) == 0) {
+        if (argument == NULL || strcmp(argument, "background") != 0) {
+            if (runtime->owner == NULL || runtime->owner->ui == NULL)
+                return UMI_STATUS_INVALID_STATE;
+            status = UmiDocumentCoordinatorSaveAll(
+                umi_studio_ui_documents(runtime->owner->ui), NULL);
+            if (status != UMI_STATUS_OK) {
+                runtime_show_notification(runtime,
+                    "Save unnamed documents with Save As and resolve file conflicts before building.");
+                return status;
+            }
+        }
+        argument = "background";
+    }
+
     commands = runtime_registered_commands(runtime);
     /*
      * Protect caller-owned memory by checking that required state is available before it is

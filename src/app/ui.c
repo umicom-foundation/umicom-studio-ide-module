@@ -15,6 +15,8 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/ui.h"
+#include "umicom/studio/build.h"
+#include "umicom/studio/diagnostics.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -238,6 +240,23 @@ UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui)
      * used.
      */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    {
+        UmiStudioBuildService *build = umi_studio_services_build(ui->services);
+        UmiBuildProjectSessionSnapshot progress;
+        /* Avoid allocating the large result buffer on every idle refresh. */
+        if (build != NULL && UmiStudioBuildProgress(build, &progress) == UMI_STATUS_OK &&
+            progress.completed_phase_count != 0U && UmiStudioBuildBusy(build)) {
+            UmiBuildResult *result = NULL;
+            status = umi_build_result_create(&result);
+            if (status != UMI_STATUS_OK) return status;
+            while ((status = UmiStudioBuildCollect(build, result)) == UMI_STATUS_OK) {
+                status = umi_studio_diagnostics_ingest_build_result(ui->services, result);
+                if (status != UMI_STATUS_OK) break;
+            }
+            umi_build_result_destroy(result);
+            if (status != UMI_STATUS_NOT_FOUND && status != UMI_STATUS_OK) return status;
+        }
+    }
     status = umi_studio_view_models_refresh(ui->view_models);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;

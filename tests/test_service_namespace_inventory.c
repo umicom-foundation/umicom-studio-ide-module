@@ -16,6 +16,7 @@
 #include "umicom/studio/platform_contract.h"
 
 #include <assert.h>
+#include <string.h>
 
 /*
  * Start this command or application, report setup failures, and return a process exit code
@@ -31,8 +32,17 @@ int main(void)
     assert(umi_studio_bootstrap_start(bootstrap) == UMI_STATUS_OK);
     assert(umi_studio_platform_contract_capture_bootstrap(
         bootstrap, &snapshot) == UMI_STATUS_OK);
-    assert(snapshot.studio_namespace_command_count >=
-           snapshot.expected_studio_command_count);
+    size_t expectedNamespace = 0U;
+    for (size_t index = 0U; index < umi_studio_platform_contract_core_command_count(); ++index)
+        if (strncmp(umi_studio_platform_contract_core_command_id(index), "studio.", 7U) == 0)
+            ++expectedNamespace;
+    for (size_t index = 0U; index < umi_studio_platform_contract_workbench_command_count(); ++index)
+        if (strncmp(umi_studio_platform_contract_workbench_command_id(index), "studio.", 7U) == 0)
+            ++expectedNamespace;
+    assert(snapshot.missing_core_command_count == 0U);
+    assert(snapshot.missing_workbench_command_count == 0U);
+    assert(snapshot.missing_contributed_command_count == 0U);
+    assert(snapshot.studio_namespace_command_count >= expectedNamespace);
     assert(snapshot.studio_namespace_service_count >=
            snapshot.required_service_count);
     assert(snapshot.runtime.command_count >= snapshot.expected_minimum_command_count);

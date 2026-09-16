@@ -61,6 +61,14 @@ static UmiStatus runtime_route_command(
         }
     }
 
+    if (strcmp(command_id, "project.new") == 0) return RuntimeNewProject(runtime);
+    if (strcmp(command_id, "file.new") == 0) return runtime_document_new(runtime);
+    if (strcmp(command_id, "build.settings") == 0) return RuntimeBuildSettings(runtime);
+    if (strcmp(command_id, "build.test") == 0)
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_TEST);
+    if (strcmp(command_id, "build.cancel") == 0)
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_BUILD_CANCEL, NULL);
+
     /* File/workspace commands requiring native GTK path selection. */
     if (strcmp(command_id, "file.open") == 0) {
         return runtime_choose_file_to_open(runtime);
@@ -83,10 +91,10 @@ static UmiStatus runtime_route_command(
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "file.save-all") == 0) {
-        return runtime_execute_registered_command(
-            runtime,
-            UMI_STUDIO_COMMAND_DOCUMENTS_SAVE_ALL,
-            NULL);
+        UmiStatus status = UmiDocumentCoordinatorSaveAll(
+            umi_studio_ui_documents(runtime->owner->ui), NULL);
+        (void)runtime_refresh_services(runtime);
+        return status;
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "file.close") == 0) {
@@ -100,38 +108,23 @@ static UmiStatus runtime_route_command(
 
     /* Build/run commands reuse the canonical Studio service registrations. */
     if (strcmp(command_id, "build.configure") == 0) {
-        return runtime_execute_registered_command(
-            runtime,
-            UMI_STUDIO_COMMAND_BUILD_CONFIGURE,
-            argument);
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_CONFIGURE);
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "build.build") == 0) {
-        return runtime_execute_registered_command(
-            runtime,
-            UMI_STUDIO_COMMAND_BUILD_COMPILE,
-            argument);
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_COMPILE);
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "build.clean") == 0) {
-        return runtime_execute_registered_command(
-            runtime,
-            UMI_STUDIO_COMMAND_BUILD_CLEAN,
-            argument);
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_CLEAN);
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "build.install") == 0) {
-        return runtime_execute_registered_command(
-            runtime,
-            UMI_STUDIO_COMMAND_BUILD_INSTALL,
-            argument);
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_INSTALL);
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "run.start") == 0) {
-        return runtime_execute_registered_command(
-            runtime,
-            UMI_STUDIO_COMMAND_BUILD_RUN,
-            argument);
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_RUN);
     }
 
     /* Professional Test Explorer operations. */

@@ -437,6 +437,10 @@ static void runtime_destroy_framework(
      */
     if (runtime == NULL) return;
 
+    UmiGtk4DeveloperDialogDestroy(runtime->project_dialog);
+    runtime->project_dialog = NULL;
+    UmiGtk4DeveloperDialogDestroy(runtime->build_settings_dialog);
+    runtime->build_settings_dialog = NULL;
     runtime_destroy_text_prompts(runtime);
     /* Stop runtime-owned callbacks before the host releases retained bodies. */
     if (runtime->owner != NULL && runtime->owner->window != NULL)

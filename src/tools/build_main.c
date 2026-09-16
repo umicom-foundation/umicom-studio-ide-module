@@ -15,6 +15,7 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/services.h"
+#include "umicom/base/text.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -31,6 +32,30 @@ static int parse_phase(const char *value, UmiBuildPhase *out_phase)
     /* Use this fallback path when the earlier condition does not apply. */
     else return 0;
     return 1;
+}
+
+/* The native Studio build tool historically runs the Studio development
+ * executable when --phase run has no configured target. Keep that product-
+ * specific default here, rather than applying it to every IDE workspace.
+ * A supplied profile with an explicit program always takes precedence. */
+static UmiStatus ConfigureRunPhase(UmiStudioBuildService *service)
+{
+    const UmiBuildProfile *currentProfile = umi_studio_build_service_profile(service);
+    UmiBuildProfile profile;
+    UmiStatus status;
+    const char *program;
+
+    if (currentProfile == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (currentProfile->run_program[0] != '\0') return UMI_STATUS_OK;
+    profile = *currentProfile;
+#ifdef _WIN32
+    program = "build/umicom-development/bin/umicom-studio-ide.exe";
+#else
+    program = "build/umicom-development/bin/umicom-studio-ide";
+#endif
+    status = umi_text_copy(profile.run_program, sizeof(profile.run_program), program);
+    if (status != UMI_STATUS_OK) return status;
+    return umi_studio_build_service_set_profile(service, &profile);
 }
 
 /*
@@ -104,14 +129,22 @@ int main(int argc, char **argv)
             (void)fprintf(stderr, "Unknown build phase: %s\n", argv[2]);
             exit_code = 1;
         } /* Use this fallback path when the earlier condition does not apply. */ else {
-            status = umi_studio_build_service_run(service, phase, &result);
-            (void)printf("%s: %s\nExit code: %d\nDiagnostics: %zu\n",
-                         umi_build_phase_text(phase),
-                         umi_status_text(status),
-                         result.exit_code,
-                         result.diagnostics.count);
-            exit_code = status == UMI_STATUS_OK && result.exit_code == 0
-                ? 0 : 1;
+            status = phase == UMI_BUILD_PHASE_RUN
+                ? ConfigureRunPhase(service) : UMI_STATUS_OK;
+            if (status != UMI_STATUS_OK) {
+                (void)fprintf(stderr, "Cannot configure the Studio run target: %s\n",
+                              umi_status_text(status));
+                exit_code = 1;
+            } else {
+                status = umi_studio_build_service_run(service, phase, &result);
+                (void)printf("%s: %s\nExit code: %d\nDiagnostics: %zu\n",
+                             umi_build_phase_text(phase),
+                             umi_status_text(status),
+                             result.exit_code,
+                             result.diagnostics.count);
+                exit_code = status == UMI_STATUS_OK && result.exit_code == 0
+                    ? 0 : 1;
+            }
         }
     } /* Use this fallback path when the earlier condition does not apply. */ else {
         status = umi_studio_build_service_snapshot(service, &snapshot);

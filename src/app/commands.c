@@ -557,12 +557,32 @@ static UmiStatus resilience_report_handler(void *user_data,
  */
 static UmiStatus build_phase_handler(UmiStudioServices *services,
                                      UmiBuildPhase phase,
+                                     const char *argument,
                                      char *out_message,
                                      size_t message_capacity)
 {
     UmiBuildResult *result = NULL;
-    UmiStatus status = umi_build_result_create(&result);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status;
     UmiStatus diagnostic_status;
+    status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.graph.open) return UMI_STATUS_INVALID_STATE;
+    if (!workspace.graph.trusted) {
+        if (out_message != NULL && message_capacity > 0U)
+            (void)snprintf(out_message, message_capacity,
+                "This workspace is not trusted. Review Build Settings before running its code.");
+        return UMI_STATUS_PERMISSION_DENIED;
+    }
+    if (argument != NULL && strcmp(argument, "background") == 0) {
+        status = UmiStudioBuildSubmit(umi_studio_services_build(services), phase, 1);
+        if (out_message != NULL && message_capacity > 0U)
+            (void)snprintf(out_message, message_capacity, "%s: %s. See Output for completed phases.",
+                umi_build_phase_text(phase), status == UMI_STATUS_OK ? "started" : umi_status_text(status));
+        return status;
+    }
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    status = umi_build_result_create(&result);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = umi_studio_build_service_run(
@@ -602,6 +622,7 @@ static UmiStatus build_configure_handler(void *user_data,
     (void)argument;
     return build_phase_handler((UmiStudioServices *)user_data,
                                UMI_BUILD_PHASE_CONFIGURE,
+                               argument,
                                out_message,
                                message_capacity);
 }
@@ -618,6 +639,7 @@ static UmiStatus build_compile_handler(void *user_data,
     (void)argument;
     return build_phase_handler((UmiStudioServices *)user_data,
                                UMI_BUILD_PHASE_BUILD,
+                               argument,
                                out_message,
                                message_capacity);
 }
@@ -634,6 +656,7 @@ static UmiStatus build_test_handler(void *user_data,
     (void)argument;
     return build_phase_handler((UmiStudioServices *)user_data,
                                UMI_BUILD_PHASE_TEST,
+                               argument,
                                out_message,
                                message_capacity);
 }
@@ -650,6 +673,7 @@ static UmiStatus build_clean_handler(void *user_data,
     (void)argument;
     return build_phase_handler((UmiStudioServices *)user_data,
                                UMI_BUILD_PHASE_CLEAN,
+                               argument,
                                out_message,
                                message_capacity);
 }
@@ -663,6 +687,7 @@ static UmiStatus build_run_handler(void *user_data,
     (void)argument;
     return build_phase_handler((UmiStudioServices *)user_data,
                                UMI_BUILD_PHASE_RUN,
+                               argument,
                                out_message,
                                message_capacity);
 }
@@ -679,6 +704,7 @@ static UmiStatus build_install_handler(void *user_data,
     (void)argument;
     return build_phase_handler((UmiStudioServices *)user_data,
                                UMI_BUILD_PHASE_INSTALL,
+                               argument,
                                out_message,
                                message_capacity);
 }

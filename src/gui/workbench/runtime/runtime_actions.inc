@@ -78,7 +78,13 @@ static UmiStatus runtime_execute_command(
     const char *command_id,
     const char *argument)
 {
-    return runtime_route_command(runtime, command_id, argument);
+    UmiStatus status = runtime_route_command(runtime, command_id, argument);
+    if (status != UMI_STATUS_OK) {
+        char message[384];
+        (void)snprintf(message, sizeof(message), "%s: %s", command_id, umi_status_text(status));
+        runtime_show_notification(runtime, message);
+    }
+    return status;
 }
 
 /*
@@ -307,6 +313,7 @@ static void runtime_refresh_command_sensitivity(
                 runtime_command_enabled(runtime, command_id));
         }
 
+        runtime_refresh_command_sensitivity(runtime, child);
         child = gtk_widget_get_next_sibling(child);
     }
 }

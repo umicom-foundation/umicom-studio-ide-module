@@ -20,6 +20,9 @@
 #include <string.h>
 
 struct UmiStudioBuildService {
+    UmiBuildProjectSession *project_session;
+    UmiClock *clock;
+    size_t published_results;
     UmiBuildProfile profile;
     UmiBuildHistory *history;
     UmiBuildEngine *engine;
@@ -80,6 +83,7 @@ UmiStatus umi_studio_build_service_create(const char *source_root,
     if (service == NULL) {
         return UMI_STATUS_OUT_OF_MEMORY;
     }
+    service->clock = clock;
     umi_build_profile_init(&service->profile);
     status = umi_build_profile_set(&service->profile,
                                    "studio.development",
@@ -105,15 +109,11 @@ UmiStatus umi_studio_build_service_create(const char *source_root,
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
-#ifdef _WIN32
-        status = copy_text(service->profile.run_program,
-                           sizeof(service->profile.run_program),
-                           "build/umicom-development/bin/umicom-studio-ide.exe");
-#else
-        status = copy_text(service->profile.run_program,
-                           sizeof(service->profile.run_program),
-                           "build/umicom-development/bin/umicom-studio-ide");
-#endif
+        /* A workspace is not necessarily the Studio source tree. Generated
+         * projects supply their executable through UmiBuildProfileFromProject;
+         * existing folders use the Program to run field in Project Settings.
+         * Keep Run unset until a project-specific executable is selected. */
+        service->profile.run_program[0] = '\0';
     }
     service->profile.parallel_jobs = 4U;
     service->profile.timeout_ms = 0U;
@@ -171,6 +171,8 @@ void umi_studio_build_service_destroy(UmiStudioBuildService *service)
      * used.
      */
     if (service == NULL) return;
+    /* Finish the Framework worker before releasing its borrowed clock/history. */
+    umi_build_project_session_destroy(service->project_session);
     umi_build_workspace_destroy(service->workspace);
     umi_build_artifact_index_destroy(service->artifacts);
     umi_build_engine_destroy(service->engine);
@@ -211,6 +213,7 @@ UmiStatus umi_studio_build_service_set_profile(
      * used.
      */
     if (service == NULL || profile == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
     status = umi_build_profile_validate(profile, message, sizeof(message));
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
@@ -303,7 +306,10 @@ void umi_studio_build_service_cancel(UmiStudioBuildService *service)
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (service != NULL) umi_build_engine_request_cancel(service->engine);
+    if (service != NULL) {
+        umi_build_engine_request_cancel(service->engine);
+        umi_build_project_session_cancel(service->project_session);
+    }
 }
 
 /*
@@ -476,4 +482,66 @@ UmiBuildWorkspace *umi_studio_build_service_workspace(
     UmiStudioBuildService *service)
 {
     return service != NULL ? service->workspace : NULL;
+}
+
+/* Keep submission cheap: the Framework session creates its worker only when a
+ * developer actually requests a build, not during every Studio startup/test. */
+UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
+    UmiBuildPhase phase, int trusted)
+{
+    UmiStatus status;
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (!trusted) return UMI_STATUS_PERMISSION_DENIED;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    if (service->project_session == NULL) {
+        UmiBuildProjectSessionConfig config = {service->clock, NULL, NULL};
+        status = umi_build_project_session_create(&config, &service->project_session);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    status = umi_build_project_session_submit(service->project_session,
+        &service->profile, phase, trusted != 0);
+    if (status == UMI_STATUS_OK) service->published_results = 0U;
+    return status;
+}
+
+/* Publish only completed results into the same history used by Output/Problems. */
+UmiStatus UmiStudioBuildCollect(UmiStudioBuildService *service, UmiBuildResult *outResult)
+{
+    UmiStatus status;
+    if (service == NULL || outResult == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->project_session == NULL) return UMI_STATUS_NOT_FOUND;
+    status = umi_build_project_session_result_at(service->project_session,
+        service->published_results, outResult);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiBuildHistoryReserveOperationId(service->history, &outResult->operation_id);
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_build_history_append(service->history, outResult);
+    if (status != UMI_STATUS_OK) return status;
+    service->last_result = *outResult;
+    service->has_last_result = 1;
+    ++service->published_results;
+    (void)umi_build_workspace_select_latest_operation(service->workspace);
+    return UMI_STATUS_OK;
+}
+
+/* Never reconfigure a project while its copied build or result handover is active. */
+int UmiStudioBuildBusy(UmiStudioBuildService *service)
+{
+    UmiBuildProjectSessionSnapshot snapshot;
+    if (service == NULL || service->project_session == NULL) return 0;
+    if (umi_build_project_session_snapshot(service->project_session, &snapshot) != UMI_STATUS_OK)
+        return 1;
+    return snapshot.active || snapshot.completed_phase_count > service->published_results;
+}
+
+/* A zero snapshot describes a service that has not yet started background work. */
+UmiStatus UmiStudioBuildProgress(UmiStudioBuildService *service,
+    UmiBuildProjectSessionSnapshot *outSnapshot)
+{
+    if (service == NULL || outSnapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->project_session == NULL) {
+        (void)memset(outSnapshot, 0, sizeof(*outSnapshot));
+        return UMI_STATUS_OK;
+    }
+    return umi_build_project_session_snapshot(service->project_session, outSnapshot);
 }

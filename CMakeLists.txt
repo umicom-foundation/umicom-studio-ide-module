@@ -2171,3 +2171,32 @@ foreach(UMICOM_STUDIO_DISTRIBUTION_TEST
         COMMAND umicom-studio-${UMICOM_STUDIO_DISTRIBUTION_TEST_TARGET}-test)
 endforeach()
 endif()
+
+# Execute real CMake/CTest/toolchain work in a disposable, test-owned folder.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-project-workflow-test tests/test_project_workflow.c)
+    target_link_libraries(umicom-studio-project-workflow-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-project-workflow-test)
+    umicom_apply_sanitizers(umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow")
+    add_test(NAME studio.project_workflow COMMAND umicom-studio-project-workflow-test)
+    set_tests_properties(studio.project_workflow PROPERTIES TIMEOUT 180
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow"
+        LABELS "studio;ide-workflow;integration;toolchain")
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-project-workflow-test)
+    endif()
+endif()
+
+# Older Studio tests create and remove the same relative .umicom directory.
+# Keep their established working directory, but do not let CTest execute these
+# owners concurrently. Tests with an explicit isolated directory stay parallel.
+if(BUILD_TESTING)
+    get_property(studioDeclaredTests DIRECTORY PROPERTY TESTS)
+    foreach(studioTest IN LISTS studioDeclaredTests)
+        get_property(studioWorkingDirectory TEST "${studioTest}" PROPERTY WORKING_DIRECTORY)
+        if(NOT studioWorkingDirectory OR studioWorkingDirectory STREQUAL "${CMAKE_CURRENT_BINARY_DIR}")
+            set_property(TEST "${studioTest}" APPEND PROPERTY RESOURCE_LOCK umicom_studio_shared_test_files)
+        endif()
+    endforeach()
+endif()

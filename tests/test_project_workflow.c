@@ -1,0 +1,134 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Framework / Studio qualification
+ * File: applications/studio/tests/test_project_workflow.c
+ * PURPOSE: Exercise real generate/edit/save/build/run/test/install through Studio and Framework.
+ * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
+ * LICENCE: MIT
+ *---------------------------------------------------------------------------*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define CHECK(test) do { if (!(test)) { fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #test); return EXIT_FAILURE; } } while (0)
+
+#include "umicom/studio/bootstrap.h"
+#include "umicom/studio/build.h"
+#include "umicom/studio/commands.h"
+#include "umicom/studio/workspace.h"
+#include "umicom/studio/tests.h"
+#include "umicom/developer_project/new_project.h"
+#include "umicom/platform/threading.h"
+static int Wait(UmiStudioBuildService *build, UmiStatus expected, UmiBuildResult *result)
+{
+    for (unsigned attempt = 0U; attempt < 6000U; ++attempt) {
+        UmiStatus status;
+        while ((status = UmiStudioBuildCollect(build, result)) == UMI_STATUS_OK) {
+            printf("%s: %s (exit %d)\n%s\n", umi_build_phase_text(result->phase),
+                umi_status_text(result->status), result->exit_code, result->output);
+        }
+        CHECK(status == UMI_STATUS_NOT_FOUND);
+        if (!UmiStudioBuildBusy(build)) {
+            UmiBuildProjectSessionSnapshot progress;
+            CHECK(UmiStudioBuildProgress(build, &progress) == UMI_STATUS_OK);
+            CHECK(progress.status == expected);
+            return EXIT_SUCCESS;
+        }
+        umi_thread_sleep_ms(10U);
+    }
+    CHECK(!"Build timed out"); return EXIT_FAILURE;
+}
+static int Edit(UmiUiWorkbench *workbench, const char *viewId, const char *text)
+{
+    UmiUiDocumentViewSnapshot *view = calloc(1U, sizeof(*view));
+    CHECK(view != NULL);
+    CHECK(umi_ui_document_view_model_find(umi_ui_workbench_documents(workbench), viewId, view) == UMI_STATUS_OK);
+    snprintf(view->source_text, sizeof(view->source_text), "%s", text); view->dirty = 1;
+    CHECK(umi_ui_document_view_model_upsert(umi_ui_workbench_documents(workbench), view) == UMI_STATUS_OK);
+    free(view); return EXIT_SUCCESS;
+}
+int main(void)
+{
+    UmiStudioBootstrap *bootstrap = NULL;
+    UmiStudioServicesOptions options = {0};
+    UmiDeveloperProjectService *projects = NULL;
+    UmiDeveloperProjectGenerationRequest request;
+    UmiDeveloperProjectGeneratorReport report;
+    UmiDeveloperProjectModel model;
+    UmiBuildProfile profile;
+    UmiBuildResult *result = NULL;
+    UmiStudioServices *services; UmiStudioBuildService *build;
+    UmiUiWorkbench *workbench; UmiDocumentCoordinator *documents; UmiCommandRegistry *commands;
+    char cwd[UMI_PATH_CAPACITY], root[UMI_PATH_CAPACITY], source[UMI_PATH_CAPACITY];
+    char viewId[UMI_UI_ID_CAPACITY], message[512], installed[UMI_PATH_CAPACITY];
+    CHECK(umi_fs_current_directory(cwd, sizeof(cwd)) == UMI_STATUS_OK);
+    CHECK(umi_fs_join(root, sizeof(root), cwd, "Umicom Notes") == UMI_STATUS_OK);
+    CHECK(!umi_fs_exists(root)); /* Never delete a pre-existing developer folder. */
+    CHECK(umi_developer_project_service_create(&projects) == UMI_STATUS_OK);
+    umi_developer_project_generation_request_init(&request);
+    strcpy(request.template_id, "developer.template.c23-console");
+    strcpy(request.application_name, "Umicom Notes"); strcpy(request.application_id, "org.umicom.notes");
+    strcpy(request.repository_name, "umicom-notes"); strcpy(request.target_name, "umicom_notes");
+    strcpy(request.project_root, root);
+    CHECK(UmiDeveloperProjectCreateNew(projects, &request, &report, &model, &profile) == UMI_STATUS_OK);
+    CHECK(report.files_created >= 6U && report.files_skipped == 0U);
+    CHECK(UmiDeveloperProjectCreateNew(projects, &request, &report, &model, &profile) == UMI_STATUS_ALREADY_EXISTS);
+    CHECK(umi_studio_bootstrap_create_with_options(&options, &bootstrap) == UMI_STATUS_OK);
+    CHECK(umi_studio_bootstrap_start(bootstrap) == UMI_STATUS_OK);
+    services = umi_studio_bootstrap_services(bootstrap); build = umi_studio_services_build(services);
+    workbench = umi_studio_ui_workbench(umi_studio_bootstrap_ui(bootstrap));
+    documents = umi_studio_ui_documents(umi_studio_bootstrap_ui(bootstrap));
+    commands = umi_ui_workbench_commands(workbench);
+    CHECK(umi_studio_workspace_open(services, root, 0, 0) == UMI_STATUS_OK);
+    CHECK(umi_path_equal(umi_studio_build_service_profile(build)->source_directory, root));
+    CHECK(umi_studio_build_service_profile(build)->run_program[0] == '\0');
+    CHECK(umi_studio_build_service_set_profile(build, &profile) == UMI_STATUS_OK);
+    CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_COMPILE,
+        "background", message, sizeof(message)) == UMI_STATUS_PERMISSION_DENIED);
+    CHECK(umi_studio_workspace_set_trusted(services, 1) == UMI_STATUS_OK);
+    CHECK(umi_fs_join(source, sizeof(source), root, "src/main.c") == UMI_STATUS_OK);
+    CHECK(umi_document_coordinator_open(documents, source, viewId, sizeof(viewId)) == UMI_STATUS_OK);
+    CHECK(Edit(workbench, viewId, "#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n") == EXIT_SUCCESS);
+    CHECK(UmiDocumentCoordinatorSaveAll(documents, NULL) == UMI_STATUS_OK);
+    CHECK(umi_build_result_create(&result) == UMI_STATUS_OK);
+    CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_RUN,
+        "background", message, sizeof(message)) == UMI_STATUS_OK);
+    CHECK(umi_studio_workspace_close(services) == UMI_STATUS_BUSY);
+    CHECK(Wait(build, UMI_STATUS_OK, result) == EXIT_SUCCESS);
+    CHECK(result->phase == UMI_BUILD_PHASE_RUN);
+    CHECK(strstr(result->output, "Umicom Notes: saved and built") != NULL);
+    CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_TEST,
+        "background", message, sizeof(message)) == UMI_STATUS_OK);
+    CHECK(Wait(build, UMI_STATUS_OK, result) == EXIT_SUCCESS);
+    CHECK(result->phase == UMI_BUILD_PHASE_TEST);
+    {
+        char testBuild[UMI_PATH_CAPACITY];
+        size_t discovered = 0U;
+        UmiStudioTestService *tests = umi_studio_services_tests(services);
+        CHECK(umi_path_absolute(profile.build_directory, root, testBuild, sizeof(testBuild)) == UMI_STATUS_OK);
+        CHECK(umi_studio_test_service_discover(tests, testBuild, &discovered) == UMI_STATUS_OK);
+        CHECK(discovered == 1U);
+        CHECK(umi_studio_test_service_discover(tests, testBuild, &discovered) == UMI_STATUS_OK);
+        CHECK(discovered == 1U);
+    }
+    CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_INSTALL,
+        "background", message, sizeof(message)) == UMI_STATUS_OK);
+    CHECK(Wait(build, UMI_STATUS_OK, result) == EXIT_SUCCESS);
+#ifdef _WIN32
+    CHECK(umi_fs_join(installed, sizeof(installed), root, "install/windows-ucrt64-debug/bin/umicom_notes.exe") == UMI_STATUS_OK);
+#else
+    CHECK(umi_fs_join(installed, sizeof(installed), root, "install/linux-debug/bin/umicom_notes") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_fs_is_file(installed));
+    CHECK(Edit(workbench, viewId, "#error Umicom_expected_compile_failure\n") == EXIT_SUCCESS);
+    CHECK(UmiDocumentCoordinatorSaveAll(documents, NULL) == UMI_STATUS_OK);
+    CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_RUN,
+        "background", message, sizeof(message)) == UMI_STATUS_OK);
+    CHECK(Wait(build, UMI_STATUS_INTERNAL_ERROR, result) == EXIT_SUCCESS);
+    CHECK(result->phase == UMI_BUILD_PHASE_BUILD);
+    CHECK(strstr(result->output, "Umicom_expected_compile_failure") != NULL);
+    CHECK(umi_studio_bootstrap_stop(bootstrap) == UMI_STATUS_OK);
+    umi_studio_bootstrap_destroy(bootstrap); umi_build_result_destroy(result);
+    umi_developer_project_service_destroy(projects);
+    CHECK(umi_fs_remove_tree(root) == UMI_STATUS_OK);
+    puts("Studio project workflow passed: generation, editing, trust, run, tests, install and compiler failure.");
+    return EXIT_SUCCESS;
+}

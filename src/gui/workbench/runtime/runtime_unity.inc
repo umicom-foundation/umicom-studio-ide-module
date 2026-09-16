@@ -40,6 +40,7 @@
 #include "interaction/source_control_details.inc"
 #include "interaction/operation_catalogue.inc"
 #include "interaction/context_actions.inc"
+#include "interaction/project.inc"
 #include "interaction/command_router.inc"
 #include "interaction/editor_controls.inc"
 #include "interaction/test_details.inc"

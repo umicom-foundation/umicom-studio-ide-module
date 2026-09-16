@@ -16,6 +16,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/services.h"
+#include "umicom/studio/build.h"
+#include "umicom/build/project_profile.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -1495,6 +1497,7 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
                                              int trusted)
 {
     UmiStatus status;
+    UmiBuildProfile projectProfile;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -1503,6 +1506,9 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
     if (services == NULL || root == NULL || root[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    status = UmiBuildProfileForWorkspace(root, &projectProfile);
+    if (status != UMI_STATUS_OK) return status;
     status = umi_watcher_stop(services->watcher);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
@@ -1546,6 +1552,10 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
         }
     }
     if (status == UMI_STATUS_OK) {
+        status = umi_studio_build_service_set_profile(
+            umi_studio_services_build(services), &projectProfile);
+    }
+    if (status == UMI_STATUS_OK) {
         UmiStatus recent_status;
         /* Recent-work persistence is helpful but not required to open a
          * workspace. A history-file error must not turn a successful open into
@@ -1576,6 +1586,7 @@ UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
      * used.
      */
     if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
     (void)umi_watcher_stop(services->watcher);
     status = umi_workspace_graph_close(services->workspace);
     /* Preserve the original failure result so the caller can respond to the correct cause. */

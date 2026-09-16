@@ -118,6 +118,8 @@ void umi_studio_test_service_destroy(UmiStudioTestService *service)
     umi_test_workspace_destroy(service->workspace);
     umi_test_platform_service_destroy(service->platform);
     umi_test_registry_destroy(service->registry);
+    /* Framework's registry borrows suites; Studio owns this allocated suite. */
+    umi_test_suite_destroy(service->ctest_suite);
     free(service);
 }
 
@@ -197,26 +199,31 @@ UmiStatus umi_studio_test_service_discover(UmiStudioTestService *service,
     if (length + 1U > sizeof(service->build_directory)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
-    umi_test_registry_remove(service->registry, "studio.ctest");
-    service->ctest_suite = NULL;
-    status = umi_test_suite_create("studio.ctest", "Studio CTest",
-                                   &service->ctest_suite);
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK) {
-        status = umi_ctest_discover(build_directory,
-                                    service->ctest_suite,
-                                    out_discovered);
+    /* Discover into a temporary suite. A failed refresh must neither leak the
+     * previous allocation nor erase the test catalogue that was working. */
+    UmiTestSuite *replacement = NULL;
+    status = umi_test_suite_create("studio.ctest", "Studio CTest", &replacement);
+    if (status == UMI_STATUS_OK)
+        status = umi_ctest_discover(build_directory, replacement, out_discovered);
+    if (status != UMI_STATUS_OK) {
+        umi_test_suite_destroy(replacement);
+        return status;
     }
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK) {
-        status = umi_test_registry_add(service->registry,
-                                       service->ctest_suite);
+    status = umi_test_registry_remove(service->registry, "studio.ctest");
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) {
+        umi_test_suite_destroy(replacement);
+        return status;
     }
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK) {
-        (void)memcpy(service->build_directory, build_directory, length + 1U);
-        (void)umi_test_workspace_refresh(service->workspace);
+    status = umi_test_registry_add(service->registry, replacement);
+    if (status != UMI_STATUS_OK) {
+        (void)umi_test_registry_add(service->registry, service->ctest_suite);
+        umi_test_suite_destroy(replacement);
+        return status;
     }
+    umi_test_suite_destroy(service->ctest_suite);
+    service->ctest_suite = replacement;
+    (void)memcpy(service->build_directory, build_directory, length + 1U);
+    (void)umi_test_workspace_refresh(service->workspace);
     return status;
 }
 

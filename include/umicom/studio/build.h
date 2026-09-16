@@ -17,6 +17,7 @@
 #define UMICOM_STUDIO_BUILD_H
 
 #include <stddef.h>
+#include "umicom/build/project_session.h"
 
 #include "umicom/umicom.h"
 
@@ -170,6 +171,18 @@ const UmiBuildProfile *umi_studio_build_service_profile(
 UmiBuildWorkspace *umi_studio_build_service_workspace(
     UmiStudioBuildService *service
 );
+
+/** Submit a copied profile to Framework. Call from the owning thread; trusted
+ * must be the current workspace decision. Existing synchronous APIs remain. */
+UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
+    UmiBuildPhase phase, int trusted);
+/** Collect one completed phase on the owning thread into the existing history.
+ * NOT_FOUND means there is no new result. No compiler wait occurs here. */
+UmiStatus UmiStudioBuildCollect(UmiStudioBuildService *service, UmiBuildResult *outResult);
+/** Inspect worker state; uncollected results keep the profile locked. */
+int UmiStudioBuildBusy(UmiStudioBuildService *service);
+UmiStatus UmiStudioBuildProgress(UmiStudioBuildService *service,
+    UmiBuildProjectSessionSnapshot *outSnapshot);
 
 #ifdef __cplusplus
 }

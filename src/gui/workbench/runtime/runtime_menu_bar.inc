@@ -78,7 +78,9 @@ static void runtime_on_menu_item_clicked(
 
         /* Use the stable identifier comparison to choose the matching record or policy. */
         if (contribution.command_id[0] == '\0') return;
-        (void)runtime_route_command(
+        GtkWidget *popover = gtk_widget_get_ancestor(GTK_WIDGET(button), GTK_TYPE_POPOVER);
+        if (popover != NULL) gtk_popover_popdown(GTK_POPOVER(popover));
+        (void)runtime_execute_command(
             runtime,
             contribution.command_id,
             NULL);
@@ -210,8 +212,9 @@ static GtkWidget *runtime_build_single_menu(
         gtk_widget_set_tooltip_text(button, contribution.description);
         gtk_widget_set_sensitive(
             button,
-            ((contribution.flags & UMI_APPLICATION_SHELL_ENABLED) != 0U) ||
             runtime_command_enabled(runtime, contribution.command_id));
+        g_object_set_data_full(G_OBJECT(button), "umicom-command-id",
+            g_strdup(contribution.command_id), g_free);
 
         /* Menu rows use their unique contribution ID to avoid ambiguous matches. */
         (void)umi_gtk4_automation_tag_widget(

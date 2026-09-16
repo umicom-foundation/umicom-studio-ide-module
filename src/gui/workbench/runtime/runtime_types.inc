@@ -21,6 +21,8 @@
  *---------------------------------------------------------------------------*/
 
 #include <glib/gstdio.h>
+#include "umicom/ui/gtk4/developer_dialog.h"
+#include "umicom/studio/security.h"
 
 #include "umicom/application_shell/persona.h"
 #include "umicom/application/component_catalogue.h"
@@ -193,6 +195,12 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *diff_left_view;
     GtkWidget *diff_right_view;
     GtkWidget *diff_summary_label;
+
+    UmiGtk4DeveloperDialog *project_dialog;
+    UmiGtk4DeveloperDialog *build_settings_dialog;
+    GtkWidget *build_output_view;
+    GtkWidget *build_progress_label;
+    uint64_t build_output_operation;
 
     GtkWidget *terminal_text_view;
     GtkWidget *terminal_entry;
