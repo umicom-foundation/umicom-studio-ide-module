@@ -436,6 +436,12 @@ static void runtime_destroy_framework(
      * used.
      */
     if (runtime == NULL) return;
+    /* Invalidate pending file/folder callbacks before freeing the runtime.
+     * A retained native window may outlive the application service container. */
+    if (runtime->owner != NULL && runtime->owner->window != NULL)
+        g_object_set_data_full(G_OBJECT(runtime->owner->window),
+            "umicom-studio-file-dialog-binding", NULL, NULL);
+
 
     UmiGtk4DeveloperDialogDestroy(runtime->project_dialog);
     runtime->project_dialog = NULL;

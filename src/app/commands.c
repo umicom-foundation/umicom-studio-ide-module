@@ -3183,8 +3183,12 @@ static UmiStatus trading_preview_order_handler(
     UmiRiskDecision decision = {0};
     UmiStatus status;
     (void)argument;
-    status = umi_trading_workspace_preview_order(
-        trading_workspace(user_data), &decision);
+    UmiClock *clock = umi_studio_services_clock((UmiStudioServices *)user_data);
+    if (clock == NULL || clock->wall_nanoseconds == NULL) return UMI_STATUS_UNAVAILABLE;
+    const uint64_t nowMs = clock->wall_nanoseconds(clock) / UINT64_C(1000000);
+    if (nowMs > (uint64_t)INT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    status = UmiTradingWorkspacePreviewOrderAt(
+        trading_workspace(user_data), (int64_t)nowMs, &decision);
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.

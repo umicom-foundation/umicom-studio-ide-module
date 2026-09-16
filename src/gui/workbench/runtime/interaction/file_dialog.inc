@@ -15,16 +15,71 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Native requests can complete after a tab change or after Studio closes.
+ * The window stores a non-owning runtime binding which teardown clears. */
+typedef struct UmiStudioFileDialogRequest {
+    GWeakRef window;
+    GObject *binding;
+    UmiDocumentId documentId;
+} UmiStudioFileDialogRequest;
+
+static UmiStudioFileDialogRequest *runtime_file_dialog_request_new(
+    UmiStudioGtkRuntimeChrome *runtime, UmiDocumentId documentId)
+{
+    UmiStudioFileDialogRequest *request = g_try_new0(UmiStudioFileDialogRequest, 1);
+    if (request == NULL) return NULL;
+    GObject *window = G_OBJECT(runtime->owner->window);
+    GObject *binding = g_object_get_data(window, "umicom-studio-file-dialog-binding");
+    if (binding == NULL || g_object_get_data(binding, "runtime") != runtime) {
+        binding = g_object_new(G_TYPE_OBJECT, NULL);
+        g_object_set_data(binding, "runtime", runtime);
+        g_object_set_data_full(window, "umicom-studio-file-dialog-binding",
+            binding, g_object_unref);
+    }
+    g_weak_ref_init(&request->window, window);
+    request->binding = g_object_ref(binding);
+    request->documentId = documentId;
+    return request;
+}
+
+static UmiStudioGtkRuntimeChrome *runtime_file_dialog_owner(
+    UmiStudioFileDialogRequest *request, GObject **outWindow)
+{
+    *outWindow = request != NULL ? g_weak_ref_get(&request->window) : NULL;
+    /* A retained token also rejects callbacks from an earlier runtime if
+     * the same window is later attached to a new owner. */
+    if (*outWindow == NULL || g_object_get_data(*outWindow,
+            "umicom-studio-file-dialog-binding") != request->binding) return NULL;
+    return g_object_get_data(request->binding, "runtime");
+}
+
+static void runtime_file_dialog_request_free(UmiStudioFileDialogRequest *request)
+{
+    if (request == NULL) return;
+    g_weak_ref_clear(&request->window);
+    g_clear_object(&request->binding);
+    g_free(request);
+}
+
+/* Dismissing a chooser is an ordinary user action, not an error notification. */
+static int runtime_file_dialog_cancelled(const GError *error)
+{
+    return error != NULL && (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED) ||
+        g_error_matches(error, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED) ||
+        g_error_matches(error, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_CANCELLED));
+}
+
 static void runtime_open_file_complete(
     GObject *source_object,
     GAsyncResult *result,
     gpointer user_data)
 {
-    UmiStudioGtkRuntimeChrome *runtime =
-        (UmiStudioGtkRuntimeChrome *)user_data;
+    UmiStudioFileDialogRequest *request = user_data;
+    GObject *ownerWindow = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request, &ownerWindow);
     GError *error = NULL;
-    GFile *file;
-    char *path;
+    GFile *file = NULL;
+    char *path = NULL;
     char view_id[UMI_UI_ID_CAPACITY];
     UmiStatus status;
 
@@ -32,6 +87,7 @@ static void runtime_open_file_complete(
         GTK_FILE_DIALOG(source_object),
         result,
         &error);
+    if (runtime == NULL) goto cleanup;
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -42,11 +98,10 @@ static void runtime_open_file_complete(
          * used.
          */
         if (error != NULL &&
-            !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+            !runtime_file_dialog_cancelled(error)) {
             runtime_show_notification(runtime, error->message);
         }
-        g_clear_error(&error);
-        return;
+        goto cleanup;
     }
 
     path = g_file_get_path(file);
@@ -58,8 +113,7 @@ static void runtime_open_file_complete(
         runtime_show_notification(
             runtime,
             "The selected file does not have a local filesystem path.");
-        g_object_unref(file);
-        return;
+        goto cleanup;
     }
 
     (void)memset(view_id, 0, sizeof(view_id));
@@ -85,9 +139,13 @@ static void runtime_open_file_complete(
         runtime_show_notification(runtime, umi_status_text(status));
     }
 
-    g_free(path);
-    g_object_unref(file);
     (void)runtime_refresh_services(runtime);
+cleanup:
+    g_free(path);
+    g_clear_object(&file);
+    g_clear_error(&error);
+    g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(request);
 }
 
 /*
@@ -99,17 +157,19 @@ static void runtime_save_as_complete(
     GAsyncResult *result,
     gpointer user_data)
 {
-    UmiStudioGtkRuntimeChrome *runtime =
-        (UmiStudioGtkRuntimeChrome *)user_data;
+    UmiStudioFileDialogRequest *request = user_data;
+    GObject *ownerWindow = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request, &ownerWindow);
     GError *error = NULL;
-    GFile *file;
-    char *path;
+    GFile *file = NULL;
+    char *path = NULL;
     UmiStatus status;
 
     file = gtk_file_dialog_save_finish(
         GTK_FILE_DIALOG(source_object),
         result,
         &error);
+    if (runtime == NULL) goto cleanup;
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -120,11 +180,10 @@ static void runtime_save_as_complete(
          * used.
          */
         if (error != NULL &&
-            !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+            !runtime_file_dialog_cancelled(error)) {
             runtime_show_notification(runtime, error->message);
         }
-        g_clear_error(&error);
-        return;
+        goto cleanup;
     }
 
     path = g_file_get_path(file);
@@ -136,13 +195,12 @@ static void runtime_save_as_complete(
         runtime_show_notification(
             runtime,
             "The selected destination does not have a local path.");
-        g_object_unref(file);
-        return;
+        goto cleanup;
     }
 
-    status = umi_document_coordinator_save_active_as(
+    status = UmiDocumentCoordinatorSaveAs(
         umi_studio_ui_documents(runtime->owner->ui),
-        path);
+        request->documentId, path);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         runtime_show_notification(runtime, umi_status_text(status));
@@ -150,9 +208,13 @@ static void runtime_save_as_complete(
         runtime_show_notification(runtime, "Document saved.");
     }
 
-    g_free(path);
-    g_object_unref(file);
     (void)runtime_refresh_services(runtime);
+cleanup:
+    g_free(path);
+    g_clear_object(&file);
+    g_clear_error(&error);
+    g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(request);
 }
 
 /* Open a known workspace path without displaying a second chooser. Welcome
@@ -201,16 +263,18 @@ static void runtime_open_folder_complete(
     GAsyncResult *result,
     gpointer user_data)
 {
-    UmiStudioGtkRuntimeChrome *runtime =
-        (UmiStudioGtkRuntimeChrome *)user_data;
+    UmiStudioFileDialogRequest *request = user_data;
+    GObject *ownerWindow = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request, &ownerWindow);
     GError *error = NULL;
-    GFile *folder;
-    char *path;
+    GFile *folder = NULL;
+    char *path = NULL;
 
     folder = gtk_file_dialog_select_folder_finish(
         GTK_FILE_DIALOG(source_object),
         result,
         &error);
+    if (runtime == NULL) goto cleanup;
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -221,11 +285,10 @@ static void runtime_open_folder_complete(
          * used.
          */
         if (error != NULL &&
-            !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+            !runtime_file_dialog_cancelled(error)) {
             runtime_show_notification(runtime, error->message);
         }
-        g_clear_error(&error);
-        return;
+        goto cleanup;
     }
 
     path = g_file_get_path(folder);
@@ -237,14 +300,17 @@ static void runtime_open_folder_complete(
         runtime_show_notification(
             runtime,
             "The selected workspace does not have a local path.");
-        g_object_unref(folder);
-        return;
+        goto cleanup;
     }
 
     (void)runtime_open_workspace_path(runtime, path);
 
+cleanup:
     g_free(path);
-    g_object_unref(folder);
+    g_clear_object(&folder);
+    g_clear_error(&error);
+    g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(request);
 }
 
 /*
@@ -272,13 +338,19 @@ static UmiStatus runtime_choose_file_to_open(
      */
     if (dialog == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(
+        runtime, 0U);
+    if (request == NULL) {
+        g_object_unref(dialog);
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
     gtk_file_dialog_set_title(dialog, "Open File");
     gtk_file_dialog_open(
         dialog,
         runtime->owner->window,
         NULL,
         runtime_open_file_complete,
-        runtime);
+        request);
     g_object_unref(dialog);
     return UMI_STATUS_OK;
 }
@@ -308,13 +380,26 @@ static UmiStatus runtime_choose_save_as(
      */
     if (dialog == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
+    UmiDocumentWorkingCopySnapshot active;
+    UmiStatus status = umi_document_coordinator_active_snapshot(
+        umi_studio_ui_documents(runtime->owner->ui), &active);
+    if (status != UMI_STATUS_OK) {
+        g_object_unref(dialog);
+        return status;
+    }
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(
+        runtime, active.document_id);
+    if (request == NULL) {
+        g_object_unref(dialog);
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
     gtk_file_dialog_set_title(dialog, "Save As");
     gtk_file_dialog_save(
         dialog,
         runtime->owner->window,
         NULL,
         runtime_save_as_complete,
-        runtime);
+        request);
     g_object_unref(dialog);
     return UMI_STATUS_OK;
 }
@@ -344,13 +429,19 @@ static UmiStatus runtime_choose_workspace_folder(
      */
     if (dialog == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(
+        runtime, 0U);
+    if (request == NULL) {
+        g_object_unref(dialog);
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
     gtk_file_dialog_set_title(dialog, "Open Workspace Folder");
     gtk_file_dialog_select_folder(
         dialog,
         runtime->owner->window,
         NULL,
         runtime_open_folder_complete,
-        runtime);
+        request);
     g_object_unref(dialog);
     return UMI_STATUS_OK;
 }
