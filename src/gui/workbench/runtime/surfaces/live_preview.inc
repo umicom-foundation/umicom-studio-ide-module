@@ -131,8 +131,12 @@ static UmiStatus runtime_live_preview_refresh(
         : view.title;
     request.path = preview_path;
     request.language_id = view.language_id;
-    request.source = view.source_text;
-    request.source_length = strlen(view.source_text);
+    char *sourceText = NULL;
+    size_t sourceLength = 0U;
+    status = UmiUiDocumentViewModelCopyText(documents, view.view_id, &sourceText, &sourceLength);
+    if (status != UMI_STATUS_OK) return status;
+    request.source = sourceText;
+    request.source_length = sourceLength;
     request.source_revision = model_revision != 0U ? model_revision : 1U;
     /* Studio's built-in preview never executes source. Future sandbox
      * providers require an explicit user action and a trusted workspace. */
@@ -141,9 +145,13 @@ static UmiStatus runtime_live_preview_refresh(
 
     result = (UmiBrowserSourcePreviewResult *)g_try_malloc0(sizeof(*result));
     /* Keep the large bounded result off the call stack used by GTK callbacks. */
-    if (result == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    if (result == NULL) {
+        UmiUiDocumentViewModelFreeText(sourceText);
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
     status = umi_browser_source_preview_service_render(
         runtime->source_preview_service, &request, result);
+    UmiUiDocumentViewModelFreeText(sourceText);
     /* Only a validated Framework result is copied into visible GTK widgets. */
     if (status == UMI_STATUS_OK) {
         int written = snprintf(

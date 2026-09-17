@@ -34,19 +34,42 @@ static int Wait(UmiStudioBuildService *build, UmiStatus expected, UmiBuildResult
         }
         umi_thread_sleep_ms(10U);
     }
-    CHECK(!"Build timed out"); return EXIT_FAILURE;
+    fputs("Build timed out.\n", stderr);
+    return EXIT_FAILURE;
 }
 static int Edit(UmiUiWorkbench *workbench, const char *viewId, const char *text)
 {
     UmiUiDocumentViewSnapshot *view = calloc(1U, sizeof(*view));
     CHECK(view != NULL);
     CHECK(umi_ui_document_view_model_find(umi_ui_workbench_documents(workbench), viewId, view) == UMI_STATUS_OK);
-    snprintf(view->source_text, sizeof(view->source_text), "%s", text); view->dirty = 1;
-    CHECK(umi_ui_document_view_model_upsert(umi_ui_workbench_documents(workbench), view) == UMI_STATUS_OK);
-    free(view); return EXIT_SUCCESS;
+    view->dirty = 1;
+    UmiStatus status = UmiUiDocumentViewModelUpsertText(
+        umi_ui_workbench_documents(workbench), view, text, strlen(text));
+    free(view);
+    CHECK(status == UMI_STATUS_OK);
+    return EXIT_SUCCESS;
 }
-int main(void)
+/* The same workflow also compiles a source file whose meaningful code is
+ * beyond the former inline preview limit. No dummy compiler is substituted. */
+static int EditSource(UmiUiWorkbench *workbench, const char *viewId,
+    const char *tail, int largeSource)
 {
+    if (!largeSource) return Edit(workbench, viewId, tail);
+    const size_t prefix = 131072U;
+    char *source = malloc(prefix + strlen(tail) + 1U);
+    CHECK(source != NULL);
+    memset(source, ' ', prefix);
+    for (size_t n = 63U; n < prefix; n += 64U) source[n] = '\n';
+    strcpy(source + prefix, tail);
+    int result = Edit(workbench, viewId, source);
+    free(source);
+    return result;
+}
+
+int main(int argc, char **argv)
+{
+    int largeSource = argc == 2 && strcmp(argv[1], "large-source") == 0;
+    CHECK(argc == 1 || largeSource);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -86,7 +109,7 @@ int main(void)
     CHECK(umi_studio_workspace_set_trusted(services, 1) == UMI_STATUS_OK);
     CHECK(umi_fs_join(source, sizeof(source), root, "src/main.c") == UMI_STATUS_OK);
     CHECK(umi_document_coordinator_open(documents, source, viewId, sizeof(viewId)) == UMI_STATUS_OK);
-    CHECK(Edit(workbench, viewId, "#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n") == EXIT_SUCCESS);
+    CHECK(EditSource(workbench, viewId, "#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n", largeSource) == EXIT_SUCCESS);
     CHECK(UmiDocumentCoordinatorSaveAll(documents, NULL) == UMI_STATUS_OK);
     CHECK(umi_build_result_create(&result) == UMI_STATUS_OK);
     CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_RUN,
@@ -118,7 +141,7 @@ int main(void)
     CHECK(umi_fs_join(installed, sizeof(installed), root, "install/linux-debug/bin/umicom_notes") == UMI_STATUS_OK);
 #endif
     CHECK(umi_fs_is_file(installed));
-    CHECK(Edit(workbench, viewId, "#error Umicom_expected_compile_failure\n") == EXIT_SUCCESS);
+    CHECK(EditSource(workbench, viewId, "#error Umicom_expected_compile_failure\n", largeSource) == EXIT_SUCCESS);
     CHECK(UmiDocumentCoordinatorSaveAll(documents, NULL) == UMI_STATUS_OK);
     CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_RUN,
         "background", message, sizeof(message)) == UMI_STATUS_OK);

@@ -562,17 +562,17 @@ int main(void)
     g_object_ref(old_context_button);
 
     /* Oversize insertion is rejected before GTK changes either the draft or
-     * its bounded view model; it must not silently save a shortened string. */
+     * its complete draft model; it must not silently save a shortened string. */
     documents = umi_ui_workbench_documents(umi_studio_ui_workbench(
         umi_studio_bootstrap_ui(bootstrap)));
     document = g_try_new0(UmiUiDocumentViewSnapshot, 1);
-    oversized = g_try_malloc(UMI_UI_DOCUMENT_CONTENT_CAPACITY + 1U);
+    oversized = g_try_malloc(UMI_UI_DOCUMENT_TEXT_MAXIMUM_BYTES + 1U);
     REQUIRE(documents != NULL && document != NULL && oversized != NULL);
-    (void)memset(oversized, 'x', UMI_UI_DOCUMENT_CONTENT_CAPACITY);
-    oversized[UMI_UI_DOCUMENT_CONTENT_CAPACITY] = '\0';
+    (void)memset(oversized, 'x', UMI_UI_DOCUMENT_TEXT_MAXIMUM_BYTES);
+    oversized[UMI_UI_DOCUMENT_TEXT_MAXIMUM_BYTES] = '\0';
     before_revision = umi_ui_document_view_model_revision(documents);
     gtk_text_buffer_get_end_iter(buffer, &insert);
-    gtk_text_buffer_insert(buffer, &insert, oversized, (gint)UMI_UI_DOCUMENT_CONTENT_CAPACITY);
+    gtk_text_buffer_insert(buffer, &insert, oversized, (gint)UMI_UI_DOCUMENT_TEXT_MAXIMUM_BYTES);
     REQUIRE(buffer_contains(buffer, draft) && has_unicode_selection(buffer));
     REQUIRE(umi_ui_document_view_model_revision(documents) == before_revision);
     REQUIRE(umi_ui_document_view_model_find(documents, "studio.editor.welcome", document) == UMI_STATUS_OK);
@@ -586,7 +586,7 @@ int main(void)
     gtk_text_buffer_begin_user_action(buffer);
     (void)gtk_text_buffer_get_selection_bounds(buffer, &bound, &insert);
     gtk_text_buffer_delete(buffer, &bound, &insert);
-    gtk_text_buffer_insert(buffer, &bound, oversized, (gint)UMI_UI_DOCUMENT_CONTENT_CAPACITY);
+    gtk_text_buffer_insert(buffer, &bound, oversized, (gint)UMI_UI_DOCUMENT_TEXT_MAXIMUM_BYTES);
     gtk_text_buffer_end_user_action(buffer);
     REQUIRE(buffer_contains(buffer, draft) && has_unicode_selection(buffer));
     REQUIRE(umi_ui_document_view_model_find(documents, "studio.editor.welcome", document) == UMI_STATUS_OK);
@@ -779,6 +779,47 @@ int main(void)
         REQUIRE(find_editor(editor_root) == editor &&
             gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)) == buffer && buffer_contains(buffer, external_text));
         REQUIRE(all_windows_unpresented());
+    }
+
+    /* Full drafts and changes beyond their preview must reach the same native
+     * buffer. A Save As URI change does not create a different document. */
+    REQUIRE(umi_ui_document_view_model_find(documents, "studio.editor.welcome", document) == UMI_STATUS_OK);
+    memset(oversized, 'x', 131072U);
+    oversized[131072U] = '\0';
+    document->cursor_offset = 131070U;
+    document->selection_length = 0U;
+    REQUIRE(UmiUiDocumentViewModelUpsertText(documents, document, oversized, 131072U) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+    REQUIRE(find_editor(editor_root) == editor &&
+        gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)) == buffer && buffer_contains(buffer, oversized));
+    gtk_text_buffer_get_iter_at_mark(buffer, &insert, gtk_text_buffer_get_insert(buffer));
+    REQUIRE(gtk_text_iter_get_offset(&insert) == 131070);
+    oversized[131071U] = 'z';
+    REQUIRE(UmiUiDocumentViewModelUpsertText(documents, document, oversized, 131072U) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+    REQUIRE(buffer_contains(buffer, oversized));
+    REQUIRE(umi_ui_document_view_model_find(documents, "studio.editor.welcome", document) == UMI_STATUS_OK);
+    g_strlcpy(document->uri, "untitled:///notes-renamed.c", sizeof(document->uri));
+    REQUIRE(umi_ui_document_view_model_upsert(documents, document) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+    REQUIRE(find_editor(editor_root) == editor && gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)) == buffer);
+    gtk_text_buffer_set_enable_undo(buffer, TRUE);
+    gtk_text_buffer_get_end_iter(buffer, &insert);
+    gtk_text_buffer_begin_user_action(buffer);
+    gtk_text_buffer_insert(buffer, &insert, "!", 1);
+    gtk_text_buffer_end_user_action(buffer);
+    REQUIRE(gtk_text_buffer_get_can_undo(buffer));
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+    REQUIRE(gtk_text_buffer_get_can_undo(buffer));
+    gtk_text_buffer_undo(buffer);
+    REQUIRE(buffer_contains(buffer, oversized));
+    {
+        char *fullText = NULL;
+        size_t fullLength = 0U;
+        REQUIRE(UmiUiDocumentViewModelCopyText(documents, "studio.editor.welcome", &fullText, &fullLength) == UMI_STATUS_OK);
+        int complete = fullLength == 131072U && memcmp(fullText, oversized, fullLength) == 0;
+        UmiUiDocumentViewModelFreeText(fullText);
+        REQUIRE(complete);
     }
 
     /* Closing the real owner cancels a queued callback before services die. */

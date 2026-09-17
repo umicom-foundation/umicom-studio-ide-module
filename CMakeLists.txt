@@ -2183,6 +2183,12 @@ if(BUILD_TESTING)
     set_tests_properties(studio.project_workflow PROPERTIES TIMEOUT 180
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow"
         LABELS "studio;ide-workflow;integration;toolchain")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-large-source")
+    add_test(NAME studio.project_workflow.large_source
+        COMMAND umicom-studio-project-workflow-test large-source)
+    set_tests_properties(studio.project_workflow.large_source PROPERTIES TIMEOUT 180
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-large-source"
+        LABELS "studio;document-content;ide-workflow;integration;toolchain")
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-project-workflow-test)
     endif()
