@@ -96,6 +96,18 @@ static UmiStatus runtime_execute_registered_command_capture(
         argument = "background";
     }
 
+    if (strcmp(command_id, "navigate.problem.next") == 0 ||
+        strcmp(command_id, "navigate.problem.previous") == 0) {
+        if (runtime->owner == NULL || runtime->owner->ui == NULL) return UMI_STATUS_INVALID_STATE;
+        status = UmiStudioUiNavigateProblem(runtime->owner->ui,
+            strcmp(command_id, "navigate.problem.previous") == 0);
+        if (message != NULL && capacity != 0U) snprintf(message, capacity, "%s", umi_status_text(status));
+        if (status != UMI_STATUS_OK) runtime_show_notification(runtime,
+            "No available source location was opened. Read Problems and Output for details.");
+        (void)runtime_refresh_services(runtime);
+        return status;
+    }
+
     commands = runtime_registered_commands(runtime);
     /*
      * Protect caller-owned memory by checking that required state is available before it is

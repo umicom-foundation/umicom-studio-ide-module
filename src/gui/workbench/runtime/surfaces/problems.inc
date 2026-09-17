@@ -33,11 +33,9 @@ static GtkWidget *runtime_build_surface_problems(
     runtime->problems_summary_label = runtime_label("", 0.0F);
     runtime->problems_list = gtk_list_box_new();
     actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
-    open = runtime_make_command_button(
-        runtime,
-        "Open",
-        "view.problems",
-        "Focus the Framework Problems surface");
+    open = gtk_button_new_with_label("Open");
+    gtk_widget_set_tooltip_text(open, "Open the selected problem's source file without overwriting unsaved text");
+    g_signal_connect(open, "clicked", G_CALLBACK(RuntimeProblemsOpenClicked), runtime);
     previous = runtime_make_command_button(
         runtime,
         "Previous",
@@ -88,7 +86,11 @@ static GtkWidget *runtime_build_surface_problems(
     if (runtime->problems_list != NULL) {
         gtk_list_box_set_selection_mode(
             GTK_LIST_BOX(runtime->problems_list),
-            GTK_SELECTION_NONE);
+            GTK_SELECTION_SINGLE);
+        g_signal_connect(runtime->problems_list, "row-selected",
+            G_CALLBACK(RuntimeProblemsSelected), runtime);
+        g_signal_connect(runtime->problems_list, "row-activated",
+            G_CALLBACK(RuntimeProblemsActivated), runtime);
         gtk_box_append(
             GTK_BOX(panel),
             runtime_scroll(runtime->problems_list));
@@ -98,9 +100,9 @@ static GtkWidget *runtime_build_surface_problems(
         GTK_BOX(panel),
         runtime_card_new(
             "Cross-navigation",
-            "Previous and Next remain routed through the Framework problem "
-            "navigation commands so a navigable diagnostic can focus its "
-            "source document without GTK owning navigation state."));
+            "Select a problem and choose Open, or activate its row. Previous and Next "
+            "use the same Framework diagnostic model to visit source locations "
+            "without saving or replacing an existing draft."));
 
     runtime_append_context_actions(runtime, panel, "problems");
 

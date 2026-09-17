@@ -2246,3 +2246,16 @@ endif()
 install(FILES docs/EDITING_FILES.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs
     COMPONENT Studio)
+
+# Reuse the real project workflow, adding compiler-to-source navigation and
+# preserving a second unsaved draft while the broken project is corrected.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/project-diagnostics-workflow")
+    add_test(NAME studio.project_workflow.diagnostics
+        COMMAND umicom-studio-project-workflow-test diagnostics)
+    set_tests_properties(studio.project_workflow.diagnostics PROPERTIES TIMEOUT 180
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/project-diagnostics-workflow")
+endif()
+
+install(FILES docs/READING_BUILD_ERRORS.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)

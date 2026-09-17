@@ -17,6 +17,7 @@
 #include "umicom/studio/ui.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/diagnostics.h"
+#include "umicom/diagnostic_ui/navigation.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +39,7 @@ struct UmiStudioUi {
     UmiDocumentCoordinator *document_coordinator;
     UmiStudioApplicationSurface *application_surface;
     int published;
+    UmiDiagnosticNavigation problemNavigation;
 };
 
 /* Mirror authoritative workspace state into the workbench context store. Menu
@@ -440,3 +442,54 @@ UmiDocumentCoordinator *umi_studio_ui_documents(UmiStudioUi *ui) { return ui != 
  * applications.
  */
 UmiStudioApplicationSurface *umi_studio_ui_application_surface(UmiStudioUi *ui) { return ui != NULL ? ui->application_surface : NULL; }
+
+/* Studio supplies its current project context; parsing, selection and document
+ * navigation are Framework operations, shared with other IDE frontends. */
+static UmiStatus OpenProblemSource(UmiStudioUi *ui, const UmiDiagnosticSnapshot *problem)
+{
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(umi_studio_services_build(ui->services));
+    return UmiDiagnosticOpenSource(ui->document_coordinator, problem,
+        profile != NULL ? profile->source_directory : NULL, NULL);
+}
+
+UmiStatus UmiStudioUiOpenProblem(UmiStudioUi *ui, const char *problemId)
+{
+    UmiDiagnosticSnapshot problem;
+    UmiStatus status;
+    if (ui == NULL || problemId == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiDiagnosticModel *model = umi_diagnostic_pipeline_model(umi_studio_services_diagnostic_pipeline(ui->services));
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    status = umi_diagnostic_model_find(model, problemId, &problem);
+    if (status == UMI_STATUS_OK) status = OpenProblemSource(ui, &problem);
+    if (status == UMI_STATUS_OK) ui->problemNavigation.current_sequence = problem.sequence;
+    return status;
+}
+
+UmiStatus UmiStudioUiNavigateProblem(UmiStudioUi *ui, int backwards)
+{
+    UmiDiagnosticFilter filter;
+    UmiDiagnosticSnapshot problem;
+    UmiStatus status;
+    if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiDiagnosticModel *model = umi_diagnostic_pipeline_model(umi_studio_services_diagnostic_pipeline(ui->services));
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    UmiDiagnosticNavigation navigation = ui->problemNavigation;
+    navigation.wrap = 1;
+    umi_diagnostic_filter_init(&filter);
+    status = UmiDiagnosticNavigationSource(&navigation, model, &filter, backwards, &problem);
+    if (status == UMI_STATUS_OK) status = OpenProblemSource(ui, &problem);
+    if (status == UMI_STATUS_OK) ui->problemNavigation = navigation;
+    return status;
+}
+
+int UmiStudioUiCanNavigateProblems(UmiStudioUi *ui)
+{
+    UmiDiagnosticNavigation navigation = {0U, 1};
+    UmiDiagnosticFilter filter;
+    UmiDiagnosticSnapshot problem;
+    if (ui == NULL) return 0;
+    umi_diagnostic_filter_init(&filter);
+    return UmiDiagnosticNavigationSource(&navigation,
+        umi_diagnostic_pipeline_model(umi_studio_services_diagnostic_pipeline(ui->services)),
+        &filter, 0, &problem) == UMI_STATUS_OK;
+}

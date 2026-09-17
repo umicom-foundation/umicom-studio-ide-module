@@ -175,6 +175,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *explorer_summary_label;
 
     GtkWidget *problems_list;
+    uint64_t problemsModelRevision;
+    int problemsRendered;
+    char problemsSelectedId[UMI_DIAGNOSTIC_ID_CAPACITY];
     GtkWidget *problems_summary_label;
 
     GtkWidget *test_search_entry;

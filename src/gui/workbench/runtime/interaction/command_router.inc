@@ -61,6 +61,16 @@ static UmiStatus runtime_route_command(
         }
     }
 
+    if (strcmp(command_id, "navigate.problem.next") == 0 ||
+        strcmp(command_id, "navigate.problem.previous") == 0) {
+        UmiStatus status = UmiStudioUiNavigateProblem(runtime->owner->ui,
+            strcmp(command_id, "navigate.problem.previous") == 0);
+        if (status != UMI_STATUS_OK) runtime_show_notification(runtime,
+            "No available source location was opened. Read Problems and Output for details.");
+        (void)runtime_refresh_services(runtime);
+        return status;
+    }
+
     if (strcmp(command_id, "project.new") == 0) return RuntimeNewProject(runtime);
     if (strcmp(command_id, "file.new") == 0) return runtime_document_new(runtime);
     if (strcmp(command_id, "build.settings") == 0) return RuntimeBuildSettings(runtime);

@@ -159,6 +159,16 @@ UmiDocumentCoordinator *umi_studio_ui_documents(UmiStudioUi *ui);
  */
 UmiStudioApplicationSurface *umi_studio_ui_application_surface(UmiStudioUi *ui);
 
+/** Open a retained problem by stable ID through Framework's document service.
+ * Existing unsaved drafts are selected, never overwritten. No build or save
+ * is performed. Call from the UI owner thread. */
+UmiStatus UmiStudioUiOpenProblem(UmiStudioUi *ui, const char *problemId);
+/** Open the next/previous available source location in the shared diagnostics
+ * model. A nonzero backwards flag selects the previous location; wraps once. */
+UmiStatus UmiStudioUiNavigateProblem(UmiStudioUi *ui, int backwards);
+/** Return whether the shared model contains any unresolved local source problem. */
+int UmiStudioUiCanNavigateProblems(UmiStudioUi *ui);
+
 #ifdef __cplusplus
 }
 #endif

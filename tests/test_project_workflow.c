@@ -15,6 +15,8 @@
 #include "umicom/studio/commands.h"
 #include "umicom/studio/workspace.h"
 #include "umicom/studio/tests.h"
+#include "umicom/studio/diagnostics.h"
+#include "umicom/diagnostic_ui/navigation.h"
 #include "umicom/developer_project/new_project.h"
 #include "umicom/platform/threading.h"
 static int Wait(UmiStudioBuildService *build, UmiStatus expected, UmiBuildResult *result)
@@ -69,7 +71,8 @@ static int EditSource(UmiUiWorkbench *workbench, const char *viewId,
 int main(int argc, char **argv)
 {
     int largeSource = argc == 2 && strcmp(argv[1], "large-source") == 0;
-    CHECK(argc == 1 || largeSource);
+    int diagnosticsFlow = argc == 2 && strcmp(argv[1], "diagnostics") == 0;
+    CHECK(argc == 1 || largeSource || diagnosticsFlow);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -148,6 +151,52 @@ int main(int argc, char **argv)
     CHECK(Wait(build, UMI_STATUS_INTERNAL_ERROR, result) == EXIT_SUCCESS);
     CHECK(result->phase == UMI_BUILD_PHASE_BUILD);
     CHECK(strstr(result->output, "Umicom_expected_compile_failure") != NULL);
+    if (diagnosticsFlow) {
+        UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+        UmiDiagnosticModel *problems = umi_diagnostic_pipeline_model(umi_studio_services_diagnostic_pipeline(services));
+        UmiDiagnosticSnapshot problem;
+        UmiDocumentWorkingCopySnapshot active;
+        char scratch[UMI_UI_ID_CAPACITY], targetId[UMI_DIAGNOSTIC_ID_CAPACITY] = "";
+        CHECK(result->diagnostics.count != 0U);
+        CHECK(umi_studio_diagnostics_ingest_build_result(services,result)==UMI_STATUS_OK);
+        for (size_t i=0U;i<umi_diagnostic_model_count(problems);++i) {
+            CHECK(umi_diagnostic_model_at(problems,i,&problem)==UMI_STATUS_OK);
+            if (strstr(problem.message,"Umicom_expected_compile_failure") != NULL && problem.uri[0] != '\0') {
+                strcpy(targetId,problem.id); break;
+            }
+        }
+        CHECK(targetId[0]!='\0' && problem.line==1U && umi_path_equal(problem.uri,source));
+        CHECK(umi_document_coordinator_new(documents,"Unsaved notes",scratch,sizeof scratch)==UMI_STATUS_OK);
+        CHECK(Edit(workbench,scratch,"Important unsaved notes\n")==EXIT_SUCCESS);
+        CHECK(UmiStudioUiCanNavigateProblems(ui));
+        CHECK(UmiStudioUiOpenProblem(ui,targetId)==UMI_STATUS_OK);
+        CHECK(umi_document_coordinator_active_snapshot(documents,&active)==UMI_STATUS_OK);
+        CHECK(strcmp(active.view_id,viewId)==0);
+        char *draft=NULL; size_t length=0U;
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench),scratch,&draft,&length)==UMI_STATUS_OK);
+        CHECK(strcmp(draft,"Important unsaved notes\n")==0); UmiUiDocumentViewModelFreeText(draft);
+        CHECK(Edit(workbench,viewId,"#include <stdio.h>\nint main(void){puts(\"Umicom Notes: corrected\");return 0;}\n")==EXIT_SUCCESS);
+        CHECK(umi_document_coordinator_save_active(documents)==UMI_STATUS_OK);
+        /* Submit directly because Save All must correctly reject the separate
+         * unnamed draft. Navigation is not permission to discard that draft. */
+        CHECK(UmiStudioBuildSubmit(build,UMI_BUILD_PHASE_RUN,1)==UMI_STATUS_OK);
+        for(unsigned attempt=0U;attempt<6000U && UmiStudioBuildBusy(build);++attempt) {
+            CHECK(umi_studio_ui_refresh(ui)==UMI_STATUS_OK);
+            umi_thread_sleep_ms(10U);
+        }
+        CHECK(!UmiStudioBuildBusy(build));
+        UmiBuildProjectSessionSnapshot progress;
+        CHECK(UmiStudioBuildProgress(build,&progress)==UMI_STATUS_OK && progress.status==UMI_STATUS_OK);
+        CHECK(umi_diagnostic_model_find(problems,targetId,&problem)==UMI_STATUS_OK && problem.resolved);
+        CHECK(!UmiStudioUiCanNavigateProblems(ui));
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench),scratch,&draft,&length)==UMI_STATUS_OK);
+        CHECK(strcmp(draft,"Important unsaved notes\n")==0); UmiUiDocumentViewModelFreeText(draft);
+        /* The source-location operation keeps history and file bytes unchanged. */
+        CHECK(UmiDocumentCoordinatorGoToPosition(documents,2U,5U,NULL)==UMI_STATUS_OK);
+        UmiUiDocumentViewSnapshot view;
+        CHECK(umi_ui_document_view_model_find(umi_ui_workbench_documents(workbench),viewId,&view)==UMI_STATUS_OK);
+        CHECK(view.cursor_offset==23U); /* first line 19 bytes, then byte column 5 */
+    }
     CHECK(umi_studio_bootstrap_stop(bootstrap) == UMI_STATUS_OK);
     umi_studio_bootstrap_destroy(bootstrap); umi_build_result_destroy(result);
     umi_developer_project_service_destroy(projects);

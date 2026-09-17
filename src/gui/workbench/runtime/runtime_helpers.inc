@@ -267,6 +267,9 @@ static int runtime_command_enabled(
             umi_document_coordinator_active_snapshot(
                 umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
     }
+    if (strcmp(command_id, "navigate.problem.next") == 0 ||
+        strcmp(command_id, "navigate.problem.previous") == 0)
+        return UmiStudioUiCanNavigateProblems(runtime->owner->ui);
     mapped = runtime_mapped_studio_command(command_id);
     if (mapped != NULL) {
         UmiCommandRegistry *commands = umi_ui_workbench_commands(
