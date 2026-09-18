@@ -2279,3 +2279,17 @@ if(TARGET umicom-studio-project-workflow-test)
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-refresh"
         TIMEOUT 180 LABELS "studio;background-refresh;integration;toolchain")
 endif()
+
+# Exercise Find in Files through the real Studio facade, documents and compiler.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-search")
+    add_test(NAME studio.project_workflow.find_in_files
+        COMMAND umicom-studio-project-workflow-test find-in-files)
+    set_tests_properties(studio.project_workflow.find_in_files PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-search"
+        TIMEOUT 180 LABELS "studio;search;integration;toolchain")
+endif()
+
+# Install the public search walkthrough beside the existing editing guides.
+install(FILES docs/FIND_IN_FILES.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)

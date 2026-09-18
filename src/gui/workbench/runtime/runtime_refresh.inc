@@ -86,6 +86,7 @@ static UmiStatus runtime_refresh_services(
      * gives the preview a short natural debounce without rebuilding widgets. */
     (void)runtime_live_preview_refresh(runtime, 0);
     RuntimeRefreshBuildOutput(runtime);
+    RuntimeFileSearchRefresh(runtime);
     runtime_refresh_command_sensitivity(runtime, runtime->menu_bar);
     runtime_refresh_command_sensitivity(runtime, runtime->surface_panels[UMI_STUDIO_SURFACE_BUILD]);
     runtime_refresh_command_sensitivity(runtime, runtime->toolbar);

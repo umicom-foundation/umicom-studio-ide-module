@@ -22,6 +22,7 @@
 
 #include "umicom/umicom.h"
 #include "umicom/platform/workspace_files.h"
+#include "umicom/platform/search_session.h"
 #include "umicom/studio/application_surface.h"
 #include "umicom/studio/application_surface_policy.h"
 #include "umicom/studio/services.h"
@@ -197,6 +198,18 @@ UmiStatus UmiStudioUiCancelProjectFileRefresh(UmiStudioUi *ui);
 /** Copy Framework's refresh state for a status label; does not wait. */
 UmiStatus UmiStudioUiProjectFileRefreshState(UmiStudioUi *ui,
     UmiFileIndexRefreshSnapshot *snapshot);
+
+/** Search saved indexed project files, without saving or changing editor drafts.
+ * The Framework session owns worker state. Call on the UI owner thread. */
+UmiStatus UmiStudioUiSearchStart(UmiStudioUi *ui, const char *query, int caseSensitive);
+UmiStatus UmiStudioUiSearchCancel(UmiStudioUi *ui);
+UmiStatus UmiStudioUiSearchRead(UmiStudioUi *ui, UmiFileSearchSnapshot *outSnapshot);
+UmiStatus UmiStudioUiSearchMatchAt(UmiStudioUi *ui, uint64_t requestId,
+    size_t position, UmiSearchMatch *outMatch);
+/** Open a result identified by its request and row, never by a mutable UI pointer.
+ * Stale workspace/index results are rejected. A changed source location selects
+ * the file but returns NOT_FOUND without moving its caret or replacing its text. */
+UmiStatus UmiStudioUiSearchOpen(UmiStudioUi *ui, uint64_t requestId, size_t position);
 
 #ifdef __cplusplus
 }

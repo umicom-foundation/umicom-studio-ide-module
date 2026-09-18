@@ -74,7 +74,8 @@ int main(int argc, char **argv)
     int diagnosticsFlow = argc == 2 && strcmp(argv[1], "diagnostics") == 0;
     int projectFiles = argc == 2 && strcmp(argv[1], "project-files") == 0;
     int backgroundRefresh = argc == 2 && strcmp(argv[1], "background-refresh") == 0;
-    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh);
+    int fileSearch = argc == 2 && strcmp(argv[1], "find-in-files") == 0;
+    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -179,6 +180,45 @@ int main(int argc, char **argv)
         CHECK(umi_studio_workspace_set_trusted(services, 1) == UMI_STATUS_OK);
         CHECK(UmiStudioUiCreateProjectEntry(ui, workspace.revision, "stale.c", UMI_WORKSPACE_ENTRY_FILE,
             &created) == UMI_STATUS_BUSY);
+    }
+    if (fileSearch) {
+        UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+        UmiFileSearchSnapshot search;
+        char notes[UMI_PATH_CAPACITY], notesView[UMI_UI_ID_CAPACITY];
+        char *draft = NULL;
+        size_t length = 0U;
+        CHECK(umi_path_join(root, "notes-search.txt", notes, sizeof notes) == UMI_STATUS_OK);
+        CHECK(umi_fs_write_text(notes, "Umicom Notes\n  UMICOM_SEARCH_MARKER\n") == UMI_STATUS_OK);
+        CHECK(umi_file_index_update(umi_studio_services_file_index(services), notes) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiSearchStart(ui, "UMICOM_SEARCH_MARKER", 1) == UMI_STATUS_OK);
+        for (unsigned n = 0U; n < 10000U; ++n) {
+            CHECK(UmiStudioUiSearchRead(ui, &search) == UMI_STATUS_OK);
+            if (!search.active) break;
+            umi_thread_sleep_ms(1U);
+        }
+        CHECK(search.ready && search.stats.matches == 1U);
+        CHECK(UmiStudioUiSearchOpen(ui, search.requestId, 0U) == UMI_STATUS_OK);
+        UmiDocumentWorkingCopySnapshot active;
+        CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+        CHECK(umi_path_equal(active.path, notes)); strcpy(notesView, active.view_id);
+        UmiUiDocumentViewSnapshot *view = calloc(1U, sizeof(*view)); CHECK(view != NULL);
+        CHECK(umi_ui_document_view_model_find(umi_ui_workbench_documents(workbench), notesView, view) == UMI_STATUS_OK);
+        CHECK(view->cursor_offset == strlen("Umicom Notes\n  ")); free(view);
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench), viewId, &draft, &length) == UMI_STATUS_OK);
+        CHECK(strstr(draft, "Umicom Notes: saved and built") != NULL); UmiUiDocumentViewModelFreeText(draft);
+        CHECK(Edit(workbench, notesView, "New unsaved first line\nUmicom Notes\n  UMICOM_SEARCH_MARKER\n") == EXIT_SUCCESS);
+        CHECK(UmiStudioUiSearchOpen(ui, search.requestId, 0U) == UMI_STATUS_NOT_FOUND);
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench), notesView, &draft, &length) == UMI_STATUS_OK);
+        CHECK(strncmp(draft, "New unsaved first line", strlen("New unsaved first line")) == 0); UmiUiDocumentViewModelFreeText(draft);
+        /* Changing workspace identity invalidates old results even before a
+         * new search is started; no old row can open a previous project. */
+        CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiSearchRead(ui, &search) == UMI_STATUS_OK && search.stale);
+        CHECK(UmiStudioUiSearchOpen(ui, search.requestId, 0U) == UMI_STATUS_BUSY);
+        CHECK(UmiStudioUiSearchStart(ui, "note", 0) == UMI_STATUS_INVALID_STATE);
+        CHECK(umi_studio_workspace_open(services, root, 1, 0) == UMI_STATUS_OK);
+        CHECK(umi_studio_build_service_set_profile(build, &profile) == UMI_STATUS_OK);
+        CHECK(umi_ui_workbench_activate_document(workbench, viewId) == UMI_STATUS_OK);
     }
     CHECK(UmiDocumentCoordinatorSaveAll(documents, NULL) == UMI_STATUS_OK);
     CHECK(umi_build_result_create(&result) == UMI_STATUS_OK);

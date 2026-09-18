@@ -184,6 +184,8 @@ typedef struct UmiStudioGtkRuntimeChrome {
     char explorer_rendered_query[256];
     int explorer_rendered;
 
+    GtkWidget *file_search_panel;
+
     GtkWidget *problems_list;
     uint64_t problemsModelRevision;
     int problemsRendered;

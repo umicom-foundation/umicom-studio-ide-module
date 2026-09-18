@@ -40,6 +40,8 @@ struct UmiStudioUi {
     UmiStudioApplicationSurface *application_surface;
     int published;
     UmiDiagnosticNavigation problemNavigation;
+    UmiFileSearchSession *fileSearch;
+    uint64_t searchWorkspaceRevision;
 };
 
 /* Mirror authoritative workspace state into the workbench context store. Menu
@@ -90,6 +92,9 @@ static void destroy_partial(UmiStudioUi *ui)
      * used.
      */
     if (ui == NULL) return;
+    /* The search borrows the services index, which outlives this UI owner. */
+    UmiFileSearchDestroy(ui->fileSearch);
+    ui->fileSearch = NULL;
     umi_studio_application_surface_destroy(ui->application_surface);
     ui->application_surface = NULL;
     umi_document_coordinator_destroy(ui->document_coordinator);
@@ -555,4 +560,69 @@ UmiStatus UmiStudioUiProjectFileRefreshState(UmiStudioUi *ui,
 {
     if (ui == NULL || ui->services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return UmiFileIndexRefreshRead(umi_studio_services_file_index(ui->services), snapshot);
+}
+
+UmiStatus UmiStudioUiSearchStart(UmiStudioUi *ui, const char *query, int caseSensitive)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiFileIndexStats files;
+    UmiStatus status;
+    if (ui == NULL || ui->services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_workspace_graph_snapshot(umi_studio_services_workspace(ui->services), &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.open) return UMI_STATUS_INVALID_STATE;
+    UmiFileIndex *index = umi_studio_services_file_index(ui->services);
+    files = umi_file_index_stats(index);
+    if (!umi_path_equal(files.root, workspace.root)) return UMI_STATUS_BUSY;
+    if (ui->fileSearch == NULL) {
+        status = UmiFileSearchCreate(index, &ui->fileSearch);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    status = UmiFileSearchStart(ui->fileSearch, query, caseSensitive, files.revision);
+    if (status == UMI_STATUS_OK) ui->searchWorkspaceRevision = workspace.revision;
+    return status;
+}
+
+UmiStatus UmiStudioUiSearchCancel(UmiStudioUi *ui)
+{
+    if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return ui->fileSearch == NULL ? UMI_STATUS_OK : UmiFileSearchCancel(ui->fileSearch);
+}
+
+UmiStatus UmiStudioUiSearchRead(UmiStudioUi *ui, UmiFileSearchSnapshot *outSnapshot)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiStatus status;
+    if (ui == NULL || outSnapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (ui->fileSearch == NULL) {
+        memset(outSnapshot, 0, sizeof(*outSnapshot)); return UMI_STATUS_OK;
+    }
+    status = umi_workspace_graph_snapshot(umi_studio_services_workspace(ui->services), &workspace);
+    if (status != UMI_STATUS_OK || !workspace.open ||
+        workspace.revision != ui->searchWorkspaceRevision)
+        UmiFileSearchInvalidate(ui->fileSearch);
+    return UmiFileSearchRead(ui->fileSearch, outSnapshot);
+}
+
+UmiStatus UmiStudioUiSearchMatchAt(UmiStudioUi *ui, uint64_t requestId,
+    size_t position, UmiSearchMatch *outMatch)
+{
+    UmiFileSearchSnapshot state;
+    if (ui == NULL || outMatch == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStatus status = UmiStudioUiSearchRead(ui, &state);
+    if (status != UMI_STATUS_OK) return status;
+    if (!state.ready || state.stale || requestId != state.requestId) return UMI_STATUS_BUSY;
+    return UmiFileSearchMatchAt(ui->fileSearch, requestId, position, outMatch);
+}
+
+UmiStatus UmiStudioUiSearchOpen(UmiStudioUi *ui, uint64_t requestId, size_t position)
+{
+    UmiSearchMatch match;
+    UmiFileSearchSnapshot state;
+    UmiStatus status = UmiStudioUiSearchMatchAt(ui, requestId, position, &match);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiStudioUiSearchRead(ui, &state);
+    if (status != UMI_STATUS_OK) return status;
+    return UmiDocumentCoordinatorOpenSearchMatch(ui->document_coordinator,
+        &match, state.query, state.caseSensitive, NULL);
 }
