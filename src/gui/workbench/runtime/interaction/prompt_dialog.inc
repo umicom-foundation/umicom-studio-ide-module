@@ -24,6 +24,8 @@ typedef struct UmiStudioGtkPromptContext {
     GtkWidget *entry;
     UmiStudioGtkPromptAccepted accepted;
     UmiStudioFileDialogRequest *ownerRequest;
+    UmiWorkspaceGraphSnapshot workspace;
+    int guardWorkspace;
 } UmiStudioGtkPromptContext;
 
 /*
@@ -89,6 +91,20 @@ static void runtime_prompt_accepted(
         g_clear_object(&ownerWindow);
         return;
     }
+    if (context->guardWorkspace) {
+        UmiWorkspaceGraphSnapshot current;
+        UmiStatus workspaceStatus = umi_workspace_graph_snapshot(
+            umi_studio_services_workspace(umi_studio_ui_services(runtime->owner->ui)),
+            &current);
+        if (workspaceStatus != UMI_STATUS_OK || !current.open ||
+            current.revision != context->workspace.revision ||
+            !umi_path_equal(current.root, context->workspace.root)) {
+            runtime_show_notification(runtime,
+                "The workspace changed while this form was open. Cancel and open the form again.");
+            g_object_unref(ownerWindow);
+            return;
+        }
+    }
     value = gtk_editable_get_text(GTK_EDITABLE(context->entry));
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -115,13 +131,14 @@ static void runtime_prompt_accepted(
  * Provide the runtime prompt text operation used by this module and its client
  * applications.
  */
-static UmiStatus runtime_prompt_text(
+static UmiStatus runtime_prompt_text_internal(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *title,
     const char *message,
     const char *initial_value,
     const char *accept_label,
-    UmiStudioGtkPromptAccepted accepted)
+    UmiStudioGtkPromptAccepted accepted,
+    int guardWorkspace)
 {
     UmiStudioGtkPromptContext *context;
     GtkWidget *window;
@@ -148,6 +165,17 @@ static UmiStatus runtime_prompt_text(
      */
     if (context == NULL) return UMI_STATUS_OUT_OF_MEMORY;
 
+    context->guardWorkspace = guardWorkspace;
+    if (guardWorkspace) {
+        UmiStatus workspaceStatus = umi_workspace_graph_snapshot(
+            umi_studio_services_workspace(umi_studio_ui_services(runtime->owner->ui)),
+            &context->workspace);
+        if (workspaceStatus != UMI_STATUS_OK || !context->workspace.open ||
+            !context->workspace.trusted) {
+            free(context);
+            return workspaceStatus != UMI_STATUS_OK ? workspaceStatus : UMI_STATUS_PERMISSION_DENIED;
+        }
+    }
     window = GTK_WIDGET(gtk_window_new());
     root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     context->entry = gtk_entry_new();
@@ -235,4 +263,14 @@ static UmiStatus runtime_prompt_text(
     gtk_window_present(GTK_WINDOW(window));
     gtk_widget_grab_focus(context->entry);
     return UMI_STATUS_OK;
+}
+
+/* Existing prompts retain their original policy. Project-entry prompts opt in
+ * to the captured-workspace check without changing unrelated operations. */
+static UmiStatus runtime_prompt_text(UmiStudioGtkRuntimeChrome *runtime,
+    const char *title, const char *message, const char *initial_value,
+    const char *accept_label, UmiStudioGtkPromptAccepted accepted)
+{
+    return runtime_prompt_text_internal(runtime, title, message, initial_value,
+        accept_label, accepted, 0);
 }

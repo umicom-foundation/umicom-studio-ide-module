@@ -173,6 +173,13 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *explorer_search_entry;
     GtkWidget *explorer_list;
     GtkWidget *explorer_summary_label;
+    GtkWidget *explorer_previous;
+    GtkWidget *explorer_next;
+    size_t explorer_offset;
+    size_t explorer_rendered_offset;
+    uint64_t explorer_revision;
+    char explorer_rendered_query[256];
+    int explorer_rendered;
 
     GtkWidget *problems_list;
     uint64_t problemsModelRevision;

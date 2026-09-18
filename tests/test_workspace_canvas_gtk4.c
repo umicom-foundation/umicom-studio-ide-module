@@ -16,6 +16,7 @@
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
+#include "umicom/studio/workspace.h"
 #include "umicom/studio/source_control.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
 #include "umicom/ui/document_view.h"
@@ -413,6 +414,85 @@ cleanup:
     g_free(layout);
     g_free(before);
     g_free(database_path);
+    return failed;
+}
+
+/* Exercise the real Explorer body without opening a personal workspace or
+ * mapping a window. This native test must run with GTK and a usable display. */
+static int VerifyProjectExplorer(GtkApplication *application, const char *fixture)
+{
+    UmiStudioServicesOptions serviceOptions = {0};
+    UmiStudioGtkWorkbenchOptions options = {0};
+    UmiStudioBootstrap *bootstrap = NULL;
+    UmiStudioGtkWorkbench *workbench = NULL;
+    GtkWidget *oldRow = NULL, *oldNext = NULL, *oldCreate = NULL;
+    GtkWidget *window, *list, *filter, *row, *next, *create;
+    UmiUiDocumentViewModel *documents = NULL;
+    char *root = g_build_filename(fixture, "explorer-project", NULL);
+    int failed = 0;
+    REQUIRE(root != NULL && g_mkdir(root, 0700) == 0);
+    for (unsigned n = 0U; n < 605U; ++n) {
+        char name[40];
+        (void)snprintf(name, sizeof(name), "file-%04u.c", n);
+        char *path = g_build_filename(root, name, NULL);
+        gboolean written = g_file_set_contents(path, "/* Umicom Notes source. */\n", -1, NULL);
+        g_free(path);
+        REQUIRE(written);
+    }
+    REQUIRE(umi_studio_bootstrap_create_with_options(&serviceOptions, &bootstrap) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_workspace_open(umi_studio_bootstrap_services(bootstrap), root, 0, 0) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_create_with_options(application,
+        umi_studio_bootstrap_ui(bootstrap), umi_studio_bootstrap_desktop_shell(bootstrap),
+        &options, &workbench) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench,
+        UMI_STUDIO_SURFACE_EXPLORER, NULL) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK && drain_context());
+    window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    list = find_tag(window, "umicom-explorer-list");
+    filter = find_tag(window, "umicom-explorer-filter");
+    next = find_tag(window, "umicom-explorer-next");
+    create = find_tag(window, "umicom-explorer-create-file");
+    REQUIRE(GTK_IS_LIST_BOX(list) && GTK_IS_SEARCH_ENTRY(filter) &&
+        GTK_IS_BUTTON(next) && GTK_IS_BUTTON(create));
+    oldNext = g_object_ref(next); oldCreate = g_object_ref(create);
+    REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 599) != NULL);
+    REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 600) == NULL);
+    row = GTK_WIDGET(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 0));
+    REQUIRE(GTK_IS_BUTTON(gtk_list_box_row_get_child(GTK_LIST_BOX_ROW(row))));
+    oldRow = g_object_ref(gtk_list_box_row_get_child(GTK_LIST_BOX_ROW(row)));
+    REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK && drain_context());
+    row = GTK_WIDGET(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 0));
+    REQUIRE(gtk_list_box_row_get_child(GTK_LIST_BOX_ROW(row)) == oldRow);
+    documents = umi_ui_workbench_documents(umi_studio_ui_workbench(umi_studio_bootstrap_ui(bootstrap)));
+    size_t count = umi_ui_document_view_model_count(documents);
+    g_signal_emit_by_name(oldNext, "clicked");
+    REQUIRE(drain_context());
+    REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 4) != NULL &&
+        gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 5) == NULL);
+    g_signal_emit_by_name(oldRow, "clicked");
+    REQUIRE(drain_context() && umi_ui_document_view_model_count(documents) == count);
+    row = GTK_WIDGET(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 0));
+    g_signal_emit_by_name(gtk_list_box_row_get_child(GTK_LIST_BOX_ROW(row)), "clicked");
+    REQUIRE(drain_context() && umi_ui_document_view_model_count(documents) == count + 1U);
+    gtk_editable_set_text(GTK_EDITABLE(filter), "file-0604.c");
+    g_signal_emit_by_name(filter, "search-changed");
+    REQUIRE(drain_context());
+    REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 0) != NULL &&
+        gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 1) == NULL);
+    REQUIRE(!gtk_widget_get_sensitive(oldNext));
+    umi_studio_gtk_workbench_destroy(workbench); workbench = NULL;
+    /* Retained controls must not resurrect dialogs or access the freed owner. */
+    g_signal_emit_by_name(oldNext, "clicked");
+    g_signal_emit_by_name(oldCreate, "clicked");
+    g_signal_emit_by_name(oldRow, "clicked");
+    REQUIRE(drain_context() && all_windows_unpresented());
+cleanup:
+    umi_studio_gtk_workbench_destroy(workbench);
+    if (oldRow != NULL) g_object_unref(oldRow);
+    if (oldNext != NULL) g_object_unref(oldNext);
+    if (oldCreate != NULL) g_object_unref(oldCreate);
+    umi_studio_bootstrap_destroy(bootstrap);
+    g_free(root);
     return failed;
 }
 
@@ -840,6 +920,7 @@ int main(void)
     g_signal_emit_by_name(last_context_button, "clicked");
     REQUIRE(drain_context());
     REQUIRE(all_windows_unpresented());
+    REQUIRE(VerifyProjectExplorer(application, fixture_path) == 0);
     failed = verify_durable_canvas(application, fixture_path);
 
 cleanup:

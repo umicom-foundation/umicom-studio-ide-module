@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "umicom/umicom.h"
+#include "umicom/platform/workspace_files.h"
 #include "umicom/studio/application_surface.h"
 #include "umicom/studio/application_surface_policy.h"
 #include "umicom/studio/services.h"
@@ -168,6 +169,24 @@ UmiStatus UmiStudioUiOpenProblem(UmiStudioUi *ui, const char *problemId);
 UmiStatus UmiStudioUiNavigateProblem(UmiStudioUi *ui, int backwards);
 /** Return whether the shared model contains any unresolved local source problem. */
 int UmiStudioUiCanNavigateProblems(UmiStudioUi *ui);
+
+/** Filesystem creation and editor adoption are separate outcomes. A created
+ * file is kept if indexing or opening the tab fails, so retry cannot overwrite
+ * it. Directory creation does not insert a directory into the file-only index. */
+typedef struct UmiStudioProjectEntryResult {
+    UmiWorkspaceEntryResult entry;
+    UmiStatus index_status;
+    UmiStatus document_status;
+    char view_id[UMI_UI_ID_CAPACITY];
+} UmiStudioProjectEntryResult;
+
+/** Create an entry through Framework, then index/open a new file through the
+ * existing services. Returns the creation status; inspect the two adoption
+ * statuses separately. Call on the UI owner thread; a running build returns
+ * BUSY. No execution trust is granted and no existing document is saved. */
+UmiStatus UmiStudioUiCreateProjectEntry(UmiStudioUi *ui,
+    uint64_t expectedRevision, const char *relativePath,
+    UmiWorkspaceEntryKind kind, UmiStudioProjectEntryResult *outResult);
 
 #ifdef __cplusplus
 }

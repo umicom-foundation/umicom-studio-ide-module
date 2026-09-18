@@ -2259,3 +2259,13 @@ endif()
 
 install(FILES docs/READING_BUILD_ERRORS.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Exercise creation, editing, Save All and compilation using a real new header.
+if(BUILD_TESTING)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-files")
+    add_test(NAME studio.project_workflow.project_files
+        COMMAND umicom-studio-project-workflow-test project-files)
+    set_tests_properties(studio.project_workflow.project_files PROPERTIES TIMEOUT 180
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-files"
+        LABELS "studio;project-files;integration;toolchain")
+endif()

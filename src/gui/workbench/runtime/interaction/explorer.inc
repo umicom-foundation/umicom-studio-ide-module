@@ -53,145 +53,215 @@ static void runtime_explorer_open_path(
     (void)runtime_refresh_services(runtime);
 }
 
+/* A retained old row cannot reopen a previous workspace after refresh or
+ * teardown. Reuse the window's existing runtime-generation token. */
+typedef struct RuntimeExplorerRow {
+    UmiStudioFileDialogRequest *owner;
+    GObject *generation;
+    GWeakRef list;
+    char *root;
+    char *path;
+} RuntimeExplorerRow;
+
+static void RuntimeExplorerRowFree(gpointer data)
+{
+    RuntimeExplorerRow *row = data;
+    if (row == NULL) return;
+    runtime_file_dialog_request_free(row->owner);
+    g_clear_object(&row->generation);
+    g_weak_ref_clear(&row->list);
+    g_free(row->root);
+    g_free(row->path);
+    g_free(row);
+}
+
 /*
  * Provide the runtime on explorer row clicked operation used by this module and its client
  * applications.
  */
-static void runtime_on_explorer_row_clicked(
-    GtkButton *button,
-    gpointer user_data)
+static void runtime_on_explorer_row_clicked(GtkButton *button, gpointer user_data)
 {
-    UmiStudioGtkRuntimeChrome *runtime =
-        (UmiStudioGtkRuntimeChrome *)user_data;
-    const char *path = (const char *)g_object_get_data(
-        G_OBJECT(button),
-        "umicom-file-path");
-
-    runtime_explorer_open_path(runtime, path);
+    RuntimeExplorerRow *row = user_data;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(row->owner, &window);
+    GObject *list = g_weak_ref_get(&row->list);
+    (void)button;
+    if (runtime != NULL && list != NULL && runtime->explorer_list == GTK_WIDGET(list) &&
+        g_object_get_data(list, "umicom-explorer-rows") == row->generation) {
+        UmiWorkspaceGraphSnapshot workspace;
+        if (umi_workspace_graph_snapshot(umi_studio_services_workspace(
+                umi_studio_ui_services(runtime->owner->ui)), &workspace) == UMI_STATUS_OK &&
+            workspace.open && umi_path_equal(workspace.root, row->root))
+            runtime_explorer_open_path(runtime, row->path);
+    }
+    g_clear_object(&list);
+    g_clear_object(&window);
 }
 
 /*
  * Provide the runtime explorer refresh list operation used by this module and its client
  * applications.
  */
-static void runtime_explorer_refresh_list(
-    UmiStudioGtkRuntimeChrome *runtime)
+static void runtime_explorer_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioServices *services;
     UmiFileIndex *index;
     UmiFileIndexStats stats;
-    size_t position;
-    size_t visible = 0U;
-    char summary[192];
-
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime == NULL || runtime->explorer_list == NULL ||
-        runtime->owner == NULL) {
-        return;
-    }
-
-    runtime_clear_list_box(runtime->explorer_list);
-
+    UmiFileIndexPage page;
+    UmiFileIndexEntry *entries;
+    UmiStatus status;
+    char summary[256];
+    if (runtime == NULL || runtime->explorer_list == NULL || runtime->owner == NULL) return;
     services = umi_studio_ui_services(runtime->owner->ui);
-    index = services != NULL
-        ? umi_studio_services_file_index(services)
-        : NULL;
-
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (index == NULL) {
-        gtk_list_box_append(
-            GTK_LIST_BOX(runtime->explorer_list),
-            runtime_label("Workspace file index is unavailable.", 0.0F));
-        return;
-    }
-
+    index = services != NULL ? umi_studio_services_file_index(services) : NULL;
+    if (index == NULL) return;
     stats = umi_file_index_stats(index);
-
-    /* Visit each bounded item once so every record receives the same rule. */
-    for (position = 0U;
-         position < stats.files &&
-         visible < UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT;
-         ++position) {
-        UmiFileIndexEntry entry;
-        GtkWidget *button;
-        GtkWidget *row;
-        GtkWidget *name;
-        GtkWidget *path;
-
-        /* Keep the operation inside its valid bounds before reading, writing or adding data. */
-        if (umi_file_index_at(index, position, &entry) != UMI_STATUS_OK) {
-            continue;
+    /* Status ticks must not replace unchanged buttons and steal keyboard focus. */
+    if (runtime->explorer_rendered && runtime->explorer_revision == stats.revision &&
+        runtime->explorer_rendered_offset == runtime->explorer_offset &&
+        strcmp(runtime->explorer_rendered_query, runtime->explorer_query) == 0) return;
+    entries = g_try_new0(UmiFileIndexEntry, UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT);
+    if (entries == NULL) return;
+    status = UmiFileIndexReadPage(index, runtime->explorer_query, 0,
+        runtime->explorer_offset, stats.revision, entries,
+        UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT, &page);
+    /* Removing the final item on the last page returns to the last usable page. */
+    if (status == UMI_STATUS_OK && page.count == 0U && runtime->explorer_offset != 0U) {
+        runtime->explorer_offset = page.matched == 0U ? 0U :
+            ((page.matched - 1U) / UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT) *
+                UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT;
+        status = UmiFileIndexReadPage(index, runtime->explorer_query, 0,
+            runtime->explorer_offset, page.stats.revision, entries,
+            UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT, &page);
+    }
+    if (status != UMI_STATUS_OK) { g_free(entries); return; }
+    GObject *generation = g_object_new(G_TYPE_OBJECT, NULL);
+    GPtrArray *rows = g_ptr_array_new_with_free_func(g_object_unref);
+    for (size_t i = 0U; i < page.count; ++i) {
+        RuntimeExplorerRow *row = g_new0(RuntimeExplorerRow, 1);
+        row->owner = runtime_file_dialog_request_new(runtime, 0U);
+        if (row->owner == NULL) {
+            g_free(row);
+            g_ptr_array_unref(rows);
+            g_object_unref(generation);
+            g_free(entries);
+            return; /* Keep the previously rendered page intact. */
         }
-
-        /* Apply this branch only when its contract condition is satisfied. */
-        if (!runtime_text_contains_casefold(
-                entry.relative_path,
-                runtime->explorer_query)) {
-            continue;
-        }
-
-        button = gtk_button_new();
-        row = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
-        name = runtime_label(entry.name, 0.0F);
-        path = runtime_label(entry.relative_path, 0.0F);
-        /*
-         * Protect caller-owned memory by checking that required state is available before it is
-         * used.
-         */
-        if (button == NULL || row == NULL ||
-            name == NULL || path == NULL) {
-            continue;
-        }
-
+        GtkWidget *button = gtk_button_new();
+        GtkWidget *body = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+        GtkWidget *name = runtime_label(entries[i].name, 0.0F);
+        GtkWidget *path = runtime_label(entries[i].relative_path, 0.0F);
+        g_weak_ref_init(&row->list, G_OBJECT(runtime->explorer_list));
+        row->generation = g_object_ref(generation);
+        row->root = g_strdup(page.stats.root);
+        row->path = g_strdup(entries[i].path);
         gtk_widget_add_css_class(button, "flat");
         gtk_widget_add_css_class(path, "umicom-runtime-muted");
-        gtk_box_append(GTK_BOX(row), name);
-        gtk_box_append(GTK_BOX(row), path);
-        gtk_button_set_child(GTK_BUTTON(button), row);
-
-        g_object_set_data_full(
-            G_OBJECT(button),
-            "umicom-file-path",
-            g_strdup(entry.path),
-            g_free);
-        g_signal_connect(
-            button,
-            "clicked",
-            G_CALLBACK(runtime_on_explorer_row_clicked),
-            runtime);
-
-        gtk_list_box_append(
-            GTK_LIST_BOX(runtime->explorer_list),
-            button);
-        ++visible;
+        gtk_box_append(GTK_BOX(body), name);
+        gtk_box_append(GTK_BOX(body), path);
+        gtk_button_set_child(GTK_BUTTON(button), body);
+        g_object_set_data_full(G_OBJECT(button), "umicom-explorer-row", row, RuntimeExplorerRowFree);
+        /* Retain the existing copied path key for native automation clients. */
+        g_object_set_data_full(G_OBJECT(button), "umicom-file-path", g_strdup(entries[i].path), g_free);
+        g_signal_connect(button, "clicked", G_CALLBACK(runtime_on_explorer_row_clicked), row);
+        g_ptr_array_add(rows, g_object_ref_sink(button));
     }
+    /* Publish only after every row is ready; a failed allocation keeps the old page. */
+    g_object_set_data_full(G_OBJECT(runtime->explorer_list), "umicom-explorer-rows",
+        generation, g_object_unref);
+    runtime_clear_list_box(runtime->explorer_list);
+    for (guint i = 0U; i < rows->len; ++i)
+        gtk_list_box_append(GTK_LIST_BOX(runtime->explorer_list), g_ptr_array_index(rows, i));
+    g_ptr_array_unref(rows);
+    if (page.count == 0U)
+        gtk_list_box_append(GTK_LIST_BOX(runtime->explorer_list),
+            runtime_label(page.stats.files == 0U ? "No files are indexed. Create a project file or refresh." :
+                "No files match this filter.", 0.0F));
+    (void)snprintf(summary, sizeof(summary), "%zu–%zu of %zu matching files (%zu indexed)",
+        page.count == 0U ? 0U : page.offset + 1U, page.offset + page.count,
+        page.matched, page.stats.files);
+    if (runtime->explorer_summary_label != NULL)
+        gtk_label_set_text(GTK_LABEL(runtime->explorer_summary_label), summary);
+    if (runtime->explorer_previous != NULL)
+        gtk_widget_set_sensitive(runtime->explorer_previous, page.offset != 0U);
+    if (runtime->explorer_next != NULL)
+        gtk_widget_set_sensitive(runtime->explorer_next, page.has_more);
+    runtime->explorer_revision = page.stats.revision;
+    runtime->explorer_rendered_offset = page.offset;
+    runtime_copy_selection(runtime->explorer_rendered_query,
+        sizeof(runtime->explorer_rendered_query), runtime->explorer_query);
+    runtime->explorer_rendered = 1;
+    g_free(entries);
+}
 
-    (void)snprintf(
-        summary,
-        sizeof(summary),
-        "%zu of %zu indexed file%s%s",
-        visible,
-        stats.files,
-        stats.files == 1U ? "" : "s",
-        stats.files > UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT
-            ? " (row limit applied)"
-            : "");
+/* Page numbers belong to this presentation; filtering and row ownership stay
+ * in the Framework index. Buttons never trigger a filesystem scan. */
+static void RuntimeExplorerPrevious(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    (void)button;
+    runtime->explorer_offset = runtime->explorer_offset > UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT
+        ? runtime->explorer_offset - UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT : 0U;
+    runtime_explorer_refresh_list(runtime);
+}
 
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime->explorer_summary_label != NULL) {
-        gtk_label_set_text(
-            GTK_LABEL(runtime->explorer_summary_label),
-            summary);
-    }
+static void RuntimeExplorerNext(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    (void)button;
+    if (runtime->explorer_offset <= SIZE_MAX - UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT)
+        runtime->explorer_offset += UMI_STUDIO_GTK_EXPLORER_ROW_LIMIT;
+    runtime_explorer_refresh_list(runtime);
+}
+
+/* Keep created files when a later editor/index operation is unavailable. The
+ * developer can refresh or open that file without repeating its creation. */
+static UmiStatus RuntimeCreateProjectEntry(UmiStudioGtkRuntimeChrome *runtime,
+    const char *path, UmiWorkspaceEntryKind kind)
+{
+    UmiStudioUi *ui = runtime->owner->ui;
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiStudioProjectEntryResult result;
+    UmiStatus status = umi_workspace_graph_snapshot(umi_studio_services_workspace(
+        umi_studio_ui_services(ui)), &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiStudioUiCreateProjectEntry(ui, workspace.revision, path, kind, &result);
+    if (status != UMI_STATUS_OK) return status;
+    if (kind == UMI_WORKSPACE_ENTRY_DIRECTORY)
+        runtime_show_notification(runtime, "Folder created. Use its relative path when creating a project file; Explorer lists files, not empty folders.");
+    else if (result.document_status != UMI_STATUS_OK || result.index_status != UMI_STATUS_OK)
+        runtime_show_notification(runtime, "File created on disk, but the index or editor could not adopt it. Refresh or use Open File; do not recreate it.");
+    else runtime_show_notification(runtime, "Project file created and opened. Edit it, then save before building.");
+    (void)runtime_refresh_services(runtime);
+    return UMI_STATUS_OK;
+}
+
+static UmiStatus RuntimeCreateProjectFile(UmiStudioGtkRuntimeChrome *runtime, const char *path)
+{ return RuntimeCreateProjectEntry(runtime, path, UMI_WORKSPACE_ENTRY_FILE); }
+
+static UmiStatus RuntimeCreateProjectFolder(UmiStudioGtkRuntimeChrome *runtime, const char *path)
+{ return RuntimeCreateProjectEntry(runtime, path, UMI_WORKSPACE_ENTRY_DIRECTORY); }
+
+static void RuntimeExplorerNewFile(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    (void)button;
+    UmiStatus status = runtime_prompt_text_internal(runtime, "New Project File",
+        "Enter a path relative to the workspace. Existing files are never replaced.",
+        "src/notes.h", "Create File", RuntimeCreateProjectFile, 1);
+    if (status != UMI_STATUS_OK) runtime_show_notification(runtime,
+        "Open a workspace and review its trust in Build > Project Settings before creating project files.");
+}
+
+static void RuntimeExplorerNewFolder(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    (void)button;
+    UmiStatus status = runtime_prompt_text_internal(runtime, "New Project Folder",
+        "Enter a relative folder path. Its parent must already exist.",
+        "include", "Create Folder", RuntimeCreateProjectFolder, 1);
+    if (status != UMI_STATUS_OK) runtime_show_notification(runtime,
+        "Open a workspace and review its trust in Build > Project Settings before creating folders.");
 }
 
 /*
@@ -217,6 +287,7 @@ static void runtime_on_explorer_search_changed(
         runtime->explorer_query,
         sizeof(runtime->explorer_query),
         text);
+    runtime->explorer_offset = 0U;
     runtime_explorer_refresh_list(runtime);
 }
 
@@ -256,4 +327,89 @@ static void runtime_on_explorer_refresh(
     }
 
     runtime_explorer_refresh_list(runtime);
+}
+
+/* Control bindings borrow a live list and resolve the existing window token.
+ * A widget retained after layout replacement cannot address a new Explorer. */
+typedef struct RuntimeExplorerControl {
+    UmiStudioFileDialogRequest *owner;
+    GWeakRef list;
+    void (*invoke)(gpointer widget, UmiStudioGtkRuntimeChrome *runtime);
+} RuntimeExplorerControl;
+
+static void RuntimeExplorerControlFree(gpointer data)
+{
+    RuntimeExplorerControl *control = data;
+    runtime_file_dialog_request_free(control->owner);
+    g_weak_ref_clear(&control->list);
+    g_free(control);
+}
+
+static void RuntimeExplorerControlInvoked(gpointer widget, gpointer data)
+{
+    RuntimeExplorerControl *control = data;
+    GObject *window = NULL;
+    GObject *list = g_weak_ref_get(&control->list);
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(control->owner, &window);
+    if (runtime != NULL && list != NULL && runtime->explorer_list == GTK_WIDGET(list))
+        control->invoke(widget, runtime);
+    g_clear_object(&list);
+    g_clear_object(&window);
+}
+
+static void RuntimeExplorerBindControl(UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *widget, const char *signal, const char *id,
+    void (*invoke)(gpointer, UmiStudioGtkRuntimeChrome *))
+{
+    RuntimeExplorerControl *control = g_new0(RuntimeExplorerControl, 1);
+    control->owner = runtime_file_dialog_request_new(runtime, 0U);
+    if (control->owner == NULL) {
+        g_free(control);
+        gtk_widget_set_sensitive(widget, FALSE);
+        return;
+    }
+    g_weak_ref_init(&control->list, G_OBJECT(runtime->explorer_list));
+    control->invoke = invoke;
+    g_object_set_data_full(G_OBJECT(widget), "umicom-explorer-control", control,
+        RuntimeExplorerControlFree);
+    g_object_set_data_full(G_OBJECT(widget), "umicom-automation-id", g_strdup(id), g_free);
+    g_signal_connect(widget, signal, G_CALLBACK(RuntimeExplorerControlInvoked), control);
+}
+
+static void RuntimeExplorerPreviousInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
+{ RuntimeExplorerPrevious(GTK_BUTTON(widget), runtime); }
+static void RuntimeExplorerNextInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
+{ RuntimeExplorerNext(GTK_BUTTON(widget), runtime); }
+static void RuntimeExplorerNewFileInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
+{ RuntimeExplorerNewFile(GTK_BUTTON(widget), runtime); }
+static void RuntimeExplorerNewFolderInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
+{ RuntimeExplorerNewFolder(GTK_BUTTON(widget), runtime); }
+static void RuntimeExplorerRefreshInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
+{ runtime_on_explorer_refresh(GTK_BUTTON(widget), runtime); }
+static void RuntimeExplorerSearchInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
+{ runtime_on_explorer_search_changed(GTK_SEARCH_ENTRY(widget), runtime); }
+
+/* Clearing a destroyed list's borrowed fields prevents later status refreshes
+ * from following stale GTK addresses. The token outlives the runtime safely. */
+typedef struct RuntimeExplorerListOwner {
+    UmiStudioFileDialogRequest *owner;
+    GtkWidget *list;
+} RuntimeExplorerListOwner;
+
+static void RuntimeExplorerListReleased(gpointer data)
+{
+    RuntimeExplorerListOwner *binding = data;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(binding->owner, &window);
+    if (runtime != NULL && runtime->explorer_list == binding->list) {
+        runtime->explorer_list = NULL;
+        runtime->explorer_search_entry = NULL;
+        runtime->explorer_summary_label = NULL;
+        runtime->explorer_previous = NULL;
+        runtime->explorer_next = NULL;
+        runtime->explorer_rendered = 0;
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(binding->owner);
+    g_free(binding);
 }

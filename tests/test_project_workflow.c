@@ -72,7 +72,8 @@ int main(int argc, char **argv)
 {
     int largeSource = argc == 2 && strcmp(argv[1], "large-source") == 0;
     int diagnosticsFlow = argc == 2 && strcmp(argv[1], "diagnostics") == 0;
-    CHECK(argc == 1 || largeSource || diagnosticsFlow);
+    int projectFiles = argc == 2 && strcmp(argv[1], "project-files") == 0;
+    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -113,6 +114,39 @@ int main(int argc, char **argv)
     CHECK(umi_fs_join(source, sizeof(source), root, "src/main.c") == UMI_STATUS_OK);
     CHECK(umi_document_coordinator_open(documents, source, viewId, sizeof(viewId)) == UMI_STATUS_OK);
     CHECK(EditSource(workbench, viewId, "#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n", largeSource) == EXIT_SUCCESS);
+    if (projectFiles) {
+        UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+        UmiWorkspaceGraphSnapshot workspace;
+        UmiStudioProjectEntryResult created;
+        CHECK(umi_workspace_graph_snapshot(umi_studio_services_workspace(services), &workspace) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiCreateProjectEntry(ui, workspace.revision, "include",
+            UMI_WORKSPACE_ENTRY_DIRECTORY, &created) == UMI_STATUS_OK);
+        CHECK(created.entry.created);
+        CHECK(UmiStudioUiCreateProjectEntry(ui, workspace.revision, "include/notes.h",
+            UMI_WORKSPACE_ENTRY_FILE, &created) == UMI_STATUS_OK);
+        CHECK(created.entry.created && created.index_status == UMI_STATUS_OK &&
+            created.document_status == UMI_STATUS_OK);
+        CHECK(Edit(workbench, created.view_id,
+            "#ifndef UMICOM_NOTES_H\n#define UMICOM_NOTES_H\n#define UMICOM_NOTES_MESSAGE \"Umicom Notes: saved and built\"\n#endif\n") == EXIT_SUCCESS);
+        char *draft = NULL;
+        size_t draftLength = 0U;
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench),
+            viewId, &draft, &draftLength) == UMI_STATUS_OK);
+        CHECK(strstr(draft, "saved and built") != NULL);
+        UmiUiDocumentViewModelFreeText(draft);
+        CHECK(UmiStudioUiCreateProjectEntry(ui, workspace.revision, "include/notes.h",
+            UMI_WORKSPACE_ENTRY_FILE, &created) == UMI_STATUS_ALREADY_EXISTS);
+        CHECK(!created.entry.created);
+        CHECK(Edit(workbench, viewId,
+            "#include <stdio.h>\n#include \"../include/notes.h\"\nint main(void){puts(UMICOM_NOTES_MESSAGE);return 0;}\n") == EXIT_SUCCESS);
+        CHECK(umi_ui_workbench_activate_document(workbench, viewId) == UMI_STATUS_OK);
+        CHECK(umi_studio_workspace_set_trusted(services, 0) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiCreateProjectEntry(ui, 0U, "denied.c", UMI_WORKSPACE_ENTRY_FILE,
+            &created) == UMI_STATUS_PERMISSION_DENIED);
+        CHECK(umi_studio_workspace_set_trusted(services, 1) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiCreateProjectEntry(ui, workspace.revision, "stale.c", UMI_WORKSPACE_ENTRY_FILE,
+            &created) == UMI_STATUS_BUSY);
+    }
     CHECK(UmiDocumentCoordinatorSaveAll(documents, NULL) == UMI_STATUS_OK);
     CHECK(umi_build_result_create(&result) == UMI_STATUS_OK);
     CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_RUN,

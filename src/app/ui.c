@@ -493,3 +493,33 @@ int UmiStudioUiCanNavigateProblems(UmiStudioUi *ui)
         umi_diagnostic_pipeline_model(umi_studio_services_diagnostic_pipeline(ui->services)),
         &filter, 0, &problem) == UMI_STATUS_OK;
 }
+
+/* Studio composes existing Framework owners. The filesystem result remains
+ * explicit when an optional index or editor adoption cannot be completed. */
+UmiStatus UmiStudioUiCreateProjectEntry(UmiStudioUi *ui,
+    uint64_t expectedRevision, const char *relativePath,
+    UmiWorkspaceEntryKind kind, UmiStudioProjectEntryResult *outResult)
+{
+    UmiStatus status;
+    if (outResult == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    (void)memset(outResult, 0, sizeof(*outResult));
+    outResult->index_status = UMI_STATUS_NOT_FOUND;
+    outResult->document_status = UMI_STATUS_NOT_FOUND;
+    if (ui == NULL || ui->services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(umi_studio_services_build(ui->services)))
+        return UMI_STATUS_BUSY;
+    status = UmiWorkspaceCreateEntry(umi_studio_services_workspace(ui->services),
+        expectedRevision, relativePath, kind, &outResult->entry);
+    if (status != UMI_STATUS_OK) return status;
+    if (kind == UMI_WORKSPACE_ENTRY_FILE) {
+        outResult->index_status = umi_file_index_update(
+            umi_studio_services_file_index(ui->services), outResult->entry.path);
+        outResult->document_status = umi_document_coordinator_open(
+            ui->document_coordinator, outResult->entry.path, outResult->view_id,
+            sizeof(outResult->view_id));
+        if (outResult->document_status == UMI_STATUS_OK)
+            outResult->document_status = umi_ui_workbench_activate_document(
+                ui->workbench, outResult->view_id);
+    }
+    return UMI_STATUS_OK;
+}
