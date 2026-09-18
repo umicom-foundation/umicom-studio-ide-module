@@ -188,6 +188,16 @@ UmiStatus UmiStudioUiCreateProjectEntry(UmiStudioUi *ui,
     uint64_t expectedRevision, const char *relativePath,
     UmiWorkspaceEntryKind kind, UmiStudioProjectEntryResult *outResult);
 
+/** Refresh the open workspace's file list without scanning on the UI thread.
+ * This read-only operation does not grant trust, save documents, execute tools,
+ * or rediscover the workspace project graph. Call on the UI owner thread. */
+UmiStatus UmiStudioUiRefreshProjectFiles(UmiStudioUi *ui);
+/** Request cancellation of file-list refresh only; does not cancel a build. */
+UmiStatus UmiStudioUiCancelProjectFileRefresh(UmiStudioUi *ui);
+/** Copy Framework's refresh state for a status label; does not wait. */
+UmiStatus UmiStudioUiProjectFileRefreshState(UmiStudioUi *ui,
+    UmiFileIndexRefreshSnapshot *snapshot);
+
 #ifdef __cplusplus
 }
 #endif

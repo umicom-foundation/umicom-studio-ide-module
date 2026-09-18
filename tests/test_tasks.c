@@ -15,6 +15,10 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/tasks.h"
 
+/* This executable performs its setup in assertions; keep them active in Release. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <assert.h>
 #include <stdatomic.h>
 
@@ -58,6 +62,10 @@ int main(void)
                                              5000U) == UMI_STATUS_OK);
     assert(atomic_load(&counter) == 1);
 
+    /* Task completion precedes queue bookkeeping. Wait for queue idleness
+     * before checking aggregate counters, rather than depending on timing. */
+    assert(umi_task_queue_wait_idle(umi_studio_services_task_queue(services),
+                                    5000U) == UMI_STATUS_OK);
     stats = umi_studio_tasks_stats(services);
     assert(stats.submitted == 1U);
     assert(stats.completed == 1U);

@@ -523,3 +523,36 @@ UmiStatus UmiStudioUiCreateProjectEntry(UmiStudioUi *ui,
     }
     return UMI_STATUS_OK;
 }
+
+/* Only presentation context is checked here; Framework owns scanning, its
+ * worker, cancellation, bounded rows and revision-checked publication. */
+UmiStatus UmiStudioUiRefreshProjectFiles(UmiStudioUi *ui)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiFileIndex *index;
+    UmiFileIndexStats files;
+    UmiStatus status;
+    if (ui == NULL || ui->services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_workspace_graph_snapshot(
+        umi_studio_services_workspace(ui->services), &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.open) return UMI_STATUS_INVALID_STATE;
+    index = umi_studio_services_file_index(ui->services);
+    if (index == NULL) return UMI_STATUS_UNAVAILABLE;
+    files = umi_file_index_stats(index);
+    if (!umi_path_equal(files.root, workspace.root)) return UMI_STATUS_BUSY;
+    return UmiFileIndexRefreshStart(index, files.revision);
+}
+
+UmiStatus UmiStudioUiCancelProjectFileRefresh(UmiStudioUi *ui)
+{
+    if (ui == NULL || ui->services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiFileIndexRefreshCancel(umi_studio_services_file_index(ui->services));
+}
+
+UmiStatus UmiStudioUiProjectFileRefreshState(UmiStudioUi *ui,
+    UmiFileIndexRefreshSnapshot *snapshot)
+{
+    if (ui == NULL || ui->services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiFileIndexRefreshRead(umi_studio_services_file_index(ui->services), snapshot);
+}

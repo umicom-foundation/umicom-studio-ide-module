@@ -173,6 +173,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *explorer_search_entry;
     GtkWidget *explorer_list;
     GtkWidget *explorer_summary_label;
+    GtkWidget *explorer_refresh_status;
+    GtkWidget *explorer_refresh_button;
+    GtkWidget *explorer_cancel_refresh;
     GtkWidget *explorer_previous;
     GtkWidget *explorer_next;
     size_t explorer_offset;

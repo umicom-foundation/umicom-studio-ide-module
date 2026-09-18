@@ -73,7 +73,8 @@ int main(int argc, char **argv)
     int largeSource = argc == 2 && strcmp(argv[1], "large-source") == 0;
     int diagnosticsFlow = argc == 2 && strcmp(argv[1], "diagnostics") == 0;
     int projectFiles = argc == 2 && strcmp(argv[1], "project-files") == 0;
-    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles);
+    int backgroundRefresh = argc == 2 && strcmp(argv[1], "background-refresh") == 0;
+    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -114,6 +115,38 @@ int main(int argc, char **argv)
     CHECK(umi_fs_join(source, sizeof(source), root, "src/main.c") == UMI_STATUS_OK);
     CHECK(umi_document_coordinator_open(documents, source, viewId, sizeof(viewId)) == UMI_STATUS_OK);
     CHECK(EditSource(workbench, viewId, "#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n", largeSource) == EXIT_SUCCESS);
+    if (backgroundRefresh) {
+        UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+        UmiFileIndex *index = umi_studio_services_file_index(services);
+        UmiFileIndexRefreshSnapshot refresh;
+        UmiFileIndexStats before = umi_file_index_stats(index);
+        char added[UMI_PATH_CAPACITY];
+        char *draft = NULL, *disk = NULL;
+        size_t length = 0U;
+        CHECK(umi_path_join(root, "notes-created-externally.txt", added, sizeof(added)) == UMI_STATUS_OK);
+        CHECK(umi_fs_write_text(added, "A file created outside Studio.\n") == UMI_STATUS_OK);
+        CHECK(UmiStudioUiRefreshProjectFiles(ui) == UMI_STATUS_OK);
+        /* This exercises the UI facade while the real worker scans; no wait or
+         * disk scan is hidden inside the normal UI refresh operation. */
+        for (unsigned attempt = 0U; attempt < 3000U; ++attempt) {
+            CHECK(umi_studio_ui_refresh(ui) == UMI_STATUS_OK);
+            CHECK(UmiStudioUiProjectFileRefreshState(ui, &refresh) == UMI_STATUS_OK);
+            if (!refresh.active) break;
+            umi_thread_sleep_ms(1U);
+        }
+        CHECK(!refresh.active && refresh.status == UMI_STATUS_OK && refresh.requestId == 1U);
+        CHECK(umi_file_index_stats(index).files == before.files + 1U);
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench),
+            viewId, &draft, &length) == UMI_STATUS_OK);
+        CHECK(strstr(draft, "Umicom Notes: saved and built") != NULL);
+        UmiUiDocumentViewModelFreeText(draft);
+        CHECK(umi_fs_read_text(source, &disk, NULL) == UMI_STATUS_OK);
+        CHECK(strstr(disk, "Umicom Notes: saved and built") == NULL);
+        umi_fs_free_text(disk);
+        CHECK(UmiStudioUiCancelProjectFileRefresh(ui) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiRefreshProjectFiles(NULL) == UMI_STATUS_INVALID_ARGUMENT);
+        CHECK(UmiStudioUiProjectFileRefreshState(ui, NULL) == UMI_STATUS_INVALID_ARGUMENT);
+    }
     if (projectFiles) {
         UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
         UmiWorkspaceGraphSnapshot workspace;
@@ -152,6 +185,12 @@ int main(int argc, char **argv)
     CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_RUN,
         "background", message, sizeof(message)) == UMI_STATUS_OK);
     CHECK(umi_studio_workspace_close(services) == UMI_STATUS_BUSY);
+    if (backgroundRefresh) {
+        UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+        CHECK(UmiStudioUiRefreshProjectFiles(ui) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiCancelProjectFileRefresh(ui) == UMI_STATUS_OK);
+        CHECK(UmiFileIndexRefreshWait(umi_studio_services_file_index(services), 10000U) == UMI_STATUS_OK);
+    }
     CHECK(Wait(build, UMI_STATUS_OK, result) == EXIT_SUCCESS);
     CHECK(result->phase == UMI_BUILD_PHASE_RUN);
     CHECK(strstr(result->output, "Umicom Notes: saved and built") != NULL);
@@ -230,6 +269,10 @@ int main(int argc, char **argv)
         UmiUiDocumentViewSnapshot view;
         CHECK(umi_ui_document_view_model_find(umi_ui_workbench_documents(workbench),viewId,&view)==UMI_STATUS_OK);
         CHECK(view.cursor_offset==23U); /* first line 19 bytes, then byte column 5 */
+    }
+    if (backgroundRefresh) {
+        CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiRefreshProjectFiles(umi_studio_bootstrap_ui(bootstrap)) == UMI_STATUS_INVALID_STATE);
     }
     CHECK(umi_studio_bootstrap_stop(bootstrap) == UMI_STATUS_OK);
     umi_studio_bootstrap_destroy(bootstrap); umi_build_result_destroy(result);

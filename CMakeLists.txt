@@ -2269,3 +2269,13 @@ if(BUILD_TESTING)
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-files"
         LABELS "studio;project-files;integration;toolchain")
 endif()
+
+# Keep the ordinary, large-source, diagnostic and project-file journeys intact.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-refresh")
+    add_test(NAME studio.project_workflow.background_refresh
+        COMMAND umicom-studio-project-workflow-test background-refresh)
+    set_tests_properties(studio.project_workflow.background_refresh PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-refresh"
+        TIMEOUT 180 LABELS "studio;background-refresh;integration;toolchain")
+endif()

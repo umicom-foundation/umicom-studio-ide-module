@@ -98,6 +98,47 @@ static void runtime_on_explorer_row_clicked(GtkButton *button, gpointer user_dat
     g_clear_object(&window);
 }
 
+/* Existing main-thread refresh ticks read copied state; the worker never
+ * touches widgets. Updating this label does not rebuild unchanged file rows. */
+static void RuntimeExplorerRefreshState(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiFileIndexRefreshSnapshot refresh;
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiStudioUi *ui = runtime->owner->ui;
+    char message[256];
+    int open = umi_workspace_graph_snapshot(umi_studio_services_workspace(
+        umi_studio_ui_services(ui)), &workspace) == UMI_STATUS_OK && workspace.open;
+    UmiStatus status = UmiStudioUiProjectFileRefreshState(ui, &refresh);
+    if (status != UMI_STATUS_OK) {
+        (void)snprintf(message, sizeof(message), "Refresh status: %s", umi_status_text(status));
+    } else if (!open) {
+        (void)snprintf(message, sizeof(message), "Open a workspace to refresh its files.");
+    } else if (refresh.requestId != 0U && !umi_path_equal(refresh.sourceRoot, workspace.root)) {
+        (void)snprintf(message, sizeof(message), "%s", refresh.active ?
+            "Finishing the previous workspace refresh; its results cannot replace this file list." :
+            "Refresh checks the project for file changes.");
+    } else if (refresh.active) {
+        (void)snprintf(message, sizeof(message), "%s: %zu files scanned; the previous list remains available.",
+            refresh.cancellationRequested ? "Cancelling refresh" : "Refreshing",
+            refresh.filesScanned);
+    } else if (refresh.requestId == 0U) {
+        (void)snprintf(message, sizeof(message), "Refresh checks the project for file changes.");
+    } else if (refresh.status == UMI_STATUS_OK) {
+        (void)snprintf(message, sizeof(message), "Refresh complete: %zu files scanned.", refresh.filesScanned);
+    } else {
+        (void)snprintf(message, sizeof(message), "Refresh: %s. No partial scan was published.",
+            umi_status_text(refresh.status));
+    }
+    if (runtime->explorer_refresh_status != NULL)
+        gtk_label_set_text(GTK_LABEL(runtime->explorer_refresh_status), message);
+    if (runtime->explorer_refresh_button != NULL)
+        gtk_widget_set_sensitive(runtime->explorer_refresh_button,
+            status == UMI_STATUS_OK && open && !refresh.active);
+    if (runtime->explorer_cancel_refresh != NULL)
+        gtk_widget_set_sensitive(runtime->explorer_cancel_refresh,
+            status == UMI_STATUS_OK && refresh.active && !refresh.cancellationRequested);
+}
+
 /*
  * Provide the runtime explorer refresh list operation used by this module and its client
  * applications.
@@ -115,6 +156,7 @@ static void runtime_explorer_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
     services = umi_studio_ui_services(runtime->owner->ui);
     index = services != NULL ? umi_studio_services_file_index(services) : NULL;
     if (index == NULL) return;
+    RuntimeExplorerRefreshState(runtime);
     stats = umi_file_index_stats(index);
     /* Status ticks must not replace unchanged buttons and steal keyboard focus. */
     if (runtime->explorer_rendered && runtime->explorer_revision == stats.revision &&
@@ -301,8 +343,6 @@ static void runtime_on_explorer_refresh(
 {
     UmiStudioGtkRuntimeChrome *runtime =
         (UmiStudioGtkRuntimeChrome *)user_data;
-    UmiStudioServices *services;
-    UmiFileIndex *index;
     UmiStatus status;
     (void)button;
 
@@ -312,14 +352,7 @@ static void runtime_on_explorer_refresh(
      */
     if (runtime == NULL || runtime->owner == NULL) return;
 
-    services = umi_studio_ui_services(runtime->owner->ui);
-    index = services != NULL
-        ? umi_studio_services_file_index(services)
-        : NULL;
-
-    status = index != NULL
-        ? umi_file_index_rebuild(index)
-        : UMI_STATUS_UNAVAILABLE;
+    status = UmiStudioUiRefreshProjectFiles(runtime->owner->ui);
 
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
@@ -386,6 +419,13 @@ static void RuntimeExplorerNewFolderInvoked(gpointer widget, UmiStudioGtkRuntime
 { RuntimeExplorerNewFolder(GTK_BUTTON(widget), runtime); }
 static void RuntimeExplorerRefreshInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
 { runtime_on_explorer_refresh(GTK_BUTTON(widget), runtime); }
+static void RuntimeExplorerCancelRefreshInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
+{
+    (void)widget;
+    UmiStatus status = UmiStudioUiCancelProjectFileRefresh(runtime->owner->ui);
+    if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+    runtime_explorer_refresh_list(runtime);
+}
 static void RuntimeExplorerSearchInvoked(gpointer widget, UmiStudioGtkRuntimeChrome *runtime)
 { runtime_on_explorer_search_changed(GTK_SEARCH_ENTRY(widget), runtime); }
 
@@ -405,6 +445,9 @@ static void RuntimeExplorerListReleased(gpointer data)
         runtime->explorer_list = NULL;
         runtime->explorer_search_entry = NULL;
         runtime->explorer_summary_label = NULL;
+        runtime->explorer_refresh_status = NULL;
+        runtime->explorer_refresh_button = NULL;
+        runtime->explorer_cancel_refresh = NULL;
         runtime->explorer_previous = NULL;
         runtime->explorer_next = NULL;
         runtime->explorer_rendered = 0;

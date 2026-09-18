@@ -47,6 +47,7 @@ static GtkWidget *runtime_build_surface_explorer(
     GtkWidget *open_folder;
     GtkWidget *save;
     GtkWidget *refresh;
+    GtkWidget *cancelRefresh;
     GtkWidget *scroll;
     GtkWidget *about;
     char value[64];
@@ -61,6 +62,9 @@ static GtkWidget *runtime_build_surface_explorer(
     runtime->explorer_offset = 0U;
     runtime->explorer_summary_label = runtime_label("", 0.0F);
     runtime->explorer_search_entry = gtk_search_entry_new();
+    runtime->explorer_refresh_status = NULL;
+    runtime->explorer_refresh_button = NULL;
+    runtime->explorer_cancel_refresh = NULL;
 
     (void)snprintf(
         value,
@@ -112,6 +116,14 @@ static GtkWidget *runtime_build_surface_explorer(
         "file.save",
         "Save the active Framework document");
     refresh = gtk_button_new_from_icon_name("view-refresh-symbolic");
+    cancelRefresh = gtk_button_new_from_icon_name("process-stop-symbolic");
+    runtime->explorer_refresh_button = refresh;
+    runtime->explorer_cancel_refresh = cancelRefresh;
+    runtime->explorer_refresh_status = runtime_label("", 0.0F);
+    gtk_label_set_wrap(GTK_LABEL(runtime->explorer_refresh_status), TRUE);
+    g_object_set_data(G_OBJECT(runtime->explorer_refresh_status), "umicom-automation-id",
+        "umicom-explorer-refresh-status");
+    gtk_box_append(GTK_BOX(panel), runtime->explorer_refresh_status);
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -132,20 +144,25 @@ static GtkWidget *runtime_build_surface_explorer(
      */
     if (actions != NULL && new_file != NULL &&
         open_file != NULL && open_folder != NULL &&
-        save != NULL && refresh != NULL) {
+        save != NULL && refresh != NULL && cancelRefresh != NULL) {
         RuntimeExplorerBindControl(runtime, new_file, "clicked", "umicom-explorer-untitled",
             RuntimeExplorerUntitledInvoked);
         gtk_widget_set_tooltip_text(new_file, "Create a new source file");
-        gtk_widget_set_tooltip_text(refresh, "Refresh the workspace index");
+        gtk_widget_set_tooltip_text(refresh, "Refresh project files in the background; keep editing while the scan runs");
+        gtk_widget_set_tooltip_text(cancelRefresh, "Cancel file-list refresh without cancelling a build or changing your documents");
+        gtk_widget_set_sensitive(cancelRefresh, FALSE);
         gtk_widget_add_css_class(actions, "umicom-runtime-panel-actions");
         RuntimeExplorerBindControl(runtime, refresh, "clicked", "umicom-explorer-refresh",
             RuntimeExplorerRefreshInvoked);
+        RuntimeExplorerBindControl(runtime, cancelRefresh, "clicked", "umicom-explorer-cancel-refresh",
+            RuntimeExplorerCancelRefreshInvoked);
 
         gtk_box_append(GTK_BOX(actions), new_file);
         gtk_box_append(GTK_BOX(actions), open_file);
         gtk_box_append(GTK_BOX(actions), open_folder);
         gtk_box_append(GTK_BOX(actions), save);
         gtk_box_append(GTK_BOX(actions), refresh);
+        gtk_box_append(GTK_BOX(actions), cancelRefresh);
         gtk_box_append(GTK_BOX(panel), actions);
     }
 

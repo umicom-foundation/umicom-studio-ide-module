@@ -426,6 +426,7 @@ static int VerifyProjectExplorer(GtkApplication *application, const char *fixtur
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL;
     GtkWidget *oldRow = NULL, *oldNext = NULL, *oldCreate = NULL;
+    GtkWidget *oldRefresh = NULL, *oldCancel = NULL;
     GtkWidget *window, *list, *filter, *row, *next, *create;
     UmiUiDocumentViewModel *documents = NULL;
     char *root = g_build_filename(fixture, "explorer-project", NULL);
@@ -454,6 +455,22 @@ static int VerifyProjectExplorer(GtkApplication *application, const char *fixtur
     create = find_tag(window, "umicom-explorer-create-file");
     REQUIRE(GTK_IS_LIST_BOX(list) && GTK_IS_SEARCH_ENTRY(filter) &&
         GTK_IS_BUTTON(next) && GTK_IS_BUTTON(create));
+    GtkWidget *refreshButton = find_tag(window, "umicom-explorer-refresh");
+    GtkWidget *cancelButton = find_tag(window, "umicom-explorer-cancel-refresh");
+    GtkWidget *refreshLabel = find_tag(window, "umicom-explorer-refresh-status");
+    REQUIRE(GTK_IS_BUTTON(refreshButton) && GTK_IS_BUTTON(cancelButton) && GTK_IS_LABEL(refreshLabel));
+    oldRefresh = g_object_ref(refreshButton); oldCancel = g_object_ref(cancelButton);
+    REQUIRE(!gtk_widget_get_sensitive(cancelButton));
+    g_signal_emit_by_name(refreshButton, "clicked");
+    UmiFileIndexRefreshSnapshot refreshState;
+    for (unsigned attempt = 0U; attempt < 3000U; ++attempt) {
+        REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK && drain_context());
+        REQUIRE(UmiStudioUiProjectFileRefreshState(umi_studio_bootstrap_ui(bootstrap), &refreshState) == UMI_STATUS_OK);
+        if (!refreshState.active) break;
+        umi_thread_sleep_ms(1U);
+    }
+    REQUIRE(!refreshState.active && refreshState.status == UMI_STATUS_OK && refreshState.filesScanned == 605U);
+    REQUIRE(strstr(gtk_label_get_text(GTK_LABEL(refreshLabel)), "Refresh complete") != NULL);
     oldNext = g_object_ref(next); oldCreate = g_object_ref(create);
     REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 599) != NULL);
     REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 600) == NULL);
@@ -484,6 +501,8 @@ static int VerifyProjectExplorer(GtkApplication *application, const char *fixtur
     /* Retained controls must not resurrect dialogs or access the freed owner. */
     g_signal_emit_by_name(oldNext, "clicked");
     g_signal_emit_by_name(oldCreate, "clicked");
+    g_signal_emit_by_name(oldRefresh, "clicked");
+    g_signal_emit_by_name(oldCancel, "clicked");
     g_signal_emit_by_name(oldRow, "clicked");
     REQUIRE(drain_context() && all_windows_unpresented());
 cleanup:
@@ -491,6 +510,8 @@ cleanup:
     if (oldRow != NULL) g_object_unref(oldRow);
     if (oldNext != NULL) g_object_unref(oldNext);
     if (oldCreate != NULL) g_object_unref(oldCreate);
+    if (oldRefresh != NULL) g_object_unref(oldRefresh);
+    if (oldCancel != NULL) g_object_unref(oldCancel);
     umi_studio_bootstrap_destroy(bootstrap);
     g_free(root);
     return failed;
