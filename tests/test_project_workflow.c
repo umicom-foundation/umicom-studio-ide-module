@@ -74,8 +74,9 @@ int main(int argc, char **argv)
     int diagnosticsFlow = argc == 2 && strcmp(argv[1], "diagnostics") == 0;
     int projectFiles = argc == 2 && strcmp(argv[1], "project-files") == 0;
     int backgroundRefresh = argc == 2 && strcmp(argv[1], "background-refresh") == 0;
+    int reloadFlow = argc == 2 && strcmp(argv[1], "reload") == 0;
     int fileSearch = argc == 2 && strcmp(argv[1], "find-in-files") == 0;
-    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch);
+    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -116,6 +117,32 @@ int main(int argc, char **argv)
     CHECK(umi_fs_join(source, sizeof(source), root, "src/main.c") == UMI_STATUS_OK);
     CHECK(umi_document_coordinator_open(documents, source, viewId, sizeof(viewId)) == UMI_STATUS_OK);
     CHECK(EditSource(workbench, viewId, "#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n", largeSource) == EXIT_SUCCESS);
+    if (reloadFlow) {
+        const char *diskSource = "/* saved by another editor */\n#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n";
+        UmiDocumentWorkingCopySnapshot target, active;
+        UmiDocumentReloadPlan *plan = NULL;
+        char sidePath[UMI_PATH_CAPACITY], sideView[UMI_UI_ID_CAPACITY];
+        CHECK(umi_document_coordinator_active_snapshot(documents, &target) == UMI_STATUS_OK && target.dirty);
+        CHECK(umi_fs_write_text(source, diskSource) == UMI_STATUS_OK);
+        CHECK(UmiDocumentCoordinatorPrepareReload(documents, target.document_id, &plan) == UMI_STATUS_OK);
+        CHECK(UmiDocumentCoordinatorApplyReload(documents, plan, 0) == UMI_STATUS_INVALID_STATE);
+        CHECK(umi_fs_join(sidePath, sizeof sidePath, root, "notes.txt") == UMI_STATUS_OK);
+        CHECK(umi_fs_write_text(sidePath, "saved side note\n") == UMI_STATUS_OK);
+        CHECK(umi_document_coordinator_open(documents, sidePath, sideView, sizeof sideView) == UMI_STATUS_OK);
+        CHECK(Edit(workbench, sideView, "unsaved side note\n") == EXIT_SUCCESS);
+        CHECK(UmiDocumentCoordinatorApplyReload(documents, plan, 1) == UMI_STATUS_OK);
+        UmiDocumentReloadPlanDestroy(plan);
+        CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+        CHECK(strcmp(active.view_id, sideView) == 0 && active.dirty);
+        char *text = NULL; size_t length = 0U;
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench), sideView, &text, &length) == UMI_STATUS_OK);
+        CHECK(strcmp(text, "unsaved side note\n") == 0); UmiUiDocumentViewModelFreeText(text);
+        CHECK(umi_ui_workbench_activate_document(workbench, viewId) == UMI_STATUS_OK);
+        CHECK(umi_document_coordinator_undo(documents) == UMI_STATUS_OK);
+        CHECK(umi_document_coordinator_redo(documents) == UMI_STATUS_OK);
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench), viewId, &text, &length) == UMI_STATUS_OK);
+        CHECK(strcmp(text, diskSource) == 0); UmiUiDocumentViewModelFreeText(text);
+    }
     if (backgroundRefresh) {
         UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
         UmiFileIndex *index = umi_studio_services_file_index(services);

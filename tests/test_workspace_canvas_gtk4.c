@@ -548,6 +548,7 @@ int main(void)
     GtkWidget *selector = NULL;
     GtkWidget *old_context_button = NULL;
     GtkWidget *last_context_button = NULL;
+    GtkWidget *retained_reload = NULL;
     GtkWidget *native_window;
     GtkWidget *titlebar;
     GtkWidget *identity;
@@ -722,6 +723,7 @@ int main(void)
     REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
     REQUIRE(layout->window_count == 0U && buffer_contains(buffer, draft) && has_unicode_selection(buffer));
     REQUIRE(!gtk_widget_get_sensitive(old_context_button));
+    g_signal_emit_by_name(retained_reload, "clicked");
     g_signal_emit_by_name(old_context_button, "clicked");
 
     /* Normal-mode discovery reopens Editor from a locked empty canvas. A
@@ -923,6 +925,11 @@ int main(void)
         REQUIRE(complete);
     }
 
+    /* Retained editor controls must resolve their weak native owner too. */
+    retained_reload = find_tag(native_window, "studio.editor.reload");
+    REQUIRE(GTK_IS_BUTTON(retained_reload));
+    g_object_ref(retained_reload);
+
     /* Closing the real owner cancels a queued callback before services die. */
     last_context_button = find_context_group(editor_root);
     REQUIRE(last_context_button != NULL);
@@ -951,6 +958,7 @@ cleanup:
     if (selector != NULL) g_object_unref(selector);
     if (old_context_button != NULL) g_object_unref(old_context_button);
     if (last_context_button != NULL) g_object_unref(last_context_button);
+    if (retained_reload != NULL) g_object_unref(retained_reload);
     umi_studio_bootstrap_destroy(bootstrap);
     umi_settings_destroy(settings);
     if (application != NULL) g_object_unref(application);

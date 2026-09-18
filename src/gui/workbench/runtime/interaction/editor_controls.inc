@@ -16,6 +16,52 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* A toolbar may outlive its native owner while a test or accessibility client
+ * retains a control. Resolve the existing weak owner before every action. */
+typedef struct UmiStudioGtkEditorAction {
+    UmiStudioFileDialogRequest *ownerRequest;
+    void (*clicked)(GtkButton *button, gpointer runtime);
+} UmiStudioGtkEditorAction;
+
+static void runtime_editor_action_destroy(gpointer data, GClosure *closure)
+{
+    UmiStudioGtkEditorAction *action = data;
+    (void)closure;
+    if (action == NULL) return;
+    runtime_file_dialog_request_free(action->ownerRequest);
+    free(action);
+}
+
+static void runtime_editor_action_clicked(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkEditorAction *action = data;
+    GObject *ownerWindow = NULL;
+    if (action == NULL) return;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(action->ownerRequest, &ownerWindow);
+    /* A retained button from a removed panel is no longer a user action in
+     * this window, even when the window itself is still alive. */
+    if (runtime != NULL &&
+        (gpointer)gtk_widget_get_root(GTK_WIDGET(button)) == (gpointer)ownerWindow)
+        action->clicked(button, runtime);
+    g_clear_object(&ownerWindow);
+}
+
+static void runtime_bind_editor_action(UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *button, void (*clicked)(GtkButton *, gpointer))
+{
+    UmiStudioGtkEditorAction *action = calloc(1U, sizeof *action);
+    if (action != NULL) action->ownerRequest = runtime_file_dialog_request_new(runtime, 0U);
+    if (action == NULL || action->ownerRequest == NULL) {
+        runtime_editor_action_destroy(action, NULL);
+        gtk_widget_set_sensitive(button, FALSE);
+        runtime_show_notification(runtime, "Could not attach an editor action. Close and reopen the editor panel.");
+        return;
+    }
+    action->clicked = clicked;
+    g_signal_connect_data(button, "clicked", G_CALLBACK(runtime_editor_action_clicked),
+        action, runtime_editor_action_destroy, 0);
+}
+
 static UmiDocumentCoordinator *runtime_documents(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -60,14 +106,16 @@ static void runtime_editor_update_info(
     (void)snprintf(
         text,
         sizeof(text),
-        "%s%s — %s — %s — %s — %zu bytes — rev %llu",
+        "%s%s — %s — %s — %s — %zu bytes — rev %llu%s",
         active.display_name,
         active.dirty ? " •" : "",
         active.language_id,
         umi_document_encoding_text(active.encoding),
         umi_document_line_ending_text(active.line_ending),
         active.text_length,
-        (unsigned long long)active.revision);
+        (unsigned long long)active.revision,
+        active.conflict == UMI_DOCUMENT_CONFLICT_EXTERNAL_CHANGE ? " — saved file changed" :
+        active.conflict == UMI_DOCUMENT_CONFLICT_DELETED_EXTERNALLY ? " — saved file missing" : "");
 
     gtk_label_set_text(
         GTK_LABEL(runtime->editor_info_label),
@@ -351,26 +399,67 @@ static void runtime_on_editor_external_check(
     GtkButton *button,
     gpointer user_data)
 {
-    UmiStudioGtkRuntimeChrome *runtime =
-        (UmiStudioGtkRuntimeChrome *)user_data;
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    UmiDocumentWorkingCopySnapshot active;
     int changed = 0;
-    UmiStatus status;
     (void)button;
+    UmiStatus status = umi_document_coordinator_active_snapshot(runtime_documents(runtime), &active);
+    if (status != UMI_STATUS_OK) { runtime_show_notification(runtime, umi_status_text(status)); return; }
+    status = UmiDocumentCoordinatorCheckExternalChange(runtime_documents(runtime), active.document_id, &changed);
+    if (status == UMI_STATUS_NOT_FOUND && changed)
+        runtime_show_notification(runtime, "The saved file is missing. Your draft is kept; use Save As to preserve another copy.");
+    else if (status == UMI_STATUS_OK)
+        runtime_show_notification(runtime, changed
+            ? "The saved file changed. Review it with Reload from disk, or keep your draft using Save As."
+            : "No external file change detected.");
+    else runtime_show_notification(runtime, umi_status_text(status));
+    runtime_editor_update_info(runtime);
+}
 
-    status = umi_document_coordinator_check_external_change(
-        runtime_documents(runtime),
-        &changed);
+static void runtime_reload_plan_destroy(gpointer data)
+{
+    UmiDocumentReloadPlanDestroy(data);
+}
 
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
+static UmiStatus runtime_reload_accepted(UmiStudioGtkRuntimeChrome *runtime, void *data)
+{
+    UmiStatus status = UmiDocumentCoordinatorApplyReload(runtime_documents(runtime), data, 1);
     if (status == UMI_STATUS_OK) {
-        runtime_show_notification(
-            runtime,
-            changed
-                ? "The active file changed outside Studio."
-                : "No external file change detected.");
-    } /* Use this fallback path when the earlier condition does not apply. */ else {
-        runtime_show_notification(runtime, umi_status_text(status));
+        runtime_show_notification(runtime, "Saved file reloaded. Undo restores the previous text; no file was written.");
+        (void)runtime_refresh_services(runtime);
     }
+    return status;
+}
+
+/* The Framework plan binds the question to this document and these bytes,
+ * rather than whichever editor happens to be active when it is answered. */
+static void runtime_on_editor_reload(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    UmiDocumentWorkingCopySnapshot active;
+    UmiDocumentReloadSummary summary;
+    UmiDocumentReloadPlan *plan = NULL;
+    char message[1024];
+    (void)button;
+    UmiStatus status = umi_document_coordinator_active_snapshot(runtime_documents(runtime), &active);
+    if (status == UMI_STATUS_OK)
+        status = UmiDocumentCoordinatorPrepareReload(runtime_documents(runtime), active.document_id, &plan);
+    if (status == UMI_STATUS_OK) status = UmiDocumentReloadPlanSummary(plan, &summary);
+    if (status == UMI_STATUS_OK) {
+        (void)snprintf(message, sizeof message,
+            "Reload %s from its saved file?\n\n%s\n\nCurrent text: %zu bytes. Saved text: %zu bytes. "
+            "The file on disk will not be changed. Undo can restore the previous text while the document remains open.",
+            summary.display_name,
+            summary.has_unsaved_changes
+                ? "This will replace unsaved text in this document. Choose Cancel or use Save As to keep a separate copy first."
+                : "The saved version will replace the text in this document.",
+            summary.previous_bytes, summary.incoming_bytes);
+        status = runtime_confirm_owned(runtime, "Reload from disk?", message,
+            "Reload", summary.document_id, runtime_reload_accepted, plan, runtime_reload_plan_destroy);
+        if (status == UMI_STATUS_OK) plan = NULL; /* The dialog now owns it. */
+    }
+    UmiDocumentReloadPlanDestroy(plan);
+    if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
 }
 
 /*
@@ -390,6 +479,7 @@ static GtkWidget *runtime_build_editor_command_bar(
     GtkWidget *replace;
     GtkWidget *go_to;
     GtkWidget *external;
+    GtkWidget *reload;
     GtkWidget *more;
 
     /*
@@ -413,6 +503,7 @@ static GtkWidget *runtime_build_editor_command_bar(
     replace = gtk_button_new_with_label("Replace");
     go_to = gtk_button_new_with_label("Go");
     external = gtk_button_new_with_label("External?");
+    reload = gtk_button_new_with_label("Reload from disk");
     more = runtime_context_actions_expander(runtime, "editor");
 
     /*
@@ -426,7 +517,7 @@ static GtkWidget *runtime_build_editor_command_bar(
         runtime->editor_info_label == NULL ||
         undo == NULL || redo == NULL || save == NULL ||
         find == NULL || previous == NULL || replace_all == NULL || replace == NULL || go_to == NULL ||
-        external == NULL) {
+        external == NULL || reload == NULL) {
         return bar;
     }
 
@@ -449,27 +540,19 @@ static GtkWidget *runtime_build_editor_command_bar(
     gtk_widget_set_size_request(runtime->editor_replace_entry, 150, -1);
     gtk_widget_set_size_request(runtime->editor_goto_entry, 70, -1);
 
-    g_signal_connect(
-        undo, "clicked",
-        G_CALLBACK(runtime_on_editor_undo), runtime);
-    g_signal_connect(
-        redo, "clicked",
-        G_CALLBACK(runtime_on_editor_redo), runtime);
-    g_signal_connect(
-        save, "clicked",
-        G_CALLBACK(runtime_on_editor_save), runtime);
-    g_signal_connect(
-        find, "clicked",
-        G_CALLBACK(runtime_on_editor_find), runtime);
-    g_signal_connect(
-        replace, "clicked",
-        G_CALLBACK(runtime_on_editor_replace), runtime);
-    g_signal_connect(
-        go_to, "clicked",
-        G_CALLBACK(runtime_on_editor_goto), runtime);
-    g_signal_connect(
-        external, "clicked",
-        G_CALLBACK(runtime_on_editor_external_check), runtime);
+    runtime_bind_editor_action(runtime, undo, runtime_on_editor_undo);
+    runtime_bind_editor_action(runtime, redo, runtime_on_editor_redo);
+    runtime_bind_editor_action(runtime, save, runtime_on_editor_save);
+    runtime_bind_editor_action(runtime, find, runtime_on_editor_find);
+    runtime_bind_editor_action(runtime, replace, runtime_on_editor_replace);
+    runtime_bind_editor_action(runtime, go_to, runtime_on_editor_goto);
+    runtime_bind_editor_action(runtime, external, runtime_on_editor_external_check);
+
+    gtk_widget_set_tooltip_text(reload,
+        "Review the saved version before replacing this document. Unsaved text requires confirmation; Undo restores the previous text.");
+    (void)umi_gtk4_automation_tag_widget(reload, "studio.editor.reload");
+    (void)umi_gtk4_automation_tag_widget(external, "studio.editor.check-external");
+    runtime_bind_editor_action(runtime, reload, runtime_on_editor_reload);
 
     gtk_widget_set_tooltip_text(find, "Find the next occurrence. Search wraps at the end of the document.");
     gtk_widget_set_tooltip_text(previous, "Find the previous occurrence. Search wraps at the beginning.");
@@ -477,8 +560,8 @@ static GtkWidget *runtime_build_editor_command_bar(
     (void)umi_gtk4_automation_tag_widget(find, "studio.editor.find-next");
     (void)umi_gtk4_automation_tag_widget(previous, "studio.editor.find-previous");
     (void)umi_gtk4_automation_tag_widget(replace_all, "studio.editor.replace-all");
-    g_signal_connect(previous, "clicked", G_CALLBACK(runtime_on_editor_find_previous), runtime);
-    g_signal_connect(replace_all, "clicked", G_CALLBACK(runtime_on_editor_replace_all), runtime);
+    runtime_bind_editor_action(runtime, previous, runtime_on_editor_find_previous);
+    runtime_bind_editor_action(runtime, replace_all, runtime_on_editor_replace_all);
 
     gtk_box_append(GTK_BOX(bar), undo);
     gtk_box_append(GTK_BOX(bar), redo);
@@ -492,6 +575,7 @@ static GtkWidget *runtime_build_editor_command_bar(
     gtk_box_append(GTK_BOX(bar), runtime->editor_goto_entry);
     gtk_box_append(GTK_BOX(bar), go_to);
     gtk_box_append(GTK_BOX(bar), external);
+    gtk_box_append(GTK_BOX(bar), reload);
     gtk_box_append(GTK_BOX(bar), runtime->editor_info_label);
     /*
      * Protect caller-owned memory by checking that required state is available before it is

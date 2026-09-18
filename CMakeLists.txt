@@ -2293,3 +2293,18 @@ endif()
 # Install the public search walkthrough beside the existing editing guides.
 install(FILES docs/FIND_IN_FILES.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Reload the intended document while another unsaved tab stays active, then
+# exercise the same real configure/build/run/test/install pipeline.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-reload")
+    add_test(NAME studio.project_workflow.reload
+        COMMAND umicom-studio-project-workflow-test reload)
+    set_tests_properties(studio.project_workflow.reload PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-reload"
+        TIMEOUT 180 LABELS "studio;document;reload;integration;toolchain")
+endif()
+
+# Install the saved-file workflow alongside the existing editor lessons.
+install(FILES docs/RELOADING_FILES.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
