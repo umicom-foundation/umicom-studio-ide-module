@@ -124,7 +124,7 @@ static UmiStatus runtime_confirm_full(
     UmiStudioGtkDocumentConfirmAccepted documentAccepted,
     UmiDocumentId documentId,
     UmiStudioGtkOwnedConfirmAccepted ownedAccepted,
-    void *ownedData, GDestroyNotify ownedDestroy)
+    void *ownedData, GDestroyNotify ownedDestroy, GtkWidget *reviewContent)
 {
     UmiStudioGtkConfirmContext *context;
     GtkWidget *window;
@@ -185,7 +185,8 @@ static UmiStatus runtime_confirm_full(
         GTK_WINDOW(window),
         runtime->owner->window);
     gtk_window_set_destroy_with_parent(GTK_WINDOW(window), TRUE);
-    gtk_window_set_default_size(GTK_WINDOW(window), 500, 200);
+    gtk_window_set_default_size(GTK_WINDOW(window), reviewContent != NULL ? 1100 : 500,
+        reviewContent != NULL ? 700 : 200);
 
     gtk_widget_set_margin_top(root, 16);
     gtk_widget_set_margin_bottom(root, 16);
@@ -195,6 +196,10 @@ static UmiStatus runtime_confirm_full(
     gtk_box_append(
         GTK_BOX(root),
         runtime_label(message, 0.0F));
+    if (reviewContent != NULL) {
+        gtk_widget_set_vexpand(reviewContent, TRUE);
+        gtk_box_append(GTK_BOX(root), reviewContent);
+    }
     gtk_widget_set_halign(buttons, GTK_ALIGN_END);
     gtk_box_append(GTK_BOX(buttons), cancel);
     gtk_box_append(GTK_BOX(buttons), accept);
@@ -232,7 +237,7 @@ static UmiStatus runtime_confirm(UmiStudioGtkRuntimeChrome *runtime,
     const char *title, const char *message, const char *accept_label,
     UmiStudioGtkConfirmAccepted accepted)
 {
-    return runtime_confirm_full(runtime, title, message, accept_label, accepted, NULL, 0U, NULL, NULL, NULL);
+    return runtime_confirm_full(runtime, title, message, accept_label, accepted, NULL, 0U, NULL, NULL, NULL, NULL);
 }
 
 /* Capture the document identity when the question is asked, not when answered. */
@@ -240,7 +245,7 @@ static UmiStatus runtime_confirm_document(UmiStudioGtkRuntimeChrome *runtime,
     const char *title, const char *message, const char *accept_label,
     UmiDocumentId documentId, UmiStudioGtkDocumentConfirmAccepted accepted)
 {
-    return runtime_confirm_full(runtime, title, message, accept_label, NULL, accepted, documentId, NULL, NULL, NULL);
+    return runtime_confirm_full(runtime, title, message, accept_label, NULL, accepted, documentId, NULL, NULL, NULL, NULL);
 }
 
 /* On success the dialog owns data until acceptance, cancellation or teardown.
@@ -248,8 +253,8 @@ static UmiStatus runtime_confirm_document(UmiStudioGtkRuntimeChrome *runtime,
 static UmiStatus runtime_confirm_owned(UmiStudioGtkRuntimeChrome *runtime,
     const char *title, const char *message, const char *acceptLabel,
     UmiDocumentId documentId, UmiStudioGtkOwnedConfirmAccepted accepted,
-    void *data, GDestroyNotify destroy)
+    void *data, GDestroyNotify destroy, GtkWidget *reviewContent)
 {
     return runtime_confirm_full(runtime, title, message, acceptLabel,
-        NULL, NULL, documentId, accepted, data, destroy);
+        NULL, NULL, documentId, accepted, data, destroy, reviewContent);
 }

@@ -16,6 +16,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/gtk4/text_comparison.h"
+
 /* A toolbar may outlive its native owner while a test or accessibility client
  * retains a control. Resolve the existing weak owner before every action. */
 typedef struct UmiStudioGtkEditorAction {
@@ -440,24 +442,39 @@ static void runtime_on_editor_reload(GtkButton *button, gpointer user_data)
     UmiDocumentReloadSummary summary;
     UmiDocumentReloadPlan *plan = NULL;
     char message[1024];
+    GtkWidget *review = NULL;
     (void)button;
     UmiStatus status = umi_document_coordinator_active_snapshot(runtime_documents(runtime), &active);
     if (status == UMI_STATUS_OK)
         status = UmiDocumentCoordinatorPrepareReload(runtime_documents(runtime), active.document_id, &plan);
     if (status == UMI_STATUS_OK) status = UmiDocumentReloadPlanSummary(plan, &summary);
     if (status == UMI_STATUS_OK) {
+        const char *previous = NULL, *incoming = NULL;
+        size_t previousLength = 0U, incomingLength = 0U;
+        status = UmiDocumentReloadPlanTexts(plan, &previous, &previousLength, &incoming, &incomingLength);
+        if (status == UMI_STATUS_OK)
+            status = UmiGtk4TextComparisonCreate(previous, previousLength, incoming, incomingLength,
+                "Current editor draft (captured)", "Saved file (captured)", &review);
+        if (review != NULL) g_object_ref_sink(review);
+    }
+    if (status == UMI_STATUS_OK) {
         (void)snprintf(message, sizeof message,
             "Reload %s from its saved file?\n\n%s\n\nCurrent text: %zu bytes. Saved text: %zu bytes. "
+            "Saved encoding: %s; saved line endings: %s. "
+            "The panes show decoded UTF-8 text with normalised line endings. "
             "The file on disk will not be changed. Undo can restore the previous text while the document remains open.",
             summary.display_name,
             summary.has_unsaved_changes
                 ? "This will replace unsaved text in this document. Choose Cancel or use Save As to keep a separate copy first."
                 : "The saved version will replace the text in this document.",
-            summary.previous_bytes, summary.incoming_bytes);
-        status = runtime_confirm_owned(runtime, "Reload from disk?", message,
-            "Reload", summary.document_id, runtime_reload_accepted, plan, runtime_reload_plan_destroy);
+            summary.previous_bytes, summary.incoming_bytes,
+            umi_document_encoding_text(summary.incoming_encoding),
+            umi_document_line_ending_text(summary.incoming_line_ending));
+        status = runtime_confirm_owned(runtime, "Compare with saved", message,
+            "Reload", summary.document_id, runtime_reload_accepted, plan, runtime_reload_plan_destroy, review);
         if (status == UMI_STATUS_OK) plan = NULL; /* The dialog now owns it. */
     }
+    g_clear_object(&review);
     UmiDocumentReloadPlanDestroy(plan);
     if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
 }
@@ -480,6 +497,7 @@ static GtkWidget *runtime_build_editor_command_bar(
     GtkWidget *go_to;
     GtkWidget *external;
     GtkWidget *reload;
+    GtkWidget *compare;
     GtkWidget *more;
 
     /*
@@ -504,6 +522,7 @@ static GtkWidget *runtime_build_editor_command_bar(
     go_to = gtk_button_new_with_label("Go");
     external = gtk_button_new_with_label("External?");
     reload = gtk_button_new_with_label("Reload from disk");
+    compare = gtk_button_new_with_label("Compare with saved");
     more = runtime_context_actions_expander(runtime, "editor");
 
     /*
@@ -517,7 +536,7 @@ static GtkWidget *runtime_build_editor_command_bar(
         runtime->editor_info_label == NULL ||
         undo == NULL || redo == NULL || save == NULL ||
         find == NULL || previous == NULL || replace_all == NULL || replace == NULL || go_to == NULL ||
-        external == NULL || reload == NULL) {
+        external == NULL || reload == NULL || compare == NULL) {
         return bar;
     }
 
@@ -553,6 +572,10 @@ static GtkWidget *runtime_build_editor_command_bar(
     (void)umi_gtk4_automation_tag_widget(reload, "studio.editor.reload");
     (void)umi_gtk4_automation_tag_widget(external, "studio.editor.check-external");
     runtime_bind_editor_action(runtime, reload, runtime_on_editor_reload);
+    gtk_widget_set_tooltip_text(compare,
+        "Compare the complete current draft with the saved file. Both panes are read-only; Cancel keeps your work unchanged.");
+    (void)umi_gtk4_automation_tag_widget(compare, "studio.editor.compare-saved");
+    runtime_bind_editor_action(runtime, compare, runtime_on_editor_reload);
 
     gtk_widget_set_tooltip_text(find, "Find the next occurrence. Search wraps at the end of the document.");
     gtk_widget_set_tooltip_text(previous, "Find the previous occurrence. Search wraps at the beginning.");
@@ -575,6 +598,7 @@ static GtkWidget *runtime_build_editor_command_bar(
     gtk_box_append(GTK_BOX(bar), runtime->editor_goto_entry);
     gtk_box_append(GTK_BOX(bar), go_to);
     gtk_box_append(GTK_BOX(bar), external);
+    gtk_box_append(GTK_BOX(bar), compare);
     gtk_box_append(GTK_BOX(bar), reload);
     gtk_box_append(GTK_BOX(bar), runtime->editor_info_label);
     /*

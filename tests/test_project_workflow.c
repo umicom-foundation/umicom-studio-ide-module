@@ -17,6 +17,7 @@
 #include "umicom/studio/tests.h"
 #include "umicom/studio/diagnostics.h"
 #include "umicom/diagnostic_ui/navigation.h"
+#include "umicom/developer_productivity/text_comparison.h"
 #include "umicom/developer_project/new_project.h"
 #include "umicom/platform/threading.h"
 static int Wait(UmiStudioBuildService *build, UmiStatus expected, UmiBuildResult *result)
@@ -74,7 +75,8 @@ int main(int argc, char **argv)
     int diagnosticsFlow = argc == 2 && strcmp(argv[1], "diagnostics") == 0;
     int projectFiles = argc == 2 && strcmp(argv[1], "project-files") == 0;
     int backgroundRefresh = argc == 2 && strcmp(argv[1], "background-refresh") == 0;
-    int reloadFlow = argc == 2 && strcmp(argv[1], "reload") == 0;
+    int compareFlow = argc == 2 && strcmp(argv[1], "compare-saved") == 0;
+    int reloadFlow = (argc == 2 && strcmp(argv[1], "reload") == 0) || compareFlow;
     int fileSearch = argc == 2 && strcmp(argv[1], "find-in-files") == 0;
     CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow);
     UmiStudioBootstrap *bootstrap = NULL;
@@ -125,6 +127,20 @@ int main(int argc, char **argv)
         CHECK(umi_document_coordinator_active_snapshot(documents, &target) == UMI_STATUS_OK && target.dirty);
         CHECK(umi_fs_write_text(source, diskSource) == UMI_STATUS_OK);
         CHECK(UmiDocumentCoordinatorPrepareReload(documents, target.document_id, &plan) == UMI_STATUS_OK);
+        UmiTextComparison *review = NULL;
+        if (compareFlow) {
+            const char *previous = NULL, *incoming = NULL;
+            size_t previousLength = 0U, incomingLength = 0U, firstChange = SIZE_MAX;
+            UmiTextComparisonSummary summary;
+            CHECK(UmiDocumentReloadPlanTexts(plan, &previous, &previousLength, &incoming, &incomingLength) == UMI_STATUS_OK);
+            CHECK(strcmp(incoming, diskSource) == 0);
+            CHECK(UmiTextComparisonCreate(previous, previousLength, incoming, incomingLength, &review) == UMI_STATUS_OK);
+            CHECK(UmiTextComparisonGetSummary(review, &summary) == UMI_STATUS_OK);
+            CHECK(!summary.identicalBytes && summary.alignmentStatus == UMI_STATUS_OK);
+            CHECK(UmiTextComparisonNavigate(review, SIZE_MAX, 1, &firstChange) == UMI_STATUS_OK);
+            CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+            CHECK(active.document_id == target.document_id && active.dirty);
+        }
         CHECK(UmiDocumentCoordinatorApplyReload(documents, plan, 0) == UMI_STATUS_INVALID_STATE);
         CHECK(umi_fs_join(sidePath, sizeof sidePath, root, "notes.txt") == UMI_STATUS_OK);
         CHECK(umi_fs_write_text(sidePath, "saved side note\n") == UMI_STATUS_OK);
@@ -132,6 +148,12 @@ int main(int argc, char **argv)
         CHECK(Edit(workbench, sideView, "unsaved side note\n") == EXIT_SUCCESS);
         CHECK(UmiDocumentCoordinatorApplyReload(documents, plan, 1) == UMI_STATUS_OK);
         UmiDocumentReloadPlanDestroy(plan);
+        if (review != NULL) {
+            const char *captured = NULL; size_t capturedLength = 0U;
+            CHECK(UmiTextComparisonText(review, 1, &captured, &capturedLength) == UMI_STATUS_OK);
+            CHECK(capturedLength == strlen(diskSource) && strcmp(captured, diskSource) == 0);
+            UmiTextComparisonDestroy(review);
+        }
         CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
         CHECK(strcmp(active.view_id, sideView) == 0 && active.dirty);
         char *text = NULL; size_t length = 0U;

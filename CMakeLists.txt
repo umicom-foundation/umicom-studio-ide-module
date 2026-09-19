@@ -2308,3 +2308,16 @@ endif()
 # Install the saved-file workflow alongside the existing editor lessons.
 install(FILES docs/RELOADING_FILES.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Compare captured source versions, retain an unrelated draft, then use the
+# existing real build/run/test/install workflow after explicit reload approval.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-comparison")
+    add_test(NAME studio.project_workflow.compare_saved
+        COMMAND umicom-studio-project-workflow-test compare-saved)
+    set_tests_properties(studio.project_workflow.compare_saved PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-comparison"
+        TIMEOUT 180 LABELS "studio;document;comparison;integration;toolchain")
+endif()
+install(FILES docs/COMPARING_SAVED_FILES.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
