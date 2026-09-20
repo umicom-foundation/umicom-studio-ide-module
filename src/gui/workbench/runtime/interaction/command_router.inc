@@ -44,6 +44,14 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    if (strcmp(command_id, "file.save-all.cancel") == 0)
+        return RuntimeCancelSaveAll(runtime);
+
+    /* Repeat availability at dispatch, including registered command aliases. */
+    if (RuntimeBuildReadsSavedDocuments(command_id) && runtime->owner != NULL &&
+        UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter))
+        return UMI_STATUS_BUSY;
+
     UmiDocumentEditCommand editCommand;
     if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
         return UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, command_id);

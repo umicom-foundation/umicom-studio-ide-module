@@ -109,6 +109,15 @@ static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
 static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
     const char *command)
 {
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    /* A pending filename decision belongs to the existing Save All session.
+     * Do not start a second save path or a build over partially saved sources. */
+    if (UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter)) {
+        runtime_show_notification(runtime,
+            "Build did not start. Finish or cancel Save All first.");
+        return UMI_STATUS_BUSY;
+    }
     UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
     UmiStatus status = UmiDocumentCoordinatorSaveAll(documents, NULL);
     if (status != UMI_STATUS_OK) {

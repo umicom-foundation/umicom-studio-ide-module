@@ -156,19 +156,26 @@ static void runtime_save_all_completed(void *context,
     UmiStudioGtkRuntimeChrome *runtime = context;
     if (runtime == NULL || progress == NULL) return;
     char message[768];
-    if (progress->phase == UMI_DOCUMENT_SAVE_COMPLETE) {
-        (void)snprintf(message, sizeof(message),
-            "Save All complete: %zu saved, %zu already saved.",
-            progress->saved, progress->unchanged);
-    } else {
-        (void)snprintf(message, sizeof(message),
-            "Save All %s: %zu saved, %zu remaining. %s%s%s",
-            progress->phase == UMI_DOCUMENT_SAVE_CANCELLED ? "cancelled" : "stopped",
-            progress->saved, progress->remaining,
-            progress->display_name,
-            progress->display_name[0] != '\0' ? ": " : "",
-            umi_status_text(progress->last_status));
-    }
+    /* Presentation message construction now lives in Framework's
+     * src/document/save_session.c: UmiDocumentSaveProgressFormat(). It checks
+     * copied counters and bounded names before writing the summary. The former
+     * Studio-only formatter is retained below for migration reference. */
+    // if (progress->phase == UMI_DOCUMENT_SAVE_COMPLETE) {
+    // (void)snprintf(message, sizeof(message),
+    // "Save All complete: %zu saved, %zu already saved.",
+    // progress->saved, progress->unchanged);
+    // } else {
+    // (void)snprintf(message, sizeof(message),
+    // "Save All %s: %zu saved, %zu remaining. %s%s%s",
+    // progress->phase == UMI_DOCUMENT_SAVE_CANCELLED ? "cancelled" : "stopped",
+    // progress->saved, progress->remaining,
+    // progress->display_name,
+    // progress->display_name[0] != '\0' ? ": " : "",
+    // umi_status_text(progress->last_status));
+    // }
+    if (UmiDocumentSaveProgressFormat(progress, message, sizeof(message)) != UMI_STATUS_OK)
+        (void)snprintf(message, sizeof(message), "%s",
+            "Save All progress could not be displayed. Keep the open drafts and check their saved state.");
     (void)runtime_refresh_services(runtime);
     runtime_show_notification(runtime, message);
 }
@@ -176,6 +183,30 @@ static void runtime_save_all_completed(void *context,
 static UmiStatus runtime_document_save_all(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
-    return UmiGtk4AdapterDocumentSaveAll(runtime->owner->adapter,
+    /* Save All must not race a build that consumes the saved source files. */
+    if (UmiStudioBuildBusy(umi_studio_services_build(
+            umi_studio_ui_services(runtime->owner->ui))))
+        return UMI_STATUS_BUSY;
+    /* Former immediate return retained here for migration reference:
+     * return UmiGtk4AdapterDocumentSaveAll(runtime->owner->adapter,
+     *     runtime_save_all_completed, runtime);
+     * Framework still owns the sequence. Studio additionally repaints command
+     * availability immediately so Cancel Save All is usable between steps. */
+    UmiStatus status = UmiGtk4AdapterDocumentSaveAll(runtime->owner->adapter,
         runtime_save_all_completed, runtime);
+    if (status == UMI_STATUS_OK) {
+        runtime_show_notification(runtime,
+            "Save All started. Choose File > Cancel Save All to stop remaining saves.");
+        (void)runtime_refresh_services(runtime);
+    }
+    return status;
+}
+
+/* Request cancellation through Framework; no draft or file is removed here. */
+static UmiStatus RuntimeCancelSaveAll(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Framework's final summary reports cancellation and retained saved counts.
+     * Do not reuse the host pointer after cancellation signals can detach it. */
+    return UmiGtk4AdapterCancelDocumentSaveAll(runtime->owner->adapter);
 }

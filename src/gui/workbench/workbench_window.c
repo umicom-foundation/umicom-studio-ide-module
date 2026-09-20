@@ -21,6 +21,10 @@
 #include "context_link_centre.h"
 #include "umicom/studio/workspace.h"
 #include "umicom/ui/gtk4.h"
+/* Declare the editing/navigation/save boundary before any runtime fragments.
+ * This translation unit is compiled by Studio, its workbench demo and the
+ * native canvas test; none should depend on accidental transitive includes. */
+#include "umicom/ui/gtk4/document_commands.h"
 #include "umicom/ui/gtk4/workstation/window_fit.h"
 #include "umicom/workbench_context_host/gtk4.h"
 

@@ -2336,3 +2336,6 @@ endif()
 
 install(FILES docs/EDIT_COMMANDS.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Check the native editing boundary before publishing a Studio build.
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/StudioBuildReadiness.cmake")

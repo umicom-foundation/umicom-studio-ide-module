@@ -207,6 +207,21 @@ static const char *runtime_mapped_studio_command(const char *command_id)
     return NULL;
 }
 
+/* Both shell identifiers and registered build identifiers can reach the
+ * command palette. Classify them once so an alias cannot bypass Save All. */
+static int RuntimeBuildReadsSavedDocuments(const char *commandId)
+{
+    if (commandId == NULL) return 0;
+    const char *mapped = runtime_mapped_studio_command(commandId);
+    if (mapped != NULL) commandId = mapped;
+    return strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_CONFIGURE) == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_COMPILE) == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_CLEAN) == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_TEST) == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_INSTALL) == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_RUN) == 0;
+}
+
 /*
  * Provide the runtime command enabled operation used by this module and its client
  * applications.
@@ -243,6 +258,12 @@ static int runtime_command_enabled(
         return umi_document_coordinator_active_snapshot(
             umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
     }
+
+    if (RuntimeBuildReadsSavedDocuments(command_id) &&
+        UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter)) return 0;
+
+    if (strcmp(command_id, "file.save-all.cancel") == 0)
+        return UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
 
     UmiDocumentEditCommand editCommand;
     if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
@@ -284,7 +305,11 @@ static int runtime_command_enabled(
      * It must not inherit the synchronous named-only command predicate. */
     if (strcmp(command_id, "file.save-all") == 0 ||
         strcmp(command_id, UMI_STUDIO_COMMAND_DOCUMENTS_SAVE_ALL) == 0) {
+        /* Save All is also unavailable while the build service is reading
+         * source files. Its execution entry point repeats this check. */
         return UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter) &&
+            !UmiStudioBuildBusy(umi_studio_services_build(
+                umi_studio_ui_services(runtime->owner->ui))) &&
             !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) &&
             umi_document_coordinator_count(umi_studio_ui_documents(runtime->owner->ui)) != 0U;
     }
@@ -301,7 +326,13 @@ static int runtime_command_enabled(
             UmiStudioWorkspaceSnapshot workspace;
             int busy = UmiStudioBuildBusy(umi_studio_services_build(services));
             if (strcmp(command_id, "build.cancel") == 0) return busy;
-            if (busy || umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+            /* Previous predicate retained: busy || snapshot failure || !open.
+             * The shared Save All owner is now also a prerequisite. Build
+             * cancellation is handled above and stays usable while building. */
+            // if (busy || umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+            //     !workspace.graph.open) return 0;
+            if (busy || UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
+                umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
                 !workspace.graph.open) return 0;
         }
         return umi_command_registry_is_enabled(commands, mapped, NULL);
