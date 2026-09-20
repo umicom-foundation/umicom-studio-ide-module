@@ -48,6 +48,12 @@ static UmiStatus runtime_route_command(
     if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
         return UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, command_id);
 
+    if (strcmp(command_id, "umicom.document.go-to-line") == 0) {
+        return argument != NULL && argument[0] != '\0'
+            ? UmiGtk4AdapterDocumentNavigate(runtime->owner->adapter, argument)
+            : UmiGtk4AdapterPromptDocumentLocation(runtime->owner->adapter);
+    }
+
     /* Layout commands use the Data Server checkpoint, not the older shell
      * session file, and never replace source-document saving. */
     if (strcmp(command_id, "studio.layout.save") == 0)

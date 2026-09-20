@@ -494,6 +494,7 @@ static const UmiStudioGtkKeyProfile RUNTIME_KEY_PROFILES[] = {
 #include "profiles/keybindings/command_palette.inc"
 #include "profiles/keybindings/layout_browser.inc"
 #include "profiles/keybindings/save.inc"
+#include "profiles/keybindings/go_to_line.inc"
 #include "profiles/keybindings/build.inc"
 #include "profiles/keybindings/run.inc"
 #include "profiles/keybindings/debug.inc"

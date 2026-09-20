@@ -420,65 +420,85 @@ static void runtime_on_editor_replace_all(GtkButton *button, gpointer user_data)
  * Provide the runtime on editor goto operation used by this module and its client
  * applications.
  */
-static void runtime_on_editor_goto(
-    GtkButton *button,
-    gpointer user_data)
+/* REFACTOR NOTE: The toolbar parser has moved from Studio to Framework:
+ * src/document/commands.c::UmiDocumentLocationParse and
+ * adapters/gtk4/document_commands_gtk4.c::UmiGtk4AdapterDocumentNavigate.
+ * Studio retains presentation feedback in runtime_document_edit_completed.
+ * The former code is retained below for reference; do not enable both paths.
+ */
+// static void runtime_on_editor_goto(
+//     GtkButton *button,
+//     gpointer user_data)
+// {
+//     UmiStudioGtkRuntimeChrome *runtime =
+//         (UmiStudioGtkRuntimeChrome *)user_data;
+//     const char *line_text;
+//     char *end = NULL;
+//     unsigned long line;
+//     size_t offset = 0U;
+//     char message[192];
+//     UmiStatus status;
+//     (void)button;
+// 
+//     /*
+//      * Protect caller-owned memory by checking that required state is available before it is
+//      * used.
+//      */
+//     if (runtime == NULL || runtime->editor_goto_entry == NULL) return;
+// 
+//     line_text = gtk_editable_get_text(
+//         GTK_EDITABLE(runtime->editor_goto_entry));
+//     /*
+//      * Protect caller-owned memory by checking that required state is available before it is
+//      * used.
+//      */
+//     if (line_text == NULL || line_text[0] == '\0') return;
+// 
+//     line = strtoul(line_text, &end, 10);
+//     /* Apply this branch only when its contract condition is satisfied. */
+//     if (end == line_text || *end != '\0' || line == 0UL) {
+//         runtime_show_notification(runtime, "Enter a valid one-based line number.");
+//         return;
+//     }
+// #if SIZE_MAX < ULONG_MAX
+//     /* Apply this branch only when its contract condition is satisfied. */
+//     if (line > (unsigned long)SIZE_MAX) {
+//         runtime_show_notification(runtime, "Line number exceeds this platform's addressable range.");
+//         return;
+//     }
+// #endif
+// 
+//     status = umi_document_coordinator_go_to_line(
+//         runtime_documents(runtime),
+//         (size_t)line,
+//         &offset);
+// 
+//     /* Preserve the original failure result so the caller can respond to the correct cause. */
+//     if (status == UMI_STATUS_OK) {
+//         (void)snprintf(
+//             message,
+//             sizeof(message),
+//             "Line %lu begins at document offset %zu.",
+//             line,
+//             offset);
+//         runtime_show_notification(runtime, message);
+//     } /* Use this fallback path when the earlier condition does not apply. */ else {
+//         runtime_show_notification(runtime, umi_status_text(status));
+//     }
+// }
+
+static void runtime_on_editor_goto(GtkButton *button, gpointer user_data)
 {
-    UmiStudioGtkRuntimeChrome *runtime =
-        (UmiStudioGtkRuntimeChrome *)user_data;
-    const char *line_text;
-    char *end = NULL;
-    unsigned long line;
-    size_t offset = 0U;
-    char message[192];
-    UmiStatus status;
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
     (void)button;
-
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime == NULL || runtime->editor_goto_entry == NULL) return;
-
-    line_text = gtk_editable_get_text(
-        GTK_EDITABLE(runtime->editor_goto_entry));
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (line_text == NULL || line_text[0] == '\0') return;
-
-    line = strtoul(line_text, &end, 10);
-    /* Apply this branch only when its contract condition is satisfied. */
-    if (end == line_text || *end != '\0' || line == 0UL) {
-        runtime_show_notification(runtime, "Enter a valid one-based line number.");
-        return;
-    }
-#if SIZE_MAX < ULONG_MAX
-    /* Apply this branch only when its contract condition is satisfied. */
-    if (line > (unsigned long)SIZE_MAX) {
-        runtime_show_notification(runtime, "Line number exceeds this platform's addressable range.");
-        return;
-    }
-#endif
-
-    status = umi_document_coordinator_go_to_line(
-        runtime_documents(runtime),
-        (size_t)line,
-        &offset);
-
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status == UMI_STATUS_OK) {
-        (void)snprintf(
-            message,
-            sizeof(message),
-            "Line %lu begins at document offset %zu.",
-            line,
-            offset);
-        runtime_show_notification(runtime, message);
-    } /* Use this fallback path when the earlier condition does not apply. */ else {
+    if (runtime == NULL || runtime->owner == NULL || runtime->editor_goto_entry == NULL) return;
+    const char *location = gtk_editable_get_text(GTK_EDITABLE(runtime->editor_goto_entry));
+    /* Framework parses and navigates; Studio's existing completion callback
+     * displays failures and refreshes the editor once. No source text is saved. */
+    int reports = UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter);
+    UmiStatus status = UmiGtk4AdapterDocumentNavigate(runtime->owner->adapter, location);
+    if (!reports && status != UMI_STATUS_OK)
         runtime_show_notification(runtime, umi_status_text(status));
-    }
 }
 
 /*
@@ -641,7 +661,10 @@ static GtkWidget *runtime_build_editor_command_bar(
         "Replace with");
     gtk_entry_set_placeholder_text(
         GTK_ENTRY(runtime->editor_goto_entry),
-        "Line");
+        /* Former placeholder: "Line". The same field now accepts a column. */
+        "Line:column");
+    gtk_widget_set_tooltip_text(runtime->editor_goto_entry,
+        "Enter a line or line:column, for example 12:5. Columns count UTF-8 bytes.");
 
     gtk_widget_set_size_request(runtime->editor_find_entry, 150, -1);
     gtk_widget_set_size_request(runtime->editor_replace_entry, 150, -1);

@@ -78,8 +78,21 @@ static UmiStatus runtime_execute_command(
     const char *command_id,
     const char *argument)
 {
+/* REFACTOR NOTE: Editing and source navigation deliver their result through
+ * Framework completion and runtime_document_edit_completed. Preserve fallback
+ * feedback for unbound routes, but do not overwrite an already displayed error.
+ * The former code is retained below for reference; do not enable both paths.
+ */
+//     UmiStatus status = runtime_route_command(runtime, command_id, argument);
+//     if (status != UMI_STATUS_OK) {
+
+    UmiDocumentEditCommand editCommand;
+    int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
+        (command_id != NULL && strcmp(command_id, "umicom.document.go-to-line") == 0);
+    int completedByBinding = editing && runtime != NULL && runtime->owner != NULL &&
+        UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter);
     UmiStatus status = runtime_route_command(runtime, command_id, argument);
-    if (status != UMI_STATUS_OK) {
+    if (status != UMI_STATUS_OK && !completedByBinding) {
         char message[384];
         (void)snprintf(message, sizeof(message), "%s: %s", command_id, umi_status_text(status));
         runtime_show_notification(runtime, message);
