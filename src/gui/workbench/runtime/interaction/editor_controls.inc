@@ -128,42 +128,130 @@ static void runtime_editor_update_info(
  * Provide the runtime on editor undo operation used by this module and its client
  * applications.
  */
+/*
+ * REFACTOR NOTE: Undo now uses the shared Framework editing-command path.
+ *
+ * The former Studio callback is retained below as comments so a developer can
+ * compare its responsibilities with the active implementation. Undo has not
+ * been removed. The document history already belonged to Framework; this
+ * change replaces Studio's direct call with the shared GTK editing bridge.
+ *
+ * Active command and completion path (paths start at the Applications root):
+ * 1. framework/adapters/gtk4/document_commands_gtk4.c:
+ *    UmiGtk4AdapterDocumentCommand -> UmiGtk4EditorCommandForView resolves the
+ *    intended document and delegates edit.undo to the existing coordinator.
+ * 2. framework/src/document/coordinator.c:
+ *    UmiDocumentCoordinatorUndo -> apply_history performs the history operation.
+ * 3. framework/adapters/gtk4/document_commands_gtk4.c:
+ *    EditFinished refreshes the Framework document views and invokes the
+ *    registered application completion callback for a dispatched operation.
+ * 4. applications/studio/src/gui/workbench/runtime/runtime_attach.inc:
+ *    runtime_document_edit_completed reports applicable failures and calls
+ *    runtime_refresh_services. runtime_attach registers that callback through
+ *    UmiGtk4AdapterBindDocumentEditing.
+ *
+ * Studio still owns its notification and chrome refresh in the completion
+ * callback. Those statements were consolidated there, not moved verbatim
+ * into Framework. The reusable command dispatch is the Framework-owned part.
+ *
+ * The old body is documentation only, not an alternative or fallback path.
+ * Do not run it alongside the active call: that could apply history twice and
+ * duplicate result handling. Early command/document lookup failures return
+ * before EditFinished; this note does not claim every failure invokes it.
+ *
+ * Former implementation from the baseline preceding Studio Edit Commands:
+ */
+// static void runtime_on_editor_undo(
+//     GtkButton *button,
+//     gpointer user_data)
+// {
+//     UmiStudioGtkRuntimeChrome *runtime =
+//         (UmiStudioGtkRuntimeChrome *)user_data;
+//     UmiStatus status;
+//     (void)button;
+//
+//     status = umi_document_coordinator_undo(runtime_documents(runtime));
+//     /* Preserve the original failure result so the caller can respond to the correct cause. */
+//     if (status != UMI_STATUS_OK) {
+//         runtime_show_notification(runtime, umi_status_text(status));
+//     }
+//     (void)runtime_refresh_services(runtime);
+// }
+
 static void runtime_on_editor_undo(
     GtkButton *button,
     gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime =
         (UmiStudioGtkRuntimeChrome *)user_data;
-    UmiStatus status;
     (void)button;
-
-    status = umi_document_coordinator_undo(runtime_documents(runtime));
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status != UMI_STATUS_OK) {
-        runtime_show_notification(runtime, umi_status_text(status));
-    }
-    (void)runtime_refresh_services(runtime);
+    /* The shared completion binding reports the result and refreshes once. */
+    (void)UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, "edit.undo");
 }
 
 /*
  * Provide the runtime on editor redo operation used by this module and its client
  * applications.
  */
+/*
+ * REFACTOR NOTE: Redo now uses the shared Framework editing-command path.
+ *
+ * The former Studio callback is retained below as comments so a developer can
+ * compare its responsibilities with the active implementation. Redo has not
+ * been removed. The document history already belonged to Framework; this
+ * change replaces Studio's direct call with the shared GTK editing bridge.
+ *
+ * Active command and completion path (paths start at the Applications root):
+ * 1. framework/adapters/gtk4/document_commands_gtk4.c:
+ *    UmiGtk4AdapterDocumentCommand -> UmiGtk4EditorCommandForView resolves the
+ *    intended document and delegates edit.redo to the existing coordinator.
+ * 2. framework/src/document/coordinator.c:
+ *    UmiDocumentCoordinatorRedo -> apply_history performs the history operation.
+ * 3. framework/adapters/gtk4/document_commands_gtk4.c:
+ *    EditFinished refreshes the Framework document views and invokes the
+ *    registered application completion callback for a dispatched operation.
+ * 4. applications/studio/src/gui/workbench/runtime/runtime_attach.inc:
+ *    runtime_document_edit_completed reports applicable failures and calls
+ *    runtime_refresh_services. runtime_attach registers that callback through
+ *    UmiGtk4AdapterBindDocumentEditing.
+ *
+ * Studio still owns its notification and chrome refresh in the completion
+ * callback. Those statements were consolidated there, not moved verbatim
+ * into Framework. The reusable command dispatch is the Framework-owned part.
+ *
+ * The old body is documentation only, not an alternative or fallback path.
+ * Do not run it alongside the active call: that could apply history twice and
+ * duplicate result handling. Early command/document lookup failures return
+ * before EditFinished; this note does not claim every failure invokes it.
+ *
+ * Former implementation from the baseline preceding Studio Edit Commands:
+ */
+// static void runtime_on_editor_redo(
+//     GtkButton *button,
+//     gpointer user_data)
+// {
+//     UmiStudioGtkRuntimeChrome *runtime =
+//         (UmiStudioGtkRuntimeChrome *)user_data;
+//     UmiStatus status;
+//     (void)button;
+//
+//     status = umi_document_coordinator_redo(runtime_documents(runtime));
+//     /* Preserve the original failure result so the caller can respond to the correct cause. */
+//     if (status != UMI_STATUS_OK) {
+//         runtime_show_notification(runtime, umi_status_text(status));
+//     }
+//     (void)runtime_refresh_services(runtime);
+// }
+
 static void runtime_on_editor_redo(
     GtkButton *button,
     gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime =
         (UmiStudioGtkRuntimeChrome *)user_data;
-    UmiStatus status;
     (void)button;
-
-    status = umi_document_coordinator_redo(runtime_documents(runtime));
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status != UMI_STATUS_OK) {
-        runtime_show_notification(runtime, umi_status_text(status));
-    }
-    (void)runtime_refresh_services(runtime);
+    /* The shared completion binding reports the result and refreshes once. */
+    (void)UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, "edit.redo");
 }
 
 /*

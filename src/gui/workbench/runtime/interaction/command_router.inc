@@ -44,6 +44,10 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    UmiDocumentEditCommand editCommand;
+    if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
+        return UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, command_id);
+
     /* Layout commands use the Data Server checkpoint, not the older shell
      * session file, and never replace source-document saving. */
     if (strcmp(command_id, "studio.layout.save") == 0)

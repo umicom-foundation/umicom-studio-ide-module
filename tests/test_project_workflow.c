@@ -10,6 +10,7 @@
 #include <string.h>
 #define CHECK(test) do { if (!(test)) { fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #test); return EXIT_FAILURE; } } while (0)
 
+#include "umicom/document/edit.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/commands.h"
@@ -77,8 +78,9 @@ int main(int argc, char **argv)
     int backgroundRefresh = argc == 2 && strcmp(argv[1], "background-refresh") == 0;
     int compareFlow = argc == 2 && strcmp(argv[1], "compare-saved") == 0;
     int reloadFlow = (argc == 2 && strcmp(argv[1], "reload") == 0) || compareFlow;
+    int editCommands = argc == 2 && strcmp(argv[1], "edit-commands") == 0;
     int fileSearch = argc == 2 && strcmp(argv[1], "find-in-files") == 0;
-    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow);
+    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow || editCommands);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -119,6 +121,46 @@ int main(int argc, char **argv)
     CHECK(umi_fs_join(source, sizeof(source), root, "src/main.c") == UMI_STATUS_OK);
     CHECK(umi_document_coordinator_open(documents, source, viewId, sizeof(viewId)) == UMI_STATUS_OK);
     CHECK(EditSource(workbench, viewId, "#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n", largeSource) == EXIT_SUCCESS);
+    if (editCommands) {
+        UmiDocumentWorkingCopySnapshot target, active;
+        UmiDocumentEditPlan *plan = NULL;
+        UmiUiDocumentViewModel *views = umi_ui_workbench_documents(workbench);
+        UmiUiDocumentViewSnapshot view;
+        char sideView[UMI_UI_ID_CAPACITY];
+        char *text = NULL;
+        size_t bytes = 0U;
+        CHECK(umi_document_coordinator_active_snapshot(documents, &target) == UMI_STATUS_OK);
+        CHECK(umi_ui_document_view_model_find(views, viewId, &view) == UMI_STATUS_OK);
+        view.cursor_offset = 0U;
+        view.selection_length = 0U;
+        CHECK(umi_ui_document_view_model_upsert(views, &view) == UMI_STATUS_OK);
+        CHECK(UmiDocumentCoordinatorPrepareEdit(documents, target.document_id, &plan) == UMI_STATUS_OK);
+        CHECK(umi_document_coordinator_new(documents, "Build review notes", sideView, sizeof sideView) == UMI_STATUS_OK);
+        CHECK(Edit(workbench, sideView, "Keep this independent draft.\n") == EXIT_SUCCESS);
+        const char *comment = "/* Edited through the shared document contract. */\n";
+        CHECK(UmiDocumentCoordinatorApplyEdit(documents, plan, comment, strlen(comment)) == UMI_STATUS_OK);
+        UmiDocumentEditPlanDestroy(plan); plan = NULL;
+        CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+        CHECK(strcmp(active.view_id, sideView) == 0 && active.dirty);
+        CHECK(UmiUiDocumentViewModelCopyText(views, sideView, &text, &bytes) == UMI_STATUS_OK);
+        CHECK(strcmp(text, "Keep this independent draft.\n") == 0);
+        UmiUiDocumentViewModelFreeText(text); text = NULL;
+        CHECK(UmiDocumentCoordinatorUndo(documents, target.document_id) == UMI_STATUS_OK);
+        CHECK(UmiDocumentCoordinatorRedo(documents, target.document_id) == UMI_STATUS_OK);
+        CHECK(UmiUiDocumentViewModelCopyText(views, viewId, &text, &bytes) == UMI_STATUS_OK);
+        CHECK(strncmp(text, comment, strlen(comment)) == 0);
+        UmiUiDocumentViewModelFreeText(text); text = NULL;
+        /* A changed selection rejects a delayed edit, without erasing the
+         * comment or affecting the second document. */
+        CHECK(UmiDocumentCoordinatorPrepareEdit(documents, target.document_id, &plan) == UMI_STATUS_OK);
+        CHECK(UmiDocumentCoordinatorSelectAll(documents, target.document_id) == UMI_STATUS_OK);
+        CHECK(UmiDocumentCoordinatorApplyEdit(documents, plan, "wrong", 5U) == UMI_STATUS_INVALID_STATE);
+        UmiDocumentEditPlanDestroy(plan);
+        char sidePath[UMI_PATH_CAPACITY];
+        CHECK(umi_fs_join(sidePath, sizeof sidePath, root, "review.txt") == UMI_STATUS_OK);
+        CHECK(UmiDocumentCoordinatorSaveAs(documents, active.document_id, sidePath) == UMI_STATUS_OK);
+        CHECK(umi_document_coordinator_open(documents, source, viewId, sizeof viewId) == UMI_STATUS_OK);
+    }
     if (reloadFlow) {
         const char *diskSource = "/* saved by another editor */\n#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n";
         UmiDocumentWorkingCopySnapshot target, active;

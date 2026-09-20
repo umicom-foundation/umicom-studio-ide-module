@@ -2321,3 +2321,18 @@ if(TARGET umicom-studio-project-workflow-test)
 endif()
 install(FILES docs/COMPARING_SAVED_FILES.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+
+# Exercise the actual Studio document owner, then the generated project's
+# existing save/configure/build/run/test/install and failed-build checks.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-editing")
+    add_test(NAME studio.project_workflow.edit_commands
+        COMMAND umicom-studio-project-workflow-test edit-commands)
+    set_tests_properties(studio.project_workflow.edit_commands PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-editing"
+        TIMEOUT 180 LABELS "studio;document;editing;integration;toolchain")
+endif()
+
+install(FILES docs/EDIT_COMMANDS.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
