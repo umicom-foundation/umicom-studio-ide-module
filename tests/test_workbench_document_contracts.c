@@ -27,6 +27,7 @@ typedef UmiStatus (*ProgressFormat)(const UmiDocumentSaveProgress *, char *, siz
 SIGNATURE(UmiDocumentSaveProgressFormat, ProgressFormat);
 SIGNATURE(UmiDocumentEditCommandFromId, CommandMap);
 SIGNATURE(UmiGtk4AdapterDocumentCommand, DocumentCommand);
+SIGNATURE(UmiGtk4AdapterRequestDocumentClose, DocumentCommand);
 SIGNATURE(UmiGtk4AdapterDocumentNavigate, DocumentCommand);
 SIGNATURE(UmiGtk4AdapterDocumentCommandEnabled, Enabled);
 SIGNATURE(UmiGtk4AdapterDocumentHasCompletion, HasCompletion);
@@ -53,6 +54,15 @@ int main(void)
     if (UmiDocumentSaveProgressValidate(&progress) != UMI_STATUS_OK ||
         UmiDocumentSaveProgressFormat(&progress, message, sizeof(message)) != UMI_STATUS_OK ||
         strcmp(message, "Save All complete: 0 saved, 0 already saved.") != 0) return 1;
+    /* Real references require the close implementation, not just its header. */
+    UmiDocumentClosePlan *closePlan = NULL;
+    UmiDocumentCloseSummary closeSummary = {0};
+    if (UmiDocumentCoordinatorPrepareClose(NULL, 1U, &closePlan) != UMI_STATUS_INVALID_ARGUMENT ||
+        UmiDocumentCoordinatorCheckClose(NULL, NULL) != UMI_STATUS_INVALID_ARGUMENT ||
+        UmiDocumentClosePlanSummary(NULL, &closeSummary) != UMI_STATUS_INVALID_ARGUMENT ||
+        UmiDocumentCoordinatorApplyClose(NULL, NULL, UMI_DOCUMENT_CLOSE_CANCEL, NULL) != UMI_STATUS_INVALID_ARGUMENT)
+        return 1;
+    UmiDocumentClosePlanDestroy(closePlan);
     puts("Studio document boundary: declarations, mapping and linked save formatter verified.");
     return 0;
 }

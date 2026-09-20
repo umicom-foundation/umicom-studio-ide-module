@@ -240,13 +240,18 @@ static UmiStatus runtime_confirm(UmiStudioGtkRuntimeChrome *runtime,
     return runtime_confirm_full(runtime, title, message, accept_label, accepted, NULL, 0U, NULL, NULL, NULL, NULL);
 }
 
-/* Capture the document identity when the question is asked, not when answered. */
-static UmiStatus runtime_confirm_document(UmiStudioGtkRuntimeChrome *runtime,
-    const char *title, const char *message, const char *accept_label,
-    UmiDocumentId documentId, UmiStudioGtkDocumentConfirmAccepted accepted)
-{
-    return runtime_confirm_full(runtime, title, message, accept_label, NULL, accepted, documentId, NULL, NULL, NULL, NULL);
-}
+/* MIGRATION: the old ID-only close question no longer has an active caller.
+ * Framework's UmiGtk4AdapterRequestDocumentClose now captures document state
+ * and offers Save, Discard or Cancel. The generic and owned confirmation
+ * helpers below remain active for their other existing callers. */
+// /* Capture the document identity when the question is asked, not when answered. */
+// static UmiStatus runtime_confirm_document(UmiStudioGtkRuntimeChrome *runtime,
+//     const char *title, const char *message, const char *accept_label,
+//     UmiDocumentId documentId, UmiStudioGtkDocumentConfirmAccepted accepted)
+// {
+//     return runtime_confirm_full(runtime, title, message, accept_label, NULL, accepted, documentId, NULL, NULL, NULL, NULL);
+// }
+//
 
 /* On success the dialog owns data until acceptance, cancellation or teardown.
  * On failure the caller retains it and must perform the matching cleanup. */

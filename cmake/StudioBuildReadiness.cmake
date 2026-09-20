@@ -54,3 +54,12 @@ else()
         COMMAND "${CMAKE_COMMAND}" -E false
         VERBATIM)
 endif()
+
+# The existing readiness command also links the real close fixture when native
+# GTK targets are present. The headless refusal above remains unchanged.
+if(TARGET umicom-document-closing-test)
+    add_dependencies(umicom-studio-build-readiness umicom-document-closing-test)
+endif()
+if(TARGET umicom-document-closing-gtk4-test)
+    add_dependencies(umicom-studio-build-readiness umicom-document-closing-gtk4-test)
+endif()

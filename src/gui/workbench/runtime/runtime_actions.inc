@@ -87,8 +87,14 @@ static UmiStatus runtime_execute_command(
 //     if (status != UMI_STATUS_OK) {
 
     UmiDocumentEditCommand editCommand;
+    /* Close now also completes through Framework's editing binding. Preserve
+     * the former classification below; do not repeat its error notification
+     * after the shared callback may already have refreshed or detached Studio. */
+    // int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
+    // (command_id != NULL && strcmp(command_id, "umicom.document.go-to-line") == 0);
     int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
-        (command_id != NULL && strcmp(command_id, "umicom.document.go-to-line") == 0);
+        (command_id != NULL && (strcmp(command_id, "umicom.document.go-to-line") == 0 ||
+            strcmp(command_id, "file.close") == 0));
     int completedByBinding = editing && runtime != NULL && runtime->owner != NULL &&
         UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter);
     UmiStatus status = runtime_route_command(runtime, command_id, argument);

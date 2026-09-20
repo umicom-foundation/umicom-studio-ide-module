@@ -86,66 +86,82 @@ static UmiStatus runtime_document_save(
     return umi_document_coordinator_save_active(documents);
 }
 
-/*
- * Provide the runtime document close force operation used by this module and its client
- * applications.
+/* MIGRATION: Close decisions now use Framework's captured-state contract in
+ * src/document/coordinator.c (UmiDocumentCoordinatorApplyClose) and the GTK
+ * question in adapters/gtk4/document_commands_gtk4.c
+ * (UmiGtk4AdapterRequestDocumentClose). Studio still displays completion through
+ * runtime_document_edit_completed() in runtime_attach.inc.
+ * The former ID-only forced-close path is preserved below for comparison. It
+ * could approve discarding newer edits made after the question was displayed.
+ * Do not enable it together with the shared call: that would attempt two closes.
  */
-static UmiStatus runtime_document_close_force(
-    UmiStudioGtkRuntimeChrome *runtime, UmiDocumentId documentId)
+// /*
+//  * Provide the runtime document close force operation used by this module and its client
+//  * applications.
+//  */
+// static UmiStatus runtime_document_close_force(
+//     UmiStudioGtkRuntimeChrome *runtime, UmiDocumentId documentId)
+// {
+//     UmiStatus status;
+//
+//     status = UmiDocumentCoordinatorClose(
+//         umi_studio_ui_documents(runtime->owner->ui), documentId, 1);
+//     (void)runtime_refresh_services(runtime);
+//     return status;
+// }
+//
+// /*
+//  * Provide the runtime document close operation used by this module and its client
+//  * applications.
+//  */
+// static UmiStatus runtime_document_close(
+//     UmiStudioGtkRuntimeChrome *runtime)
+// {
+//     UmiDocumentWorkingCopySnapshot active;
+//     UmiDocumentCoordinator *documents;
+//     UmiStatus status;
+//
+//     /*
+//      * Protect caller-owned memory by checking that required state is available before it is
+//      * used.
+//      */
+//     if (runtime == NULL || runtime->owner == NULL) {
+//         return UMI_STATUS_INVALID_ARGUMENT;
+//     }
+//
+//     documents = umi_studio_ui_documents(runtime->owner->ui);
+//     /*
+//      * Protect caller-owned memory by checking that required state is available before it is
+//      * used.
+//      */
+//     if (documents == NULL) return UMI_STATUS_UNAVAILABLE;
+//
+//     status = umi_document_coordinator_active_snapshot(
+//         documents,
+//         &active);
+//     /* Preserve the original failure result so the caller can respond to the correct cause. */
+//     if (status != UMI_STATUS_OK) return status;
+//
+//     /* Apply this operation only while the related capability or state is available. */
+//     if (active.dirty) {
+//         char message[512];
+//         (void)snprintf(message, sizeof message,
+//             "\"%s\" has unsaved changes. Discard and Close removes those edits. "
+//             "Choose Cancel to return to the document and save it first.", active.display_name);
+//         return runtime_confirm_document(runtime, "Close Modified Document?", message,
+//             "Discard and Close", active.document_id, runtime_document_close_force);
+//     }
+//
+//     status = umi_document_coordinator_close_active(documents, 0);
+//     (void)runtime_refresh_services(runtime);
+//     return status;
+// }
+//
+
+static UmiStatus runtime_document_close(UmiStudioGtkRuntimeChrome *runtime)
 {
-    UmiStatus status;
-
-    status = UmiDocumentCoordinatorClose(
-        umi_studio_ui_documents(runtime->owner->ui), documentId, 1);
-    (void)runtime_refresh_services(runtime);
-    return status;
-}
-
-/*
- * Provide the runtime document close operation used by this module and its client
- * applications.
- */
-static UmiStatus runtime_document_close(
-    UmiStudioGtkRuntimeChrome *runtime)
-{
-    UmiDocumentWorkingCopySnapshot active;
-    UmiDocumentCoordinator *documents;
-    UmiStatus status;
-
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (runtime == NULL || runtime->owner == NULL) {
-        return UMI_STATUS_INVALID_ARGUMENT;
-    }
-
-    documents = umi_studio_ui_documents(runtime->owner->ui);
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (documents == NULL) return UMI_STATUS_UNAVAILABLE;
-
-    status = umi_document_coordinator_active_snapshot(
-        documents,
-        &active);
-    /* Preserve the original failure result so the caller can respond to the correct cause. */
-    if (status != UMI_STATUS_OK) return status;
-
-    /* Apply this operation only while the related capability or state is available. */
-    if (active.dirty) {
-        char message[512];
-        (void)snprintf(message, sizeof message,
-            "\"%s\" has unsaved changes. Discard and Close removes those edits. "
-            "Choose Cancel to return to the document and save it first.", active.display_name);
-        return runtime_confirm_document(runtime, "Close Modified Document?", message,
-            "Discard and Close", active.document_id, runtime_document_close_force);
-    }
-
-    status = umi_document_coordinator_close_active(documents, 0);
-    (void)runtime_refresh_services(runtime);
-    return status;
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiGtk4AdapterRequestDocumentClose(runtime->owner->adapter, NULL);
 }
 
 /* Framework owns the save sequence. Studio presents its copied summary rather

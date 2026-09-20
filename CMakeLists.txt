@@ -2343,3 +2343,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/StudioBuildReadiness.cmake")
 # Install the public workflow lesson beside this product's other guides.
 install(FILES docs/WORKFLOW_TOOLS.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Make the document-closing guide available in the installed application.
+install(FILES docs/CLOSING_DOCUMENTS.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
