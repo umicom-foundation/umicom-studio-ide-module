@@ -62,6 +62,11 @@ static UmiStatus runtime_route_command(
             : UmiGtk4AdapterPromptDocumentLocation(runtime->owner->adapter);
     }
 
+    if (strcmp(command_id, "navigate.document.next") == 0 ||
+        strcmp(command_id, "navigate.document.previous") == 0)
+        return UmiGtk4AdapterCycleDocument(runtime->owner->adapter,
+            strcmp(command_id, "navigate.document.next") == 0 ? 1 : -1);
+
     /* Layout commands use the Data Server checkpoint, not the older shell
      * session file, and never replace source-document saving. */
     if (strcmp(command_id, "studio.layout.save") == 0)

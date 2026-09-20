@@ -2339,3 +2339,7 @@ install(FILES docs/EDIT_COMMANDS.html
 
 # Check the native editing boundary before publishing a Studio build.
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/StudioBuildReadiness.cmake")
+
+# Install the public workflow lesson beside this product's other guides.
+install(FILES docs/WORKFLOW_TOOLS.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)

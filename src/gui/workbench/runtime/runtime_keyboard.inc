@@ -77,6 +77,27 @@ static gboolean runtime_on_key_pressed(
  * Provide the runtime install keyboard operation used by this module and its client
  * applications.
  */
+/* Ctrl+Tab must be observed before GtkTextView consumes it as focus
+ * traversal. This capture handler is deliberately limited to source-document
+ * cycling; every other entry field and shortcut keeps the existing route. */
+static gboolean RuntimeDocumentCycleKey(GtkEventControllerKey *controller,
+    guint keyval, guint keycode, GdkModifierType state, gpointer data)
+{
+    (void)controller;
+    (void)keycode;
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    GdkModifierType modifiers = state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_ALT_MASK);
+    if (runtime == NULL || (keyval != GDK_KEY_Tab && keyval != GDK_KEY_ISO_Left_Tab))
+        return FALSE;
+    const char *command = NULL;
+    if (modifiers == GDK_CONTROL_MASK) command = "navigate.document.next";
+    else if (modifiers == (GDK_CONTROL_MASK | GDK_SHIFT_MASK))
+        command = "navigate.document.previous";
+    if (command == NULL || !runtime_command_enabled(runtime, command)) return FALSE;
+    (void)runtime_execute_command(runtime, command, NULL);
+    return TRUE;
+}
+
 static UmiStatus runtime_install_keyboard(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -106,6 +127,12 @@ static UmiStatus runtime_install_keyboard(
     gtk_widget_add_controller(
         GTK_WIDGET(runtime->owner->window),
         controller);
+
+    GtkEventController *documentKeys = gtk_event_controller_key_new();
+    gtk_event_controller_set_propagation_phase(documentKeys, GTK_PHASE_CAPTURE);
+    g_signal_connect(documentKeys, "key-pressed",
+        G_CALLBACK(RuntimeDocumentCycleKey), runtime);
+    gtk_widget_add_controller(GTK_WIDGET(runtime->owner->window), documentKeys);
 
     return UMI_STATUS_OK;
 }

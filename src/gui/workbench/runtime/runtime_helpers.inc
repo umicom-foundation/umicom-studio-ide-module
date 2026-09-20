@@ -269,6 +269,13 @@ static int runtime_command_enabled(
     if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
         return UmiGtk4AdapterDocumentCommandEnabled(runtime->owner->adapter, command_id);
 
+    if (strcmp(command_id, "navigate.document.next") == 0 ||
+        strcmp(command_id, "navigate.document.previous") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_document_coordinator_active_snapshot(
+            umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+
     /* The same route must decide availability and execute the command. Native
      * input collection comes before argument-dependent registry predicates. */
     if (strcmp(command_id, "project.new") == 0 ||
