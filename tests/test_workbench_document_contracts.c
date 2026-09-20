@@ -42,6 +42,17 @@ int main(void)
     UmiDocumentEditCommand command;
     if (UmiDocumentEditCommandFromId("edit.undo", &command) != UMI_STATUS_OK ||
         command != UMI_DOCUMENT_EDIT_UNDO) return 1;
-    puts("Studio document boundary: declarations and command mapping verified.");
+    /* Retained previous completion message. The checks above only used the
+     * type of the save formatter; this real call also verifies its definition.
+     * GTK linkage is checked by Framework's separate native link consumer. */
+    // puts("Studio document boundary: declarations and command mapping verified.");
+    UmiDocumentSaveProgress progress = {0};
+    progress.phase = UMI_DOCUMENT_SAVE_COMPLETE;
+    progress.last_status = UMI_STATUS_OK;
+    char message[128];
+    if (UmiDocumentSaveProgressValidate(&progress) != UMI_STATUS_OK ||
+        UmiDocumentSaveProgressFormat(&progress, message, sizeof(message)) != UMI_STATUS_OK ||
+        strcmp(message, "Save All complete: 0 saved, 0 already saved.") != 0) return 1;
+    puts("Studio document boundary: declarations, mapping and linked save formatter verified.");
     return 0;
 }
