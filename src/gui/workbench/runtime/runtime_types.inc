@@ -61,6 +61,8 @@
 #include "umicom/studio/view_models.h"
 #include "umicom/studio/welcome_centre.h"
 #include "umicom/studio_runtime/studio_runtime.h"
+/* Shared editing, navigation and Save All contracts used by this host. */
+#include "umicom/ui/gtk4/document_commands.h"
 #include "umicom/terminal/transcript.h"
 #include "umicom/test_platform/item.h"
 #include "umicom/vcs/diff_document.h"

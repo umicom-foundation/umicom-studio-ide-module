@@ -147,3 +147,35 @@ static UmiStatus runtime_document_close(
     (void)runtime_refresh_services(runtime);
     return status;
 }
+
+/* Framework owns the save sequence. Studio presents its copied summary rather
+ * than claiming that scheduling a filename dialog has already saved a file. */
+static void runtime_save_all_completed(void *context,
+    const UmiDocumentSaveProgress *progress)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (runtime == NULL || progress == NULL) return;
+    char message[768];
+    if (progress->phase == UMI_DOCUMENT_SAVE_COMPLETE) {
+        (void)snprintf(message, sizeof(message),
+            "Save All complete: %zu saved, %zu already saved.",
+            progress->saved, progress->unchanged);
+    } else {
+        (void)snprintf(message, sizeof(message),
+            "Save All %s: %zu saved, %zu remaining. %s%s%s",
+            progress->phase == UMI_DOCUMENT_SAVE_CANCELLED ? "cancelled" : "stopped",
+            progress->saved, progress->remaining,
+            progress->display_name,
+            progress->display_name[0] != '\0' ? ": " : "",
+            umi_status_text(progress->last_status));
+    }
+    (void)runtime_refresh_services(runtime);
+    runtime_show_notification(runtime, message);
+}
+
+static UmiStatus runtime_document_save_all(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiGtk4AdapterDocumentSaveAll(runtime->owner->adapter,
+        runtime_save_all_completed, runtime);
+}

@@ -436,6 +436,11 @@ static void runtime_destroy_framework(
      * used.
      */
     if (runtime == NULL) return;
+    /* Cancel clipboard, navigation and Save All callbacks before the Studio
+     * runtime/context is released. Framework retains only invalidatable tokens. */
+    if (runtime->owner != NULL && runtime->owner->adapter != NULL)
+        (void)UmiGtk4AdapterBindDocumentEditing(runtime->owner->adapter, NULL, NULL, NULL);
+
     /* Invalidate pending file/folder callbacks before freeing the runtime.
      * A retained native window may outlive the application service container. */
     if (runtime->owner != NULL && runtime->owner->window != NULL)

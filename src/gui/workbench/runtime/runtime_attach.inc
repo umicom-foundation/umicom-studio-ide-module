@@ -14,6 +14,21 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Restored integration: document history/clipboard and Save All require the
+ * existing Framework editing binding. The callback stays in Studio because it
+ * presents Studio's notifications and refreshes its application chrome. */
+/* The shared adapter owns clipboard completion; Studio supplies only visible
+ * feedback and refreshes its existing chrome after an editing operation. */
+static void runtime_document_edit_completed(void *context, UmiStatus status)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_CANCELLED)
+        runtime_show_notification(runtime, status == UMI_STATUS_INVALID_STATE
+            ? "The document or selection changed. Select the intended text and repeat the editing action."
+            : umi_status_text(status));
+    (void)runtime_refresh_services(runtime);
+}
+
 static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
 {
     UmiStudioGtkRuntimeChrome *runtime;
@@ -53,6 +68,10 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
      * first frame already contains useful information instead of zero values.
      */
     (void)runtime_refresh_service_snapshots(runtime);
+
+    status = UmiGtk4AdapterBindDocumentEditing(workbench->adapter,
+        umi_studio_ui_documents(workbench->ui), runtime_document_edit_completed, runtime);
+    if (status != UMI_STATUS_OK) goto fail;
 
     status = runtime_build_shell(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */

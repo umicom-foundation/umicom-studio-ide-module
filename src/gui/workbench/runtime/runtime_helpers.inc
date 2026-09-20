@@ -280,6 +280,14 @@ static int runtime_command_enabled(
     if (strcmp(command_id, "navigate.problem.next") == 0 ||
         strcmp(command_id, "navigate.problem.previous") == 0)
         return UmiStudioUiCanNavigateProblems(runtime->owner->ui);
+    /* Save All collects untitled names before calling the existing saver.
+     * It must not inherit the synchronous named-only command predicate. */
+    if (strcmp(command_id, "file.save-all") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_DOCUMENTS_SAVE_ALL) == 0) {
+        return UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) &&
+            umi_document_coordinator_count(umi_studio_ui_documents(runtime->owner->ui)) != 0U;
+    }
     mapped = runtime_mapped_studio_command(command_id);
     if (mapped != NULL) {
         UmiCommandRegistry *commands = umi_ui_workbench_commands(

@@ -110,11 +110,19 @@ static UmiStatus runtime_route_command(
         return runtime_choose_save_as(runtime);
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
-    if (strcmp(command_id, "file.save-all") == 0) {
-        UmiStatus status = UmiDocumentCoordinatorSaveAll(
-            umi_studio_ui_documents(runtime->owner->ui), NULL);
-        (void)runtime_refresh_services(runtime);
-        return status;
+    /* REFACTOR: GUI Save All now delegates to Framework's save_session.c and
+     * document_saving_gtk4.c. They can wait for an untitled filename and report
+     * partial saves. The named-only synchronous API remains for build services.
+     * Former Studio route retained below; do not enable both routes. */
+    // if (strcmp(command_id, "file.save-all") == 0) {
+    // UmiStatus status = UmiDocumentCoordinatorSaveAll(
+    // umi_studio_ui_documents(runtime->owner->ui), NULL);
+    // (void)runtime_refresh_services(runtime);
+    // return status;
+    // }
+    if (strcmp(command_id, "file.save-all") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_DOCUMENTS_SAVE_ALL) == 0) {
+        return runtime_document_save_all(runtime);
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "file.close") == 0) {
