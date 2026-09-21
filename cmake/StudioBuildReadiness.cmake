@@ -68,3 +68,26 @@ endif()
 if(TARGET umicom-studio-build-readiness AND TARGET umicom-document-close-readiness)
     add_dependencies(umicom-studio-build-readiness umicom-document-close-readiness)
 endif()
+
+# Inspect the exact Framework archives before linking native Studio consumers.
+# This supplements (and does not replace) the existing real executable tests.
+# Non-nm toolchains retain executable linking; the explicit inspection target
+# explains its unsupported toolchain rather than claiming a successful check.
+if(CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$" AND NOT MSVC)
+    if(TARGET umicom-studio-document-contract-test)
+        add_dependencies(umicom-studio-document-contract-test umicom-editor-core-link-check)
+    endif()
+    if(TARGET umicom_ui_gtk4)
+        foreach(consumer umicom-studio-ide umicom-studio-workbench-demo umicom-studio-workspace-canvas-test)
+            if(TARGET ${consumer})
+                add_dependencies(${consumer} umicom-editor-native-link-check)
+            endif()
+        endforeach()
+    endif()
+endif()
+if(TARGET umicom-editor-link-check)
+    add_dependencies(umicom-studio-build-readiness umicom-editor-link-check)
+endif()
+if(TARGET umicom-editor-native-link-consumer)
+    add_dependencies(umicom-studio-build-readiness umicom-editor-native-link-consumer)
+endif()
