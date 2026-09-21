@@ -262,6 +262,30 @@ static int runtime_command_enabled(
     if (RuntimeBuildReadsSavedDocuments(command_id) &&
         UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter)) return 0;
 
+    /* Group-close availability is queried from Framework, not inferred from
+     * the caption of a button. Dispatch repeats these checks. */
+    if (strcmp(command_id, "file.close-all.cancel") == 0)
+        return UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter);
+    if (strcmp(command_id, "file.close-all") == 0 || strcmp(command_id, "file.close-others") == 0) {
+        UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
+        UmiDocumentWorkingCopySnapshot active;
+        int others = strcmp(command_id, "file.close-others") == 0;
+        return UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) &&
+            !UmiStudioBuildBusy(umi_studio_services_build(umi_studio_ui_services(runtime->owner->ui))) &&
+            umi_document_coordinator_count(documents) > (others ? 1U : 0U) &&
+            (!others || umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+    }
+    /* Close All is not application shutdown. Keep the current editing host
+     * alive until its sequence completes or the user cancels it. */
+    if (UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) ||
+         strcmp(command_id, "application.exit") == 0 ||
+         strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "file.close") == 0)) return 0;
+
     if (strcmp(command_id, "file.save-all.cancel") == 0)
         return UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
 
@@ -317,7 +341,9 @@ static int runtime_command_enabled(
         return UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter) &&
             !UmiStudioBuildBusy(umi_studio_services_build(
                 umi_studio_ui_services(runtime->owner->ui))) &&
+            /* Previously only Save All's own busy state was checked here. */
             !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter) &&
             umi_document_coordinator_count(umi_studio_ui_documents(runtime->owner->ui)) != 0U;
     }
     mapped = runtime_mapped_studio_command(command_id);

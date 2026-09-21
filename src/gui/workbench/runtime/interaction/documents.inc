@@ -226,3 +226,36 @@ static UmiStatus RuntimeCancelSaveAll(UmiStudioGtkRuntimeChrome *runtime)
      * Do not reuse the host pointer after cancellation signals can detach it. */
     return UmiGtk4AdapterCancelDocumentSaveAll(runtime->owner->adapter);
 }
+
+
+/* Framework owns captured IDs, reviewed decisions and close progress. Studio
+ * only displays its copied completion and asks its existing build service
+ * whether source files are currently in use by a build. */
+static void RuntimeCloseDocumentsCompleted(void *context,
+    const UmiDocumentCloseProgress *progress)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (runtime == NULL || progress == NULL) return;
+    char message[1024];
+    if (UmiDocumentCloseProgressFormat(progress, message, sizeof(message)) != UMI_STATUS_OK)
+        (void)snprintf(message, sizeof(message), "%s",
+            "Check the remaining source tabs. Closing progress could not be displayed.");
+    (void)runtime_refresh_services(runtime);
+    runtime_show_notification(runtime, message);
+}
+
+static UmiStatus RuntimeCloseDocuments(UmiStudioGtkRuntimeChrome *runtime,
+    UmiDocumentCloseScope scope)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(umi_studio_services_build(
+            umi_studio_ui_services(runtime->owner->ui)))) return UMI_STATUS_BUSY;
+    UmiStatus status = UmiGtk4AdapterCloseDocuments(runtime->owner->adapter,
+        scope, RuntimeCloseDocumentsCompleted, runtime);
+    if (status == UMI_STATUS_OK) {
+        runtime_show_notification(runtime,
+            "Closing source documents. Review each unsaved draft; Cancel keeps remaining documents open.");
+        (void)runtime_refresh_services(runtime);
+    }
+    return status;
+}

@@ -63,3 +63,8 @@ endif()
 if(TARGET umicom-document-closing-gtk4-test)
     add_dependencies(umicom-studio-build-readiness umicom-document-closing-gtk4-test)
 endif()
+
+# Keep the real group-close adapter and its core consumers in the native gate.
+if(TARGET umicom-studio-build-readiness AND TARGET umicom-document-close-readiness)
+    add_dependencies(umicom-studio-build-readiness umicom-document-close-readiness)
+endif()

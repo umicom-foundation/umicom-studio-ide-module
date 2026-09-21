@@ -38,6 +38,14 @@ SIGNATURE(UmiGtk4AdapterCancelDocumentSaveAll, Prompt);
 SIGNATURE(UmiGtk4AdapterDocumentSaveAllBusy, SaveBusy);
 SIGNATURE(UmiGtk4AdapterDocumentSaveAllProgress, SaveProgress);
 
+typedef UmiStatus (*CloseGroup)(UmiGtk4Adapter *, UmiDocumentCloseScope, UmiGtk4DocumentCloseResultFn, void *);
+typedef UmiStatus (*CloseProgress)(const UmiGtk4Adapter *, UmiDocumentCloseProgress *);
+SIGNATURE(UmiGtk4AdapterCloseDocuments, CloseGroup);
+SIGNATURE(UmiGtk4AdapterCancelCloseDocuments, Prompt);
+SIGNATURE(UmiGtk4AdapterCloseDocumentsBusy, SaveBusy);
+SIGNATURE(UmiGtk4AdapterDocumentCloseBusy, SaveBusy);
+SIGNATURE(UmiGtk4AdapterCloseDocumentsProgress, CloseProgress);
+
 int main(void)
 {
     UmiDocumentEditCommand command;
@@ -63,6 +71,15 @@ int main(void)
         UmiDocumentCoordinatorApplyClose(NULL, NULL, UMI_DOCUMENT_CLOSE_CANCEL, NULL) != UMI_STATUS_INVALID_ARGUMENT)
         return 1;
     UmiDocumentClosePlanDestroy(closePlan);
+    /* Actual core calls establish linkage, not just declaration compatibility. */
+    UmiDocumentCloseSession *sequence=NULL;
+    UmiDocumentCloseProgress closing={0};
+    closing.phase=UMI_DOCUMENT_CLOSE_COMPLETE;
+    closing.last_status=UMI_STATUS_OK;
+    if (UmiDocumentCloseSessionCreate(NULL,UMI_DOCUMENT_CLOSE_ALL,0U,&sequence)!=UMI_STATUS_INVALID_ARGUMENT ||
+        UmiDocumentCloseProgressFormat(&closing,message,sizeof(message))!=UMI_STATUS_OK ||
+        UmiUiWorkbenchClearClosedDocument(NULL,"closed")!=UMI_STATUS_INVALID_ARGUMENT) return 1;
+    UmiDocumentCloseSessionDestroy(sequence);
     puts("Studio document boundary: declarations, mapping and linked save formatter verified.");
     return 0;
 }

@@ -44,6 +44,18 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    if (strcmp(command_id, "file.close-all.cancel") == 0)
+        return runtime->owner != NULL
+            ? UmiGtk4AdapterCancelCloseDocuments(runtime->owner->adapter)
+            : UMI_STATUS_INVALID_ARGUMENT;
+    if (strcmp(command_id, "file.close-all") == 0 || strcmp(command_id, "file.close-others") == 0)
+        return RuntimeCloseDocuments(runtime, strcmp(command_id, "file.close-others") == 0
+            ? UMI_DOCUMENT_CLOSE_OTHERS : UMI_DOCUMENT_CLOSE_ALL);
+    if (runtime->owner != NULL && UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
+         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0))
+        return UMI_STATUS_BUSY;
+
     if (strcmp(command_id, "file.save-all.cancel") == 0)
         return RuntimeCancelSaveAll(runtime);
 
