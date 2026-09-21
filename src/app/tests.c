@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/tests.h"
+#include "umicom/testing/ctest_adapter.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +28,9 @@ struct UmiStudioTestService {
     UmiTestPlatformFilter filter;
     UmiStudioTestExplorerState explorer;
     char build_directory[UMI_BUILD_PATH_CAPACITY];
+    /* The legacy catalogue may coexist with metadata from another build root.
+     * Retain its own discovery origin rather than the last active project. */
+    char legacy_build_directory[UMI_BUILD_PATH_CAPACITY];
     UmiTestRunSummary last_summary;
 };
 
@@ -147,6 +151,23 @@ UmiStatus umi_studio_test_service_discover_metadata(
         build_directory == NULL || build_directory[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* Reject truncation before a discovery call can change the catalogue.
+     * The Framework discovery identifier adds its own "discovery." prefix. */
+    UmiTestPlatformDiscoverySnapshot discovery;
+    const char *selected_configuration = configuration != NULL && configuration[0] != '\0'
+        ? configuration : "Debug";
+    size_t project_length = strlen(project_id);
+    if (project_length >= sizeof(options.project_id) ||
+        project_length >= sizeof(discovery.id) - (sizeof("discovery.") - 1U)
+            - (sizeof(".ctest") - 1U) ||
+        strlen(build_directory) >= sizeof(options.build_directory) ||
+        strlen(build_directory) >= sizeof(service->build_directory) ||
+        strlen(selected_configuration) >= sizeof(options.configuration) ||
+        (workspace_root != NULL && strlen(workspace_root) >=
+            sizeof(service->explorer.workspace_root))) {
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    }
+    if (out_summary != NULL) (void)memset(out_summary, 0, sizeof(*out_summary));
     (void)memset(&options, 0, sizeof(options));
     copy_text(options.project_id, sizeof(options.project_id), project_id);
     written = snprintf(options.suite_id, sizeof(options.suite_id), "%s.ctest",
@@ -156,7 +177,7 @@ UmiStatus umi_studio_test_service_discover_metadata(
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
     copy_text(options.configuration, sizeof(options.configuration),
-              configuration != NULL ? configuration : "Debug");
+              selected_configuration);
     copy_text(options.build_directory, sizeof(options.build_directory),
               build_directory);
     status = umi_test_platform_service_discover_ctest(
@@ -186,6 +207,8 @@ UmiStatus umi_studio_test_service_discover(UmiStudioTestService *service,
                                            size_t *out_discovered)
 {
     size_t length;
+    size_t discovered = 0U;
+    if (out_discovered != NULL) *out_discovered = 0U;
     UmiStatus status;
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -196,7 +219,7 @@ UmiStatus umi_studio_test_service_discover(UmiStudioTestService *service,
     }
     length = strlen(build_directory);
     /* Create this optional product surface only when its build option is enabled. */
-    if (length + 1U > sizeof(service->build_directory)) {
+    if (length >= sizeof(service->build_directory)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
     /* Discover into a temporary suite. A failed refresh must neither leak the
@@ -204,7 +227,7 @@ UmiStatus umi_studio_test_service_discover(UmiStudioTestService *service,
     UmiTestSuite *replacement = NULL;
     status = umi_test_suite_create("studio.ctest", "Studio CTest", &replacement);
     if (status == UMI_STATUS_OK)
-        status = umi_ctest_discover(build_directory, replacement, out_discovered);
+        status = umi_ctest_discover(build_directory, replacement, &discovered);
     if (status != UMI_STATUS_OK) {
         umi_test_suite_destroy(replacement);
         return status;
@@ -223,6 +246,11 @@ UmiStatus umi_studio_test_service_discover(UmiStudioTestService *service,
     umi_test_suite_destroy(service->ctest_suite);
     service->ctest_suite = replacement;
     (void)memcpy(service->build_directory, build_directory, length + 1U);
+    (void)memcpy(service->legacy_build_directory, build_directory, length + 1U);
+    /* Publish counts only after registry replacement succeeds. A fresh
+     * catalogue has no run evidence; do not attach the previous run's totals. */
+    (void)memset(&service->last_summary, 0, sizeof(service->last_summary));
+    if (out_discovered != NULL) *out_discovered = discovered;
     (void)umi_test_workspace_refresh(service->workspace);
     return status;
 }
@@ -255,11 +283,13 @@ UmiStatus umi_studio_test_service_run_all(UmiStudioTestService *service,
      * used.
      */
     if (results == NULL) return UMI_STATUS_OUT_OF_MEMORY;
-    status = umi_test_runner_run_suite(service->ctest_suite,
-                                       cancellation,
-                                       results,
-                                       count,
-                                       out_summary);
+    /* The generic runner remains available to non-CTest suites. This CTest
+     * catalogue now shares Framework's literal selection and report checks. */
+    UmiCtestRunOptions options = {0};
+    options.cancellation = cancellation;
+    status = UmiCtestRunSuite(service->legacy_build_directory,
+                              service->ctest_suite, &options, results,
+                              count, out_summary);
     service->last_summary = *out_summary;
     free(results);
     return status;
@@ -419,10 +449,53 @@ static UmiStatus execute_ctest_item(
     UmiStatus status;
     int written;
     const char *build_directory;
-    build_directory = item->working_directory[0] != '\0'
-                          ? item->working_directory
-                          : service->build_directory;
-    status = umi_ctest_run(build_directory, item->name, &result);
+    UmiCtestRunOptions options = {0};
+    UmiTestPlatformDiscoverySnapshot discovery;
+    char discovery_id[sizeof(discovery.id)];
+    if (service == NULL || item == NULL || out_result == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    (void)memset(&result, 0, sizeof(result));
+    result.state = UMI_TEST_STATE_NOT_RUN;
+    result.exit_code = -1;
+    /* Framework discovery records item.uri as the CTest BUILD ROOT. The
+     * separate working_directory belongs to the test executable and must
+     * remain under CTest's control. The former working_directory fallback
+     * could select the wrong catalogue, or accidentally run no test at all. */
+    build_directory = item->uri;
+    written = snprintf(discovery_id, sizeof(discovery_id), "discovery.%s",
+                       item->suite_id);
+    if (written < 0 || (size_t)written >= sizeof(discovery_id)) {
+        status = UMI_STATUS_CAPACITY_EXCEEDED;
+    } else if (strcmp(item->framework, "ctest") != 0 ||
+               strcmp(item->kind, "test") != 0 || !item->discovered ||
+               build_directory[0] == '\0') {
+        status = UMI_STATUS_INVALID_STATE;
+    } else {
+        status = umi_test_platform_discovery_registry_find(
+            umi_test_platform_service_discovery(service->platform),
+            discovery_id, &discovery);
+        if (status == UMI_STATUS_OK &&
+            (strcmp(discovery.provider, "ctest-json-v1") != 0 ||
+             discovery.state != 1 ||
+             strcmp(discovery.root_uri, build_directory) != 0)) {
+            status = UMI_STATUS_INVALID_STATE;
+        }
+    }
+    if (status == UMI_STATUS_OK) {
+        /* Compose from the selected item's provenance, not another project's
+         * last active configuration. All execution and report policy remains
+         * in the Framework CTest adapter. Empty means discovery used Debug. */
+        options.configuration = discovery.configuration[0] != '\0'
+            ? discovery.configuration : "Debug";
+        options.test_id = item->id;
+        status = UmiCtestRunConfigured(build_directory, item->name, &options, &result);
+    } else {
+        result.status = status;
+        copy_text(result.output, sizeof(result.output),
+                  "CTest discovery provenance is missing, inconsistent or too long. "
+                  "Refresh this project's tests before running the selection.");
+    }
     written = snprintf(out_result->id, sizeof(out_result->id),
                        "result.%llu.%u",
                        (unsigned long long)out_result->sequence,
@@ -435,7 +508,11 @@ static UmiStatus execute_ctest_item(
     copy_text(out_result->message, sizeof(out_result->message),
               result.state == UMI_TEST_STATE_PASSED
                   ? "Test passed."
-                  : "Test did not pass; inspect failure details and output.");
+                  : result.state == UMI_TEST_STATE_SKIPPED
+                      ? "Test skipped or disabled; it did not pass."
+                      : result.state == UMI_TEST_STATE_NOT_RUN
+                          ? "Test was not run; inspect discovery and output."
+                          : "Test did not pass; inspect failure details and output.");
     copy_text(out_result->failure_details,
               sizeof(out_result->failure_details), result.output);
     out_result->duration_ms = (double)result.duration_ms;
@@ -452,9 +529,18 @@ static UmiStatus execute_ctest_item(
     copy_text(output.item_id, sizeof(output.item_id), item->id);
     copy_text(output.stream, sizeof(output.stream), "combined");
     copy_text(output.text, sizeof(output.text), result.output);
-    (void)umi_test_platform_output_registry_upsert(
+    UmiStatus output_status = umi_test_platform_output_registry_upsert(
         umi_test_platform_service_output(service->platform), &output);
-    return status;
+    /* Do not report successful publication when the output record was lost.
+     * The provider-neutral execution controller retains the supplied outcome,
+     * so a publication error must also invalidate a previously passing row. */
+    if (output_status != UMI_STATUS_OK &&
+        out_result->outcome == UMI_TEST_PLATFORM_OUTCOME_PASSED) {
+        out_result->outcome = UMI_TEST_PLATFORM_OUTCOME_FAILED;
+        copy_text(out_result->message, sizeof(out_result->message),
+                  "The test passed, but its output could not be retained.");
+    }
+    return status != UMI_STATUS_OK ? status : output_status;
 }
 
 /*
@@ -475,6 +561,7 @@ UmiStatus umi_studio_test_service_execute(
     if (service == NULL || plan == NULL || out_summary == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    (void)memset(out_summary, 0, sizeof(*out_summary));
     controller = umi_test_platform_service_operation(service->platform);
     status = umi_test_platform_execute(
         umi_test_platform_service_item(service->platform),
