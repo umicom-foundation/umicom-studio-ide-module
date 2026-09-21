@@ -231,6 +231,8 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *ai_model_summary_label;
 
     GtkWidget *debug_thread_entry;
+    GtkWidget *debug_adapter_kind;
+    GtkWidget *debug_adapter_executable;
     GtkWidget *debug_summary_label;
     GtkWidget *debug_threads_list;
     GtkWidget *debug_frames_list;

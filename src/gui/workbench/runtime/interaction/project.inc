@@ -14,6 +14,10 @@ static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
     UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
     char mainPath[UMI_PATH_CAPACITY];
     char viewId[UMI_UI_ID_CAPACITY];
+    /* Generated files remain on disk when adoption is postponed. Never replace
+     * the workspace of a compiler job or an active debugger. */
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) return UMI_STATUS_BUSY;
     UmiStatus status = runtime_open_workspace_path(runtime, model->root);
     if (status != UMI_STATUS_OK) return status;
     status = UmiStudioBuildProfileSave(services, profile);
@@ -48,7 +52,12 @@ static UmiStatus RuntimeBuildSettingsApplied(const UmiBuildProfile *profile,
     if (status != UMI_STATUS_OK) return status;
     if (!workspace.graph.open || !umi_path_equal(workspace.graph.root, profile->source_directory))
         return UMI_STATUS_INVALID_STATE;
-    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    /* A settings/dialog answer may arrive after Debug started. Recheck here,
+     * not only when its menu was enabled. The former compiler-only guard is
+     * retained; the same source profile also owns the active native session. */
+    // if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) return UMI_STATUS_BUSY;
     /* A rejected/stale settings write must not grant execution trust. Persist
      * the reviewed profile first; trust remains a separate explicit decision. */
     status = UmiStudioBuildProfileSave(services, profile);
@@ -80,7 +89,12 @@ static UmiStatus RuntimeBuildSettingsApplied(const UmiBuildProfile *profile,
 static UmiStatus RuntimeNewProject(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
-    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    /* A settings/dialog answer may arrive after Debug started. Recheck here,
+     * not only when its menu was enabled. The former compiler-only guard is
+     * retained; the same source profile also owns the active native session. */
+    // if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) return UMI_STATUS_BUSY;
     UmiGtk4DeveloperDialogDestroy(runtime->project_dialog);
     runtime->project_dialog = NULL;
     return UmiGtk4NewProjectDialogCreate(runtime->owner->window,
@@ -95,7 +109,12 @@ static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
     UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
     if (status != UMI_STATUS_OK) return status;
     if (!workspace.graph.open) return UMI_STATUS_INVALID_STATE;
-    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    /* A settings/dialog answer may arrive after Debug started. Recheck here,
+     * not only when its menu was enabled. The former compiler-only guard is
+     * retained; the same source profile also owns the active native session. */
+    // if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) return UMI_STATUS_BUSY;
     UmiGtk4DeveloperDialogDestroy(runtime->build_settings_dialog);
     runtime->build_settings_dialog = NULL;
     return UmiGtk4BuildSettingsDialogCreate(runtime->owner->window,
@@ -119,6 +138,11 @@ static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
         UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter)) {
         runtime_show_notification(runtime,
             "Build did not start. Finish or cancel Save All first.");
+        return UMI_STATUS_BUSY;
+    }
+    if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(
+            umi_studio_ui_services(runtime->owner->ui)))) {
+        runtime_show_notification(runtime, "Stop the debugger before rebuilding or deploying this project.");
         return UMI_STATUS_BUSY;
     }
     UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);

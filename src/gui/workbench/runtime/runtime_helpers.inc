@@ -156,6 +156,9 @@ static const char *runtime_mapped_studio_command(const char *command_id)
         return UMI_STUDIO_COMMAND_BUILD_CLEAN;
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "build.package") == 0) return UMI_STUDIO_COMMAND_BUILD_PACKAGE;
+    if (strcmp(command_id, "build.rebuild") == 0) return UMI_STUDIO_COMMAND_BUILD_REBUILD;
+    if (strcmp(command_id, "build.deploy") == 0) return UMI_STUDIO_COMMAND_BUILD_DEPLOY;
     if (strcmp(command_id, "build.install") == 0) {
         return UMI_STUDIO_COMMAND_BUILD_INSTALL;
     }
@@ -214,7 +217,13 @@ static int RuntimeBuildReadsSavedDocuments(const char *commandId)
     if (commandId == NULL) return 0;
     const char *mapped = runtime_mapped_studio_command(commandId);
     if (mapped != NULL) commandId = mapped;
-    return strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_CONFIGURE) == 0 ||
+    return strcmp(commandId, "build.package") == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_PACKAGE) == 0 ||
+        strcmp(commandId, "build.rebuild") == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_REBUILD) == 0 ||
+        strcmp(commandId, "build.deploy") == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_DEPLOY) == 0 ||
+        strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_CONFIGURE) == 0 ||
         strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_COMPILE) == 0 ||
         strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_CLEAN) == 0 ||
         strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_TEST) == 0 ||
@@ -258,6 +267,12 @@ static int runtime_command_enabled(
         return umi_document_coordinator_active_snapshot(
             umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
     }
+
+    if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(
+            umi_studio_ui_services(runtime->owner->ui))) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "build.settings") == 0 ||
+         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0)) return 0;
 
     if (RuntimeBuildReadsSavedDocuments(command_id) &&
         UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter)) return 0;
@@ -390,3 +405,9 @@ static uint32_t runtime_bounded_badge(size_t value)
 {
     return value > UINT32_MAX ? UINT32_MAX : (uint32_t)value;
 }
+
+// MIGRATION REFERENCE — previous implementation excerpts
+// Native execution now delegates to Framework debug_runtime/platform.c and build/project_session.c. Studio retains command composition and presentation; the explicit legacy memory-protocol API remains available for its existing callers.
+// These comments explain superseded statements; do not enable both execution paths.
+// Previous source near line 217:
+//     return strcmp(commandId, UMI_STUDIO_COMMAND_BUILD_CONFIGURE) == 0 ||

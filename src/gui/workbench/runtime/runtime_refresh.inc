@@ -41,6 +41,20 @@ static UmiStatus runtime_refresh_services(
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
+    UmiStudioServices *developmentServices = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioDebuggerService *nativeDebugger = umi_studio_services_debugger(developmentServices);
+    UmiStudioWorkspaceSnapshot developmentWorkspace;
+    if (UmiStudioDebuggerNativeBusy(nativeDebugger) &&
+        (umi_studio_workspace_snapshot(developmentServices, &developmentWorkspace) != UMI_STATUS_OK ||
+         !developmentWorkspace.graph.open || !developmentWorkspace.graph.trusted)) {
+        (void)umi_studio_debugger_service_stop(nativeDebugger, 0);
+    } else {
+        UmiStatus debugStatus = UmiStudioDebuggerPollNative(nativeDebugger,
+            umi_studio_services_build(developmentServices));
+        if (debugStatus != UMI_STATUS_OK && debugStatus != UMI_STATUS_NOT_FOUND)
+            runtime_show_notification(runtime, umi_status_text(debugStatus));
+    }
+
     /* Keep the shared header's contrast-aware SVG aligned with the active
      * Studio appearance before refreshing the rest of the workbench panels. */
     status = runtime_refresh_brand_appearance(runtime);

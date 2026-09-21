@@ -34,6 +34,25 @@ static GtkWidget *runtime_build_surface_debug(
      */
     if (panel == NULL || runtime == NULL) return panel;
 
+    const char *adapterKinds[] = {"GDB (DAP)", "LLDB DAP", NULL};
+    GtkWidget *adapterRow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    runtime->debug_adapter_kind = gtk_drop_down_new_from_strings(adapterKinds);
+#ifndef _WIN32
+    gtk_drop_down_set_selected(GTK_DROP_DOWN(runtime->debug_adapter_kind), 1U);
+#endif
+    runtime->debug_adapter_executable = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(runtime->debug_adapter_executable),
+        "Adapter executable path (empty uses PATH)");
+    gtk_widget_set_hexpand(runtime->debug_adapter_executable, TRUE);
+    GtkWidget *applyAdapter = gtk_button_new_with_label("Use adapter");
+    gtk_widget_set_tooltip_text(applyAdapter,
+        "Select installed gdb with DAP support or lldb-dap. No debugger is downloaded.");
+    runtime_bind_editor_action(runtime, applyAdapter, RuntimeDebugConfigure);
+    gtk_box_append(GTK_BOX(adapterRow), runtime->debug_adapter_kind);
+    gtk_box_append(GTK_BOX(adapterRow), runtime->debug_adapter_executable);
+    gtk_box_append(GTK_BOX(adapterRow), applyAdapter);
+    gtk_box_append(GTK_BOX(panel), adapterRow);
+
     runtime->debug_summary_label = runtime_label("", 0.0F);
     runtime->debug_thread_entry = gtk_entry_new();
 
@@ -93,30 +112,54 @@ static GtkWidget *runtime_build_surface_debug(
         continue_button != NULL && pause != NULL &&
         next != NULL && step_in != NULL &&
         step_out != NULL && stop != NULL && watch != NULL) {
-        g_signal_connect(
-            start, "clicked",
-            G_CALLBACK(runtime_on_debug_start), runtime);
-        g_signal_connect(
-            continue_button, "clicked",
-            G_CALLBACK(runtime_on_debug_continue), runtime);
-        g_signal_connect(
-            pause, "clicked",
-            G_CALLBACK(runtime_on_debug_pause), runtime);
-        g_signal_connect(
-            next, "clicked",
-            G_CALLBACK(runtime_on_debug_next), runtime);
-        g_signal_connect(
-            step_in, "clicked",
-            G_CALLBACK(runtime_on_debug_step_in), runtime);
-        g_signal_connect(
-            step_out, "clicked",
-            G_CALLBACK(runtime_on_debug_step_out), runtime);
-        g_signal_connect(
-            stop, "clicked",
-            G_CALLBACK(runtime_on_debug_stop), runtime);
-        g_signal_connect(
-            watch, "clicked",
-            G_CALLBACK(runtime_on_debug_add_watch), runtime);
+        /* Reuse the weak window-owner binding in interaction/editor_controls.inc.
+         * A retained button cannot call a released Studio runtime. */
+        // g_signal_connect(
+        // start, "clicked",
+        // G_CALLBACK(runtime_on_debug_start), runtime);
+        runtime_bind_editor_action(runtime, start, runtime_on_debug_start);
+        /* Reuse the weak window-owner binding in interaction/editor_controls.inc.
+         * A retained button cannot call a released Studio runtime. */
+        // g_signal_connect(
+        // continue_button, "clicked",
+        // G_CALLBACK(runtime_on_debug_continue), runtime);
+        runtime_bind_editor_action(runtime, continue_button, runtime_on_debug_continue);
+        /* Reuse the weak window-owner binding in interaction/editor_controls.inc.
+         * A retained button cannot call a released Studio runtime. */
+        // g_signal_connect(
+        // pause, "clicked",
+        // G_CALLBACK(runtime_on_debug_pause), runtime);
+        runtime_bind_editor_action(runtime, pause, runtime_on_debug_pause);
+        /* Reuse the weak window-owner binding in interaction/editor_controls.inc.
+         * A retained button cannot call a released Studio runtime. */
+        // g_signal_connect(
+        // next, "clicked",
+        // G_CALLBACK(runtime_on_debug_next), runtime);
+        runtime_bind_editor_action(runtime, next, runtime_on_debug_next);
+        /* Reuse the weak window-owner binding in interaction/editor_controls.inc.
+         * A retained button cannot call a released Studio runtime. */
+        // g_signal_connect(
+        // step_in, "clicked",
+        // G_CALLBACK(runtime_on_debug_step_in), runtime);
+        runtime_bind_editor_action(runtime, step_in, runtime_on_debug_step_in);
+        /* Reuse the weak window-owner binding in interaction/editor_controls.inc.
+         * A retained button cannot call a released Studio runtime. */
+        // g_signal_connect(
+        // step_out, "clicked",
+        // G_CALLBACK(runtime_on_debug_step_out), runtime);
+        runtime_bind_editor_action(runtime, step_out, runtime_on_debug_step_out);
+        /* Reuse the weak window-owner binding in interaction/editor_controls.inc.
+         * A retained button cannot call a released Studio runtime. */
+        // g_signal_connect(
+        // stop, "clicked",
+        // G_CALLBACK(runtime_on_debug_stop), runtime);
+        runtime_bind_editor_action(runtime, stop, runtime_on_debug_stop);
+        /* Reuse the weak window-owner binding in interaction/editor_controls.inc.
+         * A retained button cannot call a released Studio runtime. */
+        // g_signal_connect(
+        // watch, "clicked",
+        // G_CALLBACK(runtime_on_debug_add_watch), runtime);
+        runtime_bind_editor_action(runtime, watch, runtime_on_debug_add_watch);
 
         gtk_box_append(GTK_BOX(controls), start);
         gtk_box_append(GTK_BOX(controls), continue_button);

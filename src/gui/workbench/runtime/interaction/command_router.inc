@@ -44,6 +44,14 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /* Repeat workspace/profile availability at execution: a stale menu must
+     * not replace the workspace of a pending or active debug process. */
+    if (runtime->owner != NULL && UmiStudioDebuggerNativeBusy(
+            umi_studio_services_debugger(umi_studio_ui_services(runtime->owner->ui))) &&
+        (strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "build.settings") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0))
+        return UMI_STATUS_BUSY;
+
     if (strcmp(command_id, "file.close-all.cancel") == 0)
         return runtime->owner != NULL
             ? UmiGtk4AdapterCancelCloseDocuments(runtime->owner->adapter)
@@ -160,6 +168,23 @@ static UmiStatus runtime_route_command(
     }
 
     /* Build/run commands reuse the canonical Studio service registrations. */
+    if (strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0) {
+        if (UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
+            UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter)) return UMI_STATUS_BUSY;
+        UmiStatus saved = UmiDocumentCoordinatorSaveAll(umi_studio_ui_documents(runtime->owner->ui), NULL);
+        if (saved != UMI_STATUS_OK) return saved;
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_DEBUG_START, argument);
+    }
+
+    if (strcmp(command_id, "build.package") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_PACKAGE) == 0)
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_PACKAGE);
+    if (strcmp(command_id, "build.rebuild") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_REBUILD) == 0)
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_REBUILD);
+    if (strcmp(command_id, "build.deploy") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_DEPLOY) == 0)
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_DEPLOY);
     if (strcmp(command_id, "build.configure") == 0) {
         return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_CONFIGURE);
     }

@@ -14,6 +14,27 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+static UmiStatus runtime_execute_command(UmiStudioGtkRuntimeChrome *runtime,
+    const char *command_id, const char *argument);
+
+/* Adapter configuration is copied by the Studio host; Framework owns profiles
+ * and starts the executable without a command shell. */
+static void RuntimeDebugConfigure(GtkButton *button, gpointer context)
+{
+    (void)button;
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL ||
+        runtime->debug_adapter_kind == NULL || runtime->debug_adapter_executable == NULL) return;
+    guint selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(runtime->debug_adapter_kind));
+    const char *path = gtk_editable_get_text(GTK_EDITABLE(runtime->debug_adapter_executable));
+    UmiStatus status = UmiStudioDebuggerConfigureNative(
+        umi_studio_services_debugger(umi_studio_ui_services(runtime->owner->ui)),
+        selected == 0U ? "gdb" : "lldb", path);
+    runtime_show_notification(runtime, status == UMI_STATUS_OK
+        ? "Native debugger selected. Debug builds the project before starting it."
+        : umi_status_text(status));
+}
+
 static const char *runtime_debug_thread_argument(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -62,10 +83,10 @@ static void runtime_debug_command(
 static void runtime_on_debug_start(GtkButton *button, gpointer user_data)
 {
     (void)button;
-    runtime_debug_command(
-        (UmiStudioGtkRuntimeChrome *)user_data,
-        UMI_STUDIO_COMMAND_DEBUG_START,
-        0);
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    if (runtime == NULL || runtime->owner == NULL) return;
+    /* Use the same saved-source gate as the Debug menu and command palette. */
+    (void)runtime_execute_command(runtime, "debug.start", NULL);
 }
 
 /*
@@ -216,3 +237,12 @@ static void runtime_debug_update_summary(
         GTK_LABEL(runtime->debug_summary_label),
         text);
 }
+
+// MIGRATION REFERENCE — previous implementation excerpts
+// Native execution now delegates to Framework debug_runtime/platform.c and build/project_session.c. Studio retains command composition and presentation; the explicit legacy memory-protocol API remains available for its existing callers.
+// These comments explain superseded statements; do not enable both execution paths.
+// Previous source near line 65:
+//     runtime_debug_command(
+//         (UmiStudioGtkRuntimeChrome *)user_data,
+//         UMI_STUDIO_COMMAND_DEBUG_START,
+//         0);

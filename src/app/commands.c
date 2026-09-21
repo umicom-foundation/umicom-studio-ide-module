@@ -564,6 +564,8 @@ static UmiStatus build_phase_handler(UmiStudioServices *services,
     UmiBuildResult *result = NULL;
     UmiStudioWorkspaceSnapshot workspace;
     UmiStatus status;
+    if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)))
+        return UMI_STATUS_BUSY;
     UmiStatus diagnostic_status;
     status = umi_studio_workspace_snapshot(services, &workspace);
     if (status != UMI_STATUS_OK) return status;
@@ -690,6 +692,33 @@ static UmiStatus build_run_handler(void *user_data,
                                argument,
                                out_message,
                                message_capacity);
+}
+
+/* Use the existing bounded build worker for the package sequence. */
+static UmiStatus build_package_handler(void *user_data, const char *argument,
+    char *out_message, size_t capacity)
+{
+    (void)argument;
+    return build_phase_handler((UmiStudioServices *)user_data,
+        UMI_BUILD_PHASE_PACKAGE, "background", out_message, capacity);
+}
+
+/* Use the existing bounded build worker for the rebuild sequence. */
+static UmiStatus build_rebuild_handler(void *user_data, const char *argument,
+    char *out_message, size_t capacity)
+{
+    (void)argument;
+    return build_phase_handler((UmiStudioServices *)user_data,
+        UMI_BUILD_PHASE_REBUILD, "background", out_message, capacity);
+}
+
+/* Use the existing bounded build worker for the deploy sequence. */
+static UmiStatus build_deploy_handler(void *user_data, const char *argument,
+    char *out_message, size_t capacity)
+{
+    (void)argument;
+    return build_phase_handler((UmiStudioServices *)user_data,
+        UMI_BUILD_PHASE_DEPLOY, "background", out_message, capacity);
 }
 
 /*
@@ -2179,33 +2208,66 @@ static UmiStatus debug_thread_argument(const char *argument, int *out_thread)
  * Provide the debug start handler operation used by this module and its client
  * applications.
  */
+/* Previous production entry used the in-memory test transport. Preserved for
+ * comparison; native execution now uses Framework debug_runtime through the
+ * Studio composition functions in src/app/debugger.c. */
+// static UmiStatus debug_start_handler(void *user_data, const char *argument,
+//                                      char *out_message, size_t capacity)
+// {
+//     UmiStudioServices *services = (UmiStudioServices *)user_data;
+//     const UmiBuildProfile *profile = umi_studio_build_service_profile(
+//         umi_studio_services_build(services));
+//     const char *adapter = argument != NULL && argument[0] != '\0'
+//         ? argument : "cppdbg";
+//     UmiStatus status;
+//     /*
+//      * Protect caller-owned memory by checking that required state is available before it is
+//      * used.
+//      */
+//     if (profile == NULL || profile->run_program[0] == '\0') {
+//         return UMI_STATUS_INVALID_STATE;
+//     }
+//     status = umi_studio_debugger_service_start(
+//         umi_studio_services_debugger(services), adapter,
+//         profile->run_program, profile->source_directory);
+//     /*
+//      * Protect caller-owned memory by checking that required state is available before it is
+//      * used.
+//      */
+//     if (out_message != NULL && capacity > 0U) {
+//         (void)snprintf(out_message, capacity, "Debug start: %s",
+//                        umi_status_text(status));
+//     }
+//     return status;
+// }
 static UmiStatus debug_start_handler(void *user_data, const char *argument,
-                                     char *out_message, size_t capacity)
+    char *out_message, size_t capacity)
 {
-    UmiStudioServices *services = (UmiStudioServices *)user_data;
-    const UmiBuildProfile *profile = umi_studio_build_service_profile(
-        umi_studio_services_build(services));
-    const char *adapter = argument != NULL && argument[0] != '\0'
-        ? argument : "cppdbg";
-    UmiStatus status;
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (profile == NULL || profile->run_program[0] == '\0') {
-        return UMI_STATUS_INVALID_STATE;
+    UmiStudioServices *services = user_data;
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioBuildService *build = umi_studio_services_build(services);
+    UmiStudioDebuggerService *debugger = umi_studio_services_debugger(services);
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(build);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status == UMI_STATUS_OK && (!workspace.graph.open || !workspace.graph.trusted))
+        status = UMI_STATUS_PERMISSION_DENIED;
+    if (status == UMI_STATUS_OK && (profile == NULL || profile->run_program[0] == '\0'))
+        status = UMI_STATUS_INVALID_STATE;
+    if (status == UMI_STATUS_OK && (UmiStudioBuildBusy(build) || UmiStudioDebuggerNativeBusy(debugger)))
+        status = UMI_STATUS_BUSY;
+    if (status == UMI_STATUS_OK && argument != NULL && argument[0] != '\0')
+        status = UmiStudioDebuggerConfigureNative(debugger, argument, "");
+    if (status == UMI_STATUS_OK)
+        status = UmiStudioDebuggerQueueNative(debugger, build, profile);
+    if (status == UMI_STATUS_OK) {
+        status = UmiStudioBuildSubmit(build, UMI_BUILD_PHASE_BUILD, true);
+        if (status != UMI_STATUS_OK) (void)umi_studio_debugger_service_stop(debugger, 0);
     }
-    status = umi_studio_debugger_service_start(
-        umi_studio_services_debugger(services), adapter,
-        profile->run_program, profile->source_directory);
-    /*
-     * Protect caller-owned memory by checking that required state is available before it is
-     * used.
-     */
-    if (out_message != NULL && capacity > 0U) {
-        (void)snprintf(out_message, capacity, "Debug start: %s",
-                       umi_status_text(status));
-    }
+    if (out_message != NULL && capacity != 0U)
+        (void)snprintf(out_message, capacity, "%s",
+            status == UMI_STATUS_OK ? "Building the selected project before starting its native debugger."
+            : "Debug did not start. Check workspace trust, Build Settings, the run target and adapter configuration.");
     return status;
 }
 
@@ -2258,6 +2320,10 @@ DEBUG_THREAD_HANDLER(debug_step_out_handler, "Step out", umi_studio_debugger_ser
 static UmiStatus debug_stop_handler(void *user_data, const char *argument,
                                     char *out_message, size_t capacity)
 {
+    UmiStudioServices *services = user_data;
+    if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) &&
+        UmiStudioBuildBusy(umi_studio_services_build(services)))
+        umi_studio_build_service_cancel(umi_studio_services_build(services));
     UmiStatus status = umi_studio_debugger_service_stop(
         umi_studio_services_debugger((UmiStudioServices *)user_data),
         argument != NULL && strcmp(argument, "restart") == 0);
@@ -4189,6 +4255,24 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_run_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+        UMI_STUDIO_COMMAND_BUILD_PACKAGE, "Package project", "Build",
+        "Run the reviewed project package sequence through Framework.",
+        "studio.delivery.execute",
+        UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, build_package_handler);
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+        UMI_STUDIO_COMMAND_BUILD_REBUILD, "Rebuild project", "Build",
+        "Run the reviewed project rebuild sequence through Framework.",
+        "studio.build.execute",
+        UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, build_rebuild_handler);
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+        UMI_STUDIO_COMMAND_BUILD_DEPLOY, "Deploy project", "Build",
+        "Run the reviewed project deploy sequence through Framework.",
+        "studio.delivery.execute",
+        UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, build_deploy_handler);
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_INSTALL,

@@ -2347,3 +2347,31 @@ install(FILES docs/WORKFLOW_TOOLS.html
 # Make the document-closing guide available in the installed application.
 install(FILES docs/CLOSING_DOCUMENTS.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Exercise the production build-before-debug command with a controlled child
+# protocol peer; this is not a replacement for GDB/LLDB native qualification.
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
+    add_executable(umicom-studio-development-workflow-test tests/test_development_workflow.c)
+    target_link_libraries(umicom-studio-development-workflow-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-development-workflow-test)
+    umicom_apply_sanitizers(umicom-studio-development-workflow-test)
+    add_dependencies(umicom-studio-development-workflow-test umicom-dap-protocol-fixture)
+    foreach(case complete compile-failure cancel-building profile-changed untrusted adapter-missing no-build-submitted)
+        add_test(NAME studio.development_workflow.${case}
+            COMMAND umicom-studio-development-workflow-test "$<TARGET_FILE:umicom-dap-protocol-fixture>" "${case}")
+        set_tests_properties(studio.development_workflow.${case} PROPERTIES TIMEOUT 180 RUN_SERIAL TRUE
+            LABELS "studio;build;debug;protocol-fixture;integration")
+    endforeach()
+endif()
+
+if(TARGET umicom-studio-build-readiness AND TARGET umicom-studio-development-workflow-test)
+    add_custom_target(umicom-studio-development-readiness)
+    add_dependencies(umicom-studio-development-readiness umicom-studio-build-readiness
+        umicom-studio-development-workflow-test umicom-development-debug-test
+        umicom-development-debug-session-test umicom-development-delivery-contract-test
+        umicom-development-workflow-example)
+endif()
+
+# Install the public project-development lesson beside the existing guides.
+install(FILES docs/DEVELOPMENT_WORKFLOW.html
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)

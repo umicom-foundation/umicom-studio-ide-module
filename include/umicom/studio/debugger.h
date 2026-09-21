@@ -17,6 +17,8 @@
 #define UMICOM_STUDIO_DEBUGGER_H
 
 #include "umicom/umicom.h"
+#include "umicom/studio/build.h"
+#include "umicom/debug_runtime/platform.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +28,30 @@ extern "C" {
  * Represent the studio debugger service data shared with callers of this public contract.
  */
 typedef struct UmiStudioDebuggerService UmiStudioDebuggerService;
+
+/** Select an installed native adapter. kind is "lldb" or "gdb"; executable
+ * is empty for PATH discovery or a complete executable path. The values are
+ * copied; a busy session is not reconfigured. This is a per-window setting. */
+UmiStatus UmiStudioDebuggerConfigureNative(UmiStudioDebuggerService *service,
+    const char *kind, const char *executable);
+/** Capture the reviewed launch profile and the next build operation identity.
+ * Submit the existing Build worker immediately after OK; cancel this request if
+ * submission fails. PollNative requires that exact operation to finish before launching.
+ * The host must retain trust and the same workspace, and poll on its owner
+ * thread. No native process starts while a compiler job is still running. */
+UmiStatus UmiStudioDebuggerQueueNative(UmiStudioDebuggerService *service,
+    UmiStudioBuildService *build, const UmiBuildProfile *profile);
+/** Poll bounded DAP input, and finish a queued build-before-debug request.
+ * Build failures never launch the previous executable. A stopped session uses
+ * Framework's existing inspection registries. Native request waits are bounded
+ * but synchronous: the current host may pause briefly while an adapter replies. */
+UmiStatus UmiStudioDebuggerPollNative(UmiStudioDebuggerService *service,
+    UmiStudioBuildService *build);
+/** Pending compiler-to-debug transition or a connected native process. */
+int UmiStudioDebuggerNativeBusy(const UmiStudioDebuggerService *service);
+/** Borrow the real Framework runtime for explicit inspection and tests. */
+UmiDebugRuntimePlatform *UmiStudioDebuggerNativePlatform(UmiStudioDebuggerService *service);
+
 
 /**
  * Represent the studio debugger snapshot data shared with callers of this public contract.
