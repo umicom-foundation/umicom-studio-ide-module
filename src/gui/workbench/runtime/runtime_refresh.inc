@@ -33,6 +33,31 @@ static UmiStatus runtime_refresh_services(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /* Publish a completed private catalogue on the owning GUI thread before
+     * the existing refresh reads it. Poll never waits for CTest to complete. */
+    if (runtime->owner->ui != NULL) {
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        UmiStudioTestService *tests = umi_studio_services_tests(services);
+        if (UmiStudioTestDiscoveryPending(tests)) {
+            UmiStudioWorkspaceSnapshot workspace;
+            const UmiBuildProfile *profile = umi_studio_build_service_profile(
+                umi_studio_services_build(services));
+            int allowed = umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK &&
+                workspace.graph.open && workspace.graph.trusted;
+            int published = 0;
+            char message[512];
+            UmiStatus discoveryStatus = UmiStudioTestDiscoveryPoll(tests,
+                profile != NULL ? profile->source_directory : NULL,
+                profile != NULL ? profile->build_directory : NULL,
+                profile != NULL ? profile->configuration : NULL,
+                allowed ? workspace.graph.revision : 0U, allowed,
+                &published, message, sizeof(message));
+            if (discoveryStatus != UMI_STATUS_BUSY && discoveryStatus != UMI_STATUS_NOT_FOUND)
+                runtime_show_notification(runtime, message[0] != '\0' ? message :
+                    umi_status_text(discoveryStatus));
+        }
+    }
+
     /*
      * Preserve the established Studio refresh path first. The new runtime is a
      * presentation/composition layer around it, not a replacement service graph.

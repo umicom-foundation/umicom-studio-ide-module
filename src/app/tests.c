@@ -15,6 +15,8 @@
 
 #include "umicom/studio/tests.h"
 #include "umicom/testing/ctest_adapter.h"
+#include "umicom/studio/test_discovery.h"
+#include "umicom/platform/threading.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +34,14 @@ struct UmiStudioTestService {
      * Retain its own discovery origin rather than the last active project. */
     char legacy_build_directory[UMI_BUILD_PATH_CAPACITY];
     UmiTestRunSummary last_summary;
+    /* Framework owns the worker, cancellation, private catalogues and stale fence.
+     * These are owner-thread presentation/command bindings, never worker state. */
+    UmiCtestDiscoveryJob *discoveryJob;
+    UmiTaskQueue *discoveryQueue;
+    UmiTestPlatformCtestImportOptions discoveryOptions;
+    char discoverySourceRoot[UMI_BUILD_PATH_CAPACITY];
+    uint64_t discoveryGeneration;
+    int discoveryStopRequested;
 };
 
 /* Provide the copy text operation used by this module and its client applications. */
@@ -55,6 +65,8 @@ static void copy_text(char *destination, size_t capacity, const char *source)
     if (length > 0U) (void)memcpy(destination, source, length);
     destination[length] = '\0';
 }
+
+#include "test_discovery.inc"
 
 /*
  * Initialise studio test service from caller-provided values so later operations receive a
@@ -119,6 +131,7 @@ void umi_studio_test_service_destroy(UmiStudioTestService *service)
      * used.
      */
     if (service == NULL) return;
+    if (!UmiStudioDiscoveryDispose(service)) return;
     umi_test_workspace_destroy(service->workspace);
     umi_test_platform_service_destroy(service->platform);
     umi_test_registry_destroy(service->registry);
@@ -151,6 +164,7 @@ UmiStatus umi_studio_test_service_discover_metadata(
         build_directory == NULL || build_directory[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
     /* Reject truncation before a discovery call can change the catalogue.
      * The Framework discovery identifier adds its own "discovery." prefix. */
     UmiTestPlatformDiscoverySnapshot discovery;
@@ -180,6 +194,10 @@ UmiStatus umi_studio_test_service_discover_metadata(
               selected_configuration);
     copy_text(options.build_directory, sizeof(options.build_directory),
               build_directory);
+    /* Only the GUI's canonical command opts in; existing CLI/API calls keep
+     * their synchronous completion contract. An accepted job has no result yet. */
+    if (service->discoveryQueue != NULL)
+        return UmiStudioDiscoveryStart(service, workspace_root, &options);
     status = umi_test_platform_service_discover_ctest(
         service->platform, &options, out_summary, diagnostics,
         sizeof(diagnostics));
@@ -217,6 +235,7 @@ UmiStatus umi_studio_test_service_discover(UmiStudioTestService *service,
     if (service == NULL || build_directory == NULL || build_directory[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
     length = strlen(build_directory);
     /* Create this optional product surface only when its build option is enabled. */
     if (length >= sizeof(service->build_directory)) {
@@ -271,6 +290,7 @@ UmiStatus umi_studio_test_service_run_all(UmiStudioTestService *service,
      * used.
      */
     if (service == NULL || out_summary == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
     count = umi_test_suite_count(service->ctest_suite);
     /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (count == 0U) {
@@ -414,6 +434,7 @@ UmiStatus umi_studio_test_service_begin(
      * used.
      */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
     return umi_test_platform_service_begin_operation(service->platform, plan);
 }
 
@@ -562,6 +583,7 @@ UmiStatus umi_studio_test_service_execute(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     (void)memset(out_summary, 0, sizeof(*out_summary));
+    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
     controller = umi_test_platform_service_operation(service->platform);
     status = umi_test_platform_execute(
         umi_test_platform_service_item(service->platform),
@@ -589,6 +611,8 @@ UmiStatus umi_studio_test_service_stop(UmiStudioTestService *service)
      * used.
      */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioTestDiscoveryPending(service))
+        return UmiStudioDiscoveryCancelPending(service);
     return umi_test_platform_service_request_stop(service->platform);
 }
 
@@ -670,6 +694,12 @@ UmiStatus umi_studio_test_service_set_workspace(
      */
     if (service == NULL || workspace_root == NULL || project_id == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    if (UmiStudioTestDiscoveryPending(service) &&
+        (workspace_revision != service->explorer.workspace_revision ||
+         strcmp(workspace_root, service->explorer.workspace_root) != 0 ||
+         strcmp(project_id, service->explorer.active_project_id) != 0)) {
+        (void)UmiStudioDiscoveryCancelPending(service);
     }
     copy_text(service->explorer.workspace_root,
               sizeof(service->explorer.workspace_root), workspace_root);
@@ -757,6 +787,10 @@ UmiStatus umi_studio_test_service_snapshot(
                 platform_snapshot.operation_running;
             out_snapshot->stop_requested = platform_snapshot.stop_requested;
         }
+    }
+    if (UmiStudioTestDiscoveryPending(service)) {
+        out_snapshot->operation_running = 1;
+        out_snapshot->stop_requested = service->discoveryStopRequested;
     }
     out_snapshot->workspace_revision = service->explorer.workspace_revision;
     out_snapshot->explorer_revision = service->explorer.revision;

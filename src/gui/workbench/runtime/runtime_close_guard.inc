@@ -14,6 +14,21 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Do not enter synchronous service destruction with a live discovery payload.
+ * The ordinary refresh loop reaps Stop. No discarded edits or automatic close
+ * are implied: after it completes the user requests close again. */
+static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    UmiStudioTestService *tests = umi_studio_services_tests(
+        umi_studio_ui_services(runtime->owner->ui));
+    if (!UmiStudioTestDiscoveryPending(tests)) return 0;
+    (void)umi_studio_test_service_stop(tests);
+    runtime_show_notification(runtime,
+        "Stopping test discovery. Close again after it finishes; your documents remain open.");
+    return 1;
+}
+
 static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
 {
     UmiStudioFileDialogRequest *request = user_data;
@@ -33,6 +48,11 @@ static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
         return;
     }
 
+    if (RuntimeStopDiscoveryBeforeClose(runtime)) {
+        if (GTK_IS_WINDOW(dialog)) gtk_window_destroy(GTK_WINDOW(dialog));
+        g_clear_object(&ownerWindow);
+        return;
+    }
     runtime->force_close = 1;
 
     /* Apply this branch only when its contract condition is satisfied. */
@@ -176,6 +196,7 @@ static gboolean runtime_on_close_request(
      * used.
      */
     if (runtime == NULL) return TRUE;
+    if (RuntimeStopDiscoveryBeforeClose(runtime)) return TRUE;
     if (runtime->force_close) return FALSE;
 
     /*

@@ -15,6 +15,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/studio/test_discovery.h"
+
 static UmiCommandRegistry *runtime_registered_commands(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -135,6 +137,31 @@ static UmiStatus runtime_execute_registered_command_capture(
     }
     (void)memset(message, 0, capacity);
 
+    UmiStudioTestService *backgroundDiscovery = NULL;
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_DISCOVER) == 0) {
+        UmiStudioServices *services = runtime->owner != NULL && runtime->owner->ui != NULL
+            ? umi_studio_ui_services(runtime->owner->ui) : NULL;
+        UmiStudioWorkspaceSnapshot workspace;
+        const UmiBuildProfile *profile = services != NULL
+            ? umi_studio_build_service_profile(umi_studio_services_build(services)) : NULL;
+        if (services == NULL || profile == NULL ||
+            umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+            !workspace.graph.open || !workspace.graph.trusted) {
+            runtime_show_notification(runtime, "Open and trust the workspace before discovering executable CTest scripts.");
+            return UMI_STATUS_INVALID_STATE;
+        }
+        /* A toolbar may still carry a previous catalogue's path. Use the active
+         * profile for a GUI discovery request; the CLI retains explicit paths. */
+        argument = profile->build_directory;
+        backgroundDiscovery = umi_studio_services_tests(services);
+        status = UmiStudioTestDiscoveryArm(backgroundDiscovery,
+            umi_studio_services_task_queue(services), workspace.graph.revision);
+        if (status != UMI_STATUS_OK) {
+            runtime_show_notification(runtime, "Discovery is already pending or its task queue is unavailable.");
+            return status;
+        }
+    }
+
     runtime->interaction_busy = 1;
     status = umi_command_registry_execute(
         commands,
@@ -143,6 +170,13 @@ static UmiStatus runtime_execute_registered_command_capture(
         message,
         capacity);
     runtime->interaction_busy = 0;
+    if (backgroundDiscovery != NULL) {
+        UmiStudioTestDiscoveryDisarm(backgroundDiscovery);
+        if (status == UMI_STATUS_OK && UmiStudioTestDiscoveryPending(backgroundDiscovery))
+            (void)snprintf(message, capacity, "Test discovery started in the background. Stop retains the previous catalogue.");
+        else if (status != UMI_STATUS_OK)
+            (void)snprintf(message, capacity, "Test discovery was not started: %s", umi_status_text(status));
+    }
 
     /* Apply this branch only when its contract condition is satisfied. */
     if (message[0] != '\0') {
