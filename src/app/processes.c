@@ -51,10 +51,11 @@ UmiStatus umi_studio_process_submit(UmiStudioServices *services,
         effective.working_directory[0] == '\0') {
         effective.working_directory = workspace.root;
     }
-    return umi_process_supervisor_submit(
+    return UmiProcessSupervisorSubmitWithLifetime(
         umi_studio_services_process_supervisor(services),
         label,
         &effective,
+        UMI_PROCESS_LIFETIME_TREE,
         out_job_id);
 }
 
