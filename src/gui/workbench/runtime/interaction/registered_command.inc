@@ -17,6 +17,10 @@
 
 #include "umicom/studio/test_discovery.h"
 
+#include "umicom/studio/test_execution.h"
+static int RuntimeTestRunContext(UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioTestRunContext *context);
+
 static UmiCommandRegistry *runtime_registered_commands(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -162,6 +166,26 @@ static UmiStatus runtime_execute_registered_command_capture(
         }
     }
 
+    UmiStudioTestService *backgroundRun = NULL;
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RUN_ALL) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RUN_SELECTED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RERUN_FAILED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_REPEAT_SELECTED) == 0) {
+        UmiStudioTestRunContext context;
+        if (!RuntimeTestRunContext(runtime, &context)) {
+            runtime_show_notification(runtime, "Open and trust the active workspace before running tests.");
+            return UMI_STATUS_PERMISSION_DENIED;
+        }
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        backgroundRun = umi_studio_services_tests(services);
+        status = UmiStudioTestRunArm(backgroundRun,
+            umi_studio_services_task_queue(services), &context);
+        if (status != UMI_STATUS_OK) {
+            runtime_show_notification(runtime, "Another test operation is pending or its task queue is unavailable.");
+            return status;
+        }
+    }
+
     runtime->interaction_busy = 1;
     status = umi_command_registry_execute(
         commands,
@@ -176,6 +200,13 @@ static UmiStatus runtime_execute_registered_command_capture(
             (void)snprintf(message, capacity, "Test discovery started in the background. Stop retains the previous catalogue.");
         else if (status != UMI_STATUS_OK)
             (void)snprintf(message, capacity, "Test discovery was not started: %s", umi_status_text(status));
+    }
+
+    if (backgroundRun != NULL) {
+        UmiStudioTestRunDisarm(backgroundRun);
+        if (status == UMI_STATUS_OK && UmiStudioTestRunPending(backgroundRun))
+            (void)snprintf(message, capacity,
+                "Test run started. Stop cancels the active CTest request and prevents later attempts.");
     }
 
     /* Apply this branch only when its contract condition is satisfied. */

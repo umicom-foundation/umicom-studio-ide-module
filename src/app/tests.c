@@ -16,6 +16,7 @@
 #include "umicom/studio/tests.h"
 #include "umicom/testing/ctest_adapter.h"
 #include "umicom/studio/test_discovery.h"
+#include "umicom/studio/test_execution.h"
 #include "umicom/platform/threading.h"
 
 #include <stdio.h>
@@ -42,7 +43,22 @@ struct UmiStudioTestService {
     char discoverySourceRoot[UMI_BUILD_PATH_CAPACITY];
     uint64_t discoveryGeneration;
     int discoveryStopRequested;
+
+    UmiCtestJob *executionJob;
+    UmiTaskQueue *executionQueue;
+    UmiStudioTestRunContext executionContext;
+    uint64_t executionOwner;
+    uint64_t executionItemsRevision;
+    uint64_t executionDiscoveryRevision;
+    uint64_t executionResultsRevision;
+    uint64_t executionOutputRevision;
+    uint64_t executionSequence;
+    size_t executionPublished;
+    int executionPending;
+    int executionStale;
 };
+
+static int UmiStudioExecutionDispose(UmiStudioTestService *service);
 
 /* Provide the copy text operation used by this module and its client applications. */
 static void copy_text(char *destination, size_t capacity, const char *source)
@@ -132,6 +148,7 @@ void umi_studio_test_service_destroy(UmiStudioTestService *service)
      */
     if (service == NULL) return;
     if (!UmiStudioDiscoveryDispose(service)) return;
+    if (!UmiStudioExecutionDispose(service)) return;
     umi_test_workspace_destroy(service->workspace);
     umi_test_platform_service_destroy(service->platform);
     umi_test_registry_destroy(service->registry);
@@ -164,7 +181,8 @@ UmiStatus umi_studio_test_service_discover_metadata(
         build_directory == NULL || build_directory[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
-    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
+    if (UmiStudioTestDiscoveryPending(service) || UmiStudioTestRunPending(service))
+        return UMI_STATUS_BUSY;
     /* Reject truncation before a discovery call can change the catalogue.
      * The Framework discovery identifier adds its own "discovery." prefix. */
     UmiTestPlatformDiscoverySnapshot discovery;
@@ -235,7 +253,8 @@ UmiStatus umi_studio_test_service_discover(UmiStudioTestService *service,
     if (service == NULL || build_directory == NULL || build_directory[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
-    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
+    if (UmiStudioTestDiscoveryPending(service) || UmiStudioTestRunPending(service))
+        return UMI_STATUS_BUSY;
     length = strlen(build_directory);
     /* Create this optional product surface only when its build option is enabled. */
     if (length >= sizeof(service->build_directory)) {
@@ -290,7 +309,8 @@ UmiStatus umi_studio_test_service_run_all(UmiStudioTestService *service,
      * used.
      */
     if (service == NULL || out_summary == NULL) return UMI_STATUS_INVALID_ARGUMENT;
-    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
+    if (UmiStudioTestDiscoveryPending(service) || UmiStudioTestRunPending(service))
+        return UMI_STATUS_BUSY;
     count = umi_test_suite_count(service->ctest_suite);
     /* Keep the operation inside its valid bounds before reading, writing or adding data. */
     if (count == 0U) {
@@ -434,7 +454,8 @@ UmiStatus umi_studio_test_service_begin(
      * used.
      */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
-    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
+    if (UmiStudioTestDiscoveryPending(service) || UmiStudioTestRunPending(service))
+        return UMI_STATUS_BUSY;
     return umi_test_platform_service_begin_operation(service->platform, plan);
 }
 
@@ -469,10 +490,8 @@ static UmiStatus execute_ctest_item(
     UmiTestPlatformOutputSnapshot output;
     UmiStatus status;
     int written;
-    const char *build_directory;
     UmiCtestRunOptions options = {0};
-    UmiTestPlatformDiscoverySnapshot discovery;
-    char discovery_id[sizeof(discovery.id)];
+    UmiCtestJobRequest request;
     if (service == NULL || item == NULL || out_result == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
@@ -483,34 +502,17 @@ static UmiStatus execute_ctest_item(
      * separate working_directory belongs to the test executable and must
      * remain under CTest's control. The former working_directory fallback
      * could select the wrong catalogue, or accidentally run no test at all. */
-    build_directory = item->uri;
-    written = snprintf(discovery_id, sizeof(discovery_id), "discovery.%s",
-                       item->suite_id);
-    if (written < 0 || (size_t)written >= sizeof(discovery_id)) {
-        status = UMI_STATUS_CAPACITY_EXCEEDED;
-    } else if (strcmp(item->framework, "ctest") != 0 ||
-               strcmp(item->kind, "test") != 0 || !item->discovered ||
-               build_directory[0] == '\0') {
-        status = UMI_STATUS_INVALID_STATE;
-    } else {
-        status = umi_test_platform_discovery_registry_find(
-            umi_test_platform_service_discovery(service->platform),
-            discovery_id, &discovery);
-        if (status == UMI_STATUS_OK &&
-            (strcmp(discovery.provider, "ctest-json-v1") != 0 ||
-             discovery.state != 1 ||
-             strcmp(discovery.root_uri, build_directory) != 0)) {
-            status = UMI_STATUS_INVALID_STATE;
-        }
-    }
+    /* Framework resolves the selected item's own discovery provenance for
+     * both synchronous callers and queue-backed Test Explorer operations. */
+    status = UmiTestPlatformCtestMakeRunRequest(item,
+        umi_test_platform_service_discovery(service->platform), &request);
     if (status == UMI_STATUS_OK) {
         /* Compose from the selected item's provenance, not another project's
          * last active configuration. All execution and report policy remains
          * in the Framework CTest adapter. Empty means discovery used Debug. */
-        options.configuration = discovery.configuration[0] != '\0'
-            ? discovery.configuration : "Debug";
+        options.configuration = request.configuration;
         options.test_id = item->id;
-        status = UmiCtestRunConfigured(build_directory, item->name, &options, &result);
+        status = UmiCtestRunConfigured(request.build_directory, item->name, &options, &result);
     } else {
         result.status = status;
         copy_text(result.output, sizeof(result.output),
@@ -564,6 +566,8 @@ static UmiStatus execute_ctest_item(
     return status != UMI_STATUS_OK ? status : output_status;
 }
 
+#include "test_execution.inc"
+
 /*
  * Perform studio test service through the module contract so client applications do not
  * duplicate its policy.
@@ -583,7 +587,10 @@ UmiStatus umi_studio_test_service_execute(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     (void)memset(out_summary, 0, sizeof(*out_summary));
-    if (UmiStudioTestDiscoveryPending(service)) return UMI_STATUS_BUSY;
+    if (UmiStudioTestDiscoveryPending(service) || UmiStudioTestRunPending(service))
+        return UMI_STATUS_BUSY;
+    if (service->executionQueue != NULL)
+        return UmiStudioExecutionStart(service, plan, out_summary);
     controller = umi_test_platform_service_operation(service->platform);
     status = umi_test_platform_execute(
         umi_test_platform_service_item(service->platform),
@@ -611,6 +618,7 @@ UmiStatus umi_studio_test_service_stop(UmiStudioTestService *service)
      * used.
      */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioTestRunPending(service)) return UmiStudioTestRunCancel(service);
     if (UmiStudioTestDiscoveryPending(service))
         return UmiStudioDiscoveryCancelPending(service);
     return umi_test_platform_service_request_stop(service->platform);
@@ -627,6 +635,7 @@ void umi_studio_test_service_finish(UmiStudioTestService *service)
      * used.
      */
     if (service == NULL) return;
+    if (UmiStudioTestRunPending(service)) return;
     umi_test_platform_service_finish_operation(service->platform);
 }
 
@@ -700,6 +709,13 @@ UmiStatus umi_studio_test_service_set_workspace(
          strcmp(workspace_root, service->explorer.workspace_root) != 0 ||
          strcmp(project_id, service->explorer.active_project_id) != 0)) {
         (void)UmiStudioDiscoveryCancelPending(service);
+    }
+    if (UmiStudioTestRunPending(service) &&
+        (workspace_revision != service->explorer.workspace_revision ||
+         strcmp(workspace_root, service->explorer.workspace_root) != 0 ||
+         strcmp(project_id, service->explorer.active_project_id) != 0)) {
+        service->executionStale = 1;
+        (void)UmiStudioTestRunCancel(service);
     }
     copy_text(service->explorer.workspace_root,
               sizeof(service->explorer.workspace_root), workspace_root);

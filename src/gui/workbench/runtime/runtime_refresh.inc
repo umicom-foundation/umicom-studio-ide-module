@@ -19,6 +19,31 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/studio/test_execution.h"
+
+/* Read a copied trust/profile boundary, never borrow it in a worker. */
+static int RuntimeTestRunContext(UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioTestRunContext *context)
+{
+    memset(context, 0, sizeof(*context));
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    const UmiBuildProfile *profile = services != NULL
+        ? umi_studio_build_service_profile(umi_studio_services_build(services)) : NULL;
+    UmiStudioWorkspaceSnapshot workspace;
+    if (profile == NULL || umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+        !workspace.graph.open || !workspace.graph.trusted ||
+        strlen(profile->source_directory) >= sizeof(context->source_root) ||
+        strlen(profile->build_directory) >= sizeof(context->build_root) ||
+        strlen(profile->configuration) >= sizeof(context->configuration)) return 0;
+    context->trusted = 1;
+    context->workspace_generation = workspace.graph.revision;
+    (void)snprintf(context->source_root, sizeof(context->source_root), "%s", profile->source_directory);
+    (void)snprintf(context->build_root, sizeof(context->build_root), "%s", profile->build_directory);
+    (void)snprintf(context->configuration, sizeof(context->configuration), "%s", profile->configuration);
+    return 1;
+}
+
 static UmiStatus runtime_refresh_services(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -55,6 +80,18 @@ static UmiStatus runtime_refresh_services(
             if (discoveryStatus != UMI_STATUS_BUSY && discoveryStatus != UMI_STATUS_NOT_FOUND)
                 runtime_show_notification(runtime, message[0] != '\0' ? message :
                     umi_status_text(discoveryStatus));
+        }
+    }
+
+    if (runtime->owner->ui != NULL) {
+        UmiStudioTestService *tests = umi_studio_services_tests(umi_studio_ui_services(runtime->owner->ui));
+        if (UmiStudioTestRunPending(tests)) {
+            UmiStudioTestRunContext context;
+            (void)RuntimeTestRunContext(runtime, &context);
+            char message[512];
+            UmiStatus runStatus = UmiStudioTestRunPoll(tests, &context, message, sizeof(message));
+            if (runStatus != UMI_STATUS_BUSY && runStatus != UMI_STATUS_NOT_FOUND)
+                runtime_show_notification(runtime, message[0] ? message : umi_status_text(runStatus));
         }
     }
 
@@ -130,6 +167,23 @@ static UmiStatus runtime_refresh_services(
     runtime_refresh_command_sensitivity(runtime, runtime->surface_panels[UMI_STUDIO_SURFACE_BUILD]);
     runtime_refresh_command_sensitivity(runtime, runtime->toolbar);
     runtime_refresh_command_sensitivity(runtime, runtime->activity_bar);
+
+    if (runtime->test_summary_label != NULL && runtime->owner->ui != NULL) {
+        UmiStudioTestService *tests = umi_studio_services_tests(umi_studio_ui_services(runtime->owner->ui));
+        UmiCtestJobSnapshot progress;
+        if (UmiStudioTestRunPending(tests) &&
+            UmiStudioTestRunSnapshot(tests, &progress) == UMI_STATUS_OK) {
+            char *name = g_utf8_make_valid(progress.active_name, -1);
+            const char *phase = progress.state == UMI_TASK_QUEUED ? "Queued" :
+                progress.state == UMI_TASK_RUNNING ? "Running " : "Publishing results";
+            char *summary = g_strdup_printf(
+                "%zu / %zu attempts complete — %zu passed, %zu failed — %s%s",
+                progress.completed, progress.planned, progress.passed, progress.failed, phase, name);
+            gtk_label_set_text(GTK_LABEL(runtime->test_summary_label), summary);
+            g_free(summary);
+            g_free(name);
+        }
+    }
 
     return snapshot_status == UMI_STATUS_OK
         ? UMI_STATUS_OK

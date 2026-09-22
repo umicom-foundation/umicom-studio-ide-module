@@ -14,6 +14,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/studio/test_execution.h"
+
 /* Do not enter synchronous service destruction with a live discovery payload.
  * The ordinary refresh loop reaps Stop. No discarded edits or automatic close
  * are implied: after it completes the user requests close again. */
@@ -22,6 +24,12 @@ static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
     if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
     UmiStudioTestService *tests = umi_studio_services_tests(
         umi_studio_ui_services(runtime->owner->ui));
+    if (UmiStudioTestRunPending(tests)) {
+        (void)UmiStudioTestRunCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping the test run. Close again after it finishes; your documents remain open.");
+        return 1;
+    }
     if (!UmiStudioTestDiscoveryPending(tests)) return 0;
     (void)umi_studio_test_service_stop(tests);
     runtime_show_notification(runtime,
