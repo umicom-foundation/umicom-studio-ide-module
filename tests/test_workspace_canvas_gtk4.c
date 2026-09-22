@@ -35,6 +35,14 @@
     } \
 } while (0)
 
+/* Preserve a useful boundary in CTest output even if a later phase hangs.
+ * This observes the existing test; it neither retries nor changes its timeout. */
+static void ReportNativePhase(const char *phase)
+{
+    (void)fprintf(stderr, "Studio native canvas phase: %s\n", phase);
+    (void)fflush(stderr);
+}
+
 /* Locate semantic controls independently of translated labels or child order. */
 static GtkWidget *find_tag(GtkWidget *widget, const char *tag)
 {
@@ -571,6 +579,7 @@ int main(void)
     int before_dirty;
     int failed = 0;
 
+    ReportNativePhase("initialise-isolated-graph");
     /* Keep accessibility in-process rather than starting a desktop bus bridge. */
     (void)g_setenv("GTK_A11Y", "test", TRUE);
     if (!gtk_init_check()) {
@@ -662,7 +671,13 @@ int main(void)
     old_context_button = find_context_group(editor_root);
     REQUIRE(old_context_button != NULL);
     g_object_ref(old_context_button);
+    /* Capture this real control before the blank canvas detaches the editor.
+     * Its first stale-control exercise below must not emit on a NULL pointer. */
+    retained_reload = find_tag(native_window, "studio.editor.reload");
+    REQUIRE(GTK_IS_BUTTON(retained_reload));
+    g_object_ref(retained_reload);
 
+    ReportNativePhase("editor-rejected-paste");
     /* Oversize insertion is rejected before GTK changes either the draft or
      * its complete draft model; it must not silently save a shortened string. */
     documents = umi_ui_workbench_documents(umi_studio_ui_workbench(
@@ -705,6 +720,7 @@ int main(void)
     g_object_ref(selector);
     REQUIRE(GTK_IS_DROP_DOWN(selector));
 
+    ReportNativePhase("canvas-retention");
     /* Blank really means empty. Status sync must not resurrect hidden defaults. */
     REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench, layout_id,
         "Native canvas acceptance") == UMI_STATUS_OK);
@@ -884,6 +900,7 @@ int main(void)
         REQUIRE(all_windows_unpresented());
     }
 
+    ReportNativePhase("large-draft-history");
     /* Full drafts and changes beyond their preview must reach the same native
      * buffer. A Save As URI change does not create a different document. */
     REQUIRE(umi_ui_document_view_model_find(documents, "studio.editor.welcome", document) == UMI_STATUS_OK);
@@ -925,11 +942,11 @@ int main(void)
         REQUIRE(complete);
     }
 
-    /* Retained editor controls must resolve their weak native owner too. */
-    retained_reload = find_tag(native_window, "studio.editor.reload");
+    /* The early retained Reload reference remains valid here; do not acquire
+     * it a second time and leak the first reference. */
     REQUIRE(GTK_IS_BUTTON(retained_reload));
-    g_object_ref(retained_reload);
 
+    ReportNativePhase("destroy-pending-canvas");
     /* Closing the real owner cancels a queued callback before services die. */
     last_context_button = find_context_group(editor_root);
     REQUIRE(last_context_button != NULL);
@@ -946,10 +963,14 @@ int main(void)
     REQUIRE(!gtk_widget_get_sensitive(last_context_button));
     g_signal_emit_by_name(old_context_button, "clicked");
     g_signal_emit_by_name(last_context_button, "clicked");
+    g_signal_emit_by_name(retained_reload, "clicked");
     REQUIRE(drain_context());
     REQUIRE(all_windows_unpresented());
+    ReportNativePhase("project-explorer");
     REQUIRE(VerifyProjectExplorer(application, fixture_path) == 0);
+    ReportNativePhase("durable-layout-recovery");
     failed = verify_durable_canvas(application, fixture_path);
+    ReportNativePhase("native-scenarios-completed");
 
 cleanup:
     umi_studio_gtk_workbench_destroy(workbench);
