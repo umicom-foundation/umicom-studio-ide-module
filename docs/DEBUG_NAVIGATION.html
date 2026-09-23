@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Source and Disassembly Navigation in Umicom Studio</title>
+<style>body{font:17px/1.65 system-ui,"Segoe UI",sans-serif;max-width:1050px;margin:auto;padding:28px;color:#183247}code,pre{font-family:Consolas,monospace}pre{background:#102638;color:#eef8ff;padding:18px;border-radius:8px;overflow:auto}h1,h2{color:#12415b}</style></head>
+<body><h1>Source and Disassembly Navigation in Umicom Studio</h1>
+<p>Studio can reuse Framework's debugger navigation snapshot when a frontend needs to keep a stack frame, source line and machine instruction in context.</p>
+<h2>Read the selected location</h2>
+<pre><code>UmiStudioDebugNavigationSnapshot location;
+UmiStatus status =
+    umi_studio_debug_navigation_snapshot(debugger, &amp;location);
+</code></pre>
+<p>The returned value is a copy. Studio does not retain private debugger pointers and does not duplicate DAP parsing.</p>
+<h2>Follow a machine instruction</h2>
+<p>A frontend may select a retained disassembly row with <code>umi_studio_debug_navigation_select_instruction()</code>. If that instruction contains source correlation, the snapshot includes its source file and line.</p>
+<h2>Follow a source line</h2>
+<p><code>umi_studio_debug_navigation_follow_source()</code> selects a matching instruction already in the current disassembly window. This makes it suitable for a future source-editor action without coupling the Framework service to GTK4.</p>
+</body></html>
