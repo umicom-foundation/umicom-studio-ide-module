@@ -32,6 +32,18 @@ extern "C" {
     "studio.debug.low-level.refresh"
 #define UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION \
     "studio.action.debug.low-level.refresh"
+#define UMI_STUDIO_DEBUG_INSTRUCTION_NEXT_COMMAND \
+    "studio.debug.instruction.next"
+#define UMI_STUDIO_DEBUG_INSTRUCTION_NEXT_ACTION \
+    "studio.action.debug.instruction.next"
+#define UMI_STUDIO_DEBUG_INSTRUCTION_STEP_IN_COMMAND \
+    "studio.debug.instruction.step-in"
+#define UMI_STUDIO_DEBUG_INSTRUCTION_STEP_IN_ACTION \
+    "studio.action.debug.instruction.step-in"
+#define UMI_STUDIO_DEBUG_INSTRUCTION_BREAKPOINT_COMMAND \
+    "studio.debug.instruction.breakpoint-toggle"
+#define UMI_STUDIO_DEBUG_INSTRUCTION_BREAKPOINT_ACTION \
+    "studio.action.debug.instruction.breakpoint-toggle"
 
 /**
  * Initialise studio debug call stack view from caller-provided values so later operations

@@ -150,9 +150,30 @@ int main(void)
            UMI_STATUS_OK);
     assert(strcmp(action.action_id,
                   UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION) == 0);
+    assert(umi_ui_command_view_action_at(debug_disassembly, 1U, &action) ==
+           UMI_STATUS_OK);
+    assert(strcmp(action.action_id,
+                  UMI_STUDIO_DEBUG_INSTRUCTION_NEXT_ACTION) == 0);
+    assert(umi_ui_command_view_action_at(debug_disassembly, 2U, &action) ==
+           UMI_STATUS_OK);
+    assert(strcmp(action.action_id,
+                  UMI_STUDIO_DEBUG_INSTRUCTION_STEP_IN_ACTION) == 0);
+    assert(umi_ui_command_view_action_at(debug_disassembly, 3U, &action) ==
+           UMI_STATUS_OK);
+    assert(strcmp(action.action_id,
+                  UMI_STUDIO_DEBUG_INSTRUCTION_BREAKPOINT_ACTION) == 0);
     assert(umi_command_registry_contains(
                umi_ui_workbench_commands(workbench),
                UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_COMMAND));
+    assert(umi_command_registry_contains(
+               umi_ui_workbench_commands(workbench),
+               UMI_STUDIO_DEBUG_INSTRUCTION_NEXT_COMMAND));
+    assert(umi_command_registry_contains(
+               umi_ui_workbench_commands(workbench),
+               UMI_STUDIO_DEBUG_INSTRUCTION_STEP_IN_COMMAND));
+    assert(umi_command_registry_contains(
+               umi_ui_workbench_commands(workbench),
+               UMI_STUDIO_DEBUG_INSTRUCTION_BREAKPOINT_COMMAND));
     umi_ui_view_model_destroy(debug_disassembly);
     umi_ui_view_model_destroy(debug_registers);
 

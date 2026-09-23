@@ -487,6 +487,24 @@ UmiStatus umi_studio_debug_disassembly_view_create(
                             "Refresh",
                             "Refresh registers and machine instructions");
     }
+    if (status == UMI_STATUS_OK) {
+        status = add_action(*out_view, 1U,
+                            UMI_STUDIO_DEBUG_INSTRUCTION_NEXT_ACTION,
+                            "Step Instruction",
+                            "Advance one machine instruction without entering calls");
+    }
+    if (status == UMI_STATUS_OK) {
+        status = add_action(*out_view, 2U,
+                            UMI_STUDIO_DEBUG_INSTRUCTION_STEP_IN_ACTION,
+                            "Step Into Instruction",
+                            "Advance one machine instruction and allow entering calls");
+    }
+    if (status == UMI_STATUS_OK) {
+        status = add_action(*out_view, 3U,
+                            UMI_STUDIO_DEBUG_INSTRUCTION_BREAKPOINT_ACTION,
+                            "Toggle Instruction Breakpoint",
+                            "Toggle a breakpoint at the selected machine instruction");
+    }
     return status;
 }
 
@@ -556,6 +574,109 @@ static UmiStatus low_level_refresh_handler(
     return status;
 }
 
+static int instruction_control_enabled(void *user_data, const char *argument)
+{
+    UmiStudioDebuggerService *debugger =
+        (UmiStudioDebuggerService *)user_data;
+    UmiDebugRuntimePlatformSnapshot snapshot;
+    UmiDebugRuntimePlatform *platform;
+    (void)argument;
+    if (debugger == NULL) return 0;
+    platform = UmiStudioDebuggerNativePlatform(debugger);
+    return platform != NULL &&
+        umi_debug_runtime_platform_snapshot(platform, &snapshot) ==
+            UMI_STATUS_OK &&
+        snapshot.active && snapshot.paused &&
+        snapshot.adapter.state == UMI_DEBUG_RUNTIME_ADAPTER_PAUSED;
+}
+
+static UmiStatus instruction_step_handler(
+    void *user_data,
+    const char *argument,
+    char *out_message,
+    size_t message_capacity,
+    int step_into)
+{
+    UmiStudioDebuggerService *debugger =
+        (UmiStudioDebuggerService *)user_data;
+    UmiDebugRuntimePlatform *platform;
+    UmiStatus status;
+    (void)argument;
+    if (debugger == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    platform = UmiStudioDebuggerNativePlatform(debugger);
+    status = platform != NULL
+        ? umi_debug_workbench_step_instruction(platform, step_into, 1500U)
+        : UMI_STATUS_UNAVAILABLE;
+    if (out_message != NULL && message_capacity > 0U) {
+        (void)snprintf(out_message, message_capacity, "%s: %s",
+            step_into ? "Step into instruction" : "Step instruction",
+            umi_status_text(status));
+    }
+    return status;
+}
+
+static UmiStatus instruction_next_handler(
+    void *user_data, const char *argument,
+    char *out_message, size_t message_capacity)
+{
+    return instruction_step_handler(user_data, argument, out_message,
+                                    message_capacity, 0);
+}
+
+static UmiStatus instruction_step_in_handler(
+    void *user_data, const char *argument,
+    char *out_message, size_t message_capacity)
+{
+    return instruction_step_handler(user_data, argument, out_message,
+                                    message_capacity, 1);
+}
+
+static int instruction_breakpoint_enabled(void *user_data, const char *argument)
+{
+    UmiStudioDebuggerService *debugger =
+        (UmiStudioDebuggerService *)user_data;
+    UmiDebugRuntimePlatformSnapshot snapshot;
+    UmiDebugRuntimePlatform *platform;
+    (void)argument;
+    if (debugger == NULL) return 0;
+    platform = UmiStudioDebuggerNativePlatform(debugger);
+    return platform != NULL &&
+        umi_debug_runtime_platform_snapshot(platform, &snapshot) ==
+            UMI_STATUS_OK &&
+        snapshot.active && snapshot.paused &&
+        snapshot.capabilities.supports_instruction_breakpoints;
+}
+
+static UmiStatus instruction_breakpoint_handler(
+    void *user_data,
+    const char *argument,
+    char *out_message,
+    size_t message_capacity)
+{
+    UmiStudioDebuggerService *debugger =
+        (UmiStudioDebuggerService *)user_data;
+    UmiDebugRuntimePlatform *platform;
+    int enabled = 0;
+    UmiStatus status;
+    (void)argument;
+    if (debugger == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    platform = UmiStudioDebuggerNativePlatform(debugger);
+    status = platform != NULL
+        ? umi_debug_workbench_toggle_instruction_breakpoint(
+              platform, 1500U, &enabled)
+        : UMI_STATUS_UNAVAILABLE;
+    if (out_message != NULL && message_capacity > 0U) {
+        if (status == UMI_STATUS_OK) {
+            (void)snprintf(out_message, message_capacity,
+                "Instruction breakpoint %s.", enabled ? "enabled" : "removed");
+        } else {
+            (void)snprintf(out_message, message_capacity,
+                "Instruction breakpoint: %s", umi_status_text(status));
+        }
+    }
+    return status;
+}
+
 static int container_has_view(const UmiUiViewContainerSnapshot *container,
                               const char *view_id)
 {
@@ -612,6 +733,57 @@ UmiStatus umi_studio_debug_low_level_register(
     if (status != UMI_STATUS_OK && status != UMI_STATUS_ALREADY_EXISTS)
         return status;
 
+    (void)memset(&command, 0, sizeof(command));
+    command.structure_size = (uint32_t)sizeof(command);
+    command.command_id = UMI_STUDIO_DEBUG_INSTRUCTION_NEXT_COMMAND;
+    command.title = "Step Machine Instruction";
+    command.category = "Debug";
+    command.description =
+        "Advance the active stopped thread by one machine instruction.";
+    command.required_permission = "";
+    command.flags = UMI_COMMAND_AUDITED;
+    command.handler = instruction_next_handler;
+    command.enabled = instruction_control_enabled;
+    command.user_data = debugger;
+    status = umi_command_registry_register(
+        umi_ui_workbench_commands(workbench), &command);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_ALREADY_EXISTS)
+        return status;
+
+    (void)memset(&command, 0, sizeof(command));
+    command.structure_size = (uint32_t)sizeof(command);
+    command.command_id = UMI_STUDIO_DEBUG_INSTRUCTION_STEP_IN_COMMAND;
+    command.title = "Step Into Machine Instruction";
+    command.category = "Debug";
+    command.description =
+        "Advance one machine instruction while allowing entry into calls.";
+    command.required_permission = "";
+    command.flags = UMI_COMMAND_AUDITED;
+    command.handler = instruction_step_in_handler;
+    command.enabled = instruction_control_enabled;
+    command.user_data = debugger;
+    status = umi_command_registry_register(
+        umi_ui_workbench_commands(workbench), &command);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_ALREADY_EXISTS)
+        return status;
+
+    (void)memset(&command, 0, sizeof(command));
+    command.structure_size = (uint32_t)sizeof(command);
+    command.command_id = UMI_STUDIO_DEBUG_INSTRUCTION_BREAKPOINT_COMMAND;
+    command.title = "Toggle Instruction Breakpoint";
+    command.category = "Debug";
+    command.description =
+        "Toggle a breakpoint at the selected disassembly instruction.";
+    command.required_permission = "";
+    command.flags = UMI_COMMAND_AUDITED | UMI_COMMAND_MUTATES_STATE;
+    command.handler = instruction_breakpoint_handler;
+    command.enabled = instruction_breakpoint_enabled;
+    command.user_data = debugger;
+    status = umi_command_registry_register(
+        umi_ui_workbench_commands(workbench), &command);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_ALREADY_EXISTS)
+        return status;
+
     (void)snprintf(action.action_id, sizeof(action.action_id), "%s",
                    UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION);
     (void)snprintf(action.command_id, sizeof(action.command_id), "%s",
@@ -625,6 +797,57 @@ UmiStatus umi_studio_debug_low_level_register(
     action.enabled = 1;
     action.visible = 1;
     action.order = 405;
+    action.argument_kind = UMI_UI_ACTION_ARGUMENT_NONE;
+    status = umi_ui_action_model_upsert(
+        umi_ui_workbench_actions(workbench), &action);
+    if (status != UMI_STATUS_OK) return status;
+
+    (void)memset(&action, 0, sizeof(action));
+    (void)snprintf(action.action_id, sizeof(action.action_id), "%s",
+                   UMI_STUDIO_DEBUG_INSTRUCTION_NEXT_ACTION);
+    (void)snprintf(action.command_id, sizeof(action.command_id), "%s",
+                   UMI_STUDIO_DEBUG_INSTRUCTION_NEXT_COMMAND);
+    (void)snprintf(action.label, sizeof(action.label), "%s",
+                   "Step Instruction");
+    (void)snprintf(action.tooltip, sizeof(action.tooltip), "%s",
+                   "Advance one machine instruction");
+    (void)snprintf(action.icon_name, sizeof(action.icon_name), "%s",
+                   "go-next-symbolic");
+    action.enabled = 1; action.visible = 1; action.order = 406;
+    action.argument_kind = UMI_UI_ACTION_ARGUMENT_NONE;
+    status = umi_ui_action_model_upsert(
+        umi_ui_workbench_actions(workbench), &action);
+    if (status != UMI_STATUS_OK) return status;
+
+    (void)memset(&action, 0, sizeof(action));
+    (void)snprintf(action.action_id, sizeof(action.action_id), "%s",
+                   UMI_STUDIO_DEBUG_INSTRUCTION_STEP_IN_ACTION);
+    (void)snprintf(action.command_id, sizeof(action.command_id), "%s",
+                   UMI_STUDIO_DEBUG_INSTRUCTION_STEP_IN_COMMAND);
+    (void)snprintf(action.label, sizeof(action.label), "%s",
+                   "Step Into Instruction");
+    (void)snprintf(action.tooltip, sizeof(action.tooltip), "%s",
+                   "Advance one machine instruction and allow entry into calls");
+    (void)snprintf(action.icon_name, sizeof(action.icon_name), "%s",
+                   "go-down-symbolic");
+    action.enabled = 1; action.visible = 1; action.order = 407;
+    action.argument_kind = UMI_UI_ACTION_ARGUMENT_NONE;
+    status = umi_ui_action_model_upsert(
+        umi_ui_workbench_actions(workbench), &action);
+    if (status != UMI_STATUS_OK) return status;
+
+    (void)memset(&action, 0, sizeof(action));
+    (void)snprintf(action.action_id, sizeof(action.action_id), "%s",
+                   UMI_STUDIO_DEBUG_INSTRUCTION_BREAKPOINT_ACTION);
+    (void)snprintf(action.command_id, sizeof(action.command_id), "%s",
+                   UMI_STUDIO_DEBUG_INSTRUCTION_BREAKPOINT_COMMAND);
+    (void)snprintf(action.label, sizeof(action.label), "%s",
+                   "Toggle Instruction Breakpoint");
+    (void)snprintf(action.tooltip, sizeof(action.tooltip), "%s",
+                   "Toggle a breakpoint at the selected machine instruction");
+    (void)snprintf(action.icon_name, sizeof(action.icon_name), "%s",
+                   "media-record-symbolic");
+    action.enabled = 1; action.visible = 1; action.order = 408;
     action.argument_kind = UMI_UI_ACTION_ARGUMENT_NONE;
     status = umi_ui_action_model_upsert(
         umi_ui_workbench_actions(workbench), &action);
