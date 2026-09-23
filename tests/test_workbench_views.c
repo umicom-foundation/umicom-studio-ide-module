@@ -19,8 +19,20 @@
 
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/contributions.h"
+#include "umicom/studio/debug_workspace_views.h"
+#include "umicom/studio/workbench_shell_catalogue.h"
 #include "umicom/studio/workbench_views.h"
 #include "umicom/ui/view_presentation.h"
+
+static int container_has_view(const UmiUiViewContainerSnapshot *container,
+                              const char *view_id)
+{
+    size_t index;
+    for (index = 0U; index < container->view_count; ++index) {
+        if (strcmp(container->view_ids[index], view_id) == 0) return 1;
+    }
+    return 0;
+}
 
 /*
  * Start this command or application, report setup failures, and return a process exit code
@@ -35,6 +47,8 @@ int main(void)
     UmiUiPropertySnapshot debug_state;
     UmiUiViewModel *run_debug = NULL;
     UmiUiViewModel *debug_watches = NULL;
+    UmiUiViewModel *debug_registers = NULL;
+    UmiUiViewModel *debug_disassembly = NULL;
     UmiUiViewModel *source_control = NULL;
     UmiUiViewModel *source_control_commit = NULL;
     UmiUiViewModel *test_explorer = NULL;
@@ -46,6 +60,8 @@ int main(void)
     UmiUiViewModel *chat = NULL;
     UmiUiViewModel *model_comparison = NULL;
     UmiUiCommandViewAction action;
+    UmiUiViewContainerSnapshot run_container;
+    UmiUiPaneSnapshot low_level_pane;
 
     assert(umi_studio_bootstrap_create(&bootstrap) == UMI_STATUS_OK);
 
@@ -92,6 +108,53 @@ int main(void)
     assert(strcmp(action.action_id, "studio.action.debug.add-watch") == 0);
     umi_ui_view_model_destroy(debug_watches);
     umi_ui_view_model_destroy(run_debug);
+
+    /* Low-level C/Assembly panes are thin Studio composition over Framework
+     * register/disassembly models. They must exist even before a session starts,
+     * so the user can open the panes and then begin debugging. */
+    assert(umi_ui_pane_model_find(
+               umi_ui_workbench_panes(workbench),
+               UMI_STUDIO_PANE_DEBUG_REGISTERS,
+               &low_level_pane) == UMI_STATUS_OK);
+    assert(strcmp(low_level_pane.view_type,
+                  UMI_STUDIO_VIEW_DEBUG_REGISTERS) == 0);
+    assert(umi_ui_pane_model_find(
+               umi_ui_workbench_panes(workbench),
+               UMI_STUDIO_PANE_DEBUG_DISASSEMBLY,
+               &low_level_pane) == UMI_STATUS_OK);
+    assert(strcmp(low_level_pane.view_type,
+                  UMI_STUDIO_VIEW_DEBUG_DISASSEMBLY) == 0);
+    assert(umi_ui_view_container_model_find(
+               umi_ui_workbench_view_containers(workbench),
+               UMI_STUDIO_CONTAINER_RUN,
+               &run_container) == UMI_STATUS_OK);
+    assert(container_has_view(&run_container,
+                              UMI_STUDIO_PANE_DEBUG_REGISTERS));
+    assert(container_has_view(&run_container,
+                              UMI_STUDIO_PANE_DEBUG_DISASSEMBLY));
+    assert(umi_ui_view_factory_create_view(
+               umi_ui_workbench_view_factories(workbench),
+               UMI_STUDIO_VIEW_DEBUG_REGISTERS,
+               UMI_STUDIO_PANE_DEBUG_REGISTERS,
+               &debug_registers) == UMI_STATUS_OK);
+    assert(umi_ui_command_view_action_at(debug_registers, 0U, &action) ==
+           UMI_STATUS_OK);
+    assert(strcmp(action.action_id,
+                  UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION) == 0);
+    assert(umi_ui_view_factory_create_view(
+               umi_ui_workbench_view_factories(workbench),
+               UMI_STUDIO_VIEW_DEBUG_DISASSEMBLY,
+               UMI_STUDIO_PANE_DEBUG_DISASSEMBLY,
+               &debug_disassembly) == UMI_STATUS_OK);
+    assert(umi_ui_command_view_action_at(debug_disassembly, 0U, &action) ==
+           UMI_STATUS_OK);
+    assert(strcmp(action.action_id,
+                  UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION) == 0);
+    assert(umi_command_registry_contains(
+               umi_ui_workbench_commands(workbench),
+               UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_COMMAND));
+    umi_ui_view_model_destroy(debug_disassembly);
+    umi_ui_view_model_destroy(debug_registers);
 
     assert(umi_ui_view_factory_create_view(
                umi_ui_workbench_view_factories(workbench),

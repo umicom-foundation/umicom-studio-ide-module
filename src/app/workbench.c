@@ -27,6 +27,7 @@
 
 #include "umicom/studio/contributions.h"
 #include "umicom/studio/appearance_centre.h"
+#include "umicom/studio/debug_workspace_views.h"
 #include "umicom/studio/editor_layout_session.h"
 #include "umicom/studio/perspectives.h"
 #include "umicom/studio/workbench_shell_catalogue.h"
@@ -110,6 +111,17 @@ UmiStatus umi_studio_workbench_populate(UmiUiWorkbench *workbench,
     status = umi_studio_workbench_shell_catalogue_register(workbench, services);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+
+    /*
+     * Low-level C/Assembly inspection is Framework-owned. Studio only adds the
+     * Registers and Disassembly panes to its product composition and binds one
+     * refresh action to the existing debugger service.
+     */
+    status = umi_studio_debug_low_level_register(
+        workbench, umi_studio_services_debugger(services));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+
     status = umi_ui_workbench_activate_perspective(
         workbench, UMI_STUDIO_DEFAULT_PERSPECTIVE);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
@@ -149,8 +161,8 @@ UmiStatus umi_studio_workbench_populate(UmiUiWorkbench *workbench,
 }
 
 /*
- * Provide the studio workbench restore session operation used by this module and its
- * client applications.
+ * Provide the studio workbench restore session operation used by this module and its client
+ * applications.
  */
 UmiStatus umi_studio_workbench_restore_session(UmiUiWorkbench *workbench,
                                                UmiSessionStore *session)

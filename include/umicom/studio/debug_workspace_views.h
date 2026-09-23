@@ -18,10 +18,20 @@
 #define UMICOM_STUDIO_DEBUG_WORKSPACE_VIEWS_H
 
 #include "umicom/studio/debugger.h"
+#include "umicom/ui/workbench.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define UMI_STUDIO_PANE_DEBUG_REGISTERS "studio.pane.debug-registers"
+#define UMI_STUDIO_PANE_DEBUG_DISASSEMBLY "studio.pane.debug-disassembly"
+#define UMI_STUDIO_VIEW_DEBUG_REGISTERS "studio.debug-registers"
+#define UMI_STUDIO_VIEW_DEBUG_DISASSEMBLY "studio.debug-disassembly"
+#define UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_COMMAND \
+    "studio.debug.low-level.refresh"
+#define UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION \
+    "studio.action.debug.low-level.refresh"
 
 /**
  * Initialise studio debug call stack view from caller-provided values so later operations
@@ -68,6 +78,31 @@ UmiStatus umi_studio_debug_console_view_create(
     UmiStudioDebuggerService *debugger,
     UmiUiViewModel **out_view
 );
+
+/**
+ * Initialise Studio's Registers pane from the Framework register-bank projection.
+ */
+UmiStatus umi_studio_debug_registers_view_create(
+    const char *view_id,
+    UmiStudioDebuggerService *debugger,
+    UmiUiViewModel **out_view);
+
+/**
+ * Initialise Studio's Disassembly pane from the Framework disassembly projection.
+ */
+UmiStatus umi_studio_debug_disassembly_view_create(
+    const char *view_id,
+    UmiStudioDebuggerService *debugger,
+    UmiUiViewModel **out_view);
+
+/**
+ * Register Studio's thin low-level debugging composition: two panes, their view factories,
+ * one refresh command and the corresponding action.  Register/disassembly semantics remain
+ * Framework-owned.
+ */
+UmiStatus umi_studio_debug_low_level_register(
+    UmiUiWorkbench *workbench,
+    UmiStudioDebuggerService *debugger);
 
 #ifdef __cplusplus
 }

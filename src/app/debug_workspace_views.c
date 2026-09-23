@@ -19,6 +19,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "umicom/debug/workbench/debug_workbench_service.h"
+#include "umicom/studio/workbench_shell_catalogue.h"
+#include "umicom/ui/command_view.h"
+
 #define DEBUG_VIEW_ROW_LIMIT 8U
 
 /* Provide the set string operation used by this module and its client applications. */
@@ -410,4 +414,289 @@ UmiStatus umi_studio_debug_console_view_create(
                             "Clear", "Clear Debug Console presentation state");
     }
     return status;
+}
+
+/* -------------------------------------------------------------------------
+ * Low-level debugging composition
+ *
+ * Register discovery, program-counter selection, DAP requests and disassembly
+ * models are Framework services.  Studio contributes only pane identities,
+ * command/action placement and the selected debugger service.
+ * ------------------------------------------------------------------------- */
+
+static UmiStatus low_level_models(
+    UmiStudioDebuggerService *debugger,
+    UmiDebugRegisterBank **out_bank,
+    UmiDebugDisassemblyView **out_disassembly)
+{
+    UmiDebugRuntimePlatform *platform;
+    UmiDebugAdvancedPlatform *advanced;
+    UmiDebugInspectionSession *inspection;
+    if (debugger == NULL || out_bank == NULL || out_disassembly == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    *out_bank = NULL;
+    *out_disassembly = NULL;
+    platform = UmiStudioDebuggerNativePlatform(debugger);
+    advanced = platform != NULL
+        ? umi_debug_runtime_platform_advanced(platform) : NULL;
+    inspection = advanced != NULL
+        ? umi_debug_advanced_platform_inspection(advanced) : NULL;
+    if (inspection == NULL) return UMI_STATUS_UNAVAILABLE;
+    *out_bank = umi_debug_inspection_session_registers(inspection);
+    *out_disassembly = umi_debug_inspection_session_disassembly(inspection);
+    return *out_bank != NULL && *out_disassembly != NULL
+        ? UMI_STATUS_OK : UMI_STATUS_UNAVAILABLE;
+}
+
+UmiStatus umi_studio_debug_registers_view_create(
+    const char *view_id,
+    UmiStudioDebuggerService *debugger,
+    UmiUiViewModel **out_view)
+{
+    UmiDebugRegisterBank *bank;
+    UmiDebugDisassemblyView *disassembly;
+    UmiStatus status = low_level_models(debugger, &bank, &disassembly);
+    (void)disassembly;
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_debug_workbench_registers_view_create(
+        view_id, bank, out_view);
+    if (status == UMI_STATUS_OK) {
+        status = add_action(*out_view, 0U,
+                            UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION,
+                            "Refresh",
+                            "Refresh registers and disassembly for the selected frame");
+    }
+    return status;
+}
+
+UmiStatus umi_studio_debug_disassembly_view_create(
+    const char *view_id,
+    UmiStudioDebuggerService *debugger,
+    UmiUiViewModel **out_view)
+{
+    UmiDebugRegisterBank *bank;
+    UmiDebugDisassemblyView *disassembly;
+    UmiStatus status = low_level_models(debugger, &bank, &disassembly);
+    (void)bank;
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_debug_workbench_disassembly_view_create(
+        view_id, disassembly, out_view);
+    if (status == UMI_STATUS_OK) {
+        status = add_action(*out_view, 0U,
+                            UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION,
+                            "Refresh",
+                            "Refresh registers and machine instructions");
+    }
+    return status;
+}
+
+static UmiStatus create_registers_factory(
+    const char *view_id, void *user_data, UmiUiViewModel **out_view)
+{
+    return umi_studio_debug_registers_view_create(
+        view_id, (UmiStudioDebuggerService *)user_data, out_view);
+}
+
+static UmiStatus create_disassembly_factory(
+    const char *view_id, void *user_data, UmiUiViewModel **out_view)
+{
+    return umi_studio_debug_disassembly_view_create(
+        view_id, (UmiStudioDebuggerService *)user_data, out_view);
+}
+
+static int low_level_refresh_enabled(void *user_data, const char *argument)
+{
+    UmiStudioDebuggerService *debugger =
+        (UmiStudioDebuggerService *)user_data;
+    UmiDebugRuntimePlatformSnapshot snapshot;
+    UmiDebugRuntimePlatform *platform;
+    (void)argument;
+    if (debugger == NULL) return 0;
+    platform = UmiStudioDebuggerNativePlatform(debugger);
+    return platform != NULL &&
+        umi_debug_runtime_platform_snapshot(platform, &snapshot) ==
+            UMI_STATUS_OK &&
+        snapshot.active && snapshot.paused;
+}
+
+static UmiStatus low_level_refresh_handler(
+    void *user_data,
+    const char *argument,
+    char *out_message,
+    size_t message_capacity)
+{
+    UmiStudioDebuggerService *debugger =
+        (UmiStudioDebuggerService *)user_data;
+    UmiDebugRuntimePlatform *platform;
+    UmiDebugRegisterBank *bank;
+    UmiDebugDisassemblyView *disassembly;
+    UmiDebugRegisterBankSnapshot registers;
+    UmiDebugDisassemblySnapshot instructions;
+    UmiStatus status;
+    (void)argument;
+    if (debugger == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    platform = UmiStudioDebuggerNativePlatform(debugger);
+    if (platform == NULL) return UMI_STATUS_UNAVAILABLE;
+    status = umi_debug_workbench_refresh_low_level(platform, 1500U, 32U);
+    if (status == UMI_STATUS_OK &&
+        low_level_models(debugger, &bank, &disassembly) == UMI_STATUS_OK &&
+        umi_debug_register_bank_snapshot(bank, &registers) == UMI_STATUS_OK &&
+        umi_debug_disassembly_view_snapshot(disassembly, &instructions) ==
+            UMI_STATUS_OK &&
+        out_message != NULL && message_capacity > 0U) {
+        (void)snprintf(out_message, message_capacity,
+                       "Low-level inspection refreshed: %zu registers, %zu instructions.",
+                       registers.register_count,
+                       instructions.instruction_count);
+    } else if (status != UMI_STATUS_OK &&
+               out_message != NULL && message_capacity > 0U) {
+        (void)snprintf(out_message, message_capacity,
+                       "Low-level inspection: %s", umi_status_text(status));
+    }
+    return status;
+}
+
+static int container_has_view(const UmiUiViewContainerSnapshot *container,
+                              const char *view_id)
+{
+    size_t index;
+    if (container == NULL || view_id == NULL) return 0;
+    for (index = 0U; index < container->view_count; ++index) {
+        if (strcmp(container->view_ids[index], view_id) == 0) return 1;
+    }
+    return 0;
+}
+
+static UmiStatus container_add_view(UmiUiViewContainerSnapshot *container,
+                                    const char *view_id)
+{
+    if (container == NULL || view_id == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    if (container_has_view(container, view_id)) return UMI_STATUS_OK;
+    if (container->view_count >= UMI_UI_VIEW_CONTAINER_MAX_VIEWS)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    (void)snprintf(container->view_ids[container->view_count],
+                   sizeof(container->view_ids[container->view_count]),
+                   "%s", view_id);
+    ++container->view_count;
+    return UMI_STATUS_OK;
+}
+
+UmiStatus umi_studio_debug_low_level_register(
+    UmiUiWorkbench *workbench,
+    UmiStudioDebuggerService *debugger)
+{
+    UmiCommandDescriptor command = {0};
+    UmiUiActionSnapshot action = {0};
+    UmiUiViewFactoryDescriptor factory = {0};
+    UmiUiPaneSnapshot pane = {0};
+    UmiUiViewContainerSnapshot container;
+    UmiStatus status;
+
+    if (workbench == NULL || debugger == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+
+    command.structure_size = (uint32_t)sizeof(command);
+    command.command_id = UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_COMMAND;
+    command.title = "Refresh Registers and Disassembly";
+    command.category = "Debug";
+    command.description =
+        "Refresh architecture registers and machine instructions for the selected stopped frame.";
+    command.required_permission = "";
+    command.flags = UMI_COMMAND_AUDITED;
+    command.handler = low_level_refresh_handler;
+    command.enabled = low_level_refresh_enabled;
+    command.user_data = debugger;
+    status = umi_command_registry_register(
+        umi_ui_workbench_commands(workbench), &command);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_ALREADY_EXISTS)
+        return status;
+
+    (void)snprintf(action.action_id, sizeof(action.action_id), "%s",
+                   UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_ACTION);
+    (void)snprintf(action.command_id, sizeof(action.command_id), "%s",
+                   UMI_STUDIO_DEBUG_LOW_LEVEL_REFRESH_COMMAND);
+    (void)snprintf(action.label, sizeof(action.label), "%s",
+                   "Refresh Low-Level Inspection");
+    (void)snprintf(action.tooltip, sizeof(action.tooltip), "%s",
+                   "Refresh registers and disassembly for the selected frame");
+    (void)snprintf(action.icon_name, sizeof(action.icon_name), "%s",
+                   "view-refresh-symbolic");
+    action.enabled = 1;
+    action.visible = 1;
+    action.order = 405;
+    action.argument_kind = UMI_UI_ACTION_ARGUMENT_NONE;
+    status = umi_ui_action_model_upsert(
+        umi_ui_workbench_actions(workbench), &action);
+    if (status != UMI_STATUS_OK) return status;
+
+    (void)snprintf(factory.view_type, sizeof(factory.view_type), "%s",
+                   UMI_STUDIO_VIEW_DEBUG_REGISTERS);
+    (void)snprintf(factory.provider_id, sizeof(factory.provider_id), "%s",
+                   "org.umicom.studio.debug");
+    factory.create = create_registers_factory;
+    factory.user_data = debugger;
+    status = umi_ui_view_factory_register(
+        umi_ui_workbench_view_factories(workbench), &factory);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_ALREADY_EXISTS)
+        return status;
+
+    (void)memset(&factory, 0, sizeof(factory));
+    (void)snprintf(factory.view_type, sizeof(factory.view_type), "%s",
+                   UMI_STUDIO_VIEW_DEBUG_DISASSEMBLY);
+    (void)snprintf(factory.provider_id, sizeof(factory.provider_id), "%s",
+                   "org.umicom.studio.debug");
+    factory.create = create_disassembly_factory;
+    factory.user_data = debugger;
+    status = umi_ui_view_factory_register(
+        umi_ui_workbench_view_factories(workbench), &factory);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_ALREADY_EXISTS)
+        return status;
+
+    (void)snprintf(pane.pane_id, sizeof(pane.pane_id), "%s",
+                   UMI_STUDIO_PANE_DEBUG_REGISTERS);
+    (void)snprintf(pane.title, sizeof(pane.title), "%s", "Registers");
+    (void)snprintf(pane.view_type, sizeof(pane.view_type), "%s",
+                   UMI_STUDIO_VIEW_DEBUG_REGISTERS);
+    (void)snprintf(pane.icon_name, sizeof(pane.icon_name), "%s",
+                   "view-list-symbolic");
+    pane.placement = UMI_UI_PLACEMENT_BOTTOM;
+    pane.order = 106;
+    pane.visible = 0;
+    pane.closable = 1;
+    pane.movable = 1;
+    pane.preferred_size.width = 760;
+    pane.preferred_size.height = 280;
+    status = umi_ui_pane_model_upsert(umi_ui_workbench_panes(workbench), &pane);
+    if (status != UMI_STATUS_OK) return status;
+
+    (void)memset(&pane, 0, sizeof(pane));
+    (void)snprintf(pane.pane_id, sizeof(pane.pane_id), "%s",
+                   UMI_STUDIO_PANE_DEBUG_DISASSEMBLY);
+    (void)snprintf(pane.title, sizeof(pane.title), "%s", "Disassembly");
+    (void)snprintf(pane.view_type, sizeof(pane.view_type), "%s",
+                   UMI_STUDIO_VIEW_DEBUG_DISASSEMBLY);
+    (void)snprintf(pane.icon_name, sizeof(pane.icon_name), "%s",
+                   "applications-engineering-symbolic");
+    pane.placement = UMI_UI_PLACEMENT_RIGHT;
+    pane.order = 107;
+    pane.visible = 0;
+    pane.closable = 1;
+    pane.movable = 1;
+    pane.preferred_size.width = 520;
+    pane.preferred_size.height = 480;
+    status = umi_ui_pane_model_upsert(umi_ui_workbench_panes(workbench), &pane);
+    if (status != UMI_STATUS_OK) return status;
+
+    status = umi_ui_view_container_model_find(
+        umi_ui_workbench_view_containers(workbench),
+        UMI_STUDIO_CONTAINER_RUN, &container);
+    if (status != UMI_STATUS_OK) return status;
+    status = container_add_view(&container, UMI_STUDIO_PANE_DEBUG_REGISTERS);
+    if (status == UMI_STATUS_OK)
+        status = container_add_view(&container,
+                                    UMI_STUDIO_PANE_DEBUG_DISASSEMBLY);
+    if (status != UMI_STATUS_OK) return status;
+    return umi_ui_view_container_model_upsert(
+        umi_ui_workbench_view_containers(workbench), &container);
 }
