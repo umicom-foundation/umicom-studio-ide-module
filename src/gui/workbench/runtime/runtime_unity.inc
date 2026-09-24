@@ -45,6 +45,7 @@
 #include "interaction/editor_controls.inc"
 #include "interaction/test_details.inc"
 #include "interaction/debug_details.inc"
+#include "interaction/developer_operations.inc"
 
 #include "runtime_actions.inc"
 #include "runtime_service_snapshots.inc"

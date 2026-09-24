@@ -167,6 +167,13 @@ static void runtime_status_override_legacy_services(
             GTK_LABEL(runtime->status_labels[UMI_STUDIO_STATUS_DEBUG]),
             text);
     }
+
+    /*
+     * Reuse the Framework Developer Operations policies for shared attention
+     * state and richer Test/Debug/VCS summaries. The original text projections
+     * above remain intact as the compatibility baseline.
+     */
+    runtime_developer_operations_update_status(runtime);
 }
 
 /*
