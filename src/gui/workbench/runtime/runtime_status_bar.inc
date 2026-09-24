@@ -174,6 +174,7 @@ static void runtime_status_override_legacy_services(
      * above remain intact as the compatibility baseline.
      */
     runtime_developer_operations_update_status(runtime);
+    runtime_developer_intelligence_update_status(runtime);
 }
 
 /*
