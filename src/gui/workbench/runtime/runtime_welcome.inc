@@ -15,6 +15,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/developer_workbench/start_centre.h"
+
 /* Create one reusable welcome card with a heading and wrapped explanation. */
 static GtkWidget *runtime_welcome_card(
     const char *title,
@@ -74,6 +76,64 @@ static void runtime_welcome_add_action(
     gtk_box_append(GTK_BOX(card), button);
 }
 
+/*
+ * Present one recent workspace with its full path and current availability.
+ * Opening still routes through the existing workspace command and service.
+ */
+static GtkWidget *runtime_welcome_recent_workspace(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const UmiDeveloperWorkbenchRecentWorkItem *item)
+{
+    GtkWidget *row;
+    GtkWidget *open;
+    GtkWidget *path;
+    GtkWidget *state;
+    const char *state_text;
+
+    if (runtime == NULL || item == NULL) return NULL;
+
+    row = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+    open = runtime_make_command_button(
+        runtime,
+        item->recent.label[0] != '\0'
+            ? item->recent.label : item->recent.uri,
+        "workspace.open-folder",
+        item->recent.uri);
+    path = runtime_label(item->recent.uri, 0.0F);
+    state_text = item->available
+        ? (item->recent.pinned ? "Pinned workspace" : "Recent workspace")
+        : "Folder not found";
+    state = runtime_label(state_text, 0.0F);
+
+    if (row == NULL || open == NULL || path == NULL || state == NULL) {
+        return row;
+    }
+
+    gtk_widget_add_css_class(row, "umicom-runtime-command-row");
+    gtk_widget_add_css_class(path, "umicom-runtime-muted");
+    gtk_widget_add_css_class(state, "umicom-runtime-muted");
+    gtk_label_set_ellipsize(GTK_LABEL(path), PANGO_ELLIPSIZE_MIDDLE);
+    gtk_widget_set_tooltip_text(path, item->recent.uri);
+    gtk_widget_set_halign(open, GTK_ALIGN_FILL);
+    gtk_widget_set_sensitive(open, item->available != 0);
+    gtk_widget_set_tooltip_text(
+        open,
+        item->available
+            ? item->recent.uri
+            : "This recent workspace directory is no longer available.");
+
+    g_object_set_data_full(
+        G_OBJECT(open),
+        "umicom-command-argument",
+        g_strdup(item->recent.uri),
+        g_free);
+
+    gtk_box_append(GTK_BOX(row), open);
+    gtk_box_append(GTK_BOX(row), path);
+    gtk_box_append(GTK_BOX(row), state);
+    return row;
+}
+
 /* Build the responsive startup surface that introduces common Studio tasks. */
 static GtkWidget *runtime_build_welcome_surface(
     UmiStudioGtkRuntimeChrome *runtime)
@@ -91,10 +151,15 @@ static GtkWidget *runtime_build_welcome_surface(
     GtkWidget *learn;
     GtkWidget *scroll;
     GtkWidget *empty_recent;
+#if 0
     UmiRecentItemSnapshot recent_items[5] = {{0}};
     UmiRecentItemQuery recent_query = {0};
+#endif
     UmiRecentItemRegistry *recent_registry;
+#if 0
     size_t recent_count = 0U;
+#endif
+    UmiDeveloperWorkbenchRecentWorkSnapshot recent_work = {0};
     size_t recent_index;
 
     /*
@@ -176,6 +241,13 @@ static GtkWidget *runtime_build_welcome_surface(
         "Projects and folders you open will appear here for quick access.");
     recent_registry = umi_studio_services_recent_items(
         umi_studio_ui_services(runtime->owner->ui));
+
+    /*
+     * The previous direct registry rendering is retained for review. Framework
+     * now owns availability projection so Studio does not duplicate filesystem
+     * checks or the pinned/recent ordering contract.
+     */
+#if 0
     recent_query.kind = "workspace";
     recent_query.limit = 5U;
     if (recent_registry != NULL) {
@@ -213,6 +285,35 @@ static GtkWidget *runtime_build_welcome_surface(
             gtk_box_append(GTK_BOX(recent), recent_button);
         }
     }
+#endif
+
+    if (recent_registry != NULL) {
+        (void)umi_developer_workbench_start_centre_recent_work_snapshot(
+            recent_registry,
+            "workspace",
+            8U,
+            &recent_work);
+    }
+
+    if (recent_work.count == 0U) {
+        empty_recent = runtime_label(
+            "No recent project is recorded yet.", 0.0F);
+        if (recent != NULL && empty_recent != NULL) {
+            gtk_widget_add_css_class(empty_recent, "umicom-runtime-muted");
+            gtk_box_append(GTK_BOX(recent), empty_recent);
+        }
+    } else if (recent != NULL) {
+        for (recent_index = 0U;
+             recent_index < recent_work.count;
+             ++recent_index) {
+            GtkWidget *recent_row = runtime_welcome_recent_workspace(
+                runtime, &recent_work.items[recent_index]);
+            if (recent_row != NULL) {
+                gtk_box_append(GTK_BOX(recent), recent_row);
+            }
+        }
+    }
+
     runtime_welcome_add_action(
         runtime, recent, "Browse for a Workspace", "workspace.open-folder",
         "Choose a folder to add to recent work", 0);
