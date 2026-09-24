@@ -14,6 +14,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/test_platform/explorer_model.h"
+
 static UmiTestPlatformService *runtime_test_platform(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -200,9 +202,11 @@ static void runtime_on_test_source(
 }
 
 /*
- * Provide the runtime tests refresh list operation used by this module and its client
- * applications.
+ * The previous Studio-local Test Explorer projection is retained for review.
+ * Framework now owns filtering, grouping, sorting, latest-result selection and
+ * outcome totals through UmiTestExplorerModel.
  */
+#if 0
 static void runtime_tests_refresh_list(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -389,6 +393,364 @@ static void runtime_tests_refresh_list(
             GTK_LABEL(runtime->test_summary_label),
             summary);
     }
+}
+#endif
+
+/* Read the current grouping control without storing duplicate Test Explorer state. */
+static UmiTestExplorerGroupMode RuntimeTestGroupMode(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    GtkWidget *selector;
+    guint selected;
+
+    if (runtime == NULL || runtime->test_list == NULL) {
+        return UMI_TEST_EXPLORER_GROUP_HIERARCHY;
+    }
+
+    selector = g_object_get_data(
+        G_OBJECT(runtime->test_list),
+        "umicom-test-group-selector");
+    if (selector == NULL || !GTK_IS_DROP_DOWN(selector)) {
+        return UMI_TEST_EXPLORER_GROUP_HIERARCHY;
+    }
+
+    selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(selector));
+    if (selected > 3U) selected = 0U;
+    return (UmiTestExplorerGroupMode)(selected + 1U);
+}
+
+/* Map the visible sort choice to the Framework enum explicitly. */
+static UmiTestExplorerSortMode RuntimeTestSortMode(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    GtkWidget *selector;
+    guint selected;
+
+    if (runtime == NULL || runtime->test_list == NULL) {
+        return UMI_TEST_EXPLORER_SORT_NAME;
+    }
+
+    selector = g_object_get_data(
+        G_OBJECT(runtime->test_list),
+        "umicom-test-sort-selector");
+    if (selector == NULL || !GTK_IS_DROP_DOWN(selector)) {
+        return UMI_TEST_EXPLORER_SORT_NAME;
+    }
+
+    selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(selector));
+    switch (selected) {
+    case 1U: return UMI_TEST_EXPLORER_SORT_OUTCOME;
+    case 2U: return UMI_TEST_EXPLORER_SORT_DURATION;
+    case 3U: return UMI_TEST_EXPLORER_SORT_SOURCE;
+    case 4U: return UMI_TEST_EXPLORER_SORT_FRAMEWORK;
+    case 0U:
+    default:
+        return UMI_TEST_EXPLORER_SORT_NAME;
+    }
+}
+
+/* Failed-only is presentation state; Framework evaluates the actual filter. */
+static int RuntimeTestFailedOnly(UmiStudioGtkRuntimeChrome *runtime)
+{
+    GtkWidget *toggle;
+
+    if (runtime == NULL || runtime->test_list == NULL) return 0;
+
+    toggle = g_object_get_data(
+        G_OBJECT(runtime->test_list),
+        "umicom-test-failed-only");
+    return toggle != NULL && GTK_IS_CHECK_BUTTON(toggle)
+        ? gtk_check_button_get_active(GTK_CHECK_BUTTON(toggle))
+        : 0;
+}
+
+/* A changed grouping or sort choice rebuilds only the Test Explorer projection. */
+static void RuntimeTestViewChanged(
+    GObject *object,
+    GParamSpec *parameter,
+    gpointer userData)
+{
+    (void)object;
+    (void)parameter;
+    runtime_tests_refresh_list((UmiStudioGtkRuntimeChrome *)userData);
+}
+
+/* Keep the toggle callback signature native while reusing the same refresh path. */
+static void RuntimeTestFailedOnlyChanged(
+    GtkCheckButton *button,
+    gpointer userData)
+{
+    (void)button;
+    runtime_tests_refresh_list((UmiStudioGtkRuntimeChrome *)userData);
+}
+
+/*
+ * Build the visible Test Explorer from the canonical Framework model. Studio
+ * creates no second result history, filter engine, hierarchy or sort policy.
+ */
+static void runtime_tests_refresh_list(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiTestPlatformService *platform;
+    UmiTestPlatformItemRegistry *items;
+    UmiTestPlatformResultRegistry *results;
+    UmiTestExplorerModel *model = NULL;
+    UmiTestPlatformFilter filter;
+    UmiTestExplorerModelSnapshot modelSnapshot;
+    size_t visibleCount;
+    size_t position;
+    const char *query = "";
+    char summary[320];
+    UmiStatus status;
+
+    if (runtime == NULL || runtime->test_list == NULL) return;
+
+    runtime_clear_list_box(runtime->test_list);
+    platform = runtime_test_platform(runtime);
+    items = platform != NULL
+        ? umi_test_platform_service_item(platform)
+        : NULL;
+    results = platform != NULL
+        ? umi_test_platform_service_result(platform)
+        : NULL;
+
+    if (runtime->test_search_entry != NULL) {
+        query = gtk_editable_get_text(
+            GTK_EDITABLE(runtime->test_search_entry));
+    }
+
+    if (items == NULL || results == NULL) {
+        if (runtime->test_summary_label != NULL) {
+            gtk_label_set_text(
+                GTK_LABEL(runtime->test_summary_label),
+                "Test Platform is not available.");
+        }
+        return;
+    }
+
+    status = umi_test_explorer_model_create(&model);
+    if (status != UMI_STATUS_OK) {
+        if (runtime->test_summary_label != NULL) {
+            gtk_label_set_text(
+                GTK_LABEL(runtime->test_summary_label),
+                umi_status_text(status));
+        }
+        return;
+    }
+
+    umi_test_platform_filter_init(&filter);
+    runtime_copy_selection(
+        filter.text,
+        sizeof(filter.text),
+        query);
+    filter.include_disabled = 1;
+    filter.failed_only = RuntimeTestFailedOnly(runtime);
+
+    status = umi_test_explorer_model_set_filter(model, &filter);
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_explorer_model_set_group(
+            model,
+            RuntimeTestGroupMode(runtime));
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_explorer_model_set_sort(
+            model,
+            RuntimeTestSortMode(runtime));
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_explorer_model_rebuild(
+            model,
+            items,
+            results);
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_explorer_model_snapshot(
+            model,
+            &modelSnapshot);
+    }
+
+    if (status != UMI_STATUS_OK) {
+        if (runtime->test_summary_label != NULL) {
+            gtk_label_set_text(
+                GTK_LABEL(runtime->test_summary_label),
+                umi_status_text(status));
+        }
+        umi_test_explorer_model_destroy(model);
+        return;
+    }
+
+    visibleCount = umi_test_explorer_model_visible_count(model);
+    if (visibleCount > UMI_STUDIO_GTK_TEST_ROW_LIMIT) {
+        visibleCount = UMI_STUDIO_GTK_TEST_ROW_LIMIT;
+    }
+
+    for (position = 0U; position < visibleCount; ++position) {
+        UmiTestExplorerRow testRow;
+        const UmiTestPlatformItemSnapshot *item;
+        const char *outcomeText;
+        double duration;
+        GtkWidget *row;
+        GtkWidget *labels;
+        GtkWidget *title;
+        GtkWidget *detail;
+        GtkWidget *spacer;
+        GtkWidget *select;
+        GtkWidget *run;
+        GtkWidget *debug;
+        GtkWidget *source;
+        char detailText[768];
+        size_t depth;
+
+        (void)memset(&testRow, 0, sizeof(testRow));
+        if (umi_test_explorer_model_visible_row_at(
+                model,
+                position,
+                &testRow) != UMI_STATUS_OK) {
+            continue;
+        }
+
+        item = &testRow.item;
+        outcomeText = testRow.has_result
+            ? umi_test_platform_outcome_text(
+                  (UmiTestPlatformOutcome)testRow.latest_result.outcome)
+            : "not run";
+        duration = testRow.has_result
+            ? testRow.latest_result.duration_ms
+            : item->last_duration_ms;
+
+        row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+        labels = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+        title = runtime_label(item->name, 0.0F);
+        detail = runtime_label("", 0.0F);
+        spacer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        select = gtk_button_new_with_label("Select");
+        run = gtk_button_new_with_label("Run");
+        debug = gtk_button_new_with_label("Debug");
+        source = gtk_button_new_with_label("Source");
+
+        if (row == NULL || labels == NULL || title == NULL ||
+            detail == NULL || spacer == NULL || select == NULL ||
+            run == NULL || debug == NULL || source == NULL) {
+            continue;
+        }
+
+        depth = testRow.depth > 8U ? 8U : testRow.depth;
+        gtk_widget_set_margin_start(labels, (int)(depth * 12U));
+        if (testRow.child_count > 0U) {
+            gtk_widget_add_css_class(
+                title,
+                "umicom-runtime-section-title");
+        }
+
+        (void)snprintf(
+            detailText,
+            sizeof(detailText),
+            "%s — %s — %s — %s — %.1f ms",
+            outcomeText,
+            item->framework,
+            item->kind,
+            item->labels,
+            duration);
+        gtk_label_set_text(GTK_LABEL(detail), detailText);
+        gtk_widget_add_css_class(detail, "umicom-runtime-muted");
+        gtk_widget_set_hexpand(spacer, TRUE);
+
+        g_object_set_data_full(
+            G_OBJECT(select),
+            "umicom-test-id",
+            g_strdup(item->id),
+            g_free);
+        g_signal_connect(
+            select,
+            "clicked",
+            G_CALLBACK(runtime_on_test_select),
+            runtime);
+
+        g_object_set_data_full(
+            G_OBJECT(run),
+            "umicom-test-id",
+            g_strdup(item->id),
+            g_free);
+        g_signal_connect(
+            run,
+            "clicked",
+            G_CALLBACK(runtime_on_test_run),
+            runtime);
+
+        g_object_set_data_full(
+            G_OBJECT(debug),
+            "umicom-test-id",
+            g_strdup(item->id),
+            g_free);
+        g_signal_connect(
+            debug,
+            "clicked",
+            G_CALLBACK(runtime_on_test_debug),
+            runtime);
+
+        g_object_set_data_full(
+            G_OBJECT(source),
+            "umicom-source-uri",
+            g_strdup(item->source_uri),
+            g_free);
+        g_object_set_data(
+            G_OBJECT(source),
+            "umicom-source-line",
+            GUINT_TO_POINTER(item->source_line));
+        g_signal_connect(
+            source,
+            "clicked",
+            G_CALLBACK(runtime_on_test_source),
+            runtime);
+
+        gtk_widget_set_sensitive(run, item->enabled != 0);
+        gtk_widget_set_sensitive(debug, item->enabled != 0);
+        gtk_widget_set_sensitive(
+            source,
+            item->source_uri[0] != '\0');
+
+        gtk_box_append(GTK_BOX(labels), title);
+        gtk_box_append(GTK_BOX(labels), detail);
+        gtk_box_append(GTK_BOX(row), labels);
+        gtk_box_append(GTK_BOX(row), spacer);
+        gtk_box_append(GTK_BOX(row), select);
+        gtk_box_append(GTK_BOX(row), run);
+        gtk_box_append(GTK_BOX(row), debug);
+        gtk_box_append(GTK_BOX(row), source);
+
+        gtk_list_box_append(GTK_LIST_BOX(runtime->test_list), row);
+    }
+
+    if (modelSnapshot.visible_row_count == 0U) {
+        gtk_list_box_append(
+            GTK_LIST_BOX(runtime->test_list),
+            runtime_label(
+                filter.failed_only
+                    ? "No failed tests match the current filter."
+                    : "No tests match the current filter.",
+                0.0F));
+    }
+
+    (void)snprintf(
+        summary,
+        sizeof(summary),
+        "%zu visible / %zu discovered — %zu passed, %zu failed, "
+        "%zu skipped, %zu not run%s",
+        modelSnapshot.visible_row_count,
+        modelSnapshot.row_count,
+        modelSnapshot.passed_count,
+        modelSnapshot.failed_count,
+        modelSnapshot.skipped_count,
+        modelSnapshot.not_run_count,
+        runtime->test_snapshot.operation_running ? " — running" : "");
+
+    if (runtime->test_summary_label != NULL) {
+        gtk_label_set_text(
+            GTK_LABEL(runtime->test_summary_label),
+            summary);
+    }
+
+    umi_test_explorer_model_destroy(model);
 }
 
 /*
