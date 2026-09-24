@@ -31,7 +31,17 @@ static GtkWidget *runtime_welcome_card(
     if (card == NULL || heading == NULL || detail == NULL) return card;
     gtk_widget_add_css_class(card, "umicom-welcome-card");
     gtk_widget_set_hexpand(card, TRUE);
+    /*
+     * The previous welcome layout stretched every card to the complete centre
+     * height. It is retained for review because it was the established
+     * behaviour, but natural-height cards keep actions grouped near their
+     * headings and leave unused workspace below the cards instead.
+     */
+#if 0
     gtk_widget_set_vexpand(card, TRUE);
+#endif
+    gtk_widget_set_vexpand(card, FALSE);
+    gtk_widget_set_valign(card, GTK_ALIGN_START);
     gtk_widget_add_css_class(heading, "umicom-welcome-card-title");
     gtk_widget_add_css_class(detail, "umicom-runtime-muted");
     gtk_label_set_wrap(GTK_LABEL(detail), TRUE);
@@ -145,6 +155,8 @@ static GtkWidget *runtime_build_welcome_surface(
         GTK_FLOW_BOX(card_flow), GTK_SELECTION_NONE);
     gtk_widget_set_hexpand(card_flow, TRUE);
     gtk_widget_set_vexpand(card_flow, TRUE);
+    /* Extra centre height belongs below the cards rather than inside them. */
+    gtk_widget_set_valign(card_flow, GTK_ALIGN_START);
 
     create = runtime_welcome_card(
         "Start",
