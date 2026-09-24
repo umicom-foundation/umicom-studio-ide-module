@@ -14,6 +14,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/explorer.h"
+
 static void runtime_explorer_open_path(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *path)
@@ -139,6 +141,22 @@ static void RuntimeExplorerRefreshState(UmiStudioGtkRuntimeChrome *runtime)
             status == UMI_STATUS_OK && refresh.active && !refresh.cancellationRequested);
 }
 
+/* Create one non-interactive folder heading for the current indexed page. */
+static GtkWidget *RuntimeExplorerGroupRow(const char *labelText)
+{
+    GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget *icon = gtk_image_new_from_icon_name("folder-symbolic");
+    GtkWidget *label = runtime_label(labelText != NULL ? labelText : "", 0.0F);
+
+    if (row == NULL || icon == NULL || label == NULL) return row;
+    gtk_widget_add_css_class(row, "umicom-runtime-section-title");
+    gtk_widget_set_margin_top(row, 5);
+    gtk_widget_set_margin_bottom(row, 2);
+    gtk_box_append(GTK_BOX(row), icon);
+    gtk_box_append(GTK_BOX(row), label);
+    return row;
+}
+
 /*
  * Provide the runtime explorer refresh list operation used by this module and its client
  * applications.
@@ -152,6 +170,7 @@ static void runtime_explorer_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
     UmiFileIndexEntry *entries;
     UmiStatus status;
     char summary[256];
+    char workspaceName[UMI_FILE_INDEX_NAME_CAPACITY];
     if (runtime == NULL || runtime->explorer_list == NULL || runtime->owner == NULL) return;
     services = umi_studio_ui_services(runtime->owner->ui);
     index = services != NULL ? umi_studio_services_file_index(services) : NULL;
@@ -179,6 +198,13 @@ static void runtime_explorer_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
     if (status != UMI_STATUS_OK) { g_free(entries); return; }
     GObject *generation = g_object_new(G_TYPE_OBJECT, NULL);
     GPtrArray *rows = g_ptr_array_new_with_free_func(g_object_unref);
+
+    /*
+     * The previous flat two-line list is retained for review. Framework now
+     * supplies portable folder context, so Studio can group and indent project
+     * files without duplicating path parsing or changing File Index ownership.
+     */
+#if 0
     for (size_t i = 0U; i < page.count; ++i) {
         RuntimeExplorerRow *row = g_new0(RuntimeExplorerRow, 1);
         row->owner = runtime_file_dialog_request_new(runtime, 0U);
@@ -208,6 +234,126 @@ static void runtime_explorer_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
         g_signal_connect(button, "clicked", G_CALLBACK(runtime_on_explorer_row_clicked), row);
         g_ptr_array_add(rows, g_object_ref_sink(button));
     }
+#endif
+
+    {
+        char previousGroup[UMI_FILE_INDEX_NAME_CAPACITY] = {0};
+
+        for (size_t i = 0U; i < page.count; ++i) {
+            RuntimeExplorerRow *row;
+            UmiUiExplorerFilePresentation presentation;
+            GtkWidget *button;
+            GtkWidget *line;
+            GtkWidget *icon;
+            GtkWidget *body;
+            GtkWidget *name;
+            GtkWidget *path;
+            const char *groupLabel;
+            size_t nestedDepth;
+            int margin;
+
+            status = UmiUiExplorerDescribeFileIndexEntry(
+                &entries[i], &presentation);
+            if (status != UMI_STATUS_OK) {
+                (void)memset(&presentation, 0, sizeof(presentation));
+                (void)snprintf(
+                    presentation.name,
+                    sizeof(presentation.name),
+                    "%s",
+                    entries[i].name);
+                (void)snprintf(
+                    presentation.relativePath,
+                    sizeof(presentation.relativePath),
+                    "%s",
+                    entries[i].relative_path);
+                presentation.workspaceRoot = 1;
+            }
+
+            groupLabel = presentation.workspaceRoot
+                ? "Workspace root"
+                : presentation.topLevel[0] != '\0'
+                    ? presentation.topLevel
+                    : "Workspace root";
+
+            if (strcmp(previousGroup, groupLabel) != 0) {
+                GtkWidget *groupRow = RuntimeExplorerGroupRow(groupLabel);
+                if (groupRow != NULL) {
+                    g_ptr_array_add(rows, g_object_ref_sink(groupRow));
+                }
+                runtime_copy_selection(
+                    previousGroup,
+                    sizeof(previousGroup),
+                    groupLabel);
+            }
+
+            row = g_new0(RuntimeExplorerRow, 1);
+            row->owner = runtime_file_dialog_request_new(runtime, 0U);
+            if (row->owner == NULL) {
+                g_free(row);
+                g_ptr_array_unref(rows);
+                g_object_unref(generation);
+                g_free(entries);
+                return; /* Keep the previously rendered page intact. */
+            }
+
+            button = gtk_button_new();
+            line = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+            icon = gtk_image_new_from_icon_name("text-x-generic-symbolic");
+            body = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+            name = runtime_label(presentation.name, 0.0F);
+            path = runtime_label(
+                presentation.parentPath[0] != '\0'
+                    ? presentation.parentPath
+                    : "Workspace root",
+                0.0F);
+
+            g_weak_ref_init(&row->list, G_OBJECT(runtime->explorer_list));
+            row->generation = g_object_ref(generation);
+            row->root = g_strdup(page.stats.root);
+            row->path = g_strdup(entries[i].path);
+
+            nestedDepth = presentation.depth > 0U
+                ? presentation.depth - 1U
+                : 0U;
+            if (nestedDepth > 8U) nestedDepth = 8U;
+            margin = (int)(nestedDepth * 12U);
+
+            gtk_widget_add_css_class(button, "flat");
+            gtk_widget_add_css_class(path, "umicom-runtime-muted");
+            gtk_widget_set_margin_start(button, margin);
+            gtk_widget_set_tooltip_text(button, entries[i].path);
+            gtk_widget_set_hexpand(body, TRUE);
+            gtk_box_append(GTK_BOX(body), name);
+            gtk_box_append(GTK_BOX(body), path);
+            gtk_box_append(GTK_BOX(line), icon);
+            gtk_box_append(GTK_BOX(line), body);
+            gtk_button_set_child(GTK_BUTTON(button), line);
+
+            g_object_set_data_full(
+                G_OBJECT(button),
+                "umicom-explorer-row",
+                row,
+                RuntimeExplorerRowFree);
+            /* Retain the existing copied path key for native automation clients. */
+            g_object_set_data_full(
+                G_OBJECT(button),
+                "umicom-file-path",
+                g_strdup(entries[i].path),
+                g_free);
+            g_object_set_data_full(
+                G_OBJECT(button),
+                "umicom-file-relative-path",
+                g_strdup(presentation.relativePath),
+                g_free);
+            g_signal_connect(
+                button,
+                "clicked",
+                G_CALLBACK(runtime_on_explorer_row_clicked),
+                row);
+            g_ptr_array_add(rows, g_object_ref_sink(button));
+        }
+    }
+
     /* Publish only after every row is ready; a failed allocation keeps the old page. */
     g_object_set_data_full(G_OBJECT(runtime->explorer_list), "umicom-explorer-rows",
         generation, g_object_unref);
@@ -219,9 +365,39 @@ static void runtime_explorer_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
         gtk_list_box_append(GTK_LIST_BOX(runtime->explorer_list),
             runtime_label(page.stats.files == 0U ? "No files are indexed. Create a project file or refresh." :
                 "No files match this filter.", 0.0F));
+
+    /*
+     * Keep the previous summary wording for review. The active summary adds
+     * the workspace name so the Explorer remains clear when several Studio
+     * windows are open.
+     */
+#if 0
     (void)snprintf(summary, sizeof(summary), "%zu–%zu of %zu matching files (%zu indexed)",
         page.count == 0U ? 0U : page.offset + 1U, page.offset + page.count,
         page.matched, page.stats.files);
+#endif
+    workspaceName[0] = '\0';
+    if (umi_path_basename(
+            page.stats.root,
+            workspaceName,
+            sizeof(workspaceName)) != UMI_STATUS_OK ||
+        workspaceName[0] == '\0') {
+        (void)snprintf(
+            workspaceName,
+            sizeof(workspaceName),
+            "%s",
+            "Workspace");
+    }
+    (void)snprintf(
+        summary,
+        sizeof(summary),
+        "%.64s · %zu–%zu of %zu matching files (%zu indexed)",
+        workspaceName,
+        page.count == 0U ? 0U : page.offset + 1U,
+        page.offset + page.count,
+        page.matched,
+        page.stats.files);
+
     if (runtime->explorer_summary_label != NULL)
         gtk_label_set_text(GTK_LABEL(runtime->explorer_summary_label), summary);
     if (runtime->explorer_previous != NULL)
