@@ -4,8 +4,9 @@
  *
  * PURPOSE:
  *   Start the GTK4 Umicom Studio IDE frontend inside the Umicom Framework
- *   lifecycle. The Framework-owned workbench is the default while the
- *   established product frontend remains available behind --legacy-ui.
+ *   lifecycle. Normal startup uses a writable per-user application directory,
+ *   so opening Studio from Explorer or a shortcut does not depend on an
+ *   administrator account or on the directory that launched the process.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
@@ -20,10 +21,23 @@
  * the older product shell available during migration and comparison testing.
  */
 
+/*
+ * Normal icon and Explorer launches now prepare a writable per-user application
+ * directory before the existing Studio service graph starts.  This keeps the
+ * established startup implementation while preventing a caller-selected working
+ * directory, such as System32, from becoming Studio's writable application state.
+ */
+
 #include <gtk/gtk.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 #include "app.h"
 #include "icon.h"
@@ -31,6 +45,7 @@
 #include "workbench_window.h"
 #include "umicom/studio/appearance_centre.h"
 #include "umicom/studio/bootstrap.h"
+#include "umicom/studio/workspace.h"
 
 /* Provide the str eq operation used by this module and its client applications. */
 static int str_eq(const char *a, const char *b)
@@ -97,6 +112,120 @@ static void configure_runtime_branding(UmiStudioBootstrap *bootstrap,
 static void log_line(const char *text)
 {
     (void)fprintf(stderr, "%s\n", text != NULL ? text : "");
+}
+
+/* Show a visible startup failure when Studio was opened by clicking its icon. */
+static void show_startup_failure(const char *message)
+{
+    const char *text = message != NULL ? message : "Studio could not start.";
+    (void)fprintf(stderr, "[USIDE] %s\n", text);
+#ifdef _WIN32
+    (void)MessageBoxA(NULL,
+                      text,
+                      "Umicom Studio IDE",
+                      MB_OK | MB_ICONERROR | MB_TASKMODAL);
+#endif
+}
+
+/*
+ * Resolve Studio's executable before changing directory, then move the process
+ * into a writable per-user application root. Existing relative Studio state
+ * names therefore remain compatible while no longer resolving inside
+ * System32, the installation directory or another caller-selected folder.
+ */
+static UmiStatus prepare_user_startup(char *out_executable_path,
+                                      size_t executable_capacity)
+{
+    UmiApplicationPathsConfig pathConfig =
+        UmiApplicationPathsConfigDefault("Studio");
+    UmiApplicationPaths paths;
+    UmiStatus status;
+
+    if (out_executable_path == NULL || executable_capacity == 0U) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    status = umi_fs_executable_path(out_executable_path,
+                                    executable_capacity);
+    if (status != UMI_STATUS_OK) return status;
+
+    status = UmiApplicationPathsResolve(&pathConfig, &paths);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiApplicationPathsPrepare(&paths);
+    if (status != UMI_STATUS_OK) return status;
+
+    /* g_chdir uses the platform-aware GLib filename layer. The Framework has
+     * already supplied an absolute per-user directory, so this compatibility
+     * step cannot accidentally select the caller's original working folder. */
+    return g_chdir(paths.root) == 0 ? UMI_STATUS_OK : UMI_STATUS_IO_ERROR;
+}
+
+/*
+ * Restore the last explicitly saved workspace when it is still available.
+ * Without a saved workspace Studio closes its temporary startup workspace and
+ * displays the normal welcome experience instead of treating application data
+ * or System32 as a project.
+ */
+static UmiStatus restore_saved_workspace(UmiStudioBootstrap *bootstrap)
+{
+    UmiStudioServices *services;
+    UmiSettings *settings;
+    UmiSessionStore *session;
+    UmiRecentItemRegistry *recentItems;
+    UmiRecentItemSnapshot recentItem;
+    UmiRecentItemQuery recentQuery = {0};
+    char workspaceRoot[UMI_SESSION_VALUE_CAPACITY];
+    size_t recentCount = 0U;
+    int restoreSession = 0;
+    UmiStatus status;
+
+    if (bootstrap == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    services = umi_studio_bootstrap_services(bootstrap);
+    if (services == NULL) return UMI_STATUS_INVALID_STATE;
+    settings = umi_studio_services_settings(services);
+    session = umi_studio_services_session(services);
+    recentItems = umi_studio_services_recent_items(services);
+    if (settings == NULL || session == NULL || recentItems == NULL) {
+        return UMI_STATUS_INVALID_STATE;
+    }
+
+    status = umi_settings_get_boolean(
+        settings,
+        UMI_STUDIO_SETTING_WORKSPACE_RESTORE_SESSION,
+        &restoreSession);
+    if (status != UMI_STATUS_OK) return status;
+    if (!restoreSession) return umi_studio_workspace_close(services);
+
+    /* A session explicitly saved by the user has first priority. Older Studio
+     * versions did not always write this key, so recent-work history provides
+     * a compatible fallback without inventing another workspace store. */
+    status = umi_session_store_get(session,
+                                   "workspace.root",
+                                   workspaceRoot,
+                                   sizeof(workspaceRoot));
+    if (status == UMI_STATUS_OK && umi_fs_is_directory(workspaceRoot)) {
+        status = umi_studio_workspace_open(services, workspaceRoot, 0, 1);
+        if (status == UMI_STATUS_OK) return UMI_STATUS_OK;
+        (void)umi_studio_workspace_close(services);
+        return status;
+    }
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) {
+        return status;
+    }
+
+    recentQuery.kind = "workspace";
+    recentQuery.limit = 1U;
+    status = umi_platform_recent_items_registry_query(
+        recentItems, &recentQuery, &recentItem, 1U, &recentCount);
+    if (status != UMI_STATUS_OK) return status;
+    if (recentCount == 1U && umi_fs_is_directory(recentItem.uri)) {
+        status = umi_studio_workspace_open(services, recentItem.uri, 0, 1);
+        if (status == UMI_STATUS_OK) return UMI_STATUS_OK;
+        (void)umi_studio_workspace_close(services);
+        return status;
+    }
+
+    return umi_studio_workspace_close(services);
 }
 
 /* Provide the on bare close operation used by this module and its client applications. */
@@ -438,13 +567,39 @@ int main(int argc, char **argv)
     UmiStudioBootstrap *bootstrap = NULL;
     UmiSplash *splash;
     UmiStatus status;
+    UmiStatus restoreStatus;
+    char executablePath[UMI_PATH_CAPACITY];
     int result;
 
     /* Keep operating-system window matching aligned with the packaged Studio
      * identity and its Framework-owned native icon. */
     g_set_prgname("umicom-studio-ide");
 
+    status = prepare_user_startup(executablePath, sizeof(executablePath));
+    if (status != UMI_STATUS_OK) {
+        char message[256];
+        (void)snprintf(message,
+                       sizeof(message),
+                       "Studio could not prepare its per-user application data: %s",
+                       umi_status_text(status));
+        show_startup_failure(message);
+        return 1;
+    }
+
+    /*
+     * The original startup call is retained for review.  It used argv[0], which
+     * can be relative to the process working directory.  After Studio moves to
+     * its per-user writable directory that relative value may no longer identify
+     * the executable, so the Framework-resolved executable path is used below.
+     */
+#if 0
     splash = show_startup_splash(argc > 0 ? argv[0] : NULL);
+#endif
+    splash = show_startup_splash(executablePath);
+    if (splash == NULL) {
+        show_startup_failure("Studio could not create its startup window.");
+        return 1;
+    }
     umi_splash_set_progress(
         splash, 0.20, "Creating Framework services…");
     flush_startup_presentation();
@@ -473,10 +628,31 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    /* Service construction briefly uses the writable application directory as
+     * a compatibility workspace because older Studio services are initialised
+     * with a working directory. Once the lifecycle is running, replace that
+     * temporary root with the saved project or close it so the welcome page
+     * never presents application data or System32 as a user's workspace. */
+    restoreStatus = restore_saved_workspace(bootstrap);
+    if (restoreStatus != UMI_STATUS_OK) {
+        (void)fprintf(stderr,
+                      "[USIDE] Saved workspace was not restored: %s\n",
+                      umi_status_text(restoreStatus));
+    }
+
+    /*
+     * The original branding call is retained for review.  It relied on argv[0]
+     * at this point in startup.  The active call uses the executable path captured
+     * before the working directory changes, so installed artwork remains relative
+     * to the application binary rather than the user-state directory.
+     */
+#if 0
     /* Branding is resolved beside the executable.  This works for both the
      * build tree and installed packages without compiling a developer's
      * private absolute folder structure into the public binary. */
     configure_runtime_branding(bootstrap, argc > 0 ? argv[0] : NULL);
+#endif
+    configure_runtime_branding(bootstrap, executablePath);
     umi_splash_set_progress(
         splash, 0.68, "Restoring your workspace and layouts…");
     flush_startup_presentation();

@@ -15,6 +15,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/studio/session.h"
+
 /* Native requests can complete after a tab change or after Studio closes.
  * The window stores a non-owning runtime binding which teardown clears. */
 typedef struct UmiStudioFileDialogRequest {
@@ -237,6 +239,8 @@ static UmiStatus runtime_open_workspace_path(
      * watcher; trust can be granted later through the explicit trust workflow. */
     status = umi_studio_workspace_open(services, path, 0, 1);
     if (status == UMI_STATUS_OK) {
+        UmiStatus sessionStatus;
+
         runtime_copy_selection(
             runtime->workspace_root,
             sizeof(runtime->workspace_root),
@@ -248,7 +252,24 @@ static UmiStatus runtime_open_workspace_path(
                 sizeof(runtime->workspace_name),
                 workspace_name);
         }
+
+        /* Preserve the established successful-open feedback. Session persistence
+         * is an additional convenience and must not change whether opening the
+         * selected workspace itself succeeded. */
         runtime_show_notification(runtime, "Workspace opened.");
+
+        /* Remember the selected workspace only after it is fully open. The
+         * project remains usable if session persistence is unavailable; Studio
+         * reports that separately instead of changing the open result. */
+        sessionStatus = umi_studio_session_set_workspace(services, path);
+        if (sessionStatus == UMI_STATUS_OK) {
+            sessionStatus = umi_studio_session_save(services);
+        }
+        if (sessionStatus != UMI_STATUS_OK) {
+            runtime_show_notification(
+                runtime,
+                "Workspace opened, but Studio could not save it for the next start.");
+        }
     } else {
         runtime_show_notification(runtime, umi_status_text(status));
     }
