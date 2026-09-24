@@ -31,9 +31,26 @@ static int RuntimeTestRunContext(UmiStudioGtkRuntimeChrome *runtime,
     const UmiBuildProfile *profile = services != NULL
         ? umi_studio_build_service_profile(umi_studio_services_build(services)) : NULL;
     UmiStudioWorkspaceSnapshot workspace;
+    size_t sourceLength;
+    size_t buildLength;
+    size_t configurationLength;
+
     if (profile == NULL || umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
-        !workspace.graph.open || !workspace.graph.trusted ||
-        strlen(profile->source_directory) >= sizeof(context->source_root) ||
+        !workspace.graph.open || !workspace.graph.trusted) return 0;
+
+    sourceLength = strlen(profile->source_directory);
+    buildLength = strlen(profile->build_directory);
+    configurationLength = strlen(profile->configuration);
+
+#if 0
+    /*
+     * The original validation and formatted copies are retained for review.
+     * They already reject values that do not fit, but GCC diagnoses the
+     * snprintf calls from the larger source-array capacities before considering
+     * those runtime length checks. The active implementation below keeps the
+     * same fit-or-reject behaviour and copies the already measured bytes.
+     */
+    if (strlen(profile->source_directory) >= sizeof(context->source_root) ||
         strlen(profile->build_directory) >= sizeof(context->build_root) ||
         strlen(profile->configuration) >= sizeof(context->configuration)) return 0;
     context->trusted = 1;
@@ -41,6 +58,17 @@ static int RuntimeTestRunContext(UmiStudioGtkRuntimeChrome *runtime,
     (void)snprintf(context->source_root, sizeof(context->source_root), "%s", profile->source_directory);
     (void)snprintf(context->build_root, sizeof(context->build_root), "%s", profile->build_directory);
     (void)snprintf(context->configuration, sizeof(context->configuration), "%s", profile->configuration);
+#endif
+
+    if (sourceLength >= sizeof(context->source_root) ||
+        buildLength >= sizeof(context->build_root) ||
+        configurationLength >= sizeof(context->configuration)) return 0;
+
+    context->trusted = 1;
+    context->workspace_generation = workspace.graph.revision;
+    (void)memcpy(context->source_root, profile->source_directory, sourceLength + 1U);
+    (void)memcpy(context->build_root, profile->build_directory, buildLength + 1U);
+    (void)memcpy(context->configuration, profile->configuration, configurationLength + 1U);
     return 1;
 }
 
