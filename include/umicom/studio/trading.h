@@ -24,6 +24,8 @@
 #define UMICOM_STUDIO_TRADING_H
 
 #include "umicom/trading/workspace.h"
+#include "umicom/strategy_research/service.h"
+#include "umicom/strategy_research/strategy_project.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,6 +60,31 @@ UmiTradingWorkspace *umi_studio_trading_service_workspace(
 UmiStatus umi_studio_trading_service_snapshot(
     UmiStudioTradingService *service,
     UmiTradingWorkspaceSnapshot *out_snapshot);
+
+/**
+ * Copy Framework-owned strategy/backtest/replay readiness for Studio.
+ *
+ * Studio remains the coding and inspection frontend. Strategy research state,
+ * replay rules, optimisation and simulation evidence remain Framework-owned
+ * and cannot arm live execution through this API.
+ */
+UmiStatus umi_studio_trading_service_strategy_research_snapshot(
+    UmiStudioTradingService *service,
+    UmiStrategyResearchWorkspaceSnapshot *out_snapshot);
+
+
+/**
+ * Render a simulation-only C23 strategy source template through Framework.
+ *
+ * Studio may place the returned source in its normal project/document workflow;
+ * the generated code produces research evidence and has no broker submit path.
+ */
+UmiStatus umi_studio_trading_service_render_strategy_template(
+    UmiStudioTradingService *service,
+    const UmiStrategyProjectConfig *config,
+    char *out_source,
+    size_t capacity,
+    size_t *out_required);
 
 #ifdef __cplusplus
 }

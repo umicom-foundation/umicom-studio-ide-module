@@ -252,3 +252,37 @@ UmiStatus umi_studio_trading_service_snapshot(
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_trading_workspace_snapshot(service->workspace, out_snapshot);
 }
+
+/*
+ * Studio exposes Framework research readiness beside its simulation workspace.
+ * The IDE still owns no backtest, replay, optimisation or execution engine.
+ */
+UmiStatus umi_studio_trading_service_strategy_research_snapshot(
+    UmiStudioTradingService *service,
+    UmiStrategyResearchWorkspaceSnapshot *out_snapshot)
+{
+    if (service == NULL || out_snapshot == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    return umi_strategy_research_workspace_snapshot(
+        service->workspace, out_snapshot);
+}
+
+
+/*
+ * Strategy source generation remains Framework-owned. Studio contributes only
+ * its ordinary project/document editing workflow after this bounded render.
+ */
+UmiStatus umi_studio_trading_service_render_strategy_template(
+    UmiStudioTradingService *service,
+    const UmiStrategyProjectConfig *config,
+    char *out_source,
+    size_t capacity,
+    size_t *out_required)
+{
+    if (service == NULL || service->workspace == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    return umi_strategy_project_render_c23(
+        config, out_source, capacity, out_required);
+}

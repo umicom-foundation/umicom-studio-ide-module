@@ -15,6 +15,7 @@
  *---------------------------------------------------------------------------*/
 
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "umicom/studio/trading.h"
@@ -28,6 +29,10 @@ int main(void)
     UmiStudioTradingService *service = NULL;
     UmiTradingWorkspace *workspace;
     UmiTradingWorkspaceSnapshot snapshot;
+    UmiStrategyResearchWorkspaceSnapshot research;
+    UmiStrategyProjectConfig strategyConfig;
+    char strategySource[2048];
+    size_t strategyRequired = 0U;
     UmiRiskDecision decision;
 
     assert(umi_studio_trading_service_create(&service) == UMI_STATUS_OK);
@@ -48,8 +53,42 @@ int main(void)
     assert(snapshot.can_preview_order);
     assert(snapshot.can_submit_order);
 
+    /* Studio consumes Framework research readiness rather than owning another
+     * backtest/replay state model. Before selection, the research service
+     * correctly reports that no instrument-specific strategy is ready. */
+    assert(umi_studio_trading_service_strategy_research_snapshot(
+               service, &research) == UMI_STATUS_OK);
+    assert(research.marketDataReady);
+    assert(research.riskReady);
+    assert(research.healthReady);
+    assert(!research.strategyReady);
+
     assert(umi_trading_workspace_select_instrument(
                workspace, "CME.ES.REFERENCE") == UMI_STATUS_OK);
+    assert(umi_studio_trading_service_strategy_research_snapshot(
+               service, &research) == UMI_STATUS_OK);
+    assert(research.strategyReady);
+    assert(research.replayReady);
+    assert(research.studiesReady);
+    assert(research.simulationReady);
+    assert(research.optimisationReady);
+
+    umi_strategy_project_config_init(&strategyConfig);
+    (void)snprintf(
+        strategyConfig.projectName,
+        sizeof(strategyConfig.projectName),
+        "%s",
+        "StudioStrategy");
+    assert(umi_studio_trading_service_render_strategy_template(
+               service,
+               &strategyConfig,
+               strategySource,
+               sizeof(strategySource),
+               &strategyRequired) == UMI_STATUS_OK);
+    assert(strategyRequired > 0U);
+    assert(strstr(strategySource, "strategy.signal-score") != NULL);
+    assert(strstr(strategySource, "submit") == NULL);
+
     assert(umi_trading_workspace_set_draft_quantity(workspace, 1.0) ==
            UMI_STATUS_OK);
     assert(umi_trading_workspace_preview_order(workspace, &decision) ==
