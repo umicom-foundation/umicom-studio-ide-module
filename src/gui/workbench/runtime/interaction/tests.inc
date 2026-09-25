@@ -464,6 +464,14 @@ static int RuntimeTestFailedOnly(UmiStudioGtkRuntimeChrome *runtime)
         : 0;
 }
 
+/*
+ * Forward declaration required by C23: the GTK callbacks below call the active
+ * static Test Explorer refresh function before its full definition appears.
+ * This changes declaration order only; no Test Explorer behaviour is removed.
+ */
+static void runtime_tests_refresh_list(
+    UmiStudioGtkRuntimeChrome *runtime);
+
 /* A changed grouping or sort choice rebuilds only the Test Explorer projection. */
 static void RuntimeTestViewChanged(
     GObject *object,
