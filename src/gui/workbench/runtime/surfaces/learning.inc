@@ -14,6 +14,10 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#ifdef UMICOM_EDUCATION_WORKSPACE_GTK4
+#include "umicom/ui/gtk4/education_workspace.h"
+#endif
+
 /* Open a lesson resource in the shared documentation surface. */
 static void runtime_on_learning_resource(
     GtkButton *button,
@@ -110,6 +114,12 @@ static GtkWidget *runtime_build_surface_learning(
     char summary[512];
 
     if (panel == NULL || runtime == NULL) return panel;
+#ifdef UMICOM_EDUCATION_WORKSPACE_GTK4
+    /* Framework owns saved learning records and the practicum. This launcher
+     * adds that capability without replacing the existing lesson cards, wiki,
+     * documentation navigation or Studio's current learning summary. */
+    gtk_box_append(GTK_BOX(panel), UmiEducationGtkLauncher());
+#endif
     if (umi_studio_learning_centre_snapshot(&centre) != UMI_STATUS_OK) {
         gtk_box_append(
             GTK_BOX(panel),
