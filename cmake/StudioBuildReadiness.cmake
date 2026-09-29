@@ -91,3 +91,33 @@ endif()
 if(TARGET umicom-editor-native-link-consumer)
     add_dependencies(umicom-studio-build-readiness umicom-editor-native-link-consumer)
 endif()
+
+# STU-01 architectural reason:
+# Keep the stable-release catalogue product-specific while using the existing
+# Studio build gate. Reusable IDE mechanisms remain Framework-owned.
+target_sources(umicom_studio_core PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/../src/app/release_baseline.c")
+
+add_executable(umicom-studio-release-baseline
+    "${CMAKE_CURRENT_LIST_DIR}/../src/tools/release_baseline_main.c")
+target_link_libraries(umicom-studio-release-baseline PRIVATE Umicom::StudioCore)
+umicom_apply_warnings(umicom-studio-release-baseline)
+umicom_apply_sanitizers(umicom-studio-release-baseline)
+
+if(BUILD_TESTING)
+    add_executable(umicom-studio-release-baseline-test
+        "${CMAKE_CURRENT_LIST_DIR}/../tests/test_release_baseline.c")
+    target_link_libraries(umicom-studio-release-baseline-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-release-baseline-test)
+    umicom_apply_sanitizers(umicom-studio-release-baseline-test)
+    add_test(NAME studio.release_baseline
+        COMMAND umicom-studio-release-baseline-test)
+    set_tests_properties(studio.release_baseline PROPERTIES
+        TIMEOUT 30 LABELS "studio;release;stu-01;regression")
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-release-baseline-test)
+    endif()
+    add_dependencies(umicom-studio-build-readiness
+        umicom-studio-release-baseline
+        umicom-studio-release-baseline-test)
+endif()

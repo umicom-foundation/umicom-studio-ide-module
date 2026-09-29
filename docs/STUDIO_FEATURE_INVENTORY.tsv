@@ -1,0 +1,21 @@
+id	area	observed_current_entry	qualification_state
+STU-01	Release contract	Native release-baseline catalogue added by this checkpoint	checkpoint
+STU-02	Workbench lifecycle	GTK workbench close guard and command surfaces present	needs target-host acceptance
+STU-03	Projects/workspaces	Project centre, workspace services and repository tooling present	needs journey qualification
+STU-04	Editing	Editor workspace and document services present	needs exact-text qualification
+STU-05	Save/recovery	Document save/reload/close workflow tests present	needs installed restart qualification
+STU-06	Search/navigation	Find-in-files and navigation contributions present	needs revision-routing qualification
+STU-07	Language server	Persistent language/runtime code present	needs real-server qualification
+STU-08	Build/toolchains	Build service, Toolchain Centre and profiles present	needs selected-project qualification
+STU-09	Test Explorer	Test service and execution-integrity work present	needs exact-selection qualification
+STU-10	Problems/history	Canonical diagnostics and read-only build-history review present	needs Windows-path acceptance
+STU-11	Debugger launch	DAP runtime and Studio debugger service present	needs real GDB/LLDB qualification
+STU-12	Debugger inspection	Registers/disassembly/watch views present	needs stopped-frame qualification
+STU-13	Terminal/process	Terminal and process supervision present	needs ownership/shutdown qualification
+STU-14	Git	Source-control centre and diff/history contributions present	needs publish/conflict qualification
+STU-15	Designer	Visual builder and designer project generation present	needs round-trip qualification
+STU-16	Extensions/AI	Extension centre and optional AI services present	needs permission/provider qualification
+STU-17	Performance/accessibility	Profiling/appearance services present	needs target-host measurements
+STU-18	Installer/update	Distribution/installer/upgrade centres present	needs clean-machine acceptance
+STU-19	Release candidate	Not started	blocked by earlier release areas
+STU-20	Stable release	Not started	blocked by STU-19
