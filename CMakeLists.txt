@@ -2375,3 +2375,8 @@ endif()
 # Install the public project-development lesson beside the existing guides.
 install(FILES docs/DEVELOPMENT_WORKFLOW.html
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Keep the beginner ordering workflow available with the installed product.
+install(FILES docs/ORDERING_WORKSPACE_LAYOUTS.md
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs
+    COMPONENT Studio)

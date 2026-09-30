@@ -199,6 +199,111 @@ static UmiStatus capture_workspace_chunk(const char *key, const char *value, voi
     return UMI_STATUS_OK;
 }
 
+/* Native row activation must use the real application owner and preserve the
+ * rest of its layout list. No window is presented and no persistence is asked for. */
+static int VerifyKeyboardLayouts(UmiStudioGtkWorkbench *workstation, GtkWidget *popover)
+{
+    UmiUiWorkspaceLibrarySnapshot before, selected, opened, restored;
+    GtkWidget *list = find_tag(popover, "workstation.layout-library.list");
+    size_t original = SIZE_MAX, target = SIZE_MAX;
+    int failed = 0;
+    REQUIRE(GTK_IS_LIST_BOX(list));
+    REQUIRE(!gtk_list_box_get_activate_on_single_click(GTK_LIST_BOX(list)));
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &before) == UMI_STATUS_OK);
+    for (size_t i = 0U; i < before.layout_count; ++i) {
+        if (before.rows[i].active) original = i;
+        else if (target == SIZE_MAX) target = i;
+    }
+    REQUIRE(original != SIZE_MAX && target != SIZE_MAX);
+    GtkListBoxRow *row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), (int)target);
+    REQUIRE(row != NULL);
+    gtk_list_box_select_row(GTK_LIST_BOX(list), row); REQUIRE(drain_context());
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &selected) == UMI_STATUS_OK);
+    REQUIRE(selected.customisation_revision == before.customisation_revision && selected.rows[original].active);
+    g_signal_emit_by_name(list, "row-activated", row); REQUIRE(drain_context());
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &opened) == UMI_STATUS_OK);
+    REQUIRE(opened.rows[target].active && opened.customisation_revision == before.customisation_revision + 1U);
+    row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), (int)original);
+    REQUIRE(row != NULL); g_signal_emit_by_name(list, "row-activated", row); REQUIRE(drain_context());
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &restored) == UMI_STATUS_OK);
+    REQUIRE(restored.rows[original].active && restored.layout_count == before.layout_count);
+    for (size_t i = 0U; i < before.layout_count; ++i) {
+        REQUIRE(strcmp(restored.rows[i].layout_id, before.rows[i].layout_id) == 0);
+        REQUIRE(strcmp(restored.rows[i].name, before.rows[i].name) == 0);
+    }
+cleanup:
+    return failed;
+}
+
+/* Duplicate through the real native controls, then save, remove and restore
+ * through isolated fixture storage. The source identity and panel count survive. */
+static int VerifyAutomaticLayoutCopy(UmiStudioGtkWorkbench *workstation, GtkWidget *popover, GtkTextBuffer *buffer, const char *draft)
+{
+    UmiUiWorkspaceLibrarySnapshot before, copied, restored;
+    UmiUiWorkspaceLibraryCopySuggestion proposal;
+    UmiUiWorkspaceLibraryRequest remove = {0};
+    GtkWidget *list = find_tag(popover, "workstation.layout-library.list");
+    GtkWidget *search = find_tag(popover, "workstation.layout-library.search");
+    GtkWidget *id = find_tag(popover, "workstation.layout-library.new-id");
+    GtkWidget *name = find_tag(popover, "workstation.layout-library.name");
+    GtkWidget *duplicate = find_tag(popover, "workstation.layout-library.duplicate");
+    GtkWidget *save = find_tag(popover, "workstation.layout-library.save-library");
+    GtkWidget *restore = find_tag(popover, "workstation.layout-library.restore-library");
+    GtkWidget *confirm = find_tag(popover, "workstation.layout-library.confirm-restore");
+    size_t source = 0U;
+    int failed = 0;
+    REQUIRE(GTK_IS_LIST_BOX(list) && GTK_IS_SEARCH_ENTRY(search));
+    REQUIRE(GTK_IS_ENTRY(id) && GTK_IS_ENTRY(name) && GTK_IS_BUTTON(duplicate));
+    REQUIRE(GTK_IS_BUTTON(save) && GTK_IS_BUTTON(restore) && GTK_IS_CHECK_BUTTON(confirm));
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &before) == UMI_STATUS_OK);
+    REQUIRE(before.layout_count > 0U && before.layout_count < UMI_UI_CUSTOM_WORKSPACE_MAX_LAYOUTS);
+    for (size_t row = 0U; row < before.layout_count; ++row)
+        if (before.rows[row].active) source = row;
+    REQUIRE(umi_ui_workspace_library_suggest_copy(&before, before.rows[source].layout_id, &proposal) == UMI_STATUS_OK);
+    gtk_editable_set_text(GTK_EDITABLE(search), ""); g_signal_emit_by_name(search, "search-changed");
+    gtk_list_box_select_row(GTK_LIST_BOX(list), gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), (int)source));
+    gtk_editable_set_text(GTK_EDITABLE(id), "");
+    gtk_editable_set_text(GTK_EDITABLE(name), "My saved layout copy");
+    REQUIRE(gtk_widget_get_sensitive(duplicate));
+    g_signal_emit_by_name(duplicate, "clicked"); REQUIRE(drain_context());
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &copied) == UMI_STATUS_OK);
+    REQUIRE(copied.layout_count == before.layout_count + 1U);
+    REQUIRE(copied.customisation_revision == before.customisation_revision + 1U);
+    REQUIRE(strcmp(copied.rows[before.layout_count].layout_id, proposal.new_layout_id) == 0);
+    REQUIRE(strcmp(copied.rows[before.layout_count].name, "My saved layout copy") == 0);
+    REQUIRE(copied.rows[before.layout_count].active);
+    REQUIRE(copied.rows[before.layout_count].window_count == before.rows[source].window_count);
+    for (size_t row = 0U; row < before.layout_count; ++row) {
+        REQUIRE(strcmp(copied.rows[row].layout_id, before.rows[row].layout_id) == 0);
+        REQUIRE(strcmp(copied.rows[row].name, before.rows[row].name) == 0);
+        REQUIRE(copied.rows[row].window_count == before.rows[row].window_count);
+    }
+    REQUIRE(buffer_contains(buffer, draft) && all_windows_unpresented());
+    REQUIRE(gtk_widget_get_sensitive(save));
+    g_signal_emit_by_name(save, "clicked"); REQUIRE(drain_context());
+    remove.action = UMI_UI_WORKSPACE_LIBRARY_REMOVE;
+    remove.target_layout_id = proposal.new_layout_id;
+    remove.expected_customisation_revision = copied.customisation_revision;
+    remove.confirmed = true;
+    REQUIRE(umi_studio_gtk_workbench_library_apply(workstation, &remove) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &restored) == UMI_STATUS_OK);
+    REQUIRE(restored.layout_count == before.layout_count);
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(confirm), TRUE);
+    REQUIRE(gtk_widget_get_sensitive(restore));
+    g_signal_emit_by_name(restore, "clicked"); REQUIRE(drain_context());
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &restored) == UMI_STATUS_OK);
+    REQUIRE(restored.layout_count == copied.layout_count);
+    for (size_t row = 0U; row < copied.layout_count; ++row) {
+        REQUIRE(strcmp(restored.rows[row].layout_id, copied.rows[row].layout_id) == 0);
+        REQUIRE(strcmp(restored.rows[row].name, copied.rows[row].name) == 0);
+        REQUIRE(restored.rows[row].active == copied.rows[row].active);
+    }
+    REQUIRE(!gtk_check_button_get_active(GTK_CHECK_BUTTON(confirm)));
+    REQUIRE(buffer_contains(buffer, draft) && all_windows_unpresented());
+cleanup:
+    return failed;
+}
+
 /* Close the real native service graph and SQLite connection between save and
  * recovery. This is a restart fixture, not a claim of process-crash testing.
  * All files remain beneath the already isolated test directory. */
@@ -388,6 +493,9 @@ static int verify_durable_canvas(GtkApplication *application, const char *fixtur
         GtkWidget *confirm;
         GtkWidget *layout_selector = find_tag(window, "studio.workspace.layout-selector");
         guint saved_layout_count;
+        UmiUiWorkspaceLibrarySnapshot ordered, restored_order;
+        GtkWidget *editor_host_before = find_tag(window, "studio.workspace.editor-root");
+        UmiUiWorkspaceLibraryRequest move = {0};
         REQUIRE(GTK_IS_MENU_BUTTON(library_button) && GTK_IS_DROP_DOWN(layout_selector));
         popover = GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(library_button)));
         REQUIRE(popover != NULL);
@@ -395,6 +503,24 @@ static int verify_durable_canvas(GtkApplication *application, const char *fixtur
         library_restore = find_tag(popover, "workstation.layout-library.restore-library");
         confirm = find_tag(popover, "workstation.layout-library.confirm-restore");
         REQUIRE(GTK_IS_BUTTON(library_save) && GTK_IS_BUTTON(library_restore) && GTK_IS_CHECK_BUTTON(confirm));
+        /* Reorder through Studio's real owner, retaining the editor and draft.
+         * Save/Restore below must recover the full order, not only its count. */
+        REQUIRE(umi_studio_gtk_workbench_library_snapshot(workbench, &ordered) == UMI_STATUS_OK);
+        REQUIRE(ordered.layout_count > 1U);
+        move.action = UMI_UI_WORKSPACE_LIBRARY_MOVE_EARLIER;
+        move.target_layout_id = ordered.rows[1].layout_id;
+        move.expected_customisation_revision = ordered.customisation_revision;
+        REQUIRE(umi_studio_gtk_workbench_library_apply(workbench, &move) == UMI_STATUS_OK);
+        REQUIRE(umi_studio_gtk_workbench_library_apply(workbench, &move) == UMI_STATUS_INVALID_STATE);
+        REQUIRE(umi_studio_gtk_workbench_library_snapshot(workbench, &restored_order) == UMI_STATUS_OK);
+        REQUIRE(strcmp(restored_order.rows[0].layout_id, ordered.rows[1].layout_id) == 0);
+        ordered = restored_order;
+        REQUIRE(find_tag(window, "studio.workspace.editor-root") == editor_host_before);
+        REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+        REQUIRE(memcmp(before, layout, sizeof(*layout)) == 0);
+        REQUIRE(buffer_contains(buffer, retained_draft));
+        REQUIRE(GTK_IS_BUTTON(find_tag(popover, "workstation.layout-library.move-up")));
+        REQUIRE(GTK_IS_BUTTON(find_tag(popover, "workstation.layout-library.move-down")));
         saved_layout_count = g_list_model_get_n_items(gtk_drop_down_get_model(GTK_DROP_DOWN(layout_selector)));
         REQUIRE(gtk_widget_get_sensitive(library_save));
         g_signal_emit_by_name(library_save, "clicked");
@@ -403,6 +529,31 @@ static int verify_durable_canvas(GtkApplication *application, const char *fixtur
             "umicom.studio.layout.library-unsaved", "Unsaved library addition") == UMI_STATUS_OK);
         REQUIRE(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
         REQUIRE(!gtk_widget_get_sensitive(library_restore));
+        /* Preview removes nothing, including the local-only layout and draft.
+         * Only the subsequent explicitly confirmed Restore replaces the list. */
+        {
+            UmiUiWorkspaceLibrarySnapshot preview_before, preview_after;
+            GtkWidget *preview_button = find_tag(popover, "workstation.layout-library.preview-saved");
+            GtkWidget *preview_text = find_tag(popover, "workstation.layout-library.preview-text");
+            GtkWidget *editor_before_preview = find_tag(window, "studio.workspace.editor-root");
+            REQUIRE(GTK_IS_BUTTON(preview_button) && GTK_IS_LABEL(preview_text));
+            REQUIRE(gtk_widget_get_sensitive(preview_button));
+            REQUIRE(umi_studio_gtk_workbench_library_snapshot(workbench, &preview_before) == UMI_STATUS_OK);
+            gtk_check_button_set_active(GTK_CHECK_BUTTON(confirm), TRUE);
+            g_signal_emit_by_name(preview_button, "clicked"); REQUIRE(drain_context());
+            REQUIRE(!gtk_check_button_get_active(GTK_CHECK_BUTTON(confirm)));
+            REQUIRE(strstr(gtk_label_get_text(GTK_LABEL(preview_text)), "Remove: Unsaved library addition") != NULL);
+            REQUIRE(strstr(gtk_label_get_text(GTK_LABEL(preview_text)), "Restore reads storage again") != NULL);
+            REQUIRE(umi_studio_gtk_workbench_library_snapshot(workbench, &preview_after) == UMI_STATUS_OK);
+            REQUIRE(preview_after.customisation_revision == preview_before.customisation_revision);
+            REQUIRE(preview_after.layout_count == preview_before.layout_count);
+            for (size_t i = 0U; i < preview_before.layout_count; ++i) {
+                REQUIRE(strcmp(preview_after.rows[i].layout_id, preview_before.rows[i].layout_id) == 0);
+                REQUIRE(preview_after.rows[i].active == preview_before.rows[i].active);
+            }
+            REQUIRE(find_tag(window, "studio.workspace.editor-root") == editor_before_preview);
+            REQUIRE(buffer_contains(buffer, retained_draft) && all_windows_unpresented());
+        }
         gtk_check_button_set_active(GTK_CHECK_BUTTON(confirm), TRUE);
         REQUIRE(gtk_widget_get_sensitive(library_restore));
         g_signal_emit_by_name(library_restore, "clicked");
@@ -410,7 +561,18 @@ static int verify_durable_canvas(GtkApplication *application, const char *fixtur
         REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
         REQUIRE(strcmp(layout->layout_id, before->layout_id) == 0 && layout->revision > before->revision);
         REQUIRE(g_list_model_get_n_items(gtk_drop_down_get_model(GTK_DROP_DOWN(layout_selector))) == saved_layout_count);
+        REQUIRE(umi_studio_gtk_workbench_library_snapshot(workbench, &restored_order) == UMI_STATUS_OK);
+        REQUIRE(restored_order.layout_count == ordered.layout_count);
+        for (size_t row = 0U; row < ordered.layout_count; ++row) {
+            REQUIRE(strcmp(restored_order.rows[row].layout_id, ordered.rows[row].layout_id) == 0);
+            REQUIRE(restored_order.rows[row].active == ordered.rows[row].active);
+            REQUIRE(strcmp(gtk_string_list_get_string(GTK_STRING_LIST(
+                gtk_drop_down_get_model(GTK_DROP_DOWN(layout_selector))), (guint)row), ordered.rows[row].name) == 0);
+        }
         REQUIRE(!gtk_check_button_get_active(GTK_CHECK_BUTTON(confirm)));
+        REQUIRE(buffer_contains(buffer, retained_draft) && all_windows_unpresented());
+        REQUIRE(VerifyAutomaticLayoutCopy(workbench, popover, buffer, retained_draft) == 0);
+        REQUIRE(VerifyKeyboardLayouts(workbench, popover) == 0);
         REQUIRE(buffer_contains(buffer, retained_draft) && all_windows_unpresented());
     }
 

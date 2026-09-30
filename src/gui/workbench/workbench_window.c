@@ -675,3 +675,24 @@ UmiStatus umi_studio_gtk_workbench_activity_snapshot(
     out_snapshot->session_storage_configured = workbench->runtime_chrome->session_path[0] != '\0';
     return UMI_STATUS_OK;
 }
+
+/* Keep native publication with the established Framework workspace owner;
+ * copied observations support product acceptance without exposing its model. */
+UmiStatus umi_studio_gtk_workbench_library_snapshot(
+    UmiStudioGtkWorkbench *workstation, UmiUiWorkspaceLibrarySnapshot *out_snapshot)
+{
+    if (workstation == NULL || out_snapshot == NULL || workstation->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_library_read(out_snapshot, workstation->runtime_chrome);
+}
+
+/* Reuse the existing transactional UI path, retaining panel bodies and all
+ * application-specific ownership instead of building another layout manager. */
+UmiStatus umi_studio_gtk_workbench_library_apply(
+    UmiStudioGtkWorkbench *workstation, const UmiUiWorkspaceLibraryRequest *request)
+{
+    if (workstation == NULL || request == NULL || workstation->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStatus status = runtime_workspace_library_apply(request, workstation->runtime_chrome);
+    if (status == UMI_STATUS_OK && workstation->runtime_chrome->workspace_library != NULL)
+        (void)umi_gtk4_ws_layout_library_refresh(workstation->runtime_chrome->workspace_library);
+    return status;
+}

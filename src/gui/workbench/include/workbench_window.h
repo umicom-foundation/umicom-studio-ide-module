@@ -16,6 +16,7 @@
 #ifndef UMICOM_STUDIO_GTK_WORKBENCH_WINDOW_H
 #define UMICOM_STUDIO_GTK_WORKBENCH_WINDOW_H
 
+#include "umicom/ui/workspace_library.h"
 #include <gtk/gtk.h>
 
 #include "umicom/studio/ui.h"
@@ -160,5 +161,19 @@ typedef struct UmiStudioGtkWorkbenchActivitySnapshot {
 /** Copy observed runtime activity; this does not change either policy flag. */
 UmiStatus umi_studio_gtk_workbench_activity_snapshot(
     UmiStudioGtkWorkbench *workbench, UmiStudioGtkWorkbenchActivitySnapshot *out_snapshot);
+
+
+/** Copy the current ordered layout list on the GTK owning thread. No live
+ * pointers escape; a failed read leaves output unchanged. This performs no I/O. */
+UmiStatus umi_studio_gtk_workbench_library_snapshot(
+    UmiStudioGtkWorkbench *workstation, UmiUiWorkspaceLibrarySnapshot *out_snapshot);
+
+/** Apply a revision-checked library action through the same staged native
+ * publication path as Layout Library. Product scope and edit gates remain in
+ * Framework. A move preserves active panels and does not execute trades, save
+ * documents or persist the library. Use explicit Save library for persistence.
+ * Inputs are borrowed for this synchronous owner-thread call only. */
+UmiStatus umi_studio_gtk_workbench_library_apply(
+    UmiStudioGtkWorkbench *workstation, const UmiUiWorkspaceLibraryRequest *request);
 
 #endif

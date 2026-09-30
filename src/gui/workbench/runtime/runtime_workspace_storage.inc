@@ -67,6 +67,24 @@ static UmiStatus runtime_workspace_library_storage_read(
     return UMI_STATUS_OK;
 }
 
+/* Studio's callback supplies its existing canvas owner and storage scope.
+ * Framework validates and compares saved copies; the editor session and cached
+ * save/conflict evidence remain untouched while the user reviews the summary. */
+static UmiStatus runtime_workspace_library_preview(
+    const UmiGtk4WorkspaceLayoutLibraryPreviewRequest *request,
+    UmiUiWorkspaceLibraryPreview *out_preview, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (request == NULL || runtime == NULL || out_preview == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    const UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    if (model == NULL || runtime->workspace_storage == NULL) return UMI_STATUS_UNAVAILABLE;
+    if (request->expected_customisation_revision != model->revision ||
+        request->expected_storage_generation != runtime->workspace_library_storage_generation)
+        return UMI_STATUS_INVALID_STATE;
+    return umi_ui_workspace_library_checkpoint_preview(runtime->workspace_storage,
+        &STUDIO_CANVAS_SCOPE, model, out_preview);
+}
+
 /* Dispatch through Framework storage, then use the existing staged native
  * publication path. No alternate database, layout parser or session owner is
  * created here, and a failed Save never adopts a competing writer's revision. */

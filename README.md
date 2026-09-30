@@ -58,3 +58,9 @@ can launch Studio together with other installed Umicom applications.
 practice project through tabs, unsaved text, next/previous search, replacement,
 Undo, Save All, builds and close confirmation. It explains the current editor
 size limit and how to respond to a file conflict.
+
+## Order your workspace layouts
+
+Studio's shared Layout Library includes **Move up** and **Move down** controls.
+[Arrange your workspace layouts](docs/ORDERING_WORKSPACE_LAYOUTS.md) explains
+how to reorder the list, retain the active workspace and save the order.

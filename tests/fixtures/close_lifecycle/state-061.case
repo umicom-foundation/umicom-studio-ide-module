@@ -1,0 +1,13 @@
+# Umicom Studio STU-02 close lifecycle fixture
+mask=61
+services_ready=1
+snapshot_ready=0
+test_run_pending=1
+test_discovery_pending=1
+build_busy=1
+debugger_busy=1
+dirty_documents=0
+discard_confirmed=0
+expect_decision=0
+expect_actions=0
+expect_second_close=0

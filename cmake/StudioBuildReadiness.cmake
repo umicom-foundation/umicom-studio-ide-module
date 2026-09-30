@@ -121,3 +121,64 @@ if(BUILD_TESTING)
         umicom-studio-release-baseline
         umicom-studio-release-baseline-test)
 endif()
+
+
+# architectural reason:
+# Studio owns the product close sequence while Framework continues to own the
+# document, build, test and debugger services. Compile the deterministic close
+# planner into StudioCore and keep its 256-state acceptance matrix in the native
+# readiness gate.
+target_sources(umicom_studio_core PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/../src/app/close_plan.c")
+
+add_executable(umicom-studio-close-plan
+    "${CMAKE_CURRENT_LIST_DIR}/../src/tools/close_plan_main.c")
+target_link_libraries(umicom-studio-close-plan PRIVATE Umicom::StudioCore)
+umicom_apply_warnings(umicom-studio-close-plan)
+umicom_apply_sanitizers(umicom-studio-close-plan)
+
+if(BUILD_TESTING)
+    add_executable(umicom-studio-close-plan-test
+        "${CMAKE_CURRENT_LIST_DIR}/../tests/test_close_plan.c")
+    target_link_libraries(umicom-studio-close-plan-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-close-plan-test)
+    umicom_apply_sanitizers(umicom-studio-close-plan-test)
+    add_test(NAME studio.close_plan
+        COMMAND umicom-studio-close-plan-test)
+    set_tests_properties(studio.close_plan PROPERTIES
+        TIMEOUT 30 LABELS "studio;workbench;lifecycle;stu-02;regression")
+
+    add_executable(umicom-studio-close-plan-fixture-test
+        "${CMAKE_CURRENT_LIST_DIR}/../tests/test_close_plan_fixtures.c")
+    target_link_libraries(umicom-studio-close-plan-fixture-test
+        PRIVATE Umicom::StudioCore)
+    # The earlier split definition made two compiler arguments: an empty
+    # fixture macro and a path interpreted as another macro. The single quoted
+    # definition below replaces it; retain this block for engineering review.
+    if(FALSE)
+    target_compile_definitions(umicom-studio-close-plan-fixture-test PRIVATE
+        UMI_STUDIO_CLOSE_FIXTURE_DIR=
+            "${CMAKE_CURRENT_LIST_DIR}/../tests/fixtures/close_lifecycle")
+    endif()
+    # The build owns fixture location so the executable can run from any
+    # working directory. Keep the name and C string literal in one CMake
+    # argument, including when the source directory contains spaces.
+    target_compile_definitions(umicom-studio-close-plan-fixture-test PRIVATE
+        "UMI_STUDIO_CLOSE_FIXTURE_DIR=\"${CMAKE_CURRENT_LIST_DIR}/../tests/fixtures/close_lifecycle\"")
+    umicom_apply_warnings(umicom-studio-close-plan-fixture-test)
+    umicom_apply_sanitizers(umicom-studio-close-plan-fixture-test)
+    add_test(NAME studio.close_plan.fixtures
+        COMMAND umicom-studio-close-plan-fixture-test)
+    set_tests_properties(studio.close_plan.fixtures PROPERTIES
+        TIMEOUT 30 LABELS "studio;workbench;lifecycle;stu-02;matrix")
+
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-close-plan-test)
+        umicom_register_validation_target(umicom-studio-close-plan-fixture-test)
+    endif()
+
+    add_dependencies(umicom-studio-build-readiness
+        umicom-studio-close-plan
+        umicom-studio-close-plan-test
+        umicom-studio-close-plan-fixture-test)
+endif()
