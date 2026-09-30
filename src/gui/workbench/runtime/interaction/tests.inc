@@ -42,6 +42,8 @@ static UmiTestPlatformService *runtime_test_platform(
  * Provide the runtime test select operation used by this module and its client
  * applications.
  */
+/* The earlier selection helper borrowed a row ID across dispatch and did not report rejection. The replacement captures identity and returns acceptance. The superseded implementation is retained for engineering review. */
+#if 0
 static void runtime_test_select(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *test_id)
@@ -62,6 +64,27 @@ static void runtime_test_select(
             sizeof(runtime->selected_test_id),
             test_id);
     }
+}
+#endif
+/* Selection dispatch may refresh before the local ID has been published.
+ * Refresh the focused evidence after acceptance, including manual-refresh mode. */
+static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime);
+static int runtime_test_select(UmiStudioGtkRuntimeChrome *runtime, const char *test_id)
+{
+    if (runtime == NULL || test_id == NULL || test_id[0] == '\0') return 0;
+    /* Dispatch may rebuild rows and free the button's borrowed ID. Capture
+     * it before dispatch and publish selection only after successful service
+     * acceptance; Run and Debug use this return value, never a stale cache. */
+    char requested[sizeof(runtime->selected_test_id)];
+    size_t length = strlen(test_id);
+    if (length >= sizeof(requested)) return 0;
+    memcpy(requested, test_id, length + 1U);
+    UmiStatus status = runtime_execute_registered_command(runtime,
+        UMI_STUDIO_COMMAND_TESTS_SELECT, requested);
+    if (status != UMI_STATUS_OK) return 0;
+    runtime_copy_selection(runtime->selected_test_id, sizeof(runtime->selected_test_id), requested);
+    RuntimeSelectedTestEvidenceRefresh(runtime);
+    return 1;
 }
 
 /*
@@ -85,6 +108,8 @@ static void runtime_on_test_select(
  * Perform runtime on test through the module contract so client applications do not
  * duplicate its policy.
  */
+/* The cached-ID comparison is superseded by the selection result, so rejected selection cannot run or debug an earlier test. The superseded implementation is retained for engineering review. */
+#if 0
 static void runtime_on_test_run(
     GtkButton *button,
     gpointer user_data)
@@ -110,11 +135,24 @@ static void runtime_on_test_run(
             NULL);
     }
 }
+#endif
+static void runtime_on_test_run(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    const char *test_id = g_object_get_data(G_OBJECT(button), "umicom-test-id");
+    /* Failed selection must never dispatch against a previous selection. */
+    if (runtime_test_select(runtime, test_id)) {
+        (void)runtime_execute_registered_command(runtime,
+            UMI_STUDIO_COMMAND_TESTS_RUN_SELECTED, NULL);
+    }
+}
 
 /*
  * Provide the runtime on test debug operation used by this module and its client
  * applications.
  */
+/* The cached-ID comparison is superseded by the selection result, so rejected selection cannot run or debug an earlier test. The superseded implementation is retained for engineering review. */
+#if 0
 static void runtime_on_test_debug(
     GtkButton *button,
     gpointer user_data)
@@ -138,6 +176,17 @@ static void runtime_on_test_debug(
             runtime,
             UMI_STUDIO_COMMAND_TESTS_DEBUG_SELECTED,
             NULL);
+    }
+}
+#endif
+static void runtime_on_test_debug(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    const char *test_id = g_object_get_data(G_OBJECT(button), "umicom-test-id");
+    /* Failed selection must never dispatch against a previous selection. */
+    if (runtime_test_select(runtime, test_id)) {
+        (void)runtime_execute_registered_command(runtime,
+            UMI_STUDIO_COMMAND_TESTS_DEBUG_SELECTED, NULL);
     }
 }
 

@@ -16,6 +16,8 @@
 
 /* Refresh the native selector from the model's named layouts, including blanks.
  * Its notification guard prevents presentation updates from selecting a layout. */
+/* Project layout names only when they change, preventing native selection notifications from feeding back into workspace rebuilds. The previous implementation remains for engineering review. */
+#if 0
 static void runtime_workspace_update_selector(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
@@ -36,6 +38,38 @@ static void runtime_workspace_update_selector(UmiStudioGtkRuntimeChrome *runtime
     g_object_unref(names);
 }
 
+#endif
+static void runtime_workspace_update_selector(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    guint selected = GTK_INVALID_LIST_POSITION;
+    if (model == NULL || runtime->workspace_layout_selector == NULL) return;
+    GtkDropDown *selector = GTK_DROP_DOWN(runtime->workspace_layout_selector);
+    GListModel *current = gtk_drop_down_get_model(selector);
+    gboolean same = GTK_IS_STRING_LIST(current) &&
+        g_list_model_get_n_items(current) == model->layout_count;
+    for (size_t index = 0U; index < model->layout_count; ++index) {
+        if (strcmp(model->layouts[index].layout_id, model->active_layout_id) == 0)
+            selected = (guint)index;
+        if (same && g_strcmp0(gtk_string_list_get_string(GTK_STRING_LIST(current),
+                (guint)index), model->layouts[index].name) != 0) same = FALSE;
+    }
+    /* Idempotent projection stops queued notify::selected from rebuilding
+     * the same model again. Preserve the outer guard during nested updates. */
+    int previous = runtime->syncing_workspace_controls;
+    runtime->syncing_workspace_controls = 1;
+    if (!same) {
+        GtkStringList *names = gtk_string_list_new(NULL);
+        for (size_t index = 0U; index < model->layout_count; ++index)
+            gtk_string_list_append(names, model->layouts[index].name);
+        gtk_drop_down_set_model(selector, G_LIST_MODEL(names));
+        g_object_unref(names);
+    }
+    if (gtk_drop_down_get_selected(selector) != selected)
+        gtk_drop_down_set_selected(selector, selected);
+    runtime->syncing_workspace_controls = previous;
+}
+
 /* Select an existing named layout only after the current edit is committed. */
 static void runtime_on_workspace_selected(GObject *object, GParamSpec *property, gpointer data)
 {
@@ -47,6 +81,8 @@ static void runtime_on_workspace_selected(GObject *object, GParamSpec *property,
     if (model == NULL || runtime->syncing_workspace_controls) return;
     index = gtk_drop_down_get_selected(GTK_DROP_DOWN(object));
     if (index >= model->layout_count) return;
+    /* A queued notification for the already active ID is presentation only. */
+    if (strcmp(model->layouts[index].layout_id, model->active_layout_id) == 0) return;
     status = runtime_workspace_select_layout(runtime, model->layouts[index].layout_id);
     if (status != UMI_STATUS_OK) {
         runtime_workspace_update_selector(runtime);

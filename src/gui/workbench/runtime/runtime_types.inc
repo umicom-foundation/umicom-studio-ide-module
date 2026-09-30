@@ -198,6 +198,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *test_list;
     GtkWidget *test_summary_label;
     GtkWidget *test_results_view;
+    GtkWidget *test_selected_view;
     GtkWidget *test_coverage_view;
     GtkWidget *test_output_view;
 

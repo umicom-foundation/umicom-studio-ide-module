@@ -18,6 +18,7 @@
 #include "umicom/studio/settings.h"
 #include "umicom/studio/workspace.h"
 #include "umicom/studio/source_control.h"
+#include "umicom/studio/tests.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
 #include "umicom/ui/document_view.h"
 #include "umicom/workbench_layout_data/key_codec.h"
@@ -691,6 +692,89 @@ cleanup:
  * fixture files are retained for diagnosis; no source or user file is deleted.
  * The bootstrap lifecycle is deliberately not started. Explicit constructor
  * policy disables Git discovery, GTK session storage and refresh timers. */
+/* Select through the real row action, so service rejection and the local
+ * selected-test cache are exercised together rather than bypassed by a test. */
+static GtkWidget *FindTestSelect(GtkWidget *root, const char *item_id)
+{
+    const char *id = g_object_get_data(G_OBJECT(root), "umicom-test-id");
+    if (GTK_IS_BUTTON(root) && id != NULL && strcmp(id, item_id) == 0 &&
+        g_strcmp0(gtk_button_get_label(GTK_BUTTON(root)), "Select") == 0) return root;
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = FindTestSelect(child, item_id);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+static int VerifySelectedTestEvidence(GtkApplication *application)
+{
+    int failed = 0;
+    UmiStudioBootstrap *bootstrap = NULL;
+    UmiStudioGtkWorkbench *workbench = NULL;
+    UmiStudioServicesOptions services_options = {0};
+    UmiStudioGtkWorkbenchOptions options = {0};
+    REQUIRE(umi_studio_bootstrap_create_with_options(&services_options, &bootstrap) == UMI_STATUS_OK);
+    UmiTestPlatformService *platform = umi_studio_test_service_platform(
+        umi_studio_services_tests(umi_studio_bootstrap_services(bootstrap)));
+    REQUIRE(platform != NULL);
+    UmiTestPlatformItemRegistry *items = umi_test_platform_service_item(platform);
+    UmiTestPlatformResultRegistry *results = umi_test_platform_service_result(platform);
+    UmiTestPlatformOutputRegistry *outputs = umi_test_platform_service_output(platform);
+    const char *ids[] = {"native.selected.a", "native.selected.ab"};
+    const char *messages[] = {"ONLY_A_RESULT", "ONLY_AB_RESULT"};
+    const char *output_text[] = {"ONLY_A_OUTPUT", "ONLY_AB_OUTPUT"};
+    for (size_t i = 0; i < 2U; ++i) {
+        UmiTestPlatformItemSnapshot item = {0};
+        (void)g_strlcpy(item.id, ids[i], sizeof item.id);
+        (void)g_strlcpy(item.name, ids[i], sizeof item.name);
+        (void)g_strlcpy(item.framework, "ctest", sizeof item.framework);
+        (void)g_strlcpy(item.kind, "test", sizeof item.kind);
+        item.enabled = 1; item.discovered = 1;
+        REQUIRE(umi_test_platform_item_registry_upsert(items, &item) == UMI_STATUS_OK);
+        UmiTestPlatformResultSnapshot result = {0};
+        (void)g_strlcpy(result.id, ids[i], sizeof result.id);
+        (void)g_strlcpy(result.item_id, ids[i], sizeof result.item_id);
+        (void)g_strlcpy(result.session_id, "native-run", sizeof result.session_id);
+        (void)g_strlcpy(result.message, messages[i], sizeof result.message);
+        result.outcome = UMI_TEST_PLATFORM_OUTCOME_FAILED; result.sequence = i + 1U;
+        REQUIRE(umi_test_platform_result_registry_upsert(results, &result) == UMI_STATUS_OK);
+        UmiTestPlatformOutputSnapshot output = {0};
+        (void)g_strlcpy(output.id, ids[i], sizeof output.id);
+        (void)g_strlcpy(output.item_id, ids[i], sizeof output.item_id);
+        (void)g_strlcpy(output.session_id, "native-run", sizeof output.session_id);
+        (void)g_strlcpy(output.stream, "stderr", sizeof output.stream);
+        (void)g_strlcpy(output.text, output_text[i], sizeof output.text);
+        REQUIRE(umi_test_platform_output_registry_upsert(outputs, &output) == UMI_STATUS_OK);
+    }
+    REQUIRE(umi_studio_gtk_workbench_create_with_options(application,
+        umi_studio_bootstrap_ui(bootstrap), umi_studio_bootstrap_desktop_shell(bootstrap),
+        &options, &workbench) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_TEST_EXPLORER, NULL) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+    GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    for (size_t i = 0; i < 2U; ++i) {
+        GtkWidget *select = FindTestSelect(root, ids[i]); REQUIRE(select != NULL);
+        g_signal_emit_by_name(select, "clicked");
+        /* No refresh call here: selection must update the detail pane even
+         * when automatic refresh is deliberately disabled in this fixture. */
+        GtkWidget *view = find_tag(root, "studio.tests.selected-evidence");
+        REQUIRE(GTK_IS_TEXT_VIEW(view) && !gtk_text_view_get_editable(GTK_TEXT_VIEW(view)));
+        GtkTextBuffer *selected = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+        REQUIRE(buffer_contains(selected, messages[i]) && buffer_contains(selected, output_text[i]));
+        REQUIRE(!buffer_contains(selected, messages[1U - i]) && !buffer_contains(selected, output_text[1U - i]));
+    }
+    REQUIRE(umi_test_platform_result_registry_remove(results, ids[1]) == UMI_STATUS_OK);
+    REQUIRE(umi_test_platform_output_registry_remove(outputs, ids[1]) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+    GtkWidget *view = find_tag(root, "studio.tests.selected-evidence");
+    REQUIRE(GTK_IS_TEXT_VIEW(view));
+    REQUIRE(buffer_contains(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)), "not a pass"));
+cleanup:
+    umi_studio_gtk_workbench_destroy(workbench);
+    umi_studio_bootstrap_destroy(bootstrap);
+    return failed;
+}
+
 int main(void)
 {
     static const char draft[] = "/* \xCE\xBB \xF0\x9F\x9A\x80 unsaved canvas acceptance draft. */\nint value = 7;\n";
@@ -882,6 +966,16 @@ int main(void)
     g_object_ref(selector);
     REQUIRE(GTK_IS_DROP_DOWN(selector));
 
+    /* Re-emitted native selection must not replace the dropdown model or
+     * rebuild retained editors. This also exercises notifications after a guard. */
+    REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+    before_revision = layout->revision;
+    GListModel *unchanged_names = g_object_ref(gtk_drop_down_get_model(GTK_DROP_DOWN(selector)));
+    g_object_notify(G_OBJECT(selector), "selected");
+    REQUIRE(gtk_drop_down_get_model(GTK_DROP_DOWN(selector)) == unchanged_names);
+    g_object_unref(unchanged_names);
+    REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+    REQUIRE(layout->revision == before_revision && find_editor(editor_root) == editor);
     ReportNativePhase("canvas-retention");
     /* Blank really means empty. Status sync must not resurrect hidden defaults. */
     REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench, layout_id,
@@ -906,6 +1000,7 @@ int main(void)
 
     /* Normal-mode discovery reopens Editor from a locked empty canvas. A
      * second Open is focus only, without duplicate records or lost drafts. */
+    ReportNativePhase("canvas-reopen-editor");
     REQUIRE(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
     REQUIRE(navigate_to(native_window, "+Editor"));
     REQUIRE(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
@@ -932,6 +1027,7 @@ int main(void)
     REQUIRE(umi_studio_gtk_workbench_workspace_host_snapshot(workbench, &host) == UMI_STATUS_OK);
     REQUIRE(host.canvas_count == 2U && host.floating_count == 0U);
 
+    ReportNativePhase("canvas-deferred-geometry");
     /* Requests are deferred and revision guarded exactly like native gestures. */
     before_revision = layout->revision;
     REQUIRE(umi_studio_gtk_workbench_workspace_request_canvas_geometry(workbench,
@@ -965,6 +1061,7 @@ int main(void)
         gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)) == buffer && buffer_contains(buffer, draft) &&
         has_unicode_selection(buffer));
 
+    ReportNativePhase("canvas-switch-layouts");
     /* Select both named layouts using the actual dropdown callback, retaining
      * the same editor body when its outer placement changes between them. */
     choice = layout_choice(selector, original_layout_name);
@@ -1128,6 +1225,8 @@ int main(void)
     g_signal_emit_by_name(retained_reload, "clicked");
     REQUIRE(drain_context());
     REQUIRE(all_windows_unpresented());
+    ReportNativePhase("selected-test-evidence");
+    REQUIRE(VerifySelectedTestEvidence(application) == 0);
     ReportNativePhase("project-explorer");
     REQUIRE(VerifyProjectExplorer(application, fixture_path) == 0);
     ReportNativePhase("durable-layout-recovery");

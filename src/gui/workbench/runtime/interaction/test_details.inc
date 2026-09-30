@@ -33,6 +33,66 @@ static void runtime_text_view_set(
         -1);
 }
 
+
+#include "umicom/test_platform/evidence.h"
+
+/* Framework selects and owns the captured evidence. Studio supplies only
+ * text presentation, keeping the existing aggregate history panes available. */
+static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->test_selected_view == NULL) return;
+    if (runtime->selected_test_id[0] == '\0') {
+        runtime_text_view_set(runtime->test_selected_view,
+            "Select a test to inspect its retained results and output.");
+        return;
+    }
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (platform == NULL) {
+        runtime_text_view_set(runtime->test_selected_view, "Test evidence is unavailable.");
+        return;
+    }
+    UmiTestEvidence *capture = NULL;
+    UmiStatus status = UmiTestEvidenceCreate(umi_test_platform_service_result(platform),
+        umi_test_platform_service_output(platform), runtime->selected_test_id, NULL, &capture);
+    if (status != UMI_STATUS_OK) {
+        runtime_text_view_set(runtime->test_selected_view, "Unable to capture selected-test evidence.");
+        return;
+    }
+    UmiTestEvidenceSummary summary;
+    (void)UmiTestEvidenceGetSummary(capture, &summary);
+    GString *text = g_string_sized_new(4096U);
+    g_string_append_printf(text,
+        "Selected test: %s\nRetained results: %zu of %zu | output records: %zu of %zu\n"
+        "Newest first. Session labels distinguish separate runs.\n\n",
+        summary.item_id, summary.retained_results, summary.matching_results,
+        summary.retained_output, summary.matching_output);
+    if (summary.retained_results == 0U)
+        g_string_append(text, "No result is retained for this test. This is not a pass.\n");
+    for (size_t i = 0U; i < summary.retained_results; ++i) {
+        UmiTestPlatformResultSnapshot row;
+        if (UmiTestEvidenceResultAt(capture, i, &row) != UMI_STATUS_OK) break;
+        g_string_append_printf(text, "[%s] %s | %.2f ms | exit %d%s\n%s\n%s\n\n",
+            row.session_id[0] != '\0' ? row.session_id : "session unspecified",
+            umi_test_platform_outcome_text((UmiTestPlatformOutcome)row.outcome),
+            row.duration_ms, row.exit_code, row.flaky ? " | flaky" : "",
+            row.message, row.failure_details);
+    }
+    g_string_append(text, "OUTPUT\n");
+    if (summary.retained_output == 0U) g_string_append(text, "No output retained for this test.\n");
+    for (size_t i = 0U; i < summary.retained_output; ++i) {
+        UmiTestPlatformOutputSnapshot row;
+        if (UmiTestEvidenceOutputAt(capture, i, &row) != UMI_STATUS_OK) break;
+        g_string_append_printf(text, "[%s / %s] %s\n",
+            row.session_id[0] != '\0' ? row.session_id : "session unspecified", row.stream, row.text);
+    }
+    /* Process output may contain invalid bytes; GTK needs valid UTF-8 text. */
+    char *display = g_utf8_make_valid(text->str, (gssize)text->len);
+    runtime_text_view_set(runtime->test_selected_view, display);
+    g_free(display);
+    g_string_free(text, TRUE);
+    UmiTestEvidenceDestroy(capture);
+}
+
 /*
  * Provide the runtime test details refresh operation used by this module and its client
  * applications.
@@ -55,6 +115,7 @@ static void runtime_test_details_refresh(
      */
     if (runtime == NULL) return;
 
+    RuntimeSelectedTestEvidenceRefresh(runtime);
     platform = runtime_test_platform(runtime);
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -257,6 +318,7 @@ static GtkWidget *runtime_test_details_notebook(
     if (runtime == NULL) return NULL;
 
     notebook = gtk_notebook_new();
+    runtime->test_selected_view = gtk_text_view_new();
     runtime->test_results_view = gtk_text_view_new();
     runtime->test_coverage_view = gtk_text_view_new();
     runtime->test_output_view = gtk_text_view_new();
@@ -266,6 +328,7 @@ static GtkWidget *runtime_test_details_notebook(
      * used.
      */
     if (notebook == NULL ||
+        runtime->test_selected_view == NULL ||
         runtime->test_results_view == NULL ||
         runtime->test_coverage_view == NULL ||
         runtime->test_output_view == NULL) {
@@ -296,6 +359,15 @@ static GtkWidget *runtime_test_details_notebook(
     output_scroll = runtime_scroll(runtime->test_output_view);
 
     gtk_widget_set_size_request(notebook, -1, 190);
+
+    /* The focused evidence tab supplements Results, Coverage and Output;
+     * those established aggregate views remain available beside it. */
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(runtime->test_selected_view), FALSE);
+    gtk_text_view_set_monospace(GTK_TEXT_VIEW(runtime->test_selected_view), TRUE);
+    (void)umi_gtk4_automation_tag_widget(runtime->test_selected_view, "studio.tests.selected-evidence");
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), runtime_scroll(runtime->test_selected_view),
+        gtk_label_new("Selected test"));
+
 
     gtk_notebook_append_page(
         GTK_NOTEBOOK(notebook),
