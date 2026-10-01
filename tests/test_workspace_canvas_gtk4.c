@@ -116,6 +116,30 @@ static int buffer_contains(GtkTextBuffer *buffer, const char *expected)
     return matches;
 }
 
+/* Keep failure evidence small: sizes, first differing byte and history flags
+ * distinguish a stale projection, an inert Undo and a native-history mismatch.
+ * Source text itself is not logged. This leaves the original assertion strict. */
+static void ReportDraftHistory(GtkTextBuffer *buffer, UmiUiDocumentViewModel *documents,
+    const char *view_id, const char *expected, const char *phase)
+{
+    GtkTextIter start, end;
+    gtk_text_buffer_get_bounds(buffer, &start, &end);
+    char *native = gtk_text_buffer_get_text(buffer, &start, &end, TRUE);
+    char *model = NULL;
+    size_t model_length = 0U;
+    UmiStatus status = UmiUiDocumentViewModelCopyText(documents, view_id, &model, &model_length);
+    size_t wanted = strlen(expected), actual = native != NULL ? strlen(native) : 0U;
+    size_t difference = 0U;
+    while (native != NULL && difference < wanted && difference < actual &&
+        expected[difference] == native[difference]) ++difference;
+    fprintf(stderr, "Draft history %s: type=%s expected=%zu native=%zu model=%zu first_difference=%zu model_status=%d undo=%d redo=%d enabled=%d\n",
+        phase, G_OBJECT_TYPE_NAME(buffer), wanted, actual, model_length, difference,
+        (int)status, gtk_text_buffer_get_can_undo(buffer), gtk_text_buffer_get_can_redo(buffer),
+        gtk_text_buffer_get_enable_undo(buffer));
+    UmiUiDocumentViewModelFreeText(model);
+    g_free(native);
+}
+
 /* GTK offsets count characters, while Framework source positions count UTF-8
  * bytes. Preserve the native selection direction across ordinary refresh. */
 static int has_unicode_selection(GtkTextBuffer *buffer)
@@ -1208,10 +1232,14 @@ int main(void)
     gtk_text_buffer_begin_user_action(buffer);
     gtk_text_buffer_insert(buffer, &insert, "!", 1);
     gtk_text_buffer_end_user_action(buffer);
+    /* Check the native edit before any refresh can obscure its origin. */
+    REQUIRE(gtk_text_buffer_get_char_count(buffer) == 131073);
     REQUIRE(gtk_text_buffer_get_can_undo(buffer));
     REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
     REQUIRE(gtk_text_buffer_get_can_undo(buffer));
+    ReportDraftHistory(buffer, documents, "studio.editor.welcome", oversized, "before-undo");
     gtk_text_buffer_undo(buffer);
+    ReportDraftHistory(buffer, documents, "studio.editor.welcome", oversized, "after-undo");
     REQUIRE(buffer_contains(buffer, oversized));
     {
         char *fullText = NULL;

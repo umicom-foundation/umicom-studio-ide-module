@@ -53,6 +53,8 @@ int main(void)
     assert(snapshot.can_preview_order);
     assert(snapshot.can_submit_order);
 
+/* The original fixture assumed no automatic instrument selection and studies from one candle. Explicit history-boundary assertions replace those stale expectations. The previous implementation remains for engineering review. */
+#if 0
     /* Studio consumes Framework research readiness rather than owning another
      * backtest/replay state model. Before selection, the research service
      * correctly reports that no instrument-specific strategy is ready. */
@@ -73,6 +75,30 @@ int main(void)
     assert(research.simulationReady);
     assert(research.optimisationReady);
 
+#endif
+    /* Adding the first instrument selects it. The seeded quote and one bar
+     * support strategy/replay, while studies need at least two observations. */
+    assert(umi_studio_trading_service_strategy_research_snapshot(service, &research) == UMI_STATUS_OK);
+    assert(research.marketDataReady && research.riskReady && research.healthReady);
+    assert(research.strategyReady && research.replayReady && research.simulationReady);
+    assert(!research.studiesReady && !research.optimisationReady);
+    UmiTradingMarketSnapshot selected;
+    assert(umi_trading_workspace_selected_market(workspace, &selected) == UMI_STATUS_OK);
+    assert(strcmp(selected.instrument.instrument_id.value, "CME.ES.REFERENCE") == 0);
+    assert(umi_trading_workspace_select_instrument(workspace, "CME.ES.REFERENCE") == UMI_STATUS_OK);
+    assert(umi_trading_workspace_selected_bar_count(workspace) == 1U);
+    UmiBar next;
+    assert(umi_trading_workspace_selected_bar_at(workspace, 0U, &next) == UMI_STATUS_OK);
+    double previous_close = next.close;
+    next.start_time_ms = next.end_time_ms;
+    next.end_time_ms += 60000;
+    assert(umi_trading_workspace_update_bar(workspace, &next, previous_close) == UMI_STATUS_OK);
+    assert(umi_trading_workspace_selected_bar_count(workspace) == 2U);
+    assert(umi_studio_trading_service_strategy_research_snapshot(service, &research) == UMI_STATUS_OK);
+    assert(research.strategyReady && research.replayReady && research.studiesReady);
+    assert(research.simulationReady && research.optimisationReady);
+    assert(umi_studio_trading_service_snapshot(service, &snapshot) == UMI_STATUS_OK);
+    assert(!snapshot.broker_ready && !snapshot.live_armed);
     umi_strategy_project_config_init(&strategyConfig);
     (void)snprintf(
         strategyConfig.projectName,
