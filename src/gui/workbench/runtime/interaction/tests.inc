@@ -194,6 +194,8 @@ static void runtime_on_test_debug(GtkButton *button, gpointer user_data)
  * Provide the runtime on test source operation used by this module and its client
  * applications.
  */
+/* Framework now opens discovered source and moves its cursor as one checked operation. The former unchecked open could move the previous editor after a failed file read. The previous implementation remains for engineering review. */
+#if 0
 static void runtime_on_test_source(
     GtkButton *button,
     gpointer user_data)
@@ -247,6 +249,31 @@ static void runtime_on_test_source(
         }
 
         g_free(path);
+    }
+}
+
+#endif
+#include "umicom/test_ui/source_navigation.h"
+static void runtime_on_test_source(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    const UmiTestPlatformItemSnapshot *captured = g_object_get_data(G_OBJECT(button), "umicom-test-source-item");
+    UmiTestPlatformItemSnapshot current;
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (captured == NULL || platform == NULL ||
+        umi_test_platform_item_registry_find(umi_test_platform_service_item(platform), captured->id, &current) != UMI_STATUS_OK ||
+        current.revision != captured->revision) {
+        runtime_show_notification(runtime, "Test discovery changed. Select its current Source button again."); return;
+    }
+    /* Framework opens before moving the cursor. This preserves the active
+     * draft when a discovered source has been renamed or removed. */
+    UmiStatus status = UmiTestItemOpenSource(umi_studio_ui_documents(runtime->owner->ui),
+        captured, captured->working_directory, NULL);
+    (void)runtime_refresh_services(runtime);
+    if (status != UMI_STATUS_OK) {
+        char message[192];
+        (void)snprintf(message, sizeof(message), "Test source location was not reached: %s. No text was changed.", umi_status_text(status));
+        runtime_show_notification(runtime, message);
     }
 }
 
@@ -745,6 +772,8 @@ static void runtime_tests_refresh_list(
             G_CALLBACK(runtime_on_test_debug),
             runtime);
 
+/* Source actions now own a full discovery snapshot and use the existing weak-owner binding instead of borrowing the runtime for the lifetime of a retained control. The previous implementation remains for engineering review. */
+#if 0
         g_object_set_data_full(
             G_OBJECT(source),
             "umicom-source-uri",
@@ -759,6 +788,13 @@ static void runtime_tests_refresh_list(
             "clicked",
             G_CALLBACK(runtime_on_test_source),
             runtime);
+#endif
+        /* Copy the discovery revision into the button, and resolve the host
+         * weakly on activation. A retained row cannot call a destroyed owner. */
+        UmiTestPlatformItemSnapshot *sourceItem = g_new(UmiTestPlatformItemSnapshot, 1);
+        *sourceItem = *item;
+        g_object_set_data_full(G_OBJECT(source), "umicom-test-source-item", sourceItem, g_free);
+        runtime_bind_editor_action(runtime, source, runtime_on_test_source);
 
         gtk_widget_set_sensitive(run, item->enabled != 0);
         gtk_widget_set_sensitive(debug, item->enabled != 0);

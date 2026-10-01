@@ -14,6 +14,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/gtk4/window_lifecycle.h"
+
 typedef UmiStatus (*UmiStudioGtkConfirmAccepted)(
     UmiStudioGtkRuntimeChrome *runtime);
 
@@ -32,6 +34,7 @@ typedef struct UmiStudioGtkConfirmContext {
     UmiStudioGtkOwnedConfirmAccepted ownedAccepted;
     void *ownedData;
     GDestroyNotify ownedDestroy;
+    gboolean closed; /* Native removal can precede final object destruction. */
 } UmiStudioGtkConfirmContext;
 
 /*
@@ -102,9 +105,16 @@ static void runtime_confirm_accept(
             : context->accepted(runtime);
     /* A reviewed payload may become stale; close that question after one
      * attempt so the user must request and inspect a fresh plan. */
+/* Owned confirmations now serve both saved-file reload and replacement review, so stale-state guidance names the requested action. The previous implementation remains for engineering review. */
+#if 0
     if (context->ownedAccepted != NULL && status != UMI_STATUS_OK)
         runtime_show_notification(runtime, status == UMI_STATUS_INVALID_STATE
             ? "The document or saved file changed. Request Reload again to review the current version."
+            : umi_status_text(status));
+#endif
+    if (context->ownedAccepted != NULL && status != UMI_STATUS_OK)
+        runtime_show_notification(runtime, status == UMI_STATUS_INVALID_STATE
+            ? "The document or saved file changed. Repeat the requested action to review the current version."
             : umi_status_text(status));
     if (status == UMI_STATUS_OK || context->ownedAccepted != NULL ||
         (context->documentAccepted != NULL && status == UMI_STATUS_NOT_FOUND))
@@ -112,6 +122,51 @@ static void runtime_confirm_accept(
     else runtime_show_notification(runtime, umi_status_text(status));
     g_object_unref(ownerWindow);
     g_object_unref(dialog);
+}
+
+/* Release the captured operation at native removal even when a test, adapter
+ * or accessibility client still retains the window. Final cleanup is idempotent. */
+static void runtime_confirm_removed(GtkWidget *window, gpointer data)
+{
+    (void)data;
+    UmiStudioGtkConfirmContext *context = g_object_get_data(G_OBJECT(window), "umicom-confirm-context");
+    if (context == NULL || context->closed) return;
+    context->closed = TRUE;
+    context->accepted = NULL;
+    context->documentAccepted = NULL;
+    context->ownedAccepted = NULL;
+    if (context->ownedDestroy != NULL) context->ownedDestroy(context->ownedData);
+    context->ownedData = NULL;
+    context->ownedDestroy = NULL;
+    runtime_file_dialog_request_free(context->ownerRequest);
+    context->ownerRequest = NULL;
+}
+
+/* Close the child when its native parent disappears, including retained hosts. */
+static void runtime_confirm_parent_removed(GtkWidget *parent, gpointer data)
+{
+    (void)parent;
+    gtk_window_destroy(GTK_WINDOW(data));
+}
+
+/* Bind signals to the dialog GObject, then look up its owned context. A
+ * retained button becomes inert when detached or after its window is freed;
+ * it must not keep a raw callback pointer to already-released plan storage. */
+static void runtime_confirm_safe_accept(GtkButton *button, gpointer data)
+{
+    GtkWidget *window = GTK_WIDGET(data);
+    if (!UmiGtk4WindowIsOpen(GTK_WINDOW(window)) ||
+        gtk_widget_get_root(GTK_WIDGET(button)) != GTK_ROOT(window)) return;
+    runtime_confirm_accept(button, g_object_get_data(G_OBJECT(window), "umicom-confirm-context"));
+}
+
+/* Cancellation uses the same weak dialog binding as reviewed acceptance. */
+static void runtime_confirm_safe_cancel(GtkButton *button, gpointer data)
+{
+    GtkWidget *window = GTK_WIDGET(data);
+    if (!UmiGtk4WindowIsOpen(GTK_WINDOW(window)) ||
+        gtk_widget_get_root(GTK_WIDGET(button)) != GTK_ROOT(window)) return;
+    runtime_confirm_cancel(button, g_object_get_data(G_OBJECT(window), "umicom-confirm-context"));
 }
 
 /* Provide the runtime confirm operation used by this module and its client applications. */
@@ -206,6 +261,8 @@ static UmiStatus runtime_confirm_full(
     gtk_box_append(GTK_BOX(root), buttons);
     gtk_window_set_child(GTK_WINDOW(window), root);
 
+/* Dialog object bindings and attachment checks replace raw context signal data to make retained buttons safe after teardown. The previous implementation remains for engineering review. */
+#if 0
     g_signal_connect(
         cancel,
         "clicked",
@@ -216,6 +273,9 @@ static UmiStatus runtime_confirm_full(
         "clicked",
         G_CALLBACK(runtime_confirm_accept),
         context);
+#endif
+    g_signal_connect_object(cancel, "clicked", G_CALLBACK(runtime_confirm_safe_cancel), G_OBJECT(window), 0);
+    g_signal_connect_object(accept, "clicked", G_CALLBACK(runtime_confirm_safe_accept), G_OBJECT(window), 0);
     context->ownedAccepted = ownedAccepted;
     context->ownedData = ownedData;
     context->ownedDestroy = ownedDestroy;
@@ -227,6 +287,10 @@ static UmiStatus runtime_confirm_full(
         "umicom-confirm-context",
         context,
         runtime_confirm_context_destroy);
+
+    /* Reuse Framework's removal observer, not a delayed GObject destroy signal. */
+    (void)UmiGtk4WatchWindowClosed(GTK_WINDOW(window), G_OBJECT(window), runtime_confirm_removed, NULL);
+    (void)UmiGtk4WatchWindowClosed(runtime->owner->window, G_OBJECT(window), runtime_confirm_parent_removed, window);
 
     gtk_window_present(GTK_WINDOW(window));
     return UMI_STATUS_OK;

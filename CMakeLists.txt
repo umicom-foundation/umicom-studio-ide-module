@@ -762,6 +762,24 @@ if(UMICOM_STUDIO_BUILD_GTK)
     # The native C fixture disables presentation, tool discovery and personal
     # session storage; it checks real editor bodies rather than a suite preview.
     if(BUILD_TESTING)
+        # Exercise the real modal replacement review in isolated product graphs.
+        add_executable(umicom-studio-replacement-review-test
+            tests/test_replace_review_gtk4.c src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-replacement-review-test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-replacement-review-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-replacement-review-test)
+        umicom_apply_sanitizers(umicom-studio-replacement-review-test)
+        foreach(case preview cancel apply stale inactive closed teardown no-match)
+            add_test(NAME studio.replacement_review.gtk4.${case}
+                COMMAND umicom-studio-replacement-review-test ${case})
+            set_tests_properties(studio.replacement_review.gtk4.${case} PROPERTIES
+                SKIP_RETURN_CODE 77 TIMEOUT 60 LABELS "studio;gtk4;document;replacement;acceptance")
+        endforeach()
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-replacement-review-test)
+        endif()
         add_executable(umicom-studio-workspace-canvas-test
             tests/test_workspace_canvas_gtk4.c
             src/gui/workbench/workbench_window.c)
@@ -1275,6 +1293,12 @@ if(BUILD_TESTING)
     umicom_apply_warnings(umicom-studio-editor-command-contribution-test)
     umicom_apply_sanitizers(umicom-studio-editor-command-contribution-test)
     add_test(NAME studio.editor_command_contribution COMMAND umicom-studio-editor-command-contribution-test)
+
+    add_executable(umicom-studio-debug-selection-test tests/test_debug_selection.c)
+    target_link_libraries(umicom-studio-debug-selection-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-debug-selection-test)
+    umicom_apply_sanitizers(umicom-studio-debug-selection-test)
+    add_test(NAME studio.debug_selection COMMAND umicom-studio-debug-selection-test)
 
     add_executable(umicom-studio-source-navigation-contribution-test tests/test_source_navigation_contribution.c)
     target_link_libraries(umicom-studio-source-navigation-contribution-test PRIVATE Umicom::StudioCore)
@@ -2380,3 +2404,183 @@ install(FILES docs/DEVELOPMENT_WORKFLOW.html
 install(FILES docs/ORDERING_WORKSPACE_LAYOUTS.md
     DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs
     COMPONENT Studio)
+
+# Keep the beginner report workflow with the installed documentation.
+install(FILES docs/COPYING_TEST_EVIDENCE.md
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Keep the beginner test navigation lesson available in an installed product.
+install(FILES docs/OPENING_TEST_FAILURES.md
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom/studio/docs)
+
+# Ship the beginner debugger navigation workflow with Studio.
+install(FILES docs/DEBUGGER_SOURCE_SELECTION.md
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Property editing uses the real product service and the actual workbench.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-breakpoint-properties-test tests/test_breakpoint_properties.c)
+    target_link_libraries(umicom-studio-breakpoint-properties-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-breakpoint-properties-test)
+    umicom_apply_sanitizers(umicom-studio-breakpoint-properties-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-breakpoint-properties-test)
+    endif()
+    foreach(case idle memory stale remove)
+        add_test(NAME studio.breakpoint_properties.service.${case} COMMAND umicom-studio-breakpoint-properties-test ${case})
+        set_tests_properties(studio.breakpoint_properties.service.${case} PROPERTIES
+            TIMEOUT 30 LABELS "studio;debugger;breakpoint;regression")
+    endforeach()
+    if(TARGET umicom-studio-workspace-canvas-test)
+        add_executable(umicom-studio-breakpoint-properties-native-test tests/test_breakpoint_properties_gtk4.c src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-breakpoint-properties-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-breakpoint-properties-native-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-breakpoint-properties-native-test)
+        umicom_apply_sanitizers(umicom-studio-breakpoint-properties-native-test)
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-breakpoint-properties-native-test)
+        endif()
+        foreach(case apply disable remove stale reset draft-refresh long-text detached close)
+            add_test(NAME studio.breakpoint_properties.gtk4.${case} COMMAND umicom-studio-breakpoint-properties-native-test ${case})
+            set_tests_properties(studio.breakpoint_properties.gtk4.${case} PROPERTIES
+                TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;debugger;breakpoint;acceptance")
+        endforeach()
+    endif()
+endif()
+install(FILES docs/EDITING_BREAKPOINTS.md DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+
+# The deterministic child speaks DAP but never debugs or launches a program.
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
+    add_executable(umicom-studio-breakpoint-properties-live-test tests/test_breakpoint_properties_live.c)
+    target_link_libraries(umicom-studio-breakpoint-properties-live-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-breakpoint-properties-live-test)
+    umicom_apply_sanitizers(umicom-studio-breakpoint-properties-live-test)
+    add_dependencies(umicom-studio-breakpoint-properties-live-test umicom-dap-protocol-fixture)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-breakpoint-properties-live-test)
+    endif()
+    foreach(case success rejected unsupported)
+        add_test(NAME studio.breakpoint_properties.live.${case} COMMAND umicom-studio-breakpoint-properties-live-test
+            "$<TARGET_FILE:umicom-dap-protocol-fixture>" ${case})
+        set_tests_properties(studio.breakpoint_properties.live.${case} PROPERTIES
+            TIMEOUT 30 LABELS "studio;debugger;breakpoint;protocol-fixture;regression")
+    endforeach()
+endif()
+
+
+# Property editing uses the real product service and the actual workbench.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-watch-properties-test tests/test_watch_properties.c)
+    target_link_libraries(umicom-studio-watch-properties-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-watch-properties-test)
+    umicom_apply_sanitizers(umicom-studio-watch-properties-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-watch-properties-test)
+    endif()
+    foreach(case edit remove stale evaluate-idle evaluate-memory)
+        add_test(NAME studio.watch_properties.service.${case} COMMAND umicom-studio-watch-properties-test ${case})
+        set_tests_properties(studio.watch_properties.service.${case} PROPERTIES
+            TIMEOUT 30 LABELS "studio;debugger;watch;regression")
+    endforeach()
+    if(TARGET umicom-studio-workspace-canvas-test)
+        add_executable(umicom-studio-watch-properties-native-test tests/test_watch_properties_gtk4.c src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-watch-properties-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-watch-properties-native-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-watch-properties-native-test)
+        umicom_apply_sanitizers(umicom-studio-watch-properties-native-test)
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-watch-properties-native-test)
+        endif()
+        foreach(case apply disable remove stale reset draft-refresh long-text empty detached close evaluate-draft evaluate-idle)
+            add_test(NAME studio.watch_properties.gtk4.${case} COMMAND umicom-studio-watch-properties-native-test ${case})
+            set_tests_properties(studio.watch_properties.gtk4.${case} PROPERTIES
+                TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;debugger;watch;acceptance")
+        endforeach()
+    endif()
+endif()
+install(FILES docs/EDITING_WATCHES.md DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+
+# The deterministic child speaks DAP but never debugs or launches a program.
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
+    add_executable(umicom-studio-watch-properties-live-test tests/test_watch_properties_live.c)
+    target_link_libraries(umicom-studio-watch-properties-live-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-watch-properties-live-test)
+    umicom_apply_sanitizers(umicom-studio-watch-properties-live-test)
+    add_dependencies(umicom-studio-watch-properties-live-test umicom-dap-protocol-fixture)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-watch-properties-live-test)
+    endif()
+    foreach(case success rejected)
+        add_test(NAME studio.watch_properties.live.${case} COMMAND umicom-studio-watch-properties-live-test
+            "$<TARGET_FILE:umicom-dap-protocol-fixture>" ${case})
+        set_tests_properties(studio.watch_properties.live.${case} PROPERTIES
+            TIMEOUT 30 LABELS "studio;debugger;watch;protocol-fixture;regression")
+    endforeach()
+endif()
+
+
+# Variable inspection runs through the real service and native controls. The
+# deterministic adapter never attaches to a user process or runs a compiler.
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
+    add_executable(umicom-studio-variable-inspection-test tests/test_variable_inspection.c)
+    target_link_libraries(umicom-studio-variable-inspection-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-variable-inspection-test)
+    umicom_apply_sanitizers(umicom-studio-variable-inspection-test)
+    add_dependencies(umicom-studio-variable-inspection-test umicom-dap-protocol-fixture)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-variable-inspection-test)
+    endif()
+    foreach(case idle memory success rejected)
+        add_test(NAME studio.variable_inspection.service.${case} COMMAND umicom-studio-variable-inspection-test
+            "$<TARGET_FILE:umicom-dap-protocol-fixture>" ${case})
+        set_tests_properties(studio.variable_inspection.service.${case} PROPERTIES
+            TIMEOUT 30 LABELS "studio;debugger;variables;protocol-fixture;regression")
+    endforeach()
+    if(TARGET umicom-studio-workspace-canvas-test)
+        add_executable(umicom-studio-variable-inspection-native-test tests/test_variable_inspection_gtk4.c src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-variable-inspection-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-variable-inspection-native-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-variable-inspection-native-test)
+        umicom_apply_sanitizers(umicom-studio-variable-inspection-native-test)
+        add_dependencies(umicom-studio-variable-inspection-native-test umicom-dap-protocol-fixture)
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-variable-inspection-native-test)
+        endif()
+        foreach(case display expand nested collapse refresh stale detached close empty cycle rejected failed-refresh budget)
+            add_test(NAME studio.variable_inspection.gtk4.${case} COMMAND umicom-studio-variable-inspection-native-test
+                "$<TARGET_FILE:umicom-dap-protocol-fixture>" ${case})
+            set_tests_properties(studio.variable_inspection.gtk4.${case} PROPERTIES
+                TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;debugger;variables;acceptance")
+        endforeach()
+    endif()
+endif()
+install(FILES docs/INSPECTING_VARIABLES.md DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Scope controls share the variable inspector, but expensive scopes must remain
+# unloaded until an explicit gesture. Exercise the actual native workbench.
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
+    if(TARGET umicom-studio-workspace-canvas-test)
+        add_executable(umicom-studio-scope-inspection-native-test tests/test_scope_inspection_gtk4.c src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-scope-inspection-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-scope-inspection-native-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-scope-inspection-native-test)
+        umicom_apply_sanitizers(umicom-studio-scope-inspection-native-test)
+        add_dependencies(umicom-studio-scope-inspection-native-test umicom-dap-protocol-fixture)
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-scope-inspection-native-test)
+        endif()
+        foreach(case display expand only-expensive same-name nested collapse refresh selection stale detached close empty cycle rejected failed-refresh budget)
+            add_test(NAME studio.scope_inspection.gtk4.${case} COMMAND umicom-studio-scope-inspection-native-test
+                "$<TARGET_FILE:umicom-dap-protocol-fixture>" ${case})
+            set_tests_properties(studio.scope_inspection.gtk4.${case} PROPERTIES
+                TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;debugger;scopes;acceptance")
+        endforeach()
+    endif()
+endif()
+install(FILES docs/INSPECTING_SCOPES.md DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)

@@ -199,6 +199,8 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *test_summary_label;
     GtkWidget *test_results_view;
     GtkWidget *test_selected_view;
+    GtkWidget *test_failure_links;
+    GtkWidget *test_failure_summary;
     GtkWidget *test_coverage_view;
     GtkWidget *test_output_view;
 
@@ -355,6 +357,10 @@ static UmiStatus runtime_live_preview_refresh(
  * applications.
  */
 static UmiStatus runtime_refresh_services(UmiStudioGtkRuntimeChrome *runtime);
+
+/* Source actions share the editor action weak-owner lifetime binding. */
+static void runtime_bind_editor_action(UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *button, void (*clicked)(GtkButton *, gpointer));
 /*
  * Provide the runtime on palette close operation used by this module and its client
  * applications.

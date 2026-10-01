@@ -397,6 +397,8 @@ static void runtime_on_editor_find_previous(GtkButton *button, gpointer user_dat
     (void)runtime_refresh_services(runtime);
 }
 
+/* Replace All now presents an immutable Framework review before editing the draft, keeping stale-document checks and undo ownership in Framework. The previous implementation remains for engineering review. */
+#if 0
 /* Replace every occurrence as one undoable Framework edit. */
 static void runtime_on_editor_replace_all(GtkButton *button, gpointer user_data)
 {
@@ -415,6 +417,8 @@ static void runtime_on_editor_replace_all(GtkButton *button, gpointer user_data)
     } else runtime_show_notification(runtime, umi_status_text(status));
     (void)runtime_refresh_services(runtime);
 }
+#endif
+#include "replace_review.inc"
 
 /*
  * Provide the runtime on editor goto operation used by this module and its client
@@ -666,6 +670,9 @@ static GtkWidget *runtime_build_editor_command_bar(
     gtk_widget_set_tooltip_text(runtime->editor_goto_entry,
         "Enter a line or line:column, for example 12:5. Columns count UTF-8 bytes.");
 
+    /* Stable control names let native acceptance exercise the same fields. */
+    (void)umi_gtk4_automation_tag_widget(runtime->editor_find_entry, "studio.editor.find-text");
+    (void)umi_gtk4_automation_tag_widget(runtime->editor_replace_entry, "studio.editor.replace-text");
     gtk_widget_set_size_request(runtime->editor_find_entry, 150, -1);
     gtk_widget_set_size_request(runtime->editor_replace_entry, 150, -1);
     gtk_widget_set_size_request(runtime->editor_goto_entry, 70, -1);
@@ -690,7 +697,11 @@ static GtkWidget *runtime_build_editor_command_bar(
 
     gtk_widget_set_tooltip_text(find, "Find the next occurrence. Search wraps at the end of the document.");
     gtk_widget_set_tooltip_text(previous, "Find the previous occurrence. Search wraps at the beginning.");
+/* The toolbar now explains the review step before the shared replacement transaction. The previous implementation remains for engineering review. */
+#if 0
     gtk_widget_set_tooltip_text(replace_all, "Replace all non-overlapping occurrences in this document. Undo restores the previous text.");
+#endif
+    gtk_widget_set_tooltip_text(replace_all, "Review all literal replacements in this document before applying. Cancel keeps the draft; Undo restores the reviewed text.");
     (void)umi_gtk4_automation_tag_widget(find, "studio.editor.find-next");
     (void)umi_gtk4_automation_tag_widget(previous, "studio.editor.find-previous");
     (void)umi_gtk4_automation_tag_widget(replace_all, "studio.editor.replace-all");

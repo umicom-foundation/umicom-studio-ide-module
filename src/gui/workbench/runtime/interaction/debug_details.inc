@@ -40,6 +40,8 @@ static UmiDebugWorkspace *runtime_debug_workspace(
  * Provide the runtime debug open source uri operation used by this module and its client
  * applications.
  */
+/* Raw debugger callbacks and unchecked source opens are superseded by owned Framework selection evidence, weak window actions and checked document navigation. This prevents stale IDs, retained controls and failed opens from targeting the wrong editor. The previous implementation remains for engineering review. */
+#if 0
 static void runtime_debug_open_source_uri(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *uri)
@@ -153,11 +155,60 @@ static void runtime_on_debug_frame_row(
         }
     }
 }
+#endif
+#include "umicom/debug/selection.h"
+#include "umicom/debug_ui/navigation.h"
+
+static void RuntimeDebugSelectionDestroy(gpointer data)
+{
+    UmiDebugSelectionDestroy(data);
+}
+static void RuntimeDebugRowClicked(GtkButton *button,gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime=data;
+    const UmiDebugSelection *selection=g_object_get_data(G_OBJECT(button),"umicom-debug-selection");
+    UmiDebugSelectionSnapshot selected;
+    UmiStatus status=UmiDebugSelectionValidate(runtime_debug_workspace(runtime),selection,&selected);
+    if(status!=UMI_STATUS_OK){
+        runtime_show_notification(runtime,"Debugger state changed. Refresh and choose the current thread or frame again.");return;
+    }
+    /* Copy before dispatch: refreshing services can destroy the clicked row.
+     * The registered command retains its usual trust, history and DAP policy. */
+    status=runtime_execute_registered_command(runtime,
+        selected.kind==UMI_DEBUG_SELECT_THREAD?UMI_STUDIO_COMMAND_DEBUG_SELECT_THREAD:UMI_STUDIO_COMMAND_DEBUG_SELECT_FRAME,
+        selected.kind==UMI_DEBUG_SELECT_THREAD?selected.thread.id:selected.frame.id);
+    if(status==UMI_STATUS_OK&&selected.kind==UMI_DEBUG_SELECT_FRAME)
+        status=UmiDebugFrameOpenSource(runtime_documents(runtime),&selected.frame,selected.sourceBase,NULL);
+    (void)runtime_refresh_services(runtime);
+    if(status!=UMI_STATUS_OK){
+        char message[240];(void)snprintf(message,sizeof(message),
+            "Debugger selection or source navigation did not complete: %s. No text was changed.",umi_status_text(status));
+        runtime_show_notification(runtime,message);
+    }
+}
+static void RuntimeDebugBindRow(UmiStudioGtkRuntimeChrome *runtime,GtkWidget *button,
+    UmiDebugWorkspace *workspace,UmiDebugSelectionKind kind,size_t index)
+{
+    UmiDebugSelection *selection=NULL;
+    UmiStatus status=UmiDebugSelectionCapture(workspace,kind,index,&selection);
+    g_object_set_data_full(G_OBJECT(button),"umicom-debug-selection",selection,RuntimeDebugSelectionDestroy);
+    char tag[80];(void)snprintf(tag,sizeof(tag),"studio.debug.%s.%zu",kind==UMI_DEBUG_SELECT_THREAD?"thread":"frame",index);
+    (void)umi_gtk4_automation_tag_widget(button,tag);
+    gtk_widget_set_sensitive(button,status==UMI_STATUS_OK);
+    if(status!=UMI_STATUS_OK)gtk_widget_set_tooltip_text(button,"This row has no current stopped-frame target. Refresh the debugger.");
+    runtime_bind_editor_action(runtime,button,RuntimeDebugRowClicked);
+}
+
 
 /*
  * Provide the runtime debug details refresh operation used by this module and its client
  * applications.
  */
+#include "debug_breakpoints.inc"
+#include "debug_watches.inc"
+#include "debug_variables.inc"
+#include "debug_scopes.inc"
+
 static void runtime_debug_details_refresh(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -187,11 +238,32 @@ static void runtime_debug_details_refresh(
         return;
     }
 
+    /* Each model has its own generation. Unchanged timer ticks retain the
+     * actual buttons and keyboard focus rather than rebuilding every list. */
+    UmiDebugViewStamp stamp;
+    if(UmiDebugWorkspaceViewStamp(workspace,&stamp)!=UMI_STATUS_OK)return;
+    RuntimeDebugBreakpointsRefresh(runtime, workspace, &stamp);
+    RuntimeDebugWatchesRefresh(runtime, workspace, &stamp);
+    if(runtime->debug_threads_list!=NULL){
+        const UmiDebugViewStamp *previous=g_object_get_data(G_OBJECT(runtime->debug_threads_list),"umicom-debug-view-stamp");
+        if(UmiDebugViewStampEqual(previous,&stamp))return;
+        UmiDebugViewStamp *stored=g_new(UmiDebugViewStamp,1);*stored=stamp;
+        g_object_set_data_full(G_OBJECT(runtime->debug_threads_list),"umicom-debug-view-stamp",stored,g_free);
+    }
+
     runtime_clear_list_box(runtime->debug_threads_list);
     runtime_clear_list_box(runtime->debug_frames_list);
     runtime_clear_list_box(runtime->debug_variables_list);
+/* Watch properties now own their collection refresh; avoid discarding unapplied text when variables or frames change. The previous implementation remains for engineering review. */
+#if 0
     runtime_clear_list_box(runtime->debug_watches_list);
+#endif
+    /* The dedicated watch renderer retains drafts across unrelated refreshes. */
+/* Breakpoint property fields now retain drafts until their own source collection changes. Their dedicated refresh owns list replacement. The previous implementation remains for engineering review. */
+#if 0
     runtime_clear_list_box(runtime->debug_breakpoints_list);
+#endif
+    /* Breakpoint rows have their own generation; keep unapplied fields during unrelated refreshes. */
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -234,11 +306,15 @@ static void runtime_debug_details_refresh(
                 "umicom-debug-thread",
                 g_strdup(thread.id),
                 g_free);
+/* Rows now own captured targets and use the existing weak window action binding. The previous implementation remains for engineering review. */
+#if 0
             g_signal_connect(
                 button,
                 "clicked",
                 G_CALLBACK(runtime_on_debug_thread_row),
                 runtime);
+#endif
+            RuntimeDebugBindRow(runtime,button,workspace,UMI_DEBUG_SELECT_THREAD,index);
             gtk_list_box_append(
                 GTK_LIST_BOX(runtime->debug_threads_list),
                 button);
@@ -295,11 +371,15 @@ static void runtime_debug_details_refresh(
                 G_OBJECT(button),
                 "umicom-debug-line",
                 GUINT_TO_POINTER(frame.line));
+/* Rows now own captured targets and use the existing weak window action binding. The previous implementation remains for engineering review. */
+#if 0
             g_signal_connect(
                 button,
                 "clicked",
                 G_CALLBACK(runtime_on_debug_frame_row),
                 runtime);
+#endif
+            RuntimeDebugBindRow(runtime,button,workspace,UMI_DEBUG_SELECT_FRAME,index);
             gtk_list_box_append(
                 GTK_LIST_BOX(runtime->debug_frames_list),
                 button);
@@ -310,6 +390,8 @@ static void runtime_debug_details_refresh(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
+/* Owned Framework targets and explicit child captures replace label-only variable rows. This preserves root values while preventing child IDs from overwriting roots or surviving an unrelated stop. The previous implementation remains for engineering review. */
+#if 0
     if (runtime->debug_variables_list != NULL) {
         /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < snapshot.visible_variable_count; ++index) {
@@ -338,11 +420,16 @@ static void runtime_debug_details_refresh(
                 runtime_label(text, 0.0F));
         }
     }
+#endif
+    RuntimeDebugVariablesRender(runtime, workspace, &snapshot);
+    RuntimeDebugScopesRender(runtime, workspace, &snapshot);
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
+/* Captured Framework watch intent and weak window actions replace label-only rows. Values remain explicit captures and editing never triggers execution. The previous implementation remains for engineering review. */
+#if 0
     if (runtime->debug_watches_list != NULL) {
         /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < snapshot.watch_count; ++index) {
@@ -372,10 +459,14 @@ static void runtime_debug_details_refresh(
         }
     }
 
+#endif
+    /* Watch editing and explicit evaluation are rendered above. */
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
+/* Interactive source properties use captured Framework edits and weak native actions. Retain the earlier labels to document their replacement. The previous implementation remains for engineering review. */
+#if 0
     if (runtime->debug_breakpoints_list != NULL) {
         /* Visit each bounded item once so every record receives the same rule. */
         for (index = 0U; index < snapshot.breakpoint_count; ++index) {
@@ -408,6 +499,8 @@ static void runtime_debug_details_refresh(
                 runtime_label(text, 0.0F));
         }
     }
+#endif
+    /* The dedicated property renderer above replaces this label-only presentation. */
 }
 
 /*

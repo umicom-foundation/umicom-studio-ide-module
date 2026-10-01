@@ -495,6 +495,19 @@ UmiStatus umi_studio_debugger_service_remove_watch(
  * Provide the studio debugger service select thread operation used by this module and its
  * client applications.
  */
+/* Native inspection belongs to a stopped process. Check before mutating the
+ * shared selection, so commands cannot report success against an inactive or
+ * running session while retained model rows still exist. */
+static UmiStatus StudioDebugInspectionReady(UmiStudioDebuggerService *service)
+{
+    if(service==NULL)return UMI_STATUS_INVALID_ARGUMENT;
+    if(!service->nativeMode)return UMI_STATUS_OK;
+    UmiDebugRuntimePlatformSnapshot state;
+    UmiStatus status=umi_debug_runtime_platform_snapshot(service->native,&state);
+    if(status!=UMI_STATUS_OK)return status;
+    return state.active&&state.paused?UMI_STATUS_OK:UMI_STATUS_INVALID_STATE;
+}
+
 UmiStatus umi_studio_debugger_service_select_thread(
     UmiStudioDebuggerService *service, const char *thread_id)
 {
@@ -504,6 +517,8 @@ UmiStatus umi_studio_debugger_service_select_thread(
     //     ? umi_debug_workspace_select_thread(service->workspace, thread_id)
     //     : UMI_STATUS_INVALID_ARGUMENT;
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStatus inspectionStatus=StudioDebugInspectionReady(service);
+    if(inspectionStatus!=UMI_STATUS_OK)return inspectionStatus;
     UmiStatus status = umi_debug_workspace_select_thread(service->workspace, thread_id);
     if (status != UMI_STATUS_OK || !service->nativeMode) return status;
     UmiDebugRuntimePlatformSnapshot native;
@@ -530,6 +545,8 @@ UmiStatus umi_studio_debugger_service_select_frame(
     //     ? umi_debug_workspace_select_frame(service->workspace, frame_id)
     //     : UMI_STATUS_INVALID_ARGUMENT;
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStatus inspectionStatus=StudioDebugInspectionReady(service);
+    if(inspectionStatus!=UMI_STATUS_OK)return inspectionStatus;
     UmiStatus status = umi_debug_workspace_select_frame(service->workspace, frame_id);
     if (status != UMI_STATUS_OK || !service->nativeMode) return status;
     UmiDebugRuntimePlatformSnapshot native;
@@ -558,6 +575,8 @@ UmiStatus umi_studio_debugger_service_select_scope(
     //     ? umi_debug_workspace_select_scope(service->workspace, scope_id)
     //     : UMI_STATUS_INVALID_ARGUMENT;
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStatus inspectionStatus=StudioDebugInspectionReady(service);
+    if(inspectionStatus!=UMI_STATUS_OK)return inspectionStatus;
     UmiStatus status = umi_debug_workspace_select_scope(service->workspace, scope_id);
     if (status != UMI_STATUS_OK || !service->nativeMode) return status;
     UmiDebugRuntimePlatformSnapshot native;
@@ -827,3 +846,77 @@ UmiStatus UmiStudioDebuggerPollNative(UmiStudioDebuggerService *service, UmiStud
 // These comments explain superseded statements; do not enable both execution paths.
 // Previous source near line 102:
 //     umi_debug_service_destroy(service->model);
+
+
+/* Framework validates captured identity and owns properties/adapter sync.
+ * Studio maintains its existing legacy registry and reports local versus
+ * remote outcomes separately; it never starts an adapter from an edit. */
+UmiStatus UmiStudioDebuggerEditBreakpoint(UmiStudioDebuggerService *service,
+    const UmiDebugBreakpointEdit *edit, const UmiDebugBreakpointSettings *settings,
+    int remove, UmiStudioBreakpointEditResult *out)
+{
+    if (out != NULL) memset(out, 0, sizeof *out);
+    if (service == NULL || out == NULL || (remove != 0 && remove != 1)) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->launchPending) return UMI_STATUS_BUSY;
+    UmiDebugBreakpointChange change;
+    UmiStatus status = remove ? UmiDebugBreakpointEditRemove(service->workspace, edit, &change) :
+        UmiDebugBreakpointEditApply(service->workspace, edit, settings, &change);
+    if (status != UMI_STATUS_OK) return status;
+    out->desiredApplied = 1; out->desiredChanged = change.changed;
+    /* The legacy protocol store has no condition or log-message fields. Its
+     * line/enabled compatibility view remains aligned; native requests read
+     * the complete canonical Framework record, never this reduced view. */
+    (void)umi_dap_breakpoint_remove(service->breakpoints, change.before.uri, (int)change.before.line);
+    if (!remove) {
+        UmiDapBreakpoint legacy = {0};
+        (void)snprintf(legacy.source_path, sizeof legacy.source_path, "%s", change.after.uri);
+        legacy.line = (int)change.after.line; legacy.column = (int)change.after.column;
+        legacy.enabled = change.after.enabled; legacy.verified = change.after.verified;
+        status = umi_dap_breakpoint_add(service->breakpoints, &legacy);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    if (service->nativeMode && UmiStudioDebuggerNativeBusy(service)) {
+        status = umi_debug_runtime_platform_sync_breakpoints(service->native, change.before.uri, 1500U);
+        out->adapterSynchronized = status == UMI_STATUS_OK;
+    }
+    return status;
+}
+
+
+/* Product composition keeps mutation and explicit execution separate. Shared
+ * owner/generation, frame and protocol checks belong in Framework. */
+UmiStatus UmiStudioDebuggerEditWatch(UmiStudioDebuggerService *service,
+    const UmiDebugWatchEdit *edit, const UmiDebugWatchSettings *settings, int remove,
+    UmiDebugWatchChange *out)
+{
+    if (out != NULL) memset(out, 0, sizeof *out);
+    if (service == NULL || out == NULL || (remove != 0 && remove != 1)) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->launchPending) return UMI_STATUS_BUSY;
+    return remove ? UmiDebugWatchEditRemove(service->workspace, edit, out) :
+        UmiDebugWatchEditApply(service->workspace, edit, settings, out);
+}
+UmiStatus UmiStudioDebuggerEvaluateWatch(UmiStudioDebuggerService *service, const UmiDebugWatchEdit *edit)
+{
+    if (service == NULL || edit == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->launchPending) return UMI_STATUS_BUSY;
+    if (!service->nativeMode) return UMI_STATUS_INVALID_STATE;
+    UmiStatus status = UmiDebugRuntimeEvaluateWatchEdit(service->native, service->workspace, edit, 1500U);
+    service->nativeStatus = status;
+    return status;
+}
+
+
+/* Studio composes one explicit request. Framework owns protocol decoding,
+ * stopped-frame validation and result lifetime independently from GTK. */
+UmiStatus UmiStudioDebuggerInspectVariable(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target, UmiDebugVariablePage **out)
+{
+    if (out == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    *out = NULL;
+    if (service == NULL || target == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->launchPending) return UMI_STATUS_BUSY;
+    if (!service->nativeMode) return UMI_STATUS_INVALID_STATE;
+    UmiStatus status = UmiDebugRuntimeInspectVariable(service->native, service->workspace, target, 1500U, out);
+    service->nativeStatus = status;
+    return status;
+}

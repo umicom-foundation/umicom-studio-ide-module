@@ -64,3 +64,25 @@ size limit and how to respond to a file conflict.
 Studio's shared Layout Library includes **Move up** and **Move down** controls.
 [Arrange your workspace layouts](docs/ORDERING_WORKSPACE_LAYOUTS.md) explains
 how to reorder the list, retain the active workspace and save the order.
+
+## Copy reports for review
+
+Export one selected test's retained results and output with [Copy selected-test evidence](docs/COPYING_TEST_EVIDENCE.md).
+
+## Follow test failures into source
+
+[Open a file mentioned by a test failure](docs/OPENING_TEST_FAILURES.md) explains source locations, retained runs and safe navigation.
+
+Source breakpoint rows support explicit condition, log-message and enabled-state editing. Follow [Edit source breakpoints](docs/EDITING_BREAKPOINTS.md) for the workflow and adapter-confirmation limits.
+
+Learn to [edit watch expressions and explicitly evaluate them](docs/EDITING_WATCHES.md) in the Debug workspace.
+
+### Inspect local variables
+
+The native Variables panel can read one level of an object at a time, refresh
+its captured children and collapse a branch. Follow the beginner guide to
+[inspect variables and their children](docs/INSPECTING_VARIABLES.md).
+
+Use [Inspect a debugger scope](docs/INSPECTING_SCOPES.md) to open Locals,
+Arguments, Globals or other adapter-provided groups, including expensive scopes
+that remain unloaded until you choose **Inspect scope**.

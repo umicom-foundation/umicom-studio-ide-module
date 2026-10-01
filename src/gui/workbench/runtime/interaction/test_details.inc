@@ -41,6 +41,7 @@ static void runtime_text_view_set(
 static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->test_selected_view == NULL) return;
+    RuntimeFailureLocationsRefresh(runtime);
     if (runtime->selected_test_id[0] == '\0') {
         runtime_text_view_set(runtime->test_selected_view,
             "Select a test to inspect its retained results and output.");
@@ -303,6 +304,37 @@ static void runtime_test_details_refresh(
  * Provide the runtime test details notebook operation used by this module and its client
  * applications.
  */
+/* Framework owns evidence capture and CSV rules. Studio only selects the
+ * requested test and presents copied bytes through its existing weak-owner
+ * action binding, so retained controls cannot access a destroyed workbench. */
+#include "umicom/test_platform/evidence_csv.h"
+static void RuntimeCopyTestEvidenceCsv(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    if (runtime->selected_test_id[0] == '\0') {
+        runtime_show_notification(runtime, "Select a test before copying evidence."); return;
+    }
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (platform == NULL) {
+        runtime_show_notification(runtime, "Test evidence is unavailable."); return;
+    }
+    UmiTestEvidence *capture = NULL;
+    UmiCsvDocument *document = NULL;
+    UmiStatus status = UmiTestEvidenceCreate(umi_test_platform_service_result(platform),
+        umi_test_platform_service_output(platform), runtime->selected_test_id, NULL, &capture);
+    if (status == UMI_STATUS_OK) status = UmiTestEvidenceExportCsv(capture, &document);
+    UmiTestEvidenceDestroy(capture);
+    if (status == UMI_STATUS_OK) {
+        gdk_clipboard_set_text(gtk_widget_get_clipboard(GTK_WIDGET(button)), UmiCsvDocumentData(document));
+        runtime_show_notification(runtime, "Copied selected-test evidence CSV with retained/matching counts. No test was launched.");
+    } else {
+        char message[160];
+        (void)snprintf(message, sizeof(message), "Test evidence was not copied: %s. The clipboard is unchanged.", umi_status_text(status));
+        runtime_show_notification(runtime, message);
+    }
+    UmiCsvDocumentDestroy(document);
+}
+
 static GtkWidget *runtime_test_details_notebook(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -365,8 +397,32 @@ static GtkWidget *runtime_test_details_notebook(
     gtk_text_view_set_editable(GTK_TEXT_VIEW(runtime->test_selected_view), FALSE);
     gtk_text_view_set_monospace(GTK_TEXT_VIEW(runtime->test_selected_view), TRUE);
     (void)umi_gtk4_automation_tag_widget(runtime->test_selected_view, "studio.tests.selected-evidence");
+/* The selected-test page now adds a CSV action above the existing evidence view; the report remains Framework-owned. The previous implementation remains for engineering review. */
+#if 0
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), runtime_scroll(runtime->test_selected_view),
         gtk_label_new("Selected test"));
+#endif
+    GtkWidget *selectedPage = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    GtkWidget *copyCsv = gtk_button_new_with_label("Copy selected evidence CSV");
+    (void)umi_gtk4_automation_tag_widget(copyCsv, "studio.tests.copy-evidence-csv");
+    runtime_bind_editor_action(runtime, copyCsv, RuntimeCopyTestEvidenceCsv);
+    gtk_box_append(GTK_BOX(selectedPage), copyCsv);
+    gtk_box_append(GTK_BOX(selectedPage), runtime_scroll(runtime->test_selected_view));
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), selectedPage, gtk_label_new("Selected test"));
+
+    /* Framework owns parsing and captured provenance. Studio adds a bounded
+     * native list beside the complete, unchanged retained evidence text. */
+    GtkWidget *locationsPage = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    runtime->test_failure_summary = gtk_label_new("Select a test to inspect source locations.");
+    runtime->test_failure_links = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    gtk_label_set_wrap(GTK_LABEL(runtime->test_failure_summary), TRUE);
+    gtk_label_set_xalign(GTK_LABEL(runtime->test_failure_summary), 0.0F);
+    (void)umi_gtk4_automation_tag_widget(runtime->test_failure_summary, "studio.tests.source-location-summary");
+    (void)umi_gtk4_automation_tag_widget(runtime->test_failure_links, "studio.tests.source-locations");
+    gtk_box_append(GTK_BOX(locationsPage), runtime->test_failure_summary);
+    gtk_box_append(GTK_BOX(locationsPage), runtime_scroll(runtime->test_failure_links));
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), locationsPage, gtk_label_new("Source locations"));
+
 
 
     gtk_notebook_append_page(

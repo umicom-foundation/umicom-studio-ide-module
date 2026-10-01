@@ -19,6 +19,9 @@
 #include "umicom/umicom.h"
 #include "umicom/studio/build.h"
 #include "umicom/debug_runtime/platform.h"
+#include "umicom/debug/breakpoint_edit.h"
+#include "umicom/debug_runtime/watch_evaluation.h"
+#include "umicom/debug_runtime/variable_inspection.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +31,36 @@ extern "C" {
  * Represent the studio debugger service data shared with callers of this public contract.
  */
 typedef struct UmiStudioDebuggerService UmiStudioDebuggerService;
+
+/** Desired state and adapter confirmation are distinct. A failed sync may
+ * follow a successful local edit; never automatically undo or retry it. */
+typedef struct UmiStudioBreakpointEditResult {
+    int desiredApplied;
+    int desiredChanged;
+    int adapterSynchronized;
+} UmiStudioBreakpointEditResult;
+/** Apply or remove a captured row using Framework validation and synchronization.
+ * remove must be 0/1; settings is required only when remove is zero.
+ * A queued launch returns BUSY before editing. Idle/memory sessions retain
+ * desired properties for later synchronization. No process is launched here. */
+UmiStatus UmiStudioDebuggerEditBreakpoint(UmiStudioDebuggerService *service,
+    const UmiDebugBreakpointEdit *edit, const UmiDebugBreakpointSettings *settings,
+    int remove, UmiStudioBreakpointEditResult *out);
+
+/** Edit/remove a retained watch without executing its expression. A queued
+ * launch is BUSY. Evaluation is a separate explicit action in a stopped native
+ * session and uses the current inspected frame. Neither API launches a process. */
+UmiStatus UmiStudioDebuggerEditWatch(UmiStudioDebuggerService *service,
+    const UmiDebugWatchEdit *edit, const UmiDebugWatchSettings *settings, int remove,
+    UmiDebugWatchChange *out);
+UmiStatus UmiStudioDebuggerEvaluateWatch(UmiStudioDebuggerService *service,
+    const UmiDebugWatchEdit *edit);
+
+/** Capture children through Framework's current-stop and owned-reference checks.
+ * Idle/memory sessions do not launch an adapter. A queued launch returns BUSY.
+ * On failure *out is NULL; previous caller-owned pages remain unchanged. */
+UmiStatus UmiStudioDebuggerInspectVariable(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target, UmiDebugVariablePage **out);
 
 /** Select an installed native adapter. kind is "lldb" or "gdb"; executable
  * is empty for PATH discovery or a complete executable path. The values are

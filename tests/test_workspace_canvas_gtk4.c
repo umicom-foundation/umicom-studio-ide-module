@@ -706,6 +706,22 @@ static GtkWidget *FindTestSelect(GtkWidget *root, const char *item_id)
     }
     return NULL;
 }
+/* Read this process's offered clipboard value without an asynchronous
+ * desktop transfer, so the native evidence check remains deterministic. */
+static int VerifySelectedCsvClipboard(GtkWidget *button, const char *expected, const char *unrelated)
+{
+    if (!GTK_IS_BUTTON(button)) return 0;
+    g_signal_emit_by_name(button, "clicked");
+    GdkContentProvider *provider = gdk_clipboard_get_content(gtk_widget_get_clipboard(button));
+    if (provider == NULL) return 0;
+    GValue value = G_VALUE_INIT; g_value_init(&value, G_TYPE_STRING);
+    int valid = gdk_content_provider_get_value(provider, &value, NULL);
+    const char *text = valid ? g_value_get_string(&value) : NULL;
+    valid = text != NULL && strstr(text, expected) != NULL && strstr(text, unrelated) == NULL &&
+        strstr(text, "evidence-summary") != NULL;
+    g_value_unset(&value); return valid;
+}
+
 static int VerifySelectedTestEvidence(GtkApplication *application)
 {
     int failed = 0;
@@ -762,6 +778,8 @@ static int VerifySelectedTestEvidence(GtkApplication *application)
         GtkTextBuffer *selected = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
         REQUIRE(buffer_contains(selected, messages[i]) && buffer_contains(selected, output_text[i]));
         REQUIRE(!buffer_contains(selected, messages[1U - i]) && !buffer_contains(selected, output_text[1U - i]));
+        GtkWidget *copyCsv = find_tag(root, "studio.tests.copy-evidence-csv");
+        REQUIRE(VerifySelectedCsvClipboard(copyCsv, messages[i], messages[1U - i]));
     }
     REQUIRE(umi_test_platform_result_registry_remove(results, ids[1]) == UMI_STATUS_OK);
     REQUIRE(umi_test_platform_output_registry_remove(outputs, ids[1]) == UMI_STATUS_OK);
@@ -774,6 +792,9 @@ cleanup:
     umi_studio_bootstrap_destroy(bootstrap);
     return failed;
 }
+
+#include "test_test_source_navigation_gtk4.inc"
+#include "test_debug_selection_gtk4.inc"
 
 int main(void)
 {
@@ -1227,6 +1248,10 @@ int main(void)
     REQUIRE(all_windows_unpresented());
     ReportNativePhase("selected-test-evidence");
     REQUIRE(VerifySelectedTestEvidence(application) == 0);
+    ReportNativePhase("test-source-locations");
+    REQUIRE(VerifyTestSourceLocations(application, fixture_path) == 0);
+    ReportNativePhase("debug-selection");
+    REQUIRE(VerifyDebugSelection(application, fixture_path) == 0);
     ReportNativePhase("project-explorer");
     REQUIRE(VerifyProjectExplorer(application, fixture_path) == 0);
     ReportNativePhase("durable-layout-recovery");

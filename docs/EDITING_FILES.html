@@ -35,7 +35,13 @@ int main(void)
 <h2 id="5-replace-one-occurrence-then-replace-all">5. Replace one occurrence, then replace all</h2>
 <p>To try a single replacement, find <code>noteCount</code> and enter <code>savedCount</code> in <strong>Replace with</strong>. Click <strong>Replace</strong>. The selected occurrence changes. Another click continues from the end of the replacement rather than repeatedly replacing the same text.</p>
 <p>Only changing the declaration leaves the later use of <code>noteCount</code> unchanged, so this is a useful moment to practise <strong>Undo</strong>. Undo the single replacement before the next exercise.</p>
+<!-- Replace All now uses a captured Framework review. The earlier immediate-edit
+     instruction is retained below for review of the documented behavior. -->
+<!--
 <p>Now enter the same search and replacement and choose <strong>Replace All</strong>. Both occurrences should become <code>savedCount</code>:</p>
+-->
+<p>Now enter the same search and replacement and choose <strong>Replace All</strong>. Review both versions in the comparison, then choose <strong>Apply replacements</strong>. Choose <strong>Cancel</strong> to keep the draft unchanged. After applying, both occurrences should become <code>savedCount</code>:</p>
+<p>The question belongs to the named document and captured text. Later typing or saving can invalidate it; request a new review before trying again. Read <a href="REVIEWING_REPLACE_ALL.md">Review Replace All before changing a document</a> for matching rules, limits and recovery steps.</p>
 <pre><code class="language-c">    const unsigned savedCount = 5U;
     printf("Umicom Notes: %u saved notes\n", savedCount);
 </code></pre>

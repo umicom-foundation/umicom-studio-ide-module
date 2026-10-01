@@ -43,6 +43,7 @@
 #include "interaction/project.inc"
 #include "interaction/command_router.inc"
 #include "interaction/editor_controls.inc"
+#include "interaction/test_source_links.inc"
 #include "interaction/test_details.inc"
 #include "interaction/debug_details.inc"
 #include "interaction/developer_operations.inc"
