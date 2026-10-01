@@ -1250,6 +1250,22 @@ int main(void)
         REQUIRE(complete);
     }
 
+    /* Exercise the same shared history through Studio's production binding.
+     * Redo must restore only the typed suffix, then another Undo must recover
+     * the complete external draft without returning to the welcome document. */
+    g_signal_emit_by_name(buffer, "redo");
+    {
+        char *fullText = NULL;
+        size_t fullLength = 0U;
+        REQUIRE(UmiUiDocumentViewModelCopyText(documents, "studio.editor.welcome", &fullText, &fullLength) == UMI_STATUS_OK);
+        int complete = fullLength == 131073U && memcmp(fullText, oversized, 131072U) == 0 &&
+            fullText[131072U] == '!' && buffer_contains(buffer, fullText);
+        UmiUiDocumentViewModelFreeText(fullText);
+        REQUIRE(complete);
+    }
+    g_signal_emit_by_name(buffer, "undo");
+    REQUIRE(buffer_contains(buffer, oversized));
+
     /* The early retained Reload reference remains valid here; do not acquire
      * it a second time and leak the first reference. */
     REQUIRE(GTK_IS_BUTTON(retained_reload));
