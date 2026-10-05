@@ -14,6 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/document/file_search.h"
 #include "umicom/studio/ui.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/diagnostics.h"
@@ -562,6 +563,10 @@ UmiStatus UmiStudioUiProjectFileRefreshState(UmiStudioUi *ui,
     return UmiFileIndexRefreshRead(umi_studio_services_file_index(ui->services), snapshot);
 }
 
+/* Studio retains its workspace identity checks; Framework copies and applies
+ * the filter beside the query. Keep the former start path for comparison with
+ * the compatibility wrapper rather than owning a second search engine here. */
+#if 0
 UmiStatus UmiStudioUiSearchStart(UmiStudioUi *ui, const char *query, int caseSensitive)
 {
     UmiWorkspaceGraphSnapshot workspace;
@@ -582,6 +587,71 @@ UmiStatus UmiStudioUiSearchStart(UmiStudioUi *ui, const char *query, int caseSen
     if (status == UMI_STATUS_OK) ui->searchWorkspaceRevision = workspace.revision;
     return status;
 }
+#endif
+
+/* Studio now selects Framework document decoding for saved-file search; query ownership, filters, workspace revisions and worker lifetime remain shared.
+ * The former implementation is retained for engineering review. */
+#if 0
+UmiStatus UmiStudioUiSearchStartFiltered(UmiStudioUi *ui, const char *query,
+    int caseSensitive, const UmiSearchPathFilter *filter)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiFileIndexStats files;
+    UmiStatus status;
+    if (ui == NULL || ui->services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_workspace_graph_snapshot(umi_studio_services_workspace(ui->services), &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.open) return UMI_STATUS_INVALID_STATE;
+    UmiFileIndex *index = umi_studio_services_file_index(ui->services);
+    files = umi_file_index_stats(index);
+    if (!umi_path_equal(files.root, workspace.root)) return UMI_STATUS_BUSY;
+    if (ui->fileSearch == NULL) {
+        status = UmiFileSearchCreate(index, &ui->fileSearch);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    status = UmiFileSearchStartFiltered(ui->fileSearch, query, caseSensitive, files.revision, filter);
+    if (status == UMI_STATUS_OK) ui->searchWorkspaceRevision = workspace.revision;
+    return status;
+}
+#endif
+UmiStatus UmiStudioUiSearchStartFiltered(UmiStudioUi *ui, const char *query,
+    int caseSensitive, const UmiSearchPathFilter *filter)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiFileIndexStats files;
+    UmiStatus status;
+    if (ui == NULL || ui->services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_workspace_graph_snapshot(umi_studio_services_workspace(ui->services), &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.open) return UMI_STATUS_INVALID_STATE;
+    UmiFileIndex *index = umi_studio_services_file_index(ui->services);
+    files = umi_file_index_stats(index);
+    if (!umi_path_equal(files.root, workspace.root)) return UMI_STATUS_BUSY;
+    if (ui->fileSearch == NULL) {
+        status = UmiDocumentFileSearchCreate(index, &ui->fileSearch);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    status = UmiFileSearchStartFiltered(ui->fileSearch, query, caseSensitive, files.revision, filter);
+    if (status == UMI_STATUS_OK) ui->searchWorkspaceRevision = workspace.revision;
+    return status;
+}
+
+UmiStatus UmiStudioUiSearchStart(UmiStudioUi *ui, const char *query, int caseSensitive)
+{
+    return UmiStudioUiSearchStartFiltered(ui, query, caseSensitive, NULL);
+}
+
+UmiStatus UmiStudioUiSearchFilterRead(UmiStudioUi *ui, uint64_t requestId,
+    UmiSearchPathFilter *outFilter)
+{
+    if (ui == NULL || outFilter == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiFileSearchSnapshot state;
+    UmiStatus status = UmiStudioUiSearchRead(ui, &state);
+    if (status != UMI_STATUS_OK) return status;
+    if (requestId == 0U || requestId != state.requestId || state.stale) return UMI_STATUS_BUSY;
+    return UmiFileSearchFilterRead(ui->fileSearch, requestId, outFilter);
+}
+
 
 UmiStatus UmiStudioUiSearchCancel(UmiStudioUi *ui)
 {

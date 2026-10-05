@@ -20,6 +20,7 @@
  * already passed the Framework's workspace-containment check.
  */
 #include "umicom/studio/coding_assistant.h"
+#include "umicom/ai_coding_runtime/local_workspace.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -115,6 +116,10 @@ UmiStatus umi_studio_coding_assistant_approve_patch(
         approved_by);
 }
 
+/* Framework now owns native file access so Studio follows the same Unicode,
+ * link and complete-file publication rules as other coding clients. The prior
+ * application implementation is retained here for engineering review. */
+#if 0
 /* Provide the full path operation used by this module and its client applications. */
 static UmiStatus full_path(const UmiStudioCodingWorkspace *workspace,
                            const char *relative_path,
@@ -234,6 +239,26 @@ static UmiStatus workspace_remove(void *user_data, const char *relative_path)
                                                 : UMI_STATUS_IO_ERROR);
 }
 
+#endif
+
+/* Approval and conflict review still belong to the coding service. These
+ * callbacks translate only the already selected workspace into shared I/O. */
+static UmiStatus workspace_read(void *data, const char *path, char *text, size_t capacity, size_t *length)
+{
+    UmiStudioCodingWorkspace *workspace = data;
+    return UmiAiCodingWorkspaceReadFile(workspace != NULL ? workspace->root : NULL, path, text, capacity, length);
+}
+static UmiStatus workspace_write(void *data, const char *path, const char *text, size_t length)
+{
+    UmiStudioCodingWorkspace *workspace = data;
+    return UmiAiCodingWorkspaceWriteFile(workspace != NULL ? workspace->root : NULL, path, text, length);
+}
+static UmiStatus workspace_remove(void *data, const char *path)
+{
+    UmiStudioCodingWorkspace *workspace = data;
+    return UmiAiCodingWorkspaceRemoveFile(workspace != NULL ? workspace->root : NULL, path);
+}
+
 /*
  * Initialise studio coding workspace adapter from caller-provided values so later
  * operations receive a known state.
@@ -252,9 +277,17 @@ UmiStatus umi_studio_coding_workspace_adapter_init(
     (void)memset(workspace, 0, sizeof(*workspace));
     (void)memset(out_adapter, 0, sizeof(*out_adapter));
     /* Apply this branch only when its contract condition is satisfied. */
+    /* Resolve the root once so later working-directory changes cannot send a
+     * reviewed patch elsewhere. The old verbatim copy is retained for review. */
+#if 0
     if (!copy_text(workspace->root, sizeof(workspace->root), root)) {
         return UMI_STATUS_CAPACITY_EXCEEDED;
     }
+#endif
+    char absolute[UMI_AI_TEXT_CAPACITY];
+    UmiStatus status = UmiAiCodingWorkspaceRootResolve(root, absolute, sizeof(absolute));
+    if (status != UMI_STATUS_OK) return status;
+    if (!copy_text(workspace->root, sizeof(workspace->root), absolute)) return UMI_STATUS_CAPACITY_EXCEEDED;
     out_adapter->structure_size = (uint32_t)sizeof(*out_adapter);
     out_adapter->abi_version = UMI_AI_CODING_ABI_VERSION;
     out_adapter->read = workspace_read;

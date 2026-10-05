@@ -15,6 +15,7 @@
 #include "umicom/studio/build.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 /*
@@ -49,6 +50,15 @@ int main(void)
     assert(snapshot.workspace.can_execute_next);
     assert(snapshot.workspace.can_execute_all);
     assert(umi_studio_build_service_artifacts(service) != NULL);
+    /* Reading output during startup must not create a worker or consume history. */
+    UmiBuildOutputSnapshot *output = calloc(1U, sizeof(*output));
+    assert(output != NULL);
+    assert(UmiStudioBuildReadOutput(service, output) == UMI_STATUS_OK);
+    assert(output->operation_id == 0U && output->length == 0U);
+    assert(!UmiStudioBuildBusy(service));
+    assert(UmiStudioBuildReadOutput(NULL, output) == UMI_STATUS_INVALID_ARGUMENT);
+    assert(UmiStudioBuildReadOutput(service, NULL) == UMI_STATUS_INVALID_ARGUMENT);
+    free(output);
     umi_studio_build_service_destroy(service);
     umi_clock_dispose(&clock);
     return 0;

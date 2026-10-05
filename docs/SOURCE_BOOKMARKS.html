@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- Sammy Hegab, Umicom Foundation. Licensed under MIT. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Return to important lines with bookmarks</title><style>body{font:17px/1.6 system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1.5rem;color:#172337}h1,h2{line-height:1.25}code,pre{background:#eef2f6}pre{padding:1rem;overflow:auto}li{margin:.6rem 0}table{border-collapse:collapse;width:100%}th,td{padding:.6rem;border:1px solid #cbd5e1;text-align:left;vertical-align:top}</style></head><body>
+<h1>Return to important lines with bookmarks</h1>
+
+<p>A source bookmark remembers a line in an open document. It helps you move between code you are investigating without changing the text or saving the document. Bookmarks also work in untitled drafts and read-only documents.</p>
+<h2>Mark and revisit a line</h2>
+<ol><li>Open a source document in the Editor workspace and place the caret on a line you want to revisit.</li>
+<li>Select <strong>Bookmark Line</strong> in the editor command bar. This remembers the line and the current column.</li>
+<li>Move to another line or open another document. Mark more locations if needed.</li>
+<li>Select <strong>Next Bookmark</strong> or <strong>Previous Bookmark</strong>. The editor visits bookmarks in the order you added them, wrapping at the end. If the current line is not bookmarked, Next starts at the first bookmark and Previous starts at the last.</li>
+<li>Use <strong>Navigate Back</strong> to return from a bookmark jump through the normal navigation history.</li></ol>
+<p>The same commands are available in command search under Navigate. Their command identities are <code>editor.bookmark.toggle</code>, <code>editor.bookmark.next</code> and <code>editor.bookmark.previous</code>. Availability is checked again when a command runs.</p>
+<h2>Remove bookmarks</h2>
+<ol><li>To remove one bookmark, visit its line and select <strong>Bookmark Line</strong> again. Moving the caret to a different column on that line does not create another bookmark.</li>
+<li>To clear the complete set, find <strong>Clear Bookmarks</strong> in command search. This removes location metadata only; open documents and text Undo history stay intact.</li></ol>
+<h2>Understand what is remembered</h2>
+<p>Bookmarks last for the current editing session and are not saved to disk. Up to 64 locations can be marked. A bookmark keeps the identity of its original open document, so Save As can retain it, but closing and reopening a path creates a different document. Old bookmarks never redirect to another tab with the same name.</p>
+<p>Positions are fixed line and column coordinates. They do not follow text when lines are inserted or removed. A jump skips a closed document or a line that no longer exists, and clamps a column to the available text. Check a bookmark after substantial edits and toggle it again if you want a different location.</p>
+<h2>If a command cannot continue</h2>
+<table><thead><tr><th>Situation</th><th>Next step</th></tr></thead><tbody>
+<tr><td>A save, close, replacement review or clipboard decision is in progress.</td><td>Finish or cancel that decision, then retry the bookmark command.</td></tr>
+<tr><td>No bookmark can be visited.</td><td>Mark a line in an open document. Closed-document bookmarks remain in the session count until cleared.</td></tr>
+<tr><td>The bookmark capacity is full.</td><td>Toggle unwanted bookmarks off, or use Clear Bookmarks and mark the locations you still need.</td></tr>
+<tr><td>A bookmarked line moved after editing.</td><td>Find the intended text, remove the old fixed-line bookmark if it is still available, and mark the new line.</td></tr>
+</tbody></table>
+<p>Bookmark commands do not reopen files, run code or save source changes.</p>
+</body></html>

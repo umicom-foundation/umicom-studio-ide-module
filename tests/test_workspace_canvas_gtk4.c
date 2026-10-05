@@ -27,6 +27,9 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Shared acceptance helper is used by the storage scenario below. */
+static int VerifyPortableLibrary(UmiStudioGtkWorkbench *workstation, GtkWidget *popover);
+
 /* Keep failure checks active with NDEBUG and release all fixture-owned state. */
 #define REQUIRE(expression) do { \
     if (!(expression)) { \
@@ -598,6 +601,7 @@ static int verify_durable_canvas(GtkApplication *application, const char *fixtur
         REQUIRE(buffer_contains(buffer, retained_draft) && all_windows_unpresented());
         REQUIRE(VerifyAutomaticLayoutCopy(workbench, popover, buffer, retained_draft) == 0);
         REQUIRE(VerifyKeyboardLayouts(workbench, popover) == 0);
+        REQUIRE(VerifyPortableLibrary(workbench, popover) == 0);
         REQUIRE(buffer_contains(buffer, retained_draft) && all_windows_unpresented());
     }
 
@@ -819,6 +823,100 @@ cleanup:
 
 #include "test_test_source_navigation_gtk4.inc"
 #include "test_debug_selection_gtk4.inc"
+
+/* Product import uses the existing native publisher. An earlier review is
+ * refused after a rename, while a fresh review restores the exported list.
+ * The enclosing test checks that the open editor draft remains unchanged. */
+static int VerifyPortableLibrary(UmiStudioGtkWorkbench *workstation, GtkWidget *popover)
+{
+    UmiUiWorkspaceLibrarySnapshot original, renamed, restored;
+    UmiUiWorkspaceLibraryImport *review = NULL;
+    char *bytes = NULL;
+    size_t size = 0U;
+    int failed = 0;
+    REQUIRE(find_tag(popover, "workstation.layout-library.export") != NULL);
+    REQUIRE(find_tag(popover, "workstation.layout-library.import") != NULL);
+    REQUIRE(find_tag(popover, "workstation.layout-library.import-details") != NULL);
+    REQUIRE(find_tag(popover, "workstation.layout-library.review-saved") != NULL);
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &original) == UMI_STATUS_OK);
+    REQUIRE(original.layout_count != 0U);
+    REQUIRE(umi_studio_gtk_workbench_library_export(workstation, NULL, 0U, &size) == UMI_STATUS_OK);
+    bytes = g_try_malloc(size + 1U); REQUIRE(bytes != NULL);
+    REQUIRE(umi_studio_gtk_workbench_library_export(workstation, bytes, size + 1U, &size) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_library_import_review(workstation, bytes, size, &review) == UMI_STATUS_OK);
+    UmiUiWorkspaceLibraryRequest rename = {UMI_UI_WORKSPACE_LIBRARY_RENAME,
+        original.rows[0].layout_id, NULL, "Layout changed after review", original.customisation_revision, false};
+    REQUIRE(umi_studio_gtk_workbench_library_apply(workstation, &rename) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &renamed) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_library_import_apply(workstation, review) == UMI_STATUS_INVALID_STATE);
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &restored) == UMI_STATUS_OK);
+    REQUIRE(restored.customisation_revision == renamed.customisation_revision);
+    REQUIRE(strcmp(restored.rows[0].name, renamed.rows[0].name) == 0);
+    umi_ui_workspace_library_import_destroy(review); review = NULL;
+    REQUIRE(umi_studio_gtk_workbench_library_import_review(workstation, bytes, size, &review) == UMI_STATUS_OK);
+    /* Product reviews expose Framework's copied geometry while retaining
+     * the product's existing publisher and document/business state checks. */
+    REQUIRE(umi_ui_workspace_library_import_layout_count(review, true) == original.layout_count);
+    for (size_t index = 0U; index < original.layout_count; ++index) {
+        const UmiUiWorkspaceLayout *before = umi_ui_workspace_library_import_layout(review, false, index);
+        const UmiUiWorkspaceLayout *after = umi_ui_workspace_library_import_layout(review, true, index);
+        REQUIRE(before && after && !strcmp(after->layout_id, original.rows[index].layout_id));
+        REQUIRE(!strcmp(before->name, renamed.rows[index].name));
+        REQUIRE(!strcmp(after->name, original.rows[index].name));
+        REQUIRE(after->window_count == original.rows[index].window_count);
+    }
+    bytes[0] = '!';
+    REQUIRE(umi_studio_gtk_workbench_library_import_apply(workstation, review) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &restored) == UMI_STATUS_OK);
+    REQUIRE(restored.layout_count == original.layout_count && restored.customisation_revision == renamed.customisation_revision + 1U);
+    for (size_t index = 0U; index < original.layout_count; ++index) {
+        REQUIRE(strcmp(restored.rows[index].layout_id, original.rows[index].layout_id) == 0);
+        REQUIRE(strcmp(restored.rows[index].name, original.rows[index].name) == 0);
+        REQUIRE(restored.rows[index].active == original.rows[index].active);
+        REQUIRE(restored.rows[index].window_count == original.rows[index].window_count);
+    }
+    /* Undo the imported arrangement, then redo it through the real button.
+     * The surrounding fixture verifies document/trading state remains intact. */
+    UmiUiWorkspaceLibraryHistoryState history;
+    REQUIRE(umi_studio_gtk_workbench_library_history_read(workstation, &history) == UMI_STATUS_OK);
+    REQUIRE(history.undo_count != 0U && history.redo_count == 0U && !history.stale);
+    REQUIRE(umi_studio_gtk_workbench_library_history_navigate(workstation, UMI_UI_WORKSPACE_LIBRARY_HISTORY_UNDO,
+        renamed.customisation_revision) == UMI_STATUS_INVALID_STATE);
+    GtkWidget *undo = find_tag(popover, "workstation.layout-library.undo");
+    GtkWidget *redo = find_tag(popover, "workstation.layout-library.redo");
+    REQUIRE(GTK_IS_BUTTON(undo) && GTK_IS_BUTTON(redo) && gtk_widget_get_sensitive(undo));
+    g_signal_emit_by_name(undo, "clicked"); REQUIRE(drain_context());
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &restored) == UMI_STATUS_OK);
+    REQUIRE(strcmp(restored.rows[0].name, renamed.rows[0].name) == 0);
+    REQUIRE(gtk_widget_get_sensitive(redo));
+    g_signal_emit_by_name(redo, "clicked"); REQUIRE(drain_context());
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &restored) == UMI_STATUS_OK);
+    REQUIRE(strcmp(restored.rows[0].name, original.rows[0].name) == 0);
+    REQUIRE(umi_studio_gtk_workbench_library_history_read(workstation, &history) == UMI_STATUS_OK && history.redo_count == 0U);
+    /* Capture the complete current list through real Save/Review controls,
+     * mutate it, then apply the frozen review. Source drafts are checked by
+     * the enclosing product fixture and must survive this layout operation. */
+    GtkWidget *save = find_tag(popover, "workstation.layout-library.save-library");
+    GtkWidget *savedReview = find_tag(popover, "workstation.layout-library.review-saved");
+    GtkWidget *applyReview = find_tag(popover, "workstation.layout-library.apply-import");
+    GtkWidget *confirmReview = find_tag(popover, "workstation.layout-library.confirm-import");
+    REQUIRE(save && savedReview && applyReview && confirmReview && gtk_widget_get_sensitive(save));
+    g_signal_emit_by_name(save, "clicked"); REQUIRE(drain_context());
+    rename.expected_customisation_revision = restored.customisation_revision;
+    rename.name = "Changed after saving";
+    REQUIRE(umi_studio_gtk_workbench_library_apply(workstation, &rename) == UMI_STATUS_OK);
+    g_signal_emit_by_name(savedReview, "clicked");
+    REQUIRE(find_tag(popover, "umicom.comparison.right") != NULL && !gtk_widget_get_sensitive(applyReview));
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(confirmReview), TRUE);
+    REQUIRE(gtk_widget_get_sensitive(applyReview));
+    g_signal_emit_by_name(applyReview, "clicked"); REQUIRE(drain_context());
+    REQUIRE(umi_studio_gtk_workbench_library_snapshot(workstation, &restored) == UMI_STATUS_OK);
+    REQUIRE(!strcmp(restored.rows[0].name, original.rows[0].name));
+
+
+cleanup:
+    umi_ui_workspace_library_import_destroy(review); g_free(bytes); return failed;
+}
 
 int main(void)
 {

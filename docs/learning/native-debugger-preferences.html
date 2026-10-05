@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Choose and save a native debugger</title><style>body{font:17px/1.6 system-ui;max-width:880px;margin:40px auto;padding:0 24px;color:#183640}code{background:#eef4f5;padding:2px 4px;overflow-wrap:anywhere}li{margin:12px 0}a{color:#006578}</style></head>
+<body><h1>Choose and save a native debugger</h1>
+<p>A debug adapter lets Studio inspect a running program. Studio supports a GDB build with DAP support
+or LLDB's <code>lldb-dap</code> adapter. Choosing an adapter does not install it or start your program.</p>
+<h2>Use an installed adapter</h2><ol>
+<li>Open the Debug panel and choose <strong>GDB (DAP)</strong> or <strong>LLDB DAP</strong>.</li>
+<li>Enter the full executable path, such as <code>C:/msys64/ucrt64/bin/gdb.exe</code>, if that is where you
+installed a compatible adapter. Leave the field empty to use its usual PATH lookup. Do not add command arguments.</li>
+<li>Choose <strong>Use adapter</strong>. Studio copies this choice into the current window. A running or
+pending debug session must stop before the adapter can change. Reopening the panel shows the accepted choice.</li>
+<li>Review your project's program, arguments and working folder in Project Settings. Build with debug symbols,
+then use Debug. The existing trust and build-success checks still apply.</li></ol>
+<h2>Keep the choice for later</h2><ol>
+<li>Review the two adapter fields and choose <strong>Save adapter choice locally</strong>.
+The save runs on a worker and reports its full destination path. A nonempty path must be absolute.</li>
+<li>Studio stores <code>native-debug-adapter.json</code> in its per-user configuration folder, using
+Framework's application-path service. It does not save this preference in the opened project's repository.</li>
+<li>In a later window, choose <strong>Load saved adapter choice</strong>. Loading fills the draft fields;
+it does not change the active adapter. Review them and choose <strong>Use adapter</strong> separately.</li></ol>
+<h2>Recover from a problem</h2>
+<p>If loading fails, check the reported location and keep or correct your current draft. A malformed file,
+unsupported adapter name or relative executable path is rejected. Saving a valid choice explicitly replaces
+the local settings file. An existing directory or symbolic-link destination is refused.</p>
+<p>If you edit the draft while loading, Studio keeps the newer draft. Loading and saving block another
+preference action or Use adapter until completion. Closing the window discards a loaded result; an explicit
+save may finish after closing. Save and load never grant trust or execute the selected adapter.</p>
+<p>Preferences record a path, not proof of a working installation. An executable can be moved, lack DAP
+support or require a different environment. Check the Debug output when a launch fails. File replacement
+does not coordinate competing Studio windows; the last successful save wins.</p>
+<h2>Extend the workflow</h2>
+<p>Framework owns validation, JSON, user paths and local file replacement. Studio owns the visible draft
+and resolves its window again after asynchronous completion. New adapter types should add explicit validation
+and protocol support before their names are accepted. Keep load, review and execution as separate actions.</p>
+<footer>Umicom Foundation · Sammy Hegab · MIT</footer></body></html>

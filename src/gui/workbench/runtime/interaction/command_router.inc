@@ -16,6 +16,102 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* The shared dialog may invoke native observers while being created. Keep an
+ * identity request across that call and report only to the same live host. */
+/* Toolbar search preferences are captured once by the shared replacement owner, so later UI changes cannot alter a pending review.
+ * The former implementation is retained for engineering review. */
+#if 0
+static UmiStatus RuntimeReviewOpenReplacements(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) {
+        runtime_show_notification(runtime, "Could not retain the editor identity for replacement review.");
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
+    UmiStatus status = runtime->editor_find_entry != NULL && runtime->editor_replace_entry != NULL
+        ? UmiGtk4AdapterReviewOpenReplacements(runtime->owner->adapter,
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry)),
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_replace_entry)))
+        : UMI_STATUS_UNAVAILABLE;
+    GObject *ownerWindow = NULL;
+    runtime = runtime_file_dialog_owner(request, &ownerWindow);
+    if (runtime != NULL && status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+    g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+#endif
+static UmiStatus RuntimeReviewOpenReplacements(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) {
+        runtime_show_notification(runtime, "Could not retain the editor identity for replacement review.");
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
+    UmiEditorSearchOptions searchOptions = RuntimeEditorSearchOptions(runtime);
+    UmiStatus status = runtime->editor_find_entry != NULL && runtime->editor_replace_entry != NULL
+        ? UmiGtk4AdapterReviewOpenReplacementsWithOptions(runtime->owner->adapter,
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry)),
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_replace_entry)), &searchOptions)
+        : UMI_STATUS_UNAVAILABLE;
+    GObject *ownerWindow = NULL;
+    runtime = runtime_file_dialog_owner(request, &ownerWindow);
+    if (runtime != NULL && status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+    g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+/* Studio supplies the Find and Replace fields; Framework owns the complete
+ * capture, comparison approvals, atomic edit and existing Undo history. */
+/* Toolbar search preferences are captured once by the shared replacement owner, so later UI changes cannot alter a pending review.
+ * The former implementation is retained for engineering review. */
+#if 0
+static UmiStatus RuntimeReviewReplacementSet(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) {
+        runtime_show_notification(runtime, "Could not retain the editor identity for replacement review.");
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
+    UmiStatus status = runtime->editor_find_entry != NULL && runtime->editor_replace_entry != NULL
+        ? UmiGtk4AdapterReviewReplacementSet(runtime->owner->adapter,
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry)),
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_replace_entry)))
+        : UMI_STATUS_UNAVAILABLE;
+    GObject *ownerWindow = NULL;
+    runtime = runtime_file_dialog_owner(request, &ownerWindow);
+    if (runtime != NULL && status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+    g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+#endif
+static UmiStatus RuntimeReviewReplacementSet(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) {
+        runtime_show_notification(runtime, "Could not retain the editor identity for replacement review.");
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
+    UmiEditorSearchOptions searchOptions = RuntimeEditorSearchOptions(runtime);
+    UmiStatus status = runtime->editor_find_entry != NULL && runtime->editor_replace_entry != NULL
+        ? UmiGtk4AdapterReviewReplacementSetWithOptions(runtime->owner->adapter,
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry)),
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_replace_entry)), &searchOptions)
+        : UMI_STATUS_UNAVAILABLE;
+    GObject *ownerWindow = NULL;
+    runtime = runtime_file_dialog_owner(request, &ownerWindow);
+    if (runtime != NULL && status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+    g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
 static UmiStatus runtime_route_vcs_commit_accepted(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *message)
@@ -52,6 +148,37 @@ static UmiStatus runtime_route_command(
          strcmp(command_id, "build.settings") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0))
         return UMI_STATUS_BUSY;
 
+    if (runtime->owner != NULL && UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
+         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0)) return UMI_STATUS_BUSY;
+    if (strcmp(command_id, "editor.replace-complete-set") == 0)
+        return RuntimeReviewReplacementSet(runtime);
+    if (strcmp(command_id, "editor.replace-open-documents") == 0)
+        return RuntimeReviewOpenReplacements(runtime);
+
+    /* Both shell and editor aliases use the same Framework-owned timeline. */
+    if (strcmp(command_id, "navigate.back") == 0 || strcmp(command_id, "editor.navigate.back") == 0)
+        return UmiGtk4AdapterTravelDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL, -1);
+    if (strcmp(command_id, "navigate.forward") == 0 || strcmp(command_id, "editor.navigate.forward") == 0)
+        return UmiGtk4AdapterTravelDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL, 1);
+    if (strcmp(command_id, "navigate.history.clear") == 0)
+        return UmiGtk4AdapterClearNavigationHistory(runtime->owner != NULL ? runtime->owner->adapter : NULL);
+
+    /* Bookmark state and navigation remain owned by Framework. */
+    if (strcmp(command_id, "editor.bookmark.toggle") == 0)
+        return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 0);
+    if (strcmp(command_id, "editor.bookmark.next") == 0)
+        return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 1);
+    if (strcmp(command_id, "editor.bookmark.previous") == 0)
+        return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, -1);
+    if (strcmp(command_id, "editor.bookmark.clear") == 0)
+        return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 2);
+    /* The shared coordinator owns closed paths; Studio supplies user intent. */
+    if (strcmp(command_id, "file.reopen-closed") == 0)
+        return UmiGtk4AdapterReopenDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL);
+    if (strcmp(command_id, "file.forget-closed") == 0)
+        return UmiGtk4AdapterForgetClosedDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL);
     if (strcmp(command_id, "file.close-all.cancel") == 0)
         return runtime->owner != NULL
             ? UmiGtk4AdapterCancelCloseDocuments(runtime->owner->adapter)

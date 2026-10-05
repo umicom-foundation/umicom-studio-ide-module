@@ -78,6 +78,19 @@ static UmiStatus runtime_execute_command(
     const char *command_id,
     const char *argument)
 {
+    /* Framework reports bookmark results through editing completion, which
+     * may release this host. Never send a second notification afterwards. */
+    if (command_id != NULL && (strcmp(command_id, "editor.bookmark.toggle") == 0 ||
+        strcmp(command_id, "editor.bookmark.next") == 0 || strcmp(command_id, "editor.bookmark.previous") == 0 ||
+        strcmp(command_id, "editor.bookmark.clear") == 0)) return runtime_route_command(runtime, command_id, argument);
+
+    /* This modal route owns lifetime-checked immediate feedback itself. Return
+     * directly so generic error handling cannot revisit a destroyed host. */
+    if (command_id != NULL && strcmp(command_id, "editor.replace-complete-set") == 0)
+        return RuntimeReviewReplacementSet(runtime);
+    if (command_id != NULL && strcmp(command_id, "editor.replace-open-documents") == 0)
+        return RuntimeReviewOpenReplacements(runtime);
+
 /* REFACTOR NOTE: Editing and source navigation deliver their result through
  * Framework completion and runtime_document_edit_completed. Preserve fallback
  * feedback for unbound routes, but do not overwrite an already displayed error.
@@ -92,9 +105,29 @@ static UmiStatus runtime_execute_command(
      * after the shared callback may already have refreshed or detached Studio. */
     // int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
     // (command_id != NULL && strcmp(command_id, "umicom.document.go-to-line") == 0);
+    /* Reopen and Forget now report through the same Framework completion.
+     * Keep the previous classification for review; the extended predicate
+     * prevents a second notification after completion has detached a host. */
+#if 0
     int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
         (command_id != NULL && (strcmp(command_id, "umicom.document.go-to-line") == 0 ||
             strcmp(command_id, "file.close") == 0));
+#endif
+    /* Framework reports navigation through the editing completion too. Keep
+     * the earlier classification for review; avoid a second error notification. */
+#if 0
+    int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
+        (command_id != NULL && (strcmp(command_id, "umicom.document.go-to-line") == 0 ||
+            strcmp(command_id, "file.close") == 0 || strcmp(command_id, "file.reopen-closed") == 0 ||
+            strcmp(command_id, "file.forget-closed") == 0));
+#endif
+    int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
+        (command_id != NULL && (strcmp(command_id, "umicom.document.go-to-line") == 0 ||
+            strcmp(command_id, "file.close") == 0 || strcmp(command_id, "file.reopen-closed") == 0 ||
+            strcmp(command_id, "file.forget-closed") == 0 ||
+            strcmp(command_id, "navigate.back") == 0 || strcmp(command_id, "navigate.forward") == 0 ||
+            strcmp(command_id, "editor.navigate.back") == 0 || strcmp(command_id, "editor.navigate.forward") == 0 ||
+            strcmp(command_id, "navigate.history.clear") == 0));
     int completedByBinding = editing && runtime != NULL && runtime->owner != NULL &&
         UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter);
     UmiStatus status = runtime_route_command(runtime, command_id, argument);

@@ -22,6 +22,10 @@
 #include "umicom/debug/breakpoint_edit.h"
 #include "umicom/debug_runtime/watch_evaluation.h"
 #include "umicom/debug_runtime/variable_inspection.h"
+#include "umicom/debug_runtime/memory_inspection.h"
+#include "umicom/debug_runtime/variable_assignment.h"
+
+#include "umicom/debug/setup.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +35,17 @@ extern "C" {
  * Represent the studio debugger service data shared with callers of this public contract.
  */
 typedef struct UmiStudioDebuggerService UmiStudioDebuggerService;
+
+/** Observe whether this captured row can be assigned in the current native
+ * stop. No adapter request is sent; queued launches and legacy sessions refuse. */
+UmiStatus UmiStudioDebuggerCheckVariableAssignment(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target);
+/** Apply an explicit runtime value through Framework. No automatic retry or
+ * inspection follows. After attempted=1, use Inspect scope to obtain fresh
+ * captures; a missing reply does not prove that the program stayed unchanged. */
+UmiStatus UmiStudioDebuggerAssignVariable(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target, const char *value, UmiDebugVariableAssignment *out);
+
 
 /** Desired state and adapter confirmation are distinct. A failed sync may
  * follow a successful local edit; never automatically undo or retry it. */
@@ -61,6 +76,20 @@ UmiStatus UmiStudioDebuggerEvaluateWatch(UmiStudioDebuggerService *service,
  * On failure *out is NULL; previous caller-owned pages remain unchanged. */
 UmiStatus UmiStudioDebuggerInspectVariable(UmiStudioDebuggerService *service,
     const UmiDebugVariableTarget *target, UmiDebugVariablePage **out);
+
+/** Read one current paused variable's memory through the shared Framework.
+ * No adapter is launched for idle/simulated sessions. A queued launch is BUSY.
+ * The caller owns the independent capture; *out is NULL on failure. */
+UmiStatus UmiStudioDebuggerInspectMemory(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target, int64_t offset, uint32_t count,
+    UmiDebugMemoryCapture **out);
+UmiStatus UmiStudioDebuggerCheckMemory(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target);
+
+/* Copy the currently selected adapter for a newly opened settings surface.
+ * The two output buffers must not overlap. Output changes only on success. This does not read disk or start an adapter. */
+UmiStatus UmiStudioDebuggerNativeChoice(const UmiStudioDebuggerService *service,
+    char *kind, size_t kindCapacity, char *executable, size_t executableCapacity);
 
 /** Select an installed native adapter. kind is "lldb" or "gdb"; executable
  * is empty for PATH discovery or a complete executable path. The values are
@@ -299,6 +328,12 @@ UmiDebugController *umi_studio_debugger_service_controller(
 UmiDebugWorkspace *umi_studio_debugger_service_workspace(
     UmiStudioDebuggerService *service
 );
+
+
+/* Framework owns the saved settings and stale-review rules. Studio also checks
+ * its native process/build launch and prepares the legacy protocol projection
+ * before any settings change. No adapter request or watch evaluation is sent. */
+UmiStatus UmiStudioDebuggerApplySetup(UmiStudioDebuggerService *service, const UmiDebugSetupReview *review);
 
 #ifdef __cplusplus
 }

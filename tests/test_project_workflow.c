@@ -80,7 +80,13 @@ int main(int argc, char **argv)
     int reloadFlow = (argc == 2 && strcmp(argv[1], "reload") == 0) || compareFlow;
     int editCommands = argc == 2 && strcmp(argv[1], "edit-commands") == 0;
     int fileSearch = argc == 2 && strcmp(argv[1], "find-in-files") == 0;
+    int presetLaunch = argc == 2 && strcmp(argv[1], "preset-launch") == 0;
+    /* Extend the actual project workflow with named stages and a data-folder
+     * launch. The earlier mode guard remains for review of existing scenarios. */
+#if 0
     CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow || editCommands);
+#endif
+    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow || editCommands || presetLaunch);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -105,6 +111,31 @@ int main(int argc, char **argv)
     CHECK(UmiDeveloperProjectCreateNew(projects, &request, &report, &model, &profile) == UMI_STATUS_OK);
     CHECK(report.files_created >= 6U && report.files_skipped == 0U);
     CHECK(UmiDeveloperProjectCreateNew(projects, &request, &report, &model, &profile) == UMI_STATUS_ALREADY_EXISTS);
+    if (presetLaunch) {
+        /* Inherit the generated platform toolchain but give every stage a
+         * distinct name. Keep the original preset file and ordinary profile
+         * paths so install and diagnostic lookup still describe that tree. */
+        char userPresets[UMI_PATH_CAPACITY], settings[2048], dataFolder[UMI_PATH_CAPACITY], marker[UMI_PATH_CAPACITY];
+        CHECK(profile.preset[0] != '\0');
+        int written = snprintf(settings, sizeof(settings),
+            "{\"version\":6,\"configurePresets\":[{\"name\":\"notes-configure\",\"inherits\":\"%s\"}],"
+            "\"buildPresets\":[{\"name\":\"notes-build\",\"configurePreset\":\"notes-configure\",\"jobs\":2}],"
+            "\"testPresets\":[{\"name\":\"notes-check\",\"configurePreset\":\"notes-configure\"}]}\n", profile.preset);
+        CHECK(written > 0 && (size_t)written < sizeof(settings));
+        CHECK(umi_fs_join(userPresets, sizeof(userPresets), root, "CMakeUserPresets.json") == UMI_STATUS_OK);
+        CHECK(!umi_fs_exists(userPresets));
+        CHECK(umi_fs_write_text(userPresets, settings) == UMI_STATUS_OK);
+        profile.preset[0] = '\0';
+        strcpy(profile.configure_preset, "notes-configure");
+        strcpy(profile.build_preset, "notes-build");
+        strcpy(profile.test_preset, "notes-check");
+        strcpy(profile.run_working_directory, "sample data");
+        strcpy(profile.run_arguments, "--check-data");
+        CHECK(umi_fs_join(dataFolder, sizeof(dataFolder), root, "sample data") == UMI_STATUS_OK);
+        CHECK(umi_fs_make_directories(dataFolder) == UMI_STATUS_OK);
+        CHECK(umi_fs_join(marker, sizeof(marker), dataFolder, "marker.txt") == UMI_STATUS_OK);
+        CHECK(umi_fs_write_text(marker, "selected-folder") == UMI_STATUS_OK);
+    }
     CHECK(umi_studio_bootstrap_create_with_options(&options, &bootstrap) == UMI_STATUS_OK);
     CHECK(umi_studio_bootstrap_start(bootstrap) == UMI_STATUS_OK);
     services = umi_studio_bootstrap_services(bootstrap); build = umi_studio_services_build(services);
@@ -121,6 +152,17 @@ int main(int argc, char **argv)
     CHECK(umi_fs_join(source, sizeof(source), root, "src/main.c") == UMI_STATUS_OK);
     CHECK(umi_document_coordinator_open(documents, source, viewId, sizeof(viewId)) == UMI_STATUS_OK);
     CHECK(EditSource(workbench, viewId, "#include <stdio.h>\nint main(void){puts(\"Umicom Notes: saved and built\");return 0;}\n", largeSource) == EXIT_SUCCESS);
+    if (presetLaunch) {
+        /* Run receives --check-data and must find this file from its selected
+         * data directory. CTest's no-argument smoke test remains independent. */
+        CHECK(Edit(workbench, viewId,
+            "#include <stdio.h>\n#include <string.h>\n"
+            "int main(int argc,char **argv){if(argc>1 && strcmp(argv[1],\"--check-data\")==0){"
+            "char text[64]={0};FILE *file=fopen(\"marker.txt\",\"r\");if(file==NULL)return 7;"
+            "if(fgets(text,sizeof(text),file)==NULL){fclose(file);return 8;}fclose(file);"
+            "if(strcmp(text,\"selected-folder\")!=0)return 9;puts(\"Program data folder verified\");}"
+            "puts(\"Umicom Notes: saved and built\");return 0;}\n") == EXIT_SUCCESS);
+    }
     if (editCommands) {
         UmiDocumentWorkingCopySnapshot target, active;
         UmiDocumentEditPlan *plan = NULL;
@@ -301,6 +343,22 @@ int main(int argc, char **argv)
         CHECK(UmiStudioUiSearchOpen(ui, search.requestId, 0U) == UMI_STATUS_NOT_FOUND);
         CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench), notesView, &draft, &length) == UMI_STATUS_OK);
         CHECK(strncmp(draft, "New unsaved first line", strlen("New unsaved first line")) == 0); UmiUiDocumentViewModelFreeText(draft);
+        /* Scope belongs to the captured request, not to the next UI query.
+         * Excluding this saved note must not save or replace its open draft. */
+        UmiSearchPathFilter filter, captured;
+        CHECK(UmiSearchPathFilterInit("*.txt", "notes-search.txt", &filter) == UMI_STATUS_OK);
+        CHECK(UmiStudioUiSearchStartFiltered(ui, "UMICOM_SEARCH_MARKER", 1, &filter) == UMI_STATUS_OK);
+        for (unsigned n = 0U; n < 10000U; ++n) {
+            CHECK(UmiStudioUiSearchRead(ui, &search) == UMI_STATUS_OK);
+            if (!search.active) break;
+            umi_thread_sleep_ms(1U);
+        }
+        CHECK(search.ready && search.stats.matches == 0U);
+        CHECK(UmiStudioUiSearchFilterRead(ui, search.requestId, &captured) == UMI_STATUS_OK);
+        CHECK(strcmp(captured.include_patterns, "*.txt") == 0 && strcmp(captured.exclude_patterns, "notes-search.txt") == 0);
+        CHECK(UmiUiDocumentViewModelCopyText(umi_ui_workbench_documents(workbench), notesView, &draft, &length) == UMI_STATUS_OK);
+        CHECK(strncmp(draft, "New unsaved first line", strlen("New unsaved first line")) == 0);
+        UmiUiDocumentViewModelFreeText(draft);
         /* Changing workspace identity invalidates old results even before a
          * new search is started; no old row can open a previous project. */
         CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
@@ -325,6 +383,7 @@ int main(int argc, char **argv)
     CHECK(Wait(build, UMI_STATUS_OK, result) == EXIT_SUCCESS);
     CHECK(result->phase == UMI_BUILD_PHASE_RUN);
     CHECK(strstr(result->output, "Umicom Notes: saved and built") != NULL);
+    if (presetLaunch) CHECK(strstr(result->output, "Program data folder verified") != NULL);
     CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_TEST,
         "background", message, sizeof(message)) == UMI_STATUS_OK);
     CHECK(Wait(build, UMI_STATUS_OK, result) == EXIT_SUCCESS);

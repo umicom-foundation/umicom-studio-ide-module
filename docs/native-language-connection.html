@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Check a language server in Studio</title><style>body{font:17px/1.6 system-ui;max-width:880px;margin:32px auto;padding:0 24px;color:#18363f}code{background:#eef3f5}</style></head><body>
+<h1>Check a language server in Studio</h1>
+<p>A language server is a local program that analyses source code. Studio's Outline panel includes a connection check for servers that communicate through standard input and standard output. It checks the protocol handshake and displays selected capabilities, then closes the server.</p>
+<h2>Run a connection check</h2><ol>
+<li>Install the server you want to use. For a C project this might be clangd. Select an executable you trust and a folder you are comfortable letting it inspect.</li>
+<li>Open Studio's <strong>Outline</strong> panel. Find <strong>Check language server</strong> below the language-service summary. Opening the panel runs nothing.</li>
+<li>Enter the full path in <strong>Server executable</strong>, including the executable filename. A path containing spaces does not need surrounding quotes in this field.</li>
+<li>Enter any arguments required by that server. This field accepts quoted argument values and does not expand shell expressions. Leave it empty when the server needs no arguments.</li>
+<li>Review <strong>Project folder</strong>. It starts with the folder that was open when the panel was created. You may edit it before checking.</li>
+<li>Select <strong>Check language server</strong>. The check runs on a worker so the form can remain responsive. Use <strong>Cancel check</strong> to request cancellation.</li>
+<li>Read the result. Success reports a completed handshake, child shutdown and whether the server advertises completion, hover, definitions, references and formatting.</li></ol>
+<h2>Understand the result</h2>
+<p>This action does not activate editor completion, configure the existing language-service summary, send document text or save the selected settings. The server is closed after the check. A server can inspect the project directory during its own initialization, and a successful handshake does not prove that every advertised feature works for the current project.</p>
+<p>Changing a field during a check invalidates the old result, even if you change it back. Hiding or closing the panel requests cancellation. When you return, run a fresh check for the displayed values. Native startup and synchronous writes cannot always be interrupted immediately; child cleanup may finish after the panel closes.</p>
+<h2>Resolve a failure</h2><ol>
+<li>Check that both paths are absolute and point to the intended executable and directory. A missing tool is not installed automatically.</li>
+<li>Confirm that the server supports standard-input and standard-output communication. A network-only server needs a different transport.</li>
+<li>Review its required arguments and installed dependencies. The server's standard-error diagnostics remain separate from protocol stdout and may be visible in the console used to launch Studio.</li>
+<li>For a timeout, check the server's own logs or startup requirements before retrying. The UI reports initialization and shutdown separately so an initialization success cannot hide a cleanup failure.</li></ol>
+<p>Framework owns native argument handling, Unicode Windows paths, handshake correlation and cleanup. Studio only embeds the form and supplies an editable project-folder draft.</p>
+</body></html>

@@ -1,0 +1,60 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{font:17px/1.6 system-ui;max-width:960px;margin:36px auto;padding:0 24px;color:#193542}code{overflow-wrap:anywhere}td,th{padding:10px;border:1px solid #cbdce1;text-align:left}table{border-collapse:collapse}</style>
+<title>Explore document symbols in Studio</title></head><body>
+<h1>Explore document symbols in Studio</h1>
+<p>To find names across the server's project index, use <a href="PROJECT_SYMBOLS.html">project symbol search</a>. Document outlines remain the default.</p>
+<p>Symbols gives you a searchable outline of the active source draft and opens
+a selected declaration through the same document owner used by the editor.</p>
+<ol>
+<li>Open a source document. The outline uses the whole current draft, including
+unsaved changes. Read-only documents are supported.</li>
+<li>Choose <strong>Symbols…</strong> in the editor command bar, or
+<strong>Document symbols…</strong> in the Outline panel. Scroll the command bar
+horizontally if necessary. Opening the form captures the draft; it does not
+start a program.</li>
+<li>Enter a trusted language server's absolute executable path, arguments and
+project folder, or choose <strong>Load saved server</strong>. The same per-language
+local settings serve completion, formatting, source information and navigation.
+Loading settings does not start the server. Paths and arguments are unencrypted
+preferences, so keep credentials out of them.</li>
+<li>Choose <strong>Request document symbols</strong>. The selected local server
+receives the captured source and can inspect the project folder. The temporary
+connection closes before its result is published.</li>
+<li>Search the list for a name. Rows show the symbol kind, any deprecation marker,
+its URI and position, and available detail or container text. Indentation means
+the server supplied an explicit parent-child relationship. Flat server results
+remain flat even when they name a container.</li>
+<li>Select a row and choose <strong>Open selected location</strong>. A hierarchical
+symbol selects its identifier range. A flat result opens the starting caret of
+its reveal range. Existing unsaved target drafts are kept. Back and Forward use
+the normal document navigation history; this action neither saves nor edits text.</li>
+</ol>
+<h2>Troubleshooting</h2><table>
+<tr><th>What you see</th><th>What to try</th></tr>
+<tr><td>An empty outline</td><td>The server may return no symbols for this document.
+Check its language and project settings. A temporary connection may not have
+the indexing state available to a persistent editor session.</td></tr>
+<tr><td>Stale capture or unavailable opening</td><td>Close the form and capture
+again after editing, moving the caret, saving or changing permissions. Changing
+server settings invalidates the current list. No stale row is used to edit source.</td></tr>
+<tr><td>Unsupported capability</td><td>The server must advertise document symbols,
+document open/close synchronization and UTF-16 positions. This workflow does not
+handle arbitrary server-to-client configuration requests.</td></tr>
+<tr><td>Timeout or excessive response</td><td>The native form has a five-second
+read budget, a 65536-byte message capacity including the escaped draft and JSON
+envelope, and at most 4096 parser tokens. A large outline or draft can exceed this.
+Synchronous launch and writes may finish before cancellation.</td></tr>
+<tr><td>A destination cannot open</td><td>The selected range must fit the current
+target. New destinations require a supported local file URI. A source file moved
+since indexing or an out-of-range result is refused without replacing the current draft.</td></tr>
+</table>
+<p>The Outline panel's connection check remains a separate source-free probe.
+Symbols is an explicit request, with a searchable indented list rather than a
+persistent collapsible tree. No automatic project indexing, server installation
+or caret tracking is performed. Loading a new local destination is synchronous;
+filesystem aliases may be followed.</p>
+<p>See <a href="SOURCE_NAVIGATION.html">definitions and references</a>,
+<a href="SOURCE_INFORMATION.html">symbol information</a> and
+<a href="LANGUAGE_COMPLETION.html">saved language-server settings</a>.</p><p><a href="PARAMETER_HELP.html">Read function parameter help</a></p>
+</body></html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Change a paused program's variable — Umicom Studio IDE</title>
+<style>body{font:17px/1.6 system-ui,sans-serif;max-width:850px;margin:3rem auto;padding:0 1.3rem;color:#18232d;background:#f8fafb}h1,h2{line-height:1.2}a{color:#085f83}</style></head><body>
+<!-- Umicom Studio IDE | Sammy Hegab, Umicom Foundation | MIT -->
+<h1>Change a paused program's variable</h1>
+<p>Use this workflow when you want to try a different runtime value while debugging.
+It changes the running program; it does not rewrite your source code or save a permanent setting.</p>
+<ol><li>Configure a native debugger, start a debug session and pause at the place you want to inspect.</li>
+<li>Open the Debug workspace. Choose the stopped thread and frame, then use <strong>Inspect scope</strong> or <strong>Inspect children</strong> to find a variable.</li>
+<li>Expand <strong>Change value in paused program</strong> beneath that variable. Enter the new value using the program's language. For example, enter <code>7</code> for an integer; string syntax depends on the adapter and language.</li>
+<li>Review the variable name, its captured value and your replacement. Select <strong>Apply this value to the paused program</strong>, then choose <strong>Set value</strong>. Changing your draft clears that confirmation.</li>
+<li>Read the notification. After an attempted assignment, old variable rows are removed because their references may no longer be valid.</li>
+<li>Choose <strong>Inspect scope</strong> again to read current values. This is a separate request; an assignment confirmation alone is not a readback.</li></ol>
+<h2>If the action is unavailable</h2>
+<p>The adapter must advertise variable assignment and the session must be paused with a current captured row.
+Scopes themselves cannot be assigned. Several children with the same name remain inspectable, but the assignment button is disabled because the adapter cannot identify that row unambiguously.
+Hover over <strong>Set value</strong> to see why it is unavailable.</p>
+<h2>If the assignment is not confirmed</h2>
+<p>A timeout or malformed reply can happen after the program has already changed. Do not keep pressing the old button.
+Inspect the current scope, or pause again if execution resumed, and decide what to do from fresh evidence.
+Studio never retries the assignment automatically.</p>
+<p>If a preflight check refused the action, no request was sent and the draft remains available.
+The replacement must fit within 1023 UTF-8 bytes. An empty draft is a real empty replacement only when you explicitly confirm it.
+Adapters may execute target code while assigning a value, so inspect the stopped location before changing it.</p>
+<p>This workflow edits named variables through the adapter's <code>setVariable</code> capability. It does not provide arbitrary expression assignment, automatic undo or assignment support for an adapter that lacks that capability.</p>
+</body></html>

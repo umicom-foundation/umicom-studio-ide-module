@@ -18,6 +18,8 @@
 
 #include <stddef.h>
 #include "umicom/build/project_session.h"
+#include "umicom/build/live_output.h"
+#include "umicom/build/log_capture.h"
 
 #include "umicom/umicom.h"
 
@@ -183,6 +185,22 @@ UmiStatus UmiStudioBuildCollect(UmiStudioBuildService *service, UmiBuildResult *
 int UmiStudioBuildBusy(UmiStudioBuildService *service);
 UmiStatus UmiStudioBuildProgress(UmiStudioBuildService *service,
     UmiBuildProjectSessionSnapshot *outSnapshot);
+
+/* Read current worker output without creating a worker or collecting results.
+ * The caller owns the copied snapshot; allocate it on the heap in UI code. */
+UmiStatus UmiStudioBuildReadOutput(UmiStudioBuildService *service, UmiBuildOutputSnapshot *outSnapshot);
+
+/* A log selection applies only to the next accepted background job. Reading
+ * this state never creates a worker or opens a file. Studio leaves actual file
+ * ownership, progress and close handling to Framework. */
+typedef struct UmiStudioBuildLogState {
+    char next_path[UMI_PATH_CAPACITY];
+    UmiBuildLogSnapshot captured;
+} UmiStudioBuildLogState;
+/* Owner-thread only. NULL/empty disables the next log; busy jobs refuse edits.
+ * Syntax validation does not reserve a path. Submission checks exclusivity. */
+UmiStatus UmiStudioBuildArmLog(UmiStudioBuildService *service, const char *path);
+UmiStatus UmiStudioBuildReadLog(UmiStudioBuildService *service, UmiStudioBuildLogState *out_state);
 
 #ifdef __cplusplus
 }

@@ -25,7 +25,15 @@ static void RuntimeDebugConfigure(GtkButton *button, gpointer context)
     UmiStudioGtkRuntimeChrome *runtime = context;
     if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL ||
         runtime->debug_adapter_kind == NULL || runtime->debug_adapter_executable == NULL) return;
+    if (g_object_get_data(G_OBJECT(runtime->debug_adapter_executable), "umicom-debug-preference-pending") != NULL) {
+        runtime_show_notification(runtime, "Wait for adapter preferences to finish before using this draft.");
+        return;
+    }
     guint selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(runtime->debug_adapter_kind));
+    if (selected > 1U) {
+        runtime_show_notification(runtime, "Choose GDB or LLDB before using an adapter.");
+        return;
+    }
     const char *path = gtk_editable_get_text(GTK_EDITABLE(runtime->debug_adapter_executable));
     UmiStatus status = UmiStudioDebuggerConfigureNative(
         umi_studio_services_debugger(umi_studio_ui_services(runtime->owner->ui)),
@@ -34,6 +42,8 @@ static void RuntimeDebugConfigure(GtkButton *button, gpointer context)
         ? "Native debugger selected. Debug builds the project before starting it."
         : umi_status_text(status));
 }
+
+#include "debug_preferences.inc"
 
 static const char *runtime_debug_thread_argument(
     UmiStudioGtkRuntimeChrome *runtime)

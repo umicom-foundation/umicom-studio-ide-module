@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/debugger.h"
+#include "umicom/build/launch_plan.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -729,6 +730,19 @@ int UmiStudioDebuggerNativeBusy(const UmiStudioDebuggerService *service)
     return service->launchPending || (umi_debug_runtime_platform_snapshot(service->native, &snapshot) == UMI_STATUS_OK && snapshot.active);
 }
 
+/* Present the service's accepted choice instead of resetting the controls to
+ * platform defaults whenever the debugger panel is reopened. */
+UmiStatus UmiStudioDebuggerNativeChoice(const UmiStudioDebuggerService *service,
+    char *kind, size_t kindCapacity, char *executable, size_t executableCapacity)
+{
+    if (service == NULL || kind == NULL || executable == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    size_t kindSize = strlen(service->nativeKind), executableSize = strlen(service->nativeExecutable);
+    if (kindSize >= kindCapacity || executableSize >= executableCapacity) return UMI_STATUS_CAPACITY_EXCEEDED;
+    memcpy(kind, service->nativeKind, kindSize + 1U);
+    memcpy(executable, service->nativeExecutable, executableSize + 1U);
+    return UMI_STATUS_OK;
+}
+
 UmiStatus UmiStudioDebuggerConfigureNative(UmiStudioDebuggerService *service,
     const char *kind, const char *executable)
 {
@@ -805,6 +819,11 @@ UmiStatus UmiStudioDebuggerPollNative(UmiStudioDebuggerService *service, UmiStud
         if (status == UMI_STATUS_OK && (current == NULL ||
             !umi_build_profile_equal(current, &service->launchProfile)))
             status = UMI_STATUS_INVALID_STATE;
+        /* Shared launch descriptions keep the debugger's program, working
+         * folder and argument boundaries identical to the reviewed settings.
+         * The previous application-side assembly is retained for engineering
+         * review, including its earlier compatibility references. */
+#if 0
         char program[UMI_BUILD_PATH_CAPACITY];
         if (status == UMI_STATUS_OK) {
             if (umi_fs_is_absolute(service->launchProfile.run_program))
@@ -813,9 +832,49 @@ UmiStatus UmiStudioDebuggerPollNative(UmiStudioDebuggerService *service, UmiStud
                 service->launchProfile.run_program);
         }
         if (status == UMI_STATUS_OK)
+        {
+            /* Resolve arguments through Framework, exactly as Run does. This
+             * preserves a legacy literal argument and supports reviewed lists
+             * without Studio carrying its own parser. The old call is retained
+             * for review because it parsed the literal field as command text. */
+#if 0
             status = UmiDebugRuntimePlatformLaunchNative(service->native, service->nativeKind,
                 service->nativeExecutable, program, service->launchProfile.source_directory,
                 service->launchProfile.run_argument, 3000U);
+#endif
+            UmiArguments arguments;
+            status = UmiBuildProfileArguments(&service->launchProfile, &arguments);
+            /* Framework resolves the same saved working folder used by Run.
+             * The previous project-root-only call remains for review; program
+             * lookup is still relative to the project, not the data folder. */
+#if 0
+            if (status == UMI_STATUS_OK)
+                status = UmiDebugRuntimePlatformLaunchArguments(service->native, service->nativeKind,
+                    service->nativeExecutable, program, service->launchProfile.source_directory,
+                    arguments.values, arguments.count, 3000U);
+#endif
+            char workingDirectory[UMI_BUILD_PATH_CAPACITY];
+            if (status == UMI_STATUS_OK)
+                status = UmiBuildProfileLaunchDirectory(&service->launchProfile,
+                    service->launchProfile.source_directory, workingDirectory, sizeof(workingDirectory));
+            if (status == UMI_STATUS_OK)
+                status = UmiDebugRuntimePlatformLaunchArguments(service->native, service->nativeKind,
+                    service->nativeExecutable, program, workingDirectory,
+                    arguments.values, arguments.count, 3000U);
+        }
+#endif
+        if (status == UMI_STATUS_OK) {
+            UmiBuildLaunchPlan launch;
+            status = UmiBuildLaunchPlanCreate(&service->launchProfile,
+                service->launchProfile.source_directory, &launch);
+            if (status == UMI_STATUS_OK) {
+                const char *arguments[UMI_ARGUMENTS_CAPACITY];
+                for (size_t i = 0U; i < launch.argument_count; ++i) arguments[i] = launch.arguments[i];
+                status = UmiDebugRuntimePlatformLaunchArguments(service->native, service->nativeKind,
+                    service->nativeExecutable, launch.debug_program, launch.working_directory,
+                    arguments, launch.argument_count, 3000U);
+            }
+        }
         service->nativeStatus = status;
         if (status != UMI_STATUS_OK) return status;
     }
@@ -917,6 +976,106 @@ UmiStatus UmiStudioDebuggerInspectVariable(UmiStudioDebuggerService *service,
     if (service->launchPending) return UMI_STATUS_BUSY;
     if (!service->nativeMode) return UMI_STATUS_INVALID_STATE;
     UmiStatus status = UmiDebugRuntimeInspectVariable(service->native, service->workspace, target, 1500U, out);
+    service->nativeStatus = status;
+    return status;
+}
+
+/* Studio supplies product state checks; Framework owns container identity,
+ * capability negotiation, transport and capture invalidation. Keep this wrapper
+ * thin so another native debugger host can use exactly the same rules. */
+UmiStatus UmiStudioDebuggerCheckVariableAssignment(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target)
+{
+    if (service == NULL || target == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->launchPending) return UMI_STATUS_BUSY;
+    if (!service->nativeMode) return UMI_STATUS_INVALID_STATE;
+    return UmiDebugRuntimeCheckVariableAssignment(service->native, service->workspace, target);
+}
+UmiStatus UmiStudioDebuggerAssignVariable(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target, const char *value, UmiDebugVariableAssignment *out)
+{
+    if (out == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    memset(out, 0, sizeof *out);
+    UmiStatus status = UmiStudioDebuggerCheckVariableAssignment(service, target);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiDebugRuntimeAssignVariable(service->native, service->workspace, target, value, 1500U, out);
+    if (out->attempted) service->nativeStatus = status;
+    return status;
+}
+
+
+/* Keep the compatibility projection coherent without giving it authority over
+ * native desired settings. All allocations and capacity checks precede the
+ * Framework publication. Replacing this private legacy owner cannot invalidate
+ * a public borrowed handle because Studio never exposes this registry. */
+UmiStatus UmiStudioDebuggerApplySetup(UmiStudioDebuggerService *service, const UmiDebugSetupReview *review)
+{
+    if (service == NULL || review == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiDebugRuntimePlatformSnapshot native;
+    UmiStatus status = umi_debug_runtime_platform_snapshot(service->native, &native);
+    if (status != UMI_STATUS_OK)
+        return status;
+    if (service->launchPending || native.active)
+        return UMI_STATUS_BUSY;
+    status = UmiDebugSetupReviewValidate(service->workspace, review);
+    UmiDebugSetupSummary summary;
+    const UmiDebugSetup *setup = UmiDebugSetupReviewAfter(review);
+    if (status == UMI_STATUS_OK)
+        status = UmiDebugSetupInspect(setup, &summary);
+    UmiDapBreakpointRegistry *prepared = NULL;
+    if (status == UMI_STATUS_OK)
+        status = umi_dap_breakpoint_registry_create(&prepared);
+    for (size_t i = 0U; status == UMI_STATUS_OK && i < summary.breakpoints; ++i)
+    {
+        UmiDebugSetupBreakpoint item;
+        status = UmiDebugSetupBreakpointAt(setup, i, &item);
+        if (status != UMI_STATUS_OK)
+            break;
+        UmiDapBreakpoint legacy = {0};
+        size_t length = strlen(item.source);
+        if (length >= sizeof legacy.source_path)
+        {
+            status = UMI_STATUS_CAPACITY_EXCEEDED;
+            break;
+        }
+        memcpy(legacy.source_path, item.source, length + 1U);
+        legacy.line = (int)item.line;
+        legacy.column = (int)item.column;
+        legacy.enabled = item.enabled;
+        status = umi_dap_breakpoint_add(prepared, &legacy);
+    }
+    if (status == UMI_STATUS_OK)
+        status = UmiDebugSetupReviewApply(service->workspace, review);
+    if (status == UMI_STATUS_OK)
+    {
+        UmiDapBreakpointRegistry *previous = service->breakpoints;
+        service->breakpoints = prepared;
+        prepared = previous;
+    }
+    umi_dap_breakpoint_registry_destroy(prepared);
+    return status;
+}
+
+/* Studio contributes product lifecycle gates. Framework keeps byte bounds,
+ * response parsing and stopped-frame ownership reusable by other frontends. */
+UmiStatus UmiStudioDebuggerCheckMemory(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target)
+{
+    if (service == NULL || target == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->launchPending) return UMI_STATUS_BUSY;
+    if (!service->nativeMode) return UMI_STATUS_INVALID_STATE;
+    return UmiDebugRuntimeCheckMemory(service->native, service->workspace, target);
+}
+UmiStatus UmiStudioDebuggerInspectMemory(UmiStudioDebuggerService *service,
+    const UmiDebugVariableTarget *target, int64_t offset, uint32_t count,
+    UmiDebugMemoryCapture **out)
+{
+    if (out == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    *out = NULL;
+    UmiStatus status = UmiStudioDebuggerCheckMemory(service, target);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiDebugRuntimeInspectMemory(service->native, service->workspace, target, offset, count, 1500U, out);
     service->nativeStatus = status;
     return status;
 }

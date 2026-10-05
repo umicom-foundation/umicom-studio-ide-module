@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Format a document in Studio</title>
+<style>body{font:17px/1.6 system-ui;max-width:900px;margin:36px auto;padding:0 24px;color:#193542}</style></head>
+<body><h1>Format a document in Studio</h1>
+<p>To focus a request on selected text, use <a href="SELECTION_FORMATTING.html">selected-range formatting</a> and review its complete result. Whole-document formatting remains the default.</p>
+<p>The editor's <strong>Format…</strong> action asks a selected language server
+to format your complete draft, including unsaved text. Opening the form does
+not start the server or change the document.</p><ol>
+<li>Open a writable source document and choose <strong>Format…</strong>.
+Scroll the editor command bar horizontally if the action is outside the visible area.</li>
+<li>Enter a trusted server's absolute executable path and arguments, or choose
+<strong>Load saved server</strong>. Check the project folder. You can save the
+path and ordinary arguments for this language; they remain local JSON settings.</li>
+<li>Choose tab width and whether to use spaces. These options apply to this
+request. Formatting covers the whole document even if text is selected.</li>
+<li>Choose <strong>Request formatting</strong>, then <strong>Preview complete
+draft</strong>. Inspect the complete result before selecting the approval checkbox.</li>
+<li>Choose <strong>Apply to captured draft</strong>. Undo restores the earlier
+text; Save writes the accepted text to disk. Cancel changes nothing.</li></ol>
+<p>If the draft or selection changed, close the form and capture again.
+Changing server or indentation settings discards the previous result. An empty
+result is valid and leaves the document unchanged. Completion and formatting
+share one review slot.</p>
+<p>The server must support document formatting, open/close synchronization and
+UTF-16 positions. This temporary workflow has a five-second read budget and a
+65536-byte JSON message capacity including escaped source and the envelope,
+with at most 4096 parser tokens. It rejects invalid or overlapping edits and
+does not implement format-on-save, range formatting, persistent indexing,
+server installation or client configuration callbacks.</p>
+<p>Keep credentials out of server arguments; saved settings are not encrypted.
+See <a href="LANGUAGE_COMPLETION.html">saved server choices and completion</a>
+for the related editor workflow.</p></body></html>

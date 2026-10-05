@@ -65,6 +65,8 @@ UmiStatus umi_studio_coding_assistant_approve_patch(
  * Initialise studio coding workspace adapter from caller-provided values so later
  * operations receive a known state.
  */
+/* Capture an absolute workspace root and use Framework's bounded native file
+ * service. Initialization creates no directory and approves no patch. */
 UmiStatus umi_studio_coding_workspace_adapter_init(
     UmiStudioCodingWorkspace *workspace,
     const char *root,

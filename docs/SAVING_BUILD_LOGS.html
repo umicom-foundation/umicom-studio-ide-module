@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Save a complete build log in Studio</title><style>body{font:17px/1.6 system-ui;max-width:900px;margin:2rem auto;padding:0 24px;color:#18252d}code,pre{font-family:monospace}pre{padding:16px;background:#f1f5f7;overflow:auto}h1,h2{line-height:1.2}a{color:#07658a}</style></head><body><main><h1>Save a complete build log in Studio</h1>
+<p>Studio can save output to a file while the Output surface follows the running job. The file records all output
+emitted by the background workflow, including text that no longer fits in the live viewer.</p>
+<h2>Choose a file for the next job</h2><ol>
+<li>Open the Output surface. Find <strong>Save complete emitted output to a new file</strong>.</li>
+<li>Enter an absolute filename in an existing folder you control. For example, if you have created
+<code>C:\umicom-build-logs</code>, enter <code>C:\umicom-build-logs\studio-build.log</code>.
+Choose a location outside your source checkout when you want logs kept out of commits.</li>
+<li>Choose <strong>Use log for next job</strong>. The status shows the selected path. Typing alone does not select
+the file, reserve it or start a build.</li>
+<li>Review Project Settings and workspace trust, then start a background action from the Build surface.
+The next accepted background job consumes the selection. This also applies to the build requested before native debugging.</li>
+<li>Follow compilation in Output as usual. Pausing Follow output affects only the display; the log continues to record.</li>
+<li>When the job ends, check the build result and log status separately. <strong>Emitted output saved</strong> confirms
+capture of the bytes received, not that compilation or tests passed.</li>
+<li>Use <strong>Copy log path</strong> to copy the path of the last accepted job's log, then open it with your preferred
+text or binary viewer. This button does not copy a filename that is still only a draft.</li></ol>
+<p>Select a fresh filename before another job if you want another log. <strong>Disable next log</strong> clears the
+pending selection. It does not delete existing logs. A busy job refuses changes to the selection.</p>
+<h2>If a log cannot be saved</h2><ol>
+<li>If the filename already exists, the job is refused before its commands run. Choose a different name and select it again.</li>
+<li>If the parent folder is missing or inaccessible, correct the path or folder permissions. Studio does not create folders here.</li>
+<li>If a write, flush or close fails after the job starts, the log status reports incomplete capture. Keep the partial
+file and inspect the build result separately. Studio does not automatically retry, overwrite, cancel or restart the build.</li>
+<li>If you cancel, bytes already emitted are retained and the log is closed. The file cannot recover output that the
+tool kept in its own buffers or output from phases that never ran.</li></ol>
+<h2>Output and retention</h2>
+<p>The log is raw combined standard output and standard error. It contains no inserted phase headings or command
+summaries. The existing completed-result view and build history provide that context. The live display may repair
+text for readability; the file preserves the original bytes instead. A log may therefore need a binary viewer.</p>
+<p>Logs have no automatic rotation or size limit and remain on disk until you manage them. Storage problems and slow
+disks can affect writing and job completion. Review logs before sharing them because programs may print private paths
+or other sensitive values. The selection is session state, not a saved project setting. It applies to background
+build workflows; older synchronous service calls and unrelated terminals keep their existing behaviour.</p>
+</main></body></html>

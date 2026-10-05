@@ -425,6 +425,11 @@ static const char *runtime_surface_component_id(UmiStudioRuntimeSurfaceKind kind
 static const UmiStudioGtkCommandProfile RUNTIME_COMMAND_PROFILES[] = {
 #include "profiles/commands/new.inc"
 #include "profiles/commands/open.inc"
+#include "profiles/commands/reopen_document.inc"
+#include "profiles/commands/navigation_history.inc"
+#include "profiles/commands/bookmarks.inc"
+#include "profiles/commands/replacement_review.inc"
+#include "profiles/commands/replacement_set.inc"
 #include "profiles/commands/save.inc"
 #include "profiles/commands/save_all.inc"
 #include "profiles/commands/build.inc"
@@ -492,6 +497,7 @@ static const UmiStudioGtkStatusProfile RUNTIME_STATUS_PROFILES[] = {
     {lower_, upper_, modifiers_, command_, label_},
 static const UmiStudioGtkKeyProfile RUNTIME_KEY_PROFILES[] = {
 #include "profiles/keybindings/command_palette.inc"
+#include "profiles/keybindings/quick_open.inc"
 #include "profiles/keybindings/layout_browser.inc"
 #include "profiles/keybindings/save.inc"
 #include "profiles/keybindings/document_tabs.inc"

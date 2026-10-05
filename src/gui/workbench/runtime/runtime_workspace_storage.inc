@@ -12,6 +12,77 @@ static const UmiUiWorkspaceCheckpointScope STUDIO_CANVAS_SCOPE = {
     "org.umicom.studio", "desktop", UMI_STUDIO_RUNTIME_WORKSPACE_PREFIX
 };
 
+/* The recovery callback keeps Studio's editor bodies and compatibility labels
+ * under their existing owner. Only the library action path may use metadata
+ * publication; importing or navigating history always rebuilds the layout. */
+typedef struct StudioLibraryPublication {
+    UmiStudioGtkRuntimeChrome *runtime;
+    bool metadata_only;
+} StudioLibraryPublication;
+static UmiStatus runtime_workspace_history_publish(const UmiUiWorkspaceCustomisation *candidate, void *context)
+{
+    StudioLibraryPublication *publication = context;
+    UmiStudioGtkRuntimeChrome *runtime = publication->runtime;
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    const UmiUiWorkspaceLayout *previous = umi_ui_workspace_customisation_active_const(model);
+    const UmiUiWorkspaceLayout *next = umi_ui_workspace_customisation_active_const(candidate);
+    if (model == NULL || previous == NULL || next == NULL) return UMI_STATUS_INVALID_STATE;
+    if (!publication->metadata_only || strcmp(previous->layout_id, next->layout_id) != 0)
+        return runtime_workspace_publish_candidate(runtime, candidate);
+    const bool renamed = previous->revision != next->revision;
+    const size_t title_length = strlen(next->name);
+    UmiStatus status = UMI_STATUS_OK;
+    if (renamed && (title_length >= sizeof(runtime->shell_layout.title) || runtime->shell_layout.revision == UINT64_MAX))
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    if (renamed) status = umi_gtk4_workspace_layout_host_update_metadata(runtime->workspace_host, next);
+    if (status != UMI_STATUS_OK) return status;
+    if (renamed) {
+        memcpy(runtime->shell_layout.title, next->name, title_length + 1U);
+        ++runtime->shell_layout.revision;
+    }
+    *model = *candidate;
+    runtime_workspace_update_cache(runtime);
+    return UMI_STATUS_OK;
+}
+static UmiStatus runtime_workspace_publish_library_change(UmiStudioGtkRuntimeChrome *runtime,
+    const UmiUiWorkspaceCustomisation *candidate, bool metadata_only)
+{
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    if (candidate->revision == model->revision) return UMI_STATUS_OK;
+    UmiStatus status = UMI_STATUS_OK;
+    if (runtime->workspace_library_history == NULL)
+        status = umi_ui_workspace_library_history_create(&runtime->workspace_library_history);
+    StudioLibraryPublication publication = {runtime, metadata_only};
+    if (status == UMI_STATUS_OK)
+        status = umi_ui_workspace_library_history_record(runtime->workspace_library_history, &STUDIO_CANVAS_SCOPE,
+            model, candidate, runtime_workspace_history_publish, &publication);
+    return status;
+}
+static UmiStatus runtime_workspace_library_history_read(UmiUiWorkspaceLibraryHistoryState *out_state, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    if (model == NULL || out_state == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (runtime->workspace_library_history == NULL) { *out_state = (UmiUiWorkspaceLibraryHistoryState){0}; return UMI_STATUS_OK; }
+    return umi_ui_workspace_library_history_read(runtime->workspace_library_history, model->revision, out_state);
+}
+static UmiStatus runtime_workspace_library_history_navigate(UmiUiWorkspaceLibraryHistoryDirection direction,
+    uint64_t expected_revision, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    if (model == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (runtime->workspace_library_history == NULL) return UMI_STATUS_NOT_FOUND;
+    StudioLibraryPublication publication = {runtime, false};
+    UmiStatus status = umi_ui_workspace_library_history_navigate(runtime->workspace_library_history, &STUDIO_CANVAS_SCOPE,
+        model, direction, expected_revision, runtime_workspace_history_publish, &publication);
+    if (status == UMI_STATUS_OK && runtime->workspace_library != NULL)
+        (void)umi_gtk4_ws_layout_library_refresh(runtime->workspace_library);
+    return status;
+}
+
 /* An explicit backend binding reads library evidence once without publishing
  * it. Normal status refreshes remain cached and do not perform database I/O. */
 static void runtime_workspace_probe_library_storage(UmiStudioGtkRuntimeChrome *runtime)
@@ -116,7 +187,12 @@ static UmiStatus runtime_workspace_library_storage_operation(
         if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
         status = umi_ui_workspace_library_checkpoint_load_candidate(runtime->workspace_storage,
             &STUDIO_CANVAS_SCOPE, model, candidate, &report);
+        /* Framework history stages recovery before native publication. The
+         * former direct call is retained for engineering review. */
+#if 0
         if (status == UMI_STATUS_OK) status = runtime_workspace_publish_candidate(runtime, candidate);
+#endif
+        if (status == UMI_STATUS_OK) status = runtime_workspace_publish_library_change(runtime, candidate, false);
     } else return UMI_STATUS_INVALID_ARGUMENT;
     free(candidate);
     runtime->workspace_library_storage_status = status;
@@ -361,4 +437,49 @@ static void runtime_workspace_prepare_storage(UmiStudioGtkRuntimeChrome *runtime
         runtime_show_notification(runtime, "Saved canvas could not be loaded; the default layout was kept.");
     else if (runtime->workspace_checkpoint.recovered_last_good)
         runtime_show_notification(runtime, "Recovered the previous valid canvas checkpoint; the latest record needs attention.");
+}
+
+/* Studio contributes its existing workspace identity only. Framework owns
+ * archive parsing, immutable review and stale-revision refusal; the existing
+ * publisher keeps open documents while rebuilding the accepted arrangement. */
+static UmiStatus runtime_workspace_library_export(char *bytes, size_t capacity, size_t *out_size, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    return umi_ui_workspace_library_export(&STUDIO_CANVAS_SCOPE, model, 0U, bytes, capacity, out_size);
+}
+static UmiStatus runtime_workspace_library_import(const void *bytes, size_t size,
+    UmiUiWorkspaceLibraryImport **out_review, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    return umi_ui_workspace_library_import_review(&STUDIO_CANVAS_SCOPE,
+        runtime_workspace_model(runtime), bytes, size, out_review);
+}
+/* Studio reuses Framework's frozen checkpoint review and native publisher.
+ * Source buffers and running tools remain owned by their existing services. */
+static UmiStatus runtime_workspace_library_saved_review(UmiUiWorkspaceLibraryImport **out_review, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (runtime->workspace_storage == NULL) return UMI_STATUS_UNAVAILABLE;
+    return umi_ui_workspace_library_checkpoint_review(runtime->workspace_storage,
+        &STUDIO_CANVAS_SCOPE, runtime_workspace_model(runtime), out_review);
+}
+static UmiStatus runtime_workspace_library_import_apply(const UmiUiWorkspaceLibraryImport *review, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    UmiUiWorkspaceCustomisation *candidate = malloc(sizeof(*candidate));
+    if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiStatus status = umi_ui_workspace_library_import_candidate(review, &STUDIO_CANVAS_SCOPE,
+        runtime_workspace_model(runtime), candidate);
+/* Stage recovery evidence before publication. The former direct call
+     * is retained for review; the native publisher itself remains in use. */
+#if 0
+    if (status == UMI_STATUS_OK) status = runtime_workspace_publish_candidate(runtime, candidate);
+#endif
+    if (status == UMI_STATUS_OK) status = runtime_workspace_publish_library_change(runtime, candidate, false);
+    free(candidate);
+    /* Reproject the list after its owner accepts the imported arrangement. */
+    if (status == UMI_STATUS_OK && runtime->workspace_library != NULL)
+        (void)umi_gtk4_ws_layout_library_refresh(runtime->workspace_library);
+    return status;
 }

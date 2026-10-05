@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Share Studio workspace layouts</title><style>
+body{font:17px/1.6 system-ui,sans-serif;max-width:850px;margin:48px auto;padding:0 24px;color:#17293a;background:#fafcfe}
+h1,h2{line-height:1.2}code{background:#eaf0f5;padding:2px 5px}li{margin:.7em 0}aside{border-left:4px solid #167a85;padding:12px 18px;background:#eef9fa}
+</style></head><body><main><h1>Share Studio workspace layouts</h1><p>A layout library contains your named panel arrangements, their order and the active selection. Export it to keep a separate copy or move it between compatible workspaces in the same product.</p>
+<h2>Export your layouts</h2><ol><li>Finish or cancel any layout editing, then open <strong>Layout Library</strong>.</li>
+<li>Choose <strong>Export layouts…</strong> and select a destination. The suggested file name is <code>workspace-layouts.umicom-layouts</code>.</li>
+<li>Wait for the export confirmation. Export leaves your current workspace and its saved library unchanged.</li></ol>
+<h2>Review and import</h2><ol><li>Open <strong>Layout Library</strong> and choose <strong>Review layout file…</strong>.</li>
+<!-- The full arrangement review replaces the summary-only display. The previous explanation is retained for engineering review.
+<li>Select the file. Read the proposed names, panel counts, active layout and change totals. Nothing changes during review.</li>
+-->
+<li>Select the file. Compare <strong>Current named layouts</strong> on the left with <strong>Imported named layouts</strong> on the right. Both panes are read-only; select and copy text if you need to inspect a value. Nothing changes during review.</li>
+<li>If the list is correct, select <strong>Replace my named layouts with this reviewed library</strong>, then choose <strong>Apply reviewed layouts</strong>.</li>
+<li>Check the restored arrangement. Use <strong>Save library</strong> separately if you want the imported list to survive restart. The library notice states whether persistent storage is available.</li></ol>
+<aside>The import replaces the complete named list. Export your current library first if you want to keep it. Layout files do not contain document drafts, account state, orders or general application settings.</aside>
+<h2>What the review guarantees</h2><p>The review owns a copy of the selected file's content. Changing that file afterwards cannot change what Apply uses. If the workspace changes after review, Apply refuses the old review; select the file again and review it against the current workspace.</p>
+<!-- Complete geometry evidence now supplements the existing list summary contract. The previous explanation is retained for engineering review.
+<p>The summary compares names, order, panel counts, locking and active selection. Panel geometry is included in the file but is not displayed as a visual difference. Imported tools and context links must already be available in the receiving workspace.</p>
+-->
+<p>The review includes every named layout and panel, including inactive layouts and hidden panels. It shows layout names, stable identifiers, active selection, locking, panel tools, positions, sizes, visibility, floating and maximised states, docking placement, tab stacks, linked context, pinning, resizing and layer order. Imported tools and context links must already be available in the receiving workspace.</p>
+<h2>Read a panel change</h2><ol>
+<li>Find the panel by its <strong>ID</strong>. Two panels can share a title, so a title alone does not establish that they are the same panel.</li>
+<li>Compare <strong>Left</strong>, <strong>Top</strong>, <strong>Width</strong> and <strong>Height</strong>. These are fractions of the workspace: a width of <code>0.5</code> means half the available width. The display retains the stored coordinate precision.</li>
+<li>Read the placement and tab-stack identifiers if the panel changes where it docks. <strong>Linked context</strong> describes the existing group that shares selections between panels.</li>
+<li>Use <strong>Next difference</strong> or <strong>Previous difference</strong> to move between changed lines. A large library may exceed the line-alignment limit; the view explains this and still shows both complete texts for manual comparison.</li>
+<li>Confirm and apply only after reviewing the whole replacement. If the comparison cannot be displayed, Apply remains unavailable; dismiss the failed import and review a fresh export.</li></ol>
+<p>The text preserves stored list order. A moved layout or panel may therefore appear as several changed lines. Revision counters are omitted because they record bookkeeping, not a change in your arrangement. This is a textual comparison of stored geometry, not a before-and-after screenshot.</p>
+<h2>When an import is refused</h2><ul><li><strong>Layout editing is active:</strong> finish or cancel editing and try again.</li>
+<li><strong>The workspace changed:</strong> review the file again before applying it.</li>
+<li><strong>The file is incompatible or damaged:</strong> keep the original and export a fresh copy from the same product. Do not manually remove validation fields.</li>
+<li><strong>The file is too large:</strong> the archive must be smaller than 450 KiB plus its internal terminating byte. Ordinary exports enforce this limit.</li>
+<li><strong>Saving is unavailable:</strong> the imported list can be used in the current session. Check the existing library storage notice before relying on restart recovery.</li></ul>
+<h2>Documents remain separate</h2><p>Studio publishes the new arrangement through its existing workspace host. Save source files through the editor; a layout export is not a backup of project files or unsaved document content.</p>
+<h2>Undo an import or library edit</h2>
+<p>Layout Library keeps the last eight successful library changes in memory. This includes renaming, copying, removing, ordering and opening named layouts, applying an imported library, and using Restore library. Each entry keeps the arrangements before and after that change.</p>
+<ol><li>Open <strong>Layout Library</strong> after making a change.</li>
+<li>Choose <strong>Undo layout change</strong>. The previous named list and active arrangement return.</li>
+<li>Choose <strong>Redo layout change</strong> if you want the arrangement you just undid.</li>
+<li>Check the result, then choose <strong>Save library</strong> if it should survive restart. Undo and Redo do not write the saved library.</li></ol>
+<p>Making a new library change after Undo replaces the redo branch. For example, undoing an import and then renaming a layout starts a new path from the restored list. The discarded branch is no longer available through Redo.</p>
+<h2>Understand history limits</h2>
+<ul><li><strong>Session lifetime:</strong> history is cleared when the workstation closes. Keep an exported file for a separate copy that survives restart.</li>
+<li><strong>Eight changes:</strong> accepting a ninth change drops the oldest entry. The remaining entries can still be undone in order.</li>
+<li><strong>Changes outside Layout Library:</strong> panel editing and other workspace commands may invalidate the history. The controls then disable instead of overwriting newer work. A successful new library action begins a fresh history from the current arrangement.</li>
+<li><strong>Active layout editing:</strong> finish or cancel editing before using history.</li>
+<li><strong>A refused restoration:</strong> the owner validates the archived tools and layout again. If it cannot accept the arrangement, the history position stays unchanged. Review the reported error; do not assume that the layout changed.</li></ul>
+<p>Layout history does not undo typing, restore document drafts, place or cancel orders, post bank transactions, or save account state. Use each product's existing document or business workflow for those operations.</p>
+</main><footer><p>Sammy Hegab · Umicom Foundation · MIT</p></footer></body></html>

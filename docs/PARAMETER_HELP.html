@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Read function parameter help in Studio</title>
+<style>body{font:17px/1.6 system-ui;max-width:900px;margin:32px auto;padding:0 24px;color:#183442}li{margin:12px 0}code{overflow-wrap:anywhere}</style></head><body>
+<h1>Read function parameter help</h1>
+<p>Use the editor's <strong>Parameters…</strong> action to read function overloads and their arguments. Framework supplies the shared reader, native connection and inspection form; Studio supplies the current document, project folder and local settings namespace.</p>
+<ol><li>Open a source file and put the caret inside a function call.</li>
+<li>Choose <strong>Parameters…</strong>. Studio captures the current draft and caret, including unsaved text. Read-only documents are supported.</li>
+<li>Choose an installed language server using its absolute executable path, ordinary arguments and absolute project folder. Use <strong>Load saved server</strong> if you previously saved settings for this language. Opening the form and loading preferences do not start a server.</li>
+<li>Choose <strong>Request parameter help</strong>. This explicitly sends the captured draft to the selected program, which can inspect the project folder.</li>
+<li>Select an overload to see its signature and parameter descriptions. The active parameter is marked. An exact server-supplied span is highlighted; ambiguous string labels remain unhighlighted.</li>
+<li>Close the form when finished. The source is unchanged. Reopen the form after moving the caret or editing the document.</li></ol>
+<h2>If help is unavailable</h2>
+<p>Check that the executable is a language server for the file's language, that it supports signature help and that the project is configured for that server. A missing result can simply mean there is no callable symbol at the captured location. Studio does not install or configure the server automatically.</p>
+<p>The form allows five seconds for native initialization and reply reads, then performs separate cleanup. Its 65536-byte native message limit includes escaped source text and protocol fields. Large drafts or slow project startup may exceed those limits. Changing server settings clears previous results; results from closed forms cannot be published into a later form.</p>
+<p>Descriptions are literal text, including Markdown or HTML supplied by a server. There are no edit-approval controls in this workflow. Saved executable and argument settings are ordinary local preferences and should not contain credentials. This action is an explicit temporary query; automatic parameter popups and persistent indexing are separate capabilities.</p>
+<p>Related actions: <a href="SOURCE_INFORMATION.html">Source info</a>, <a href="DOCUMENT_SYMBOLS.html">Symbols</a>, <a href="SOURCE_NAVIGATION.html">Definitions and References</a>.</p>
+<p><a href="SYMBOL_RENAME.html">Review a symbol rename</a></p>
+</body></html>

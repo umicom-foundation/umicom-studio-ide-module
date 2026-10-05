@@ -19,6 +19,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "runtime_types.inc"
+#include "interaction/editor_search_options.inc"
 #include "runtime_helpers.inc"
 #include "runtime_profile_catalogues.inc"
 #include "runtime_theme.inc"
@@ -31,11 +32,13 @@
 #include "interaction/confirm_dialog.inc"
 #include "interaction/documents.inc"
 #include "interaction/explorer.inc"
+#include "interaction/quick_open.inc"
 #include "interaction/problems.inc"
 #include "interaction/tests.inc"
 #include "interaction/terminal.inc"
 #include "interaction/debug.inc"
 #include "interaction/ai.inc"
+#include "interaction/provider_connections.inc"
 #include "interaction/source_control.inc"
 #include "interaction/source_control_details.inc"
 #include "interaction/operation_catalogue.inc"
@@ -46,6 +49,7 @@
 #include "interaction/test_source_links.inc"
 #include "interaction/test_details.inc"
 #include "interaction/debug_details.inc"
+#include "interaction/debug_setup.inc"
 #include "interaction/developer_operations.inc"
 #include "interaction/developer_intelligence.inc"
 

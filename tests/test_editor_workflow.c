@@ -8,6 +8,7 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/workspace.h"
 #include "umicom/studio_runtime/close_guard.h"
+#include "umicom/document/reopen.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,6 +62,21 @@ static int Run(UmiStudioBootstrap *bootstrap, const char *root)
     CHECK(umi_document_coordinator_active_snapshot(documents, &current) == UMI_STATUS_OK && current.document_id == other.document_id);
     CHECK(UmiDocumentCoordinatorClose(documents, edited.document_id, 1) == UMI_STATUS_NOT_FOUND);
     CHECK(UmiDocumentCoordinatorClose(documents, other.document_id, 1) == UMI_STATUS_OK);
+    /* Studio reuses its original coordinator. The saved source returns after
+     * the last tab closes, while the discarded untitled source stays absent. */
+    UmiDocumentReopenSnapshot history;
+    UmiDocumentId restored = 0U;
+    CHECK(UmiDocumentCoordinatorReopenSnapshot(documents, &history) == UMI_STATUS_OK);
+    CHECK(history.count == 1U && strcmp(history.next_name, "notes.c") == 0);
+    CHECK(UmiDocumentCoordinatorReopenLast(documents, history.revision, &restored) == UMI_STATUS_OK);
+    CHECK(umi_document_coordinator_active_snapshot(documents, &current) == UMI_STATUS_OK);
+    CHECK(current.document_id == restored && restored != edited.document_id && !current.dirty);
+    CHECK(umi_ui_document_view_model_find(umi_ui_workbench_documents(workbench), current.view_id, &view) == UMI_STATUS_OK);
+    CHECK(strcmp(view.source_text, "int savedCount = 3;\nint total = savedCount;\n") == 0);
+    CHECK(UmiDocumentCoordinatorClose(documents, restored, 0) == UMI_STATUS_OK);
+    CHECK(UmiDocumentCoordinatorReopenSnapshot(documents, &history) == UMI_STATUS_OK);
+    CHECK(UmiDocumentCoordinatorForgetClosed(documents, history.revision) == UMI_STATUS_OK);
+    CHECK(umi_fs_exists(path));
     puts("Studio editor workflow: draft detection, navigation, replacement, undo/redo, save and captured close passed.");
     return 0;
 }

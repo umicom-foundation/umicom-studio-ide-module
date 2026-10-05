@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Run and debug with program arguments</title><style>
+body{font:17px/1.6 system-ui,sans-serif;max-width:960px;margin:3rem auto;padding:0 24px;color:#193341;background:#f8fbfc}
+h1,h2{line-height:1.25}h2{margin-top:2rem}pre{background:#eaf1f4;padding:18px;overflow:auto}code{font-family:Consolas,monospace}
+table{border-collapse:collapse;width:100%}td,th{padding:10px;border:1px solid #c8d7df;text-align:left;vertical-align:top}a{color:#075c89}
+</style></head><body><main>
+<h1>Run and debug with program arguments</h1>
+<p>An argument is an input given to a program when it starts. For example, an application might accept a file name and a display mode. Studio keeps those inputs in the project's build profile so Run and Debug receive the same argument boundaries.</p>
+<h2>Set up a launch</h2>
+<ol>
+<li>Open the project folder in Studio and save your source changes.</li>
+<li>Open the Build panel and choose <strong>Project Settings</strong>. Check the project folder, build folder and the program to run. The program path is relative to the project folder unless you enter a full path.</li>
+<li>For several arguments, clear <strong>Program argument (one argument; no shell expansion)</strong>. Enter the list in <strong>Argument list</strong>. Use only one of these fields.</li>
+<li>For a program which supports these example options, enter:<pre><code>--file "notes for review.txt" --mode preview ""</code></pre>The program receives five arguments: <code>--file</code>, <code>notes for review.txt</code>, <code>--mode</code>, <code>preview</code>, and an empty value. These are sample inputs; they do not add options to a program that does not already support them.</li>
+<li>Review the project trust choice and choose <strong>Apply Settings</strong>. An unmatched quote or two filled argument fields keeps the form open with an explanation. No partial profile is applied.</li>
+<li>Choose <strong>Run</strong>. The existing project workflow configures and builds the project before launching the selected program. Inspect its output and diagnostics when a step fails.</li>
+<li>To debug the same program, choose the installed GDB or LLDB adapter through Studio's debugger controls and start debugging. The same resolved arguments are sent through the Debug Adapter Protocol. Debug still requires an installed compatible adapter, an existing executable and the project's execution permission.</li>
+</ol>
+<h2>Quotes, empty values and Windows paths</h2>
+<p>Spaces separate arguments. Single or double quotes keep spaces inside a value. An empty pair of quotes passes an empty argument. A backslash escapes a quote, another backslash or whitespace. Other backslashes remain literal.</p>
+<pre><code>--folder "C:\\Work\\Notes with spaces\\"
+--title "Sam's notes"
+--label "A \"quoted\" value"</code></pre>
+<p>These are separate examples. There is no shell expansion: <code>$HOME</code>, <code>%TEMP%</code>, <code>*</code>, semicolons and command-substitution text remain ordinary program input. Enter complete paths when a program needs them.</p>
+<h2>Older settings and reopening</h2>
+<p>The original single-argument field remains available. Its entire contents are one literal argument, even when they contain spaces or quote characters. An older saved profile keeps that interpretation. To adopt a list, move the intended values into the new field and clear the original field explicitly.</p>
+<p>Settings are saved through Framework's existing project profile store. Save conflicts and corrupt records are reported instead of silently replacing your inputs. Saving settings does not restore a trust decision or start the program. Older executables which do not understand the expanded stored profile may refuse it; use matching Framework and Studio builds.</p>
+<h2>When a launch is refused</h2>
+<table><tr><th>What you see</th><th>What to check</th></tr>
+<tr><td>Argument settings rejected</td><td>Fill only one argument field, close all quotes and shorten inputs that exceed the limits.</td></tr>
+<tr><td>Program not found</td><td>Check the executable path and the build result. Studio does not guess which binary to run.</td></tr>
+<tr><td>Debug reports capacity exceeded</td><td>The lossless quoted argument representation must fit the debugger's 1,024-byte launch record, including its terminator. Escaping can increase its length. Shorten the list; it is never truncated.</td></tr>
+<tr><td>Run and Debug both refuse an input</td><td>The argument-list field holds up to 1,023 bytes. It accepts up to 32 values, each at most 511 bytes. UTF-8 characters can occupy several bytes.</td></tr>
+</table>
+<p>This workflow changes launch configuration and serialization. It does not install a compiler or debugger, and source review alone does not demonstrate that a particular installed toolchain can run the project.</p>
+<h2>Programs that use relative data files</h2>
+<p>Project Settings also has a <strong>Program working folder</strong> field. A blank field uses the project root; a relative folder is resolved from that root. Run and native Debug share the selected folder while keeping the executable path relative to the project. See <a href="../../../framework/docs/learning/project-stage-presets.html">project presets and working folders</a> for examples and recovery steps.</p>
+</main><footer><p>Umicom Foundation · Sammy Hegab · MIT</p></footer></body></html>

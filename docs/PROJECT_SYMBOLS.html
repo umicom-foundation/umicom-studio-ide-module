@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Find a named symbol in your project</title><style>body{font:17px/1.65 system-ui;max-width:980px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}</style></head><body><h1>Find a named symbol in your project</h1>
+<p>A symbol is a named part of a program, such as a function, type or variable. Studio can ask your local language server to find symbols across its project index, then open a selected source location. Results depend on the server and its current index.</p>
+<ol><li>Open a source document and choose <strong>Symbols…</strong>. You can also use the symbol action in Outline. The existing document outline remains the default.</li>
+<li>Enter or load the absolute path to your language server, its arguments and the project's absolute folder. Choose a server you trust: the process receives the captured draft and can read project files.</li>
+<li>Check <strong>Search project symbols</strong>. Enter a function, type or other name in <strong>Project symbol query</strong>. An empty query asks for all symbols the server chooses to return. Editing these controls does not launch the server.</li>
+<li>Choose <strong>Find project symbols</strong>. Studio opens a temporary language-server connection, synchronizes the captured document, requests workspace symbols and closes the connection before displaying usable results.</li>
+<li>Select a result. Its container name is a descriptive label rather than an inferred parent-child relationship.</li>
+<li>Choose <strong>Open selected location</strong>. Framework checks the destination and exact Unicode coordinates before navigation. The action does not edit or save the source.</li></ol>
+<h2>Understand which source was searched</h2>
+<p>Only the active captured draft is synchronized. Other unsaved documents are not sent by this operation. The server decides how to search other project files, so save relevant drafts before requesting a search when their current text matters. Read-only primary drafts can be searched.</p>
+<p>A search result is not proof that indexing or compilation has finished. There is no persistent background index owned by this form. Changing source text, selection, server settings, scope or query retires an earlier result; changing a value back does not restore it. Request a new search when needed.</p>
+<h2>If no usable results appear</h2>
+<ol><li>If project symbols are unsupported, check whether the server supports workspace symbol requests. Document symbols are a different capability. Uncheck project search to request the current document outline.</li>
+<li>If the result is empty, try a less specific query and check the selected project folder and the server's compilation database. Matching rules are chosen by the server.</li>
+<li>If the server supplies incomplete locations or a document hierarchy as a workspace result, the complete result is refused. Studio does not guess a destination or silently drop malformed rows.</li>
+<li>If a location no longer matches an open document, search again. External destinations must be locally accessible and pass the shared source-opening checks.</li>
+<li>If the request times out, inspect the server's configuration. The form has a five-second read budget; a temporary connection may be unsuitable for a large project that needs lengthy indexing.</li>
+<li>Keep search text within 4096 UTF-8 bytes. JSON escaping and the 65536-byte native message limit also bound requests and results. Oversized data is rejected, not truncated into a partial list.</li></ol>
+<p>For an outline restricted to the captured document, see <a href="DOCUMENT_SYMBOLS.html">document symbols</a>.</p>
+</body></html>

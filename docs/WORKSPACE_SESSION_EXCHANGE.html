@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Umicom Studio IDE session exchange</title>
+<style>body{font:17px/1.6 system-ui,sans-serif;max-width:850px;margin:3rem auto;padding:0 1.5rem;color:#172234}code{background:#f1f4f8}h1,h2{line-height:1.2}</style></head><body>
+<h1>Umicom Studio IDE: reviewing saved session values</h1>
+<p>This contributor API transfers a product's layout identity, ordered active panel IDs and lock state. Framework owns encoding, validation and the lifetime of catalogue strings. These are library operations; they do not add an import menu or automatically restore the native interface.</p>
+<h2>Use the product boundary</h2><ol>
+<li>Initialize a <code>UmiApplicationSession</code> with the canonical <code>org.umicom.studio</code> experience from Framework's catalogue.</li>
+<li>Include <code>umicom/studio/workspace_commands.h</code>. Measure the archive using <code>umi_studio_workspace_session_capture</code> with a null byte buffer and zero capacity, then allocate and encode the measured size.</li>
+<li>Remember the live session revision before starting a review. Use <code>umi_studio_workspace_session_preview</code> to inspect a candidate without changing the live session.</li>
+<li>Show the candidate layout and panel identities to the user. Prepare any native presentation separately; the candidate contains no widgets or running services.</li>
+<li>After confirmation, call <code>umi_studio_workspace_session_apply</code> with the observed revision. Success advances the current local revision once. A stale observation leaves the session unchanged and requires another review.</li>
+<li>Free the caller-owned byte buffer. The resulting session keeps catalogue-owned panel identifiers, so it does not depend on that buffer's lifetime.</li></ol>
+<h2>Keep live resources under their owners</h2>
+<p>These calls do not save documents, launch programs, reconnect brokers, place orders or grant permissions. Use the existing workspace checkpoint services for native placement persistence and each live service's recovery API for its own resources. Continue checking product capabilities before activating a panel.</p>
+<h2>Respond to a refused import</h2><ol>
+<li>Keep the active session available. Failed decoding, preview and application leave their destination unchanged.</li>
+<li>For a damaged archive, preserve the original bytes and obtain another saved copy.</li>
+<li>For an unknown panel or layout, choose a supported replacement through the product's normal workflow.</li>
+<li>For <code>UMI_STATUS_INVALID_STATE</code>, capture the latest revision and repeat review. Do not retry using the counter stored inside the archive.</li>
+<li>Serialize access on the owner thread. A revision comparison is not a replacement for synchronization.</li></ol>
+<p>A locked session refuses application with <code>UMI_STATUS_PERMISSION_DENIED</code>. Unlock through the Framework session API and review again using the new revision.</p>
+</body></html>

@@ -16,6 +16,8 @@
 #ifndef UMICOM_STUDIO_GTK_WORKBENCH_WINDOW_H
 #define UMICOM_STUDIO_GTK_WORKBENCH_WINDOW_H
 
+#include "umicom/ui/workspace_library_history.h"
+#include "umicom/ui/workspace_library_exchange.h"
 #include "umicom/ui/workspace_library.h"
 #include <gtk/gtk.h>
 
@@ -175,5 +177,22 @@ UmiStatus umi_studio_gtk_workbench_library_snapshot(
  * Inputs are borrowed for this synchronous owner-thread call only. */
 UmiStatus umi_studio_gtk_workbench_library_apply(
     UmiStudioGtkWorkbench *workstation, const UmiUiWorkspaceLibraryRequest *request);
+
+/* Portable layout exchange reuses the live workspace owner. The caller
+ * destroys a returned review after apply or dismissal. These calls do not
+ * save documents, run project tools or write checkpoint storage. */
+UmiStatus umi_studio_gtk_workbench_library_export(UmiStudioGtkWorkbench *workstation,
+    char *bytes, size_t capacity, size_t *out_size);
+UmiStatus umi_studio_gtk_workbench_library_import_review(UmiStudioGtkWorkbench *workstation,
+    const void *bytes, size_t size, UmiUiWorkspaceLibraryImport **out_review);
+UmiStatus umi_studio_gtk_workbench_library_import_apply(UmiStudioGtkWorkbench *workstation,
+    const UmiUiWorkspaceLibraryImport *review);
+
+/* Observe or navigate Framework layout history without saving editor drafts. */
+UmiStatus umi_studio_gtk_workbench_library_history_read(UmiStudioGtkWorkbench *workstation,
+    UmiUiWorkspaceLibraryHistoryState *out_state);
+/* Observe or navigate Framework layout history without saving editor drafts. */
+UmiStatus umi_studio_gtk_workbench_library_history_navigate(UmiStudioGtkWorkbench *workstation,
+    UmiUiWorkspaceLibraryHistoryDirection direction, uint64_t expected_revision);
 
 #endif

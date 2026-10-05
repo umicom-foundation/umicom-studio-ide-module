@@ -13,6 +13,9 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Indexed file navigation now uses the same keyboard catalogue as the other
+ * local workbench actions. The previous dispatcher is retained for review. */
+#if 0
 static gboolean runtime_on_key_pressed(
     GtkEventControllerKey *controller,
     guint keyval,
@@ -72,6 +75,70 @@ static gboolean runtime_on_key_pressed(
 
     return FALSE;
 }
+#endif
+static gboolean runtime_on_key_pressed(
+    GtkEventControllerKey *controller,
+    guint keyval,
+    guint keycode,
+    GdkModifierType state,
+    gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime =
+        (UmiStudioGtkRuntimeChrome *)user_data;
+    size_t index;
+
+    (void)controller;
+    (void)keycode;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime == NULL) return FALSE;
+
+    /* Visit each bounded item once so every record receives the same rule. */
+    for (index = 0U;
+         index < sizeof(RUNTIME_KEY_PROFILES) /
+                 sizeof(RUNTIME_KEY_PROFILES[0]);
+         ++index) {
+        const UmiStudioGtkKeyProfile *profile = &RUNTIME_KEY_PROFILES[index];
+        const GdkModifierType normalized =
+            state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_ALT_MASK);
+
+        /* Apply this branch only when its contract condition is satisfied. */
+        if (keyval != profile->key_lower && keyval != profile->key_upper) {
+            continue;
+        }
+        /* Apply this branch only when its contract condition is satisfied. */
+        if (normalized != profile->modifiers) continue;
+
+        /* Use the stable identifier comparison to choose the matching record or policy. */
+        if (strcmp(profile->command_id, "studio.file.quick-open") == 0) {
+            RuntimeShowQuickOpen(runtime);
+            return TRUE;
+        }
+        if (strcmp(profile->command_id, "studio.command.search") == 0) {
+            runtime_show_command_palette(runtime);
+            return TRUE;
+        }
+        /* Use the stable identifier comparison to choose the matching record or policy. */
+        if (strcmp(profile->command_id, "studio.layout.manager") == 0) {
+            runtime_show_layout_browser(runtime);
+            return TRUE;
+        }
+
+        /* Use the stable identifier comparison to choose the matching record or policy. */
+        if (runtime_command_enabled(runtime, profile->command_id)) {
+            (void)runtime_execute_command(
+                runtime,
+                profile->command_id,
+                NULL);
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
 
 /*
  * Provide the runtime install keyboard operation used by this module and its client
@@ -80,6 +147,9 @@ static gboolean runtime_on_key_pressed(
 /* Ctrl+Tab must be observed before GtkTextView consumes it as focus
  * traversal. This capture handler is deliberately limited to source-document
  * cycling; every other entry field and shortcut keeps the existing route. */
+/* File search joins document cycling in the capture route so source widgets
+ * cannot consume its shortcut first. The previous handler is retained for review. */
+#if 0
 static gboolean RuntimeDocumentCycleKey(GtkEventControllerKey *controller,
     guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
@@ -87,6 +157,31 @@ static gboolean RuntimeDocumentCycleKey(GtkEventControllerKey *controller,
     (void)keycode;
     UmiStudioGtkRuntimeChrome *runtime = data;
     GdkModifierType modifiers = state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_ALT_MASK);
+    if (runtime == NULL || (keyval != GDK_KEY_Tab && keyval != GDK_KEY_ISO_Left_Tab))
+        return FALSE;
+    const char *command = NULL;
+    if (modifiers == GDK_CONTROL_MASK) command = "navigate.document.next";
+    else if (modifiers == (GDK_CONTROL_MASK | GDK_SHIFT_MASK))
+        command = "navigate.document.previous";
+    if (command == NULL || !runtime_command_enabled(runtime, command)) return FALSE;
+    (void)runtime_execute_command(runtime, command, NULL);
+    return TRUE;
+}
+#endif
+static gboolean RuntimeDocumentCycleKey(GtkEventControllerKey *controller,
+    guint keyval, guint keycode, GdkModifierType state, gpointer data)
+{
+    (void)controller;
+    (void)keycode;
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    GdkModifierType modifiers = state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_ALT_MASK);
+    /* Capture Ctrl+P before text widgets can treat it as cursor movement. */
+    GdkModifierType fileModifiers = state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK |
+        GDK_ALT_MASK | GDK_SUPER_MASK | GDK_META_MASK);
+    if (runtime != NULL && (keyval == GDK_KEY_p || keyval == GDK_KEY_P) && fileModifiers == GDK_CONTROL_MASK) {
+        RuntimeShowQuickOpen(runtime);
+        return TRUE;
+    }
     if (runtime == NULL || (keyval != GDK_KEY_Tab && keyval != GDK_KEY_ISO_Left_Tab))
         return FALSE;
     const char *command = NULL;
@@ -113,6 +208,9 @@ static UmiStatus runtime_install_keyboard(
     }
 
     controller = gtk_event_controller_key_new();
+    /* Native acceptance and accessibility inspection can identify this route
+     * without depending on GTK's controller insertion order. */
+    if (controller != NULL) gtk_event_controller_set_name(controller, "umicom-studio-keyboard");
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -129,6 +227,7 @@ static UmiStatus runtime_install_keyboard(
         controller);
 
     GtkEventController *documentKeys = gtk_event_controller_key_new();
+    gtk_event_controller_set_name(documentKeys, "umicom-studio-document-navigation");
     gtk_event_controller_set_propagation_phase(documentKeys, GTK_PHASE_CAPTURE);
     g_signal_connect(documentKeys, "key-pressed",
         G_CALLBACK(RuntimeDocumentCycleKey), runtime);

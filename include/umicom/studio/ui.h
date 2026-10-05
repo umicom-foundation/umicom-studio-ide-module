@@ -202,6 +202,14 @@ UmiStatus UmiStudioUiProjectFileRefreshState(UmiStudioUi *ui,
 /** Search saved indexed project files, without saving or changing editor drafts.
  * The Framework session owns worker state. Call on the UI owner thread. */
 UmiStatus UmiStudioUiSearchStart(UmiStudioUi *ui, const char *query, int caseSensitive);
+/** Copy a validated Framework path filter into the next saved-file search.
+ * NULL has the same scope as SearchStart. Existing results survive invalid
+ * input, and editing filter fields afterwards cannot change a running search. */
+UmiStatus UmiStudioUiSearchStartFiltered(UmiStudioUi *ui, const char *query,
+    int caseSensitive, const UmiSearchPathFilter *filter);
+/** Copy the scope associated with this request, rejecting changed workspaces. */
+UmiStatus UmiStudioUiSearchFilterRead(UmiStudioUi *ui, uint64_t requestId,
+    UmiSearchPathFilter *outFilter);
 UmiStatus UmiStudioUiSearchCancel(UmiStudioUi *ui);
 UmiStatus UmiStudioUiSearchRead(UmiStudioUi *ui, UmiFileSearchSnapshot *outSnapshot);
 UmiStatus UmiStudioUiSearchMatchAt(UmiStudioUi *ui, uint64_t requestId,

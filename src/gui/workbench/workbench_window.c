@@ -696,3 +696,43 @@ UmiStatus umi_studio_gtk_workbench_library_apply(
         (void)umi_gtk4_ws_layout_library_refresh(workstation->runtime_chrome->workspace_library);
     return status;
 }
+
+/* Keep product state publication behind the existing native workspace owner. */
+UmiStatus umi_studio_gtk_workbench_library_export(UmiStudioGtkWorkbench *workstation,
+    char *bytes, size_t capacity, size_t *out_size)
+{
+    if (workstation == NULL || workstation->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_library_export(bytes, capacity, out_size, workstation->runtime_chrome);
+}
+
+/* Keep product state publication behind the existing native workspace owner. */
+UmiStatus umi_studio_gtk_workbench_library_import_review(UmiStudioGtkWorkbench *workstation,
+    const void *bytes, size_t size, UmiUiWorkspaceLibraryImport **out_review)
+{
+    if (workstation == NULL || workstation->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_library_import(bytes, size, out_review, workstation->runtime_chrome);
+}
+
+/* Keep product state publication behind the existing native workspace owner. */
+UmiStatus umi_studio_gtk_workbench_library_import_apply(UmiStudioGtkWorkbench *workstation,
+    const UmiUiWorkspaceLibraryImport *review)
+{
+    if (workstation == NULL || workstation->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_library_import_apply(review, workstation->runtime_chrome);
+}
+
+/* Observe or navigate Framework layout history without saving editor drafts. */
+UmiStatus umi_studio_gtk_workbench_library_history_read(UmiStudioGtkWorkbench *workstation,
+    UmiUiWorkspaceLibraryHistoryState *out_state)
+{
+    if (workstation == NULL || workstation->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_library_history_read(out_state, workstation->runtime_chrome);
+}
+
+/* Observe or navigate Framework layout history without saving editor drafts. */
+UmiStatus umi_studio_gtk_workbench_library_history_navigate(UmiStudioGtkWorkbench *workstation,
+    UmiUiWorkspaceLibraryHistoryDirection direction, uint64_t expected_revision)
+{
+    if (workstation == NULL || workstation->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_workspace_library_history_navigate(direction, expected_revision, workstation->runtime_chrome);
+}

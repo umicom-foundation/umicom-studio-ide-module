@@ -119,6 +119,11 @@ static GtkWidget *runtime_build_surface_ai_chat(
             runtime_scroll(runtime->ai_prompt_view));
     }
 
+    /* Provider metadata editing is shared Framework behaviour. Existing AI
+     * commands retain their provider and approval policies. */
+    RuntimeProviderConnectionsControls(panel);
+    RuntimeSelectedCodeChatControls(runtime, panel);
+
     actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     chat = gtk_button_new_with_label("Chat");
     explain = gtk_button_new_with_label("Explain");

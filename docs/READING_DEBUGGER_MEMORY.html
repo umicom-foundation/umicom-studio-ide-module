@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Inspect memory in Studio</title>
+<style>body{max-width:860px;margin:3rem auto;padding:0 1rem;font:17px/1.6 system-ui;color:#192b36}code{background:#eef3f6;padding:.1rem .3rem}</style></head><body>
+<h1>Inspect memory in Studio</h1>
+<p>The Run and Debug workspace can show the bytes behind a variable when your native debug adapter supports memory reads. Each result is a capture taken when you choose Read memory. The view does not change your source files or write to the paused program.</p>
+<h2>Read your first capture</h2><ol>
+<li>Open your project, configure its native debugger, and stop at a breakpoint. Select the thread and stack frame you want to investigate.</li>
+<li>In the Variables area, choose <strong>Inspect scope</strong>. Expand an object with <strong>Inspect children</strong> if needed. These explicit reads retain the adapter's memory references.</li>
+<li>Find a variable with a <strong>Memory bytes</strong> section. Not every adapter or variable exposes a memory reference. The initial compatibility root rows do not contain one.</li>
+<li>Enter a signed decimal byte offset. Start with <code>0</code>. Set the number of bytes from 1 to 4096; the default is 256.</li>
+<li>Choose <strong>Read memory</strong>. The adapter may take up to 1.5 seconds to respond. Changing the fields alone sends no request.</li>
+<li>Read or select the report text. It shows the returned address, requested range, actual byte count, hexadecimal bytes and printable ASCII characters. Row offsets start at the returned address. Dots stand for non-printable bytes.</li></ol>
+<h2>Read another range</h2>
+<p>Change the offset or count and choose Read memory again while the same stop remains selected. Negative offsets are allowed. Offsets must be whole decimal numbers between -9007199254740991 and 9007199254740991; spaces, hexadecimal input and trailing text are refused. The report always records the range that produced it, so an edited input does not relabel an earlier capture.</p>
+<p>A short result can mean the end of readable memory. Unreadable bytes are reported separately and are not rendered as zeroes. Studio does not automatically request further pages.</p>
+<h2>Recover from a failed read</h2>
+<p>If Read memory is unavailable, check that your installed adapter supports it. If the Memory bytes section is absent, inspect the scope or children again and select a variable for which the adapter provides a memory reference. Studio does not invent an address from the displayed value.</p>
+<p>If the frame, session or captured variables changed, inspect the current scope again before reading. A failed read retains the earlier output with an explanatory status. That output is historical, not proof of the program's current bytes. Continuing execution or refreshing debugger detail rows removes the old variable controls.</p>
+<p>The report is shown locally and is not automatically saved, uploaded or sent to an AI provider. It is a byte view, not a typed-value editor, disassembler or memory writer. Framework owns the protocol and lifetime checks so other Umicom applications can reuse the same inspection behavior.</p>
+</body></html>

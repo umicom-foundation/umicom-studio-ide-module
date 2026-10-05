@@ -49,6 +49,13 @@ int main(int argc, char **argv)
     (void)snprintf(profile.run_program, sizeof(profile.run_program), "%s", "build/bin/umicom-notes");
     (void)snprintf(profile.run_argument, sizeof(profile.run_argument), "%s", "--notes \"meeting notes.txt\"");
     profile.parallel_jobs = 3U;
+    /* Separate names must survive the same project-close and durable reopen
+     * path as ordinary settings without granting workspace execution trust. */
+    profile.preset[0] = '\0';
+    strcpy(profile.configure_preset, "notes-configure");
+    strcpy(profile.build_preset, "notes-build");
+    strcpy(profile.test_preset, "notes-check");
+    strcpy(profile.run_working_directory, "sample data");
     CHECK(UmiStudioBuildProfileSave(services, &profile) == UMI_STATUS_OK);
     CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
     CHECK(UmiStudioBuildProfileSave(services, &profile) == UMI_STATUS_INVALID_STATE);
@@ -85,6 +92,19 @@ int main(int argc, char **argv)
     CHECK(UmiStudioBuildProfileSave(services, &profile) == UMI_STATUS_OK);
     CHECK(UmiBuildProfileStoreLoad(server, root, &loaded, &revision) == UMI_STATUS_OK && revision == 3U);
     CHECK(loaded.run_program[0] == '\0');
+    CHECK(strcmp(loaded.configure_preset, "notes-configure") == 0);
+    CHECK(strcmp(loaded.build_preset, "notes-build") == 0);
+    CHECK(strcmp(loaded.test_preset, "notes-check") == 0);
+    CHECK(strcmp(loaded.run_working_directory, "sample data") == 0);
+    /* Reject conflicting old and new fields before replacing the active
+     * profile or publishing another revision to the shared settings store. */
+    previous = loaded;
+    strcpy(loaded.preset, "ambiguous-shared-name");
+    CHECK(UmiStudioBuildProfileSave(services, &loaded) == UMI_STATUS_INVALID_ARGUMENT);
+    CHECK(umi_build_profile_equal(&previous,
+        umi_studio_build_service_profile(umi_studio_services_build(services))));
+    CHECK(UmiBuildProfileStoreLoad(server, root, &loaded, &revision) == UMI_STATUS_OK && revision == 3U);
+    CHECK(umi_build_profile_equal(&previous, &loaded));
     CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK && !workspace.graph.trusted);
     UmiStudioBuildProfilesDetach(services);
     umi_studio_services_destroy(services);

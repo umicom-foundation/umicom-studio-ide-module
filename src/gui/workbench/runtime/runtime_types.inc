@@ -102,6 +102,7 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiStudioProfessionalWorkspace *professional_workspace;
     UmiGtk4WorkspaceLayoutHost *workspace_host;
     /* The library borrows the existing workspace owner and stores copied rows only. */
+    UmiUiWorkspaceLibraryHistory *workspace_library_history;
     UmiGtk4WorkspaceLayoutLibrary *workspace_library;
     /* One optional Data Server connection stores explicit layout checkpoints.
      * A caller-supplied server is borrowed; only the native default is owned. */
@@ -219,6 +220,10 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiGtk4DeveloperDialog *project_dialog;
     UmiGtk4DeveloperDialog *build_settings_dialog;
     GtkWidget *build_output_view;
+    /* The shared presenter owns display controls; this is a host widget link. */
+    GtkWidget *build_live_output;
+    GtkWidget *build_log_path;
+    GtkWidget *build_log_status;
     GtkWidget *build_progress_label;
     uint64_t build_output_operation;
 

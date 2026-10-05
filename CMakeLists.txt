@@ -762,6 +762,36 @@ if(UMICOM_STUDIO_BUILD_GTK)
     # The native C fixture disables presentation, tool discovery and personal
     # session storage; it checks real editor bodies rather than a suite preview.
     if(BUILD_TESTING)
+        # Drive the native shortcut route and retain its controller at teardown.
+        add_executable(umicom-studio-navigation-history-test
+            tests/test_navigation_history_gtk4.c src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-navigation-history-test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-navigation-history-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-navigation-history-test)
+        umicom_apply_sanitizers(umicom-studio-navigation-history-test)
+        add_test(NAME studio.navigation.history.gtk4 COMMAND umicom-studio-navigation-history-test)
+        set_tests_properties(studio.navigation.history.gtk4 PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 60 RUN_SERIAL TRUE LABELS "studio;gtk4;navigation;acceptance")
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-navigation-history-test)
+        endif()
+        # Search scope is exercised through real entries, buttons and services.
+        add_executable(umicom-studio-search-filter-test
+            tests/test_search_filter_gtk4.c src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-search-filter-test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-search-filter-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-search-filter-test)
+        umicom_apply_sanitizers(umicom-studio-search-filter-test)
+        add_test(NAME studio.file_search.filter.gtk4 COMMAND umicom-studio-search-filter-test)
+        set_tests_properties(studio.file_search.filter.gtk4 PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 60 RUN_SERIAL TRUE LABELS "studio;gtk4;search;acceptance")
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-search-filter-test)
+        endif()
         # Exercise the real modal replacement review in isolated product graphs.
         add_executable(umicom-studio-replacement-review-test
             tests/test_replace_review_gtk4.c src/gui/workbench/workbench_window.c)
@@ -2584,3 +2614,523 @@ if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
     endif()
 endif()
 install(FILES docs/INSPECTING_SCOPES.md DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# The thin product must consume the real Framework session codec and preserve
+# its active value when imported data is damaged or its review is stale.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-session-transfer-test tests/test_session_transfer.c)
+    target_link_libraries(umicom-studio-session-transfer-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-session-transfer-test)
+    umicom_apply_sanitizers(umicom-studio-session-transfer-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-session-transfer-test)
+    endif()
+    add_test(NAME studio.workspace.session_transfer COMMAND umicom-studio-session-transfer-test)
+    set_tests_properties(studio.workspace.session_transfer PROPERTIES
+        TIMEOUT 60 LABELS "studio;workspace;value-archive;regression")
+endif()
+
+install(FILES docs/WORKSPACE_SESSION_EXCHANGE.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Exercise the product identity boundary against the shared transaction owner.
+if(BUILD_TESTING)
+    add_executable(umicom_studio_core-context-review-test tests/test_context_review.c)
+    target_link_libraries(umicom_studio_core-context-review-test PRIVATE umicom_studio_core)
+    umicom_apply_warnings(umicom_studio_core-context-review-test)
+    umicom_apply_sanitizers(umicom_studio_core-context-review-test)
+    foreach(context_case publication stale foreign clear divergent_ui)
+        add_test(NAME studio.context_review.${context_case}
+            COMMAND umicom_studio_core-context-review-test ${context_case})
+        set_tests_properties(studio.context_review.${context_case} PROPERTIES
+            LABELS "application;context-review;studio")
+    endforeach()
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom_studio_core-context-review-test)
+    endif()
+endif()
+
+# Native acceptance uses the product toolbar and Framework-owned review window.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-open-replacements-test
+        tests/test_open_replacements_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-open-replacements-test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-open-replacements-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-open-replacements-test)
+    umicom_apply_sanitizers(umicom-studio-open-replacements-test)
+    foreach(case apply-both skip-first stop-partial stale teardown pending-close owned-fields creation-teardown)
+        add_test(NAME studio.open_replacements.gtk4.${case} COMMAND umicom-studio-open-replacements-test ${case})
+        set_tests_properties(studio.open_replacements.gtk4.${case} PROPERTIES
+            TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;document;replacement;acceptance")
+    endforeach()
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-open-replacements-test)
+    endif()
+endif()
+
+install(FILES docs/REVIEW_OPEN_DOCUMENT_REPLACEMENTS.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Exercise real toolbar actions with the same isolated startup used by editor acceptance.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-bookmarks-test tests/test_bookmarks_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-bookmarks-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-bookmarks-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-bookmarks-test)
+    umicom_apply_sanitizers(umicom-studio-bookmarks-test)
+    foreach(case toggle next previous cross-document retained)
+        add_test(NAME studio.bookmarks.gtk4.${case} COMMAND umicom-studio-bookmarks-test ${case})
+        set_tests_properties(studio.bookmarks.gtk4.${case} PROPERTIES
+            TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;document;bookmarks;gtk4;acceptance")
+    endforeach()
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-bookmarks-test)
+    endif()
+endif()
+install(FILES docs/SOURCE_BOOKMARKS.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Assignments require a deliberate native gesture and a fresh captured row.
+# This fixture uses protocol samples; it never modifies a user's debuggee.
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-variable-assignment-native-test tests/test_variable_assignment_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-variable-assignment-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-variable-assignment-native-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-variable-assignment-native-test)
+    umicom_apply_sanitizers(umicom-studio-variable-assignment-native-test)
+    add_dependencies(umicom-studio-variable-assignment-native-test umicom-dap-protocol-fixture)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-variable-assignment-native-test)
+    endif()
+    foreach(case success nested draft stale detached close unsupported malformed)
+        add_test(NAME studio.variable_assignment.gtk4.${case} COMMAND umicom-studio-variable-assignment-native-test
+            "$<TARGET_FILE:umicom-dap-protocol-fixture>" ${case})
+        set_tests_properties(studio.variable_assignment.gtk4.${case} PROPERTIES
+            TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;debugger;variables;acceptance")
+    endforeach()
+endif()
+install(FILES docs/ASSIGNING_DEBUGGER_VALUES.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Keep live transcript integration separate from completed build-history tests.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-live-output-native-test tests/test_live_output_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-live-output-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-live-output-native-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-live-output-native-test)
+    umicom_apply_sanitizers(umicom-studio-live-output-native-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-live-output-native-test)
+    endif()
+    foreach(case surface history retained)
+        add_test(NAME studio.live_build_output.gtk4.${case} COMMAND umicom-studio-live-output-native-test ${case})
+        set_tests_properties(studio.live_build_output.gtk4.${case} PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 30 LABELS "studio;build;output;gtk4;regression")
+    endforeach()
+endif()
+install(FILES docs/LIVE_BUILD_OUTPUT.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Log selection has no execution side effects; the native fixture never submits a job.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-build-log-test tests/test_build_log.c)
+    target_link_libraries(umicom-studio-build-log-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-build-log-test)
+    umicom_apply_sanitizers(umicom-studio-build-log-test)
+    add_test(NAME studio.build_log.selection COMMAND umicom-studio-build-log-test)
+    set_tests_properties(studio.build_log.selection PROPERTIES TIMEOUT 30 LABELS "studio;build;log;regression")
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-build-log-test)
+    endif()
+endif()
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-build-log-native-test tests/test_build_log_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-build-log-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-build-log-native-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-build-log-native-test)
+    umicom_apply_sanitizers(umicom-studio-build-log-native-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-build-log-native-test)
+    endif()
+    foreach(case select invalid clear retained)
+        add_test(NAME studio.build_log.gtk4.${case} COMMAND umicom-studio-build-log-native-test ${case})
+        set_tests_properties(studio.build_log.gtk4.${case} PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 30 LABELS "studio;build;log;gtk4;regression")
+    endforeach()
+endif()
+install(FILES docs/SAVING_BUILD_LOGS.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+
+# Exercise the thin connection-settings entry with a substituted presenter;
+# the fixture never opens the user's settings database or a provider session.
+if(BUILD_TESTING AND TARGET Umicom::ui_gtk4)
+    add_executable(umicom-studio-provider-connections-entry-test tests/test_provider_connections_entry_gtk4.c)
+    target_link_libraries(umicom-studio-provider-connections-entry-test PRIVATE Umicom::ui_gtk4)
+    umicom_apply_warnings(umicom-studio-provider-connections-entry-test)
+    umicom_apply_sanitizers(umicom-studio-provider-connections-entry-test)
+    add_test(NAME studio.provider_connections.native_entry COMMAND umicom-studio-provider-connections-entry-test)
+    set_tests_properties(studio.provider_connections.native_entry PROPERTIES TIMEOUT 30 SKIP_RETURN_CODE 77
+        LABELS "studio;provider-connections;gtk4;ownership;regression")
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-provider-connections-entry-test)
+    endif()
+endif()
+
+# Keep native selected-code capture on the same lifetime boundary as editor actions.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-selected-code-chat-test tests/test_selected_code_chat_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-selected-code-chat-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_compile_definitions(umicom-studio-selected-code-chat-test PRIVATE UmiProviderConnectionsGtkPresentSelection=FixturePresentSelection)
+    target_link_libraries(umicom-studio-selected-code-chat-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-selected-code-chat-test)
+    umicom_apply_sanitizers(umicom-studio-selected-code-chat-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-selected-code-chat-test)
+    endif()
+    foreach(case selection empty large-selection new-selection retained close-success close-failure)
+        add_test(NAME studio.provider_chat.selection.gtk4.${case} COMMAND umicom-studio-selected-code-chat-test ${case})
+        set_tests_properties(studio.provider_chat.selection.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;provider-chat;document;gtk4;privacy;regression")
+    endforeach()
+endif()
+
+# Exercise Studio's real action and Framework review window as one editing workflow.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-selected-code-proposal-test tests/test_selected_code_proposal_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-selected-code-proposal-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-selected-code-proposal-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-selected-code-proposal-test)
+    umicom_apply_sanitizers(umicom-studio-selected-code-proposal-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-selected-code-proposal-test)
+    endif()
+    foreach(case apply stale cancel retained empty parent-close)
+        add_test(NAME studio.document.proposal.gtk4.${case} COMMAND umicom-studio-selected-code-proposal-test ${case})
+        set_tests_properties(studio.document.proposal.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;document;proposal;gtk4;regression")
+    endforeach()
+endif()
+
+# This owner-run scenario uses the real CMake/CTest processes and generated
+# program to verify that distinct stages and the launch folder compose end to end.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-preset-launch")
+    add_test(NAME studio.project_workflow.preset_launch
+        COMMAND umicom-studio-project-workflow-test preset-launch)
+    set_tests_properties(studio.project_workflow.preset_launch PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-preset-launch"
+        TIMEOUT 180 LABELS "studio;project-workflow;presets;launch;integration;toolchain")
+endif()
+
+# Native preference actions keep the fixture's user-data path isolated while
+# exercising real serialization, worker completion and retained GTK controls.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-adapter-preferences-test tests/test_adapter_preferences_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-adapter-preferences-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_compile_definitions(umicom-studio-adapter-preferences-test PRIVATE UmiDebugAdapterPreferencesPath=FixtureAdapterPreferencesPath)
+    target_link_libraries(umicom-studio-adapter-preferences-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-adapter-preferences-test)
+    umicom_apply_sanitizers(umicom-studio-adapter-preferences-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-adapter-preferences-test)
+    endif()
+    foreach(case current save load use changed missing malformed save-close load-close)
+        add_test(NAME studio.debug_adapter_preferences.gtk4.${case} COMMAND umicom-studio-adapter-preferences-test ${case})
+        set_tests_properties(studio.debug_adapter_preferences.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77
+            LABELS "studio;debugger;preferences;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+
+# Real native patch workflows keep Studio's adapter aligned with Framework.
+# Each case owns a fresh directory and never needs a provider or credentials.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-coding-local-files-test tests/test_coding_local_files.c)
+    target_link_libraries(umicom-studio-coding-local-files-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-coding-local-files-test)
+    umicom_apply_sanitizers(umicom-studio-coding-local-files-test)
+    foreach(case create modify conflict delete binary capture)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/coding-local-files/${case}")
+        add_test(NAME studio.coding.local_files.${case} COMMAND umicom-studio-coding-local-files-test ${case})
+        set_tests_properties(studio.coding.local_files.${case} PROPERTIES TIMEOUT 60
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/coding-local-files/${case}"
+            LABELS "studio;coding;filesystem;regression")
+    endforeach()
+endif()
+
+# The editor action opens a captured Framework review without launching a server.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-source-completion-test tests/test_source_completion_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-source-completion-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-source-completion-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-source-completion-test)
+    umicom_apply_sanitizers(umicom-studio-source-completion-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-source-completion-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.completion_review.gtk4.${case} COMMAND umicom-studio-source-completion-test ${case})
+        set_tests_properties(studio.language.completion_review.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;completion;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# The editor action opens a captured Framework review without launching a server.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-source-formatting-test tests/test_source_formatting_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-source-formatting-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-source-formatting-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-source-formatting-test)
+    umicom_apply_sanitizers(umicom-studio-source-formatting-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-source-formatting-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.formatting_review.gtk4.${case} COMMAND umicom-studio-source-formatting-test ${case})
+        set_tests_properties(studio.language.formatting_review.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;formatting;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# The editor action opens a captured Framework review without launching a server.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-source-information-test tests/test_source_information_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-source-information-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-source-information-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-source-information-test)
+    umicom_apply_sanitizers(umicom-studio-source-information-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-source-information-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.source_information.gtk4.${case} COMMAND umicom-studio-source-information-test ${case})
+        set_tests_properties(studio.language.source_information.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;source-information;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# The editor action opens a captured Framework review without launching a server.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-source-definition-test tests/test_source_definition_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-source-definition-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-source-definition-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-source-definition-test)
+    umicom_apply_sanitizers(umicom-studio-source-definition-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-source-definition-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.source_definition.gtk4.${case} COMMAND umicom-studio-source-definition-test ${case})
+        set_tests_properties(studio.language.source_definition.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;source-definition;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# The editor action opens a captured Framework review without launching a server.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-source-references-test tests/test_source_references_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-source-references-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-source-references-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-source-references-test)
+    umicom_apply_sanitizers(umicom-studio-source-references-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-source-references-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.source_references.gtk4.${case} COMMAND umicom-studio-source-references-test ${case})
+        set_tests_properties(studio.language.source_references.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;source-references;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# The editor action opens a captured Framework review without launching a server.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-document-symbols-test tests/test_document_symbols_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-document-symbols-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-document-symbols-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-document-symbols-test)
+    umicom_apply_sanitizers(umicom-studio-document-symbols-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-document-symbols-test)
+    endif()
+    foreach(case open cancel retained empty parent-close outline-open outline-retained outline-parent-close)
+        add_test(NAME studio.language.document_symbols.gtk4.${case} COMMAND umicom-studio-document-symbols-test ${case})
+        set_tests_properties(studio.language.document_symbols.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;document-symbols;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# Parameter help opens a captured inspection; requesting is a separate action.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-parameter-help-test tests/test_parameter_help_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-parameter-help-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-parameter-help-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-parameter-help-test)
+    umicom_apply_sanitizers(umicom-studio-parameter-help-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-parameter-help-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.parameter_help.gtk4.${case} COMMAND umicom-studio-parameter-help-test ${case})
+        set_tests_properties(studio.language.parameter_help.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;parameter-help;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# Symbol rename opens review first; a server starts only after Request.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-symbol-rename-test tests/test_symbol_rename_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-symbol-rename-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-symbol-rename-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-symbol-rename-test)
+    umicom_apply_sanitizers(umicom-studio-symbol-rename-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-symbol-rename-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.symbol_rename.gtk4.${case} COMMAND umicom-studio-symbol-rename-test ${case})
+        set_tests_properties(studio.language.symbol_rename.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;symbol-rename;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# Code actions use the shared document review; opening never launches a server.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-code-actions-test tests/test_code_actions_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-code-actions-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-code-actions-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-code-actions-test)
+    umicom_apply_sanitizers(umicom-studio-code-actions-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-code-actions-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.code_actions.gtk4.${case} COMMAND umicom-studio-code-actions-test ${case})
+        set_tests_properties(studio.language.code_actions.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;code-actions;gtk4;ownership;regression")
+    endforeach()
+    add_executable(umicom-studio-source-diagnostics-test tests/test_source_diagnostics_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-source-diagnostics-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-source-diagnostics-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-source-diagnostics-test)
+    umicom_apply_sanitizers(umicom-studio-source-diagnostics-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-source-diagnostics-test)
+    endif()
+    foreach(case open cancel retained empty parent-close)
+        add_test(NAME studio.language.source_diagnostics.gtk4.${case} COMMAND umicom-studio-source-diagnostics-test ${case})
+        set_tests_properties(studio.language.source_diagnostics.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;source-diagnostics;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+
+# Complete-set review uses Framework ownership and the existing Studio host.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-replacement-set-test
+        tests/test_replacement_set_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-replacement-set-test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-replacement-set-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-replacement-set-test)
+    umicom_apply_sanitizers(umicom-studio-replacement-set-test)
+    foreach(case apply-both no-review partial-review stale teardown pending-close owned-fields creation-teardown undo-first)
+        add_test(NAME studio.replacement_set.gtk4.${case} COMMAND umicom-studio-replacement-set-test ${case})
+        set_tests_properties(studio.replacement_set.gtk4.${case} PROPERTIES
+            TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;document;replacement;acceptance")
+    endforeach()
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-replacement-set-test)
+    endif()
+endif()
+
+install(FILES docs/COMPLETE_DOCUMENT_REPLACEMENTS.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Educational guide for the shared complete source-review workflow.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/WORKSPACE_RENAME.html" DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Install the user workflow beside the existing single-draft code-action guide.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/WORKSPACE_CODE_ACTIONS.html" DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Ship the explicit diagnostic workflow alongside notification-mode guidance.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/PULL_DIAGNOSTICS.html" DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Keep project discovery guidance available beside the document-outline guide.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/PROJECT_SYMBOLS.html" DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioTypeNavigation.cmake")
+
+# Explain the selection scope alongside the existing whole-document workflow.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/SELECTION_FORMATTING.html" DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Teach explicit action-family requests and complete edit review.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/ACTION_FAMILIES.html" DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Explain explicit source destinations in the shared Problems workflow.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/RELATED_DIAGNOSTICS.html" DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioSelectionRanges.cmake")
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioActionResolution.cmake")
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioCallHierarchy.cmake")
+
+include(cmake/UmicomStudioSnippets.cmake)
+
+include(cmake/UmicomStudioFolding.cmake)
+
+include(cmake/UmicomStudioDelimiters.cmake)
+
+include(cmake/UmicomStudioActionGroups.cmake)
+include(cmake/UmicomStudioQuickOpen.cmake)
+include(cmake/UmicomStudioSearchOptions.cmake)
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioSyntaxFolding.cmake")
+
+include(cmake/UmicomStudioLineEdits.cmake)
+
+include(cmake/UmicomStudioTypingHistory.cmake)
+
+include(cmake/UmicomStudioRecovery.cmake)
+
+
+# Saved setups exercise the real shared owner and Studio's native-process gate.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-debug-setup-test tests/test_debug_setup.c)
+    target_link_libraries(umicom-studio-debug-setup-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-debug-setup-test)
+    umicom_apply_sanitizers(umicom-studio-debug-setup-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-debug-setup-test)
+    endif()
+    foreach(case apply stale active legacy-collision)
+        add_test(NAME studio.debug_setup.service.${case} COMMAND umicom-studio-debug-setup-test ${case})
+        set_tests_properties(studio.debug_setup.service.${case} PROPERTIES TIMEOUT 30 LABELS "studio;debugger;setup;regression")
+    endforeach()
+endif()
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-debug-setup-gtk4-test tests/test_debug_setup_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-debug-setup-gtk4-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-debug-setup-gtk4-test PRIVATE Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-debug-setup-gtk4-test)
+    umicom_apply_sanitizers(umicom-studio-debug-setup-gtk4-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-debug-setup-gtk4-test)
+    endif()
+    foreach(case save save-close load-close apply previous stale no-approval missing malformed changed)
+        add_test(NAME studio.debug_setup.gtk4.${case} COMMAND umicom-studio-debug-setup-gtk4-test ${case})
+        set_tests_properties(studio.debug_setup.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;debugger;setup;gtk4;ownership;regression")
+    endforeach()
+endif()
+
+# Memory inspection uses captured references and explicit bounded read requests.
+# This fixture uses protocol samples; it never modifies a user's debuggee.
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-memory-inspection-native-test tests/test_memory_inspection_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-memory-inspection-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-memory-inspection-native-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-memory-inspection-native-test)
+    umicom_apply_sanitizers(umicom-studio-memory-inspection-native-test)
+    add_dependencies(umicom-studio-memory-inspection-native-test umicom-dap-protocol-fixture)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-memory-inspection-native-test)
+    endif()
+    foreach(case success offset invalid-offset invalid-count unsupported malformed failed-refresh stale detached close reentrant)
+        add_test(NAME studio.memory_inspection.gtk4.${case} COMMAND umicom-studio-memory-inspection-native-test
+            "$<TARGET_FILE:umicom-dap-protocol-fixture>" ${case})
+        set_tests_properties(studio.memory_inspection.gtk4.${case} PROPERTIES
+            TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;debugger;memory;acceptance")
+    endforeach()
+endif()
+install(FILES docs/READING_DEBUGGER_MEMORY.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)

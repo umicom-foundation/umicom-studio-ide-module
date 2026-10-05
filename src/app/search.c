@@ -14,6 +14,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/search.h"
+#include "umicom/document/file_search.h"
 
 /*
  * Provide the studio search files operation used by this module and its client
@@ -43,6 +44,9 @@ UmiStatus umi_studio_search_files(UmiStudioServices *services,
  * Provide the studio search text operation used by this module and its client
  * applications.
  */
+/* The synchronous Studio service shares the same document decoding as its background search, so callers receive consistent editor coordinates.
+ * The former implementation is retained for engineering review. */
+#if 0
 UmiStatus umi_studio_search_text(UmiStudioServices *services,
                                  const UmiSearchRequest *request,
                                  UmiSearchMatchSink sink,
@@ -56,6 +60,24 @@ UmiStatus umi_studio_search_text(UmiStudioServices *services,
     if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return umi_search_file_index(umi_studio_services_file_index(services),
                                  request,
+                                 sink,
+                                 user_data,
+                                 out_stats);
+}
+#endif
+UmiStatus umi_studio_search_text(UmiStudioServices *services,
+                                 const UmiSearchRequest *request,
+                                 UmiSearchMatchSink sink,
+                                 void *user_data,
+                                 UmiSearchStats *out_stats)
+{
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiDocumentSearchFileIndex(umi_studio_services_file_index(services),
+                                 request, NULL, NULL,
                                  sink,
                                  user_data,
                                  out_stats);

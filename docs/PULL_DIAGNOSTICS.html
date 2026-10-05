@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Request source diagnostics explicitly</title><style>body{font:17px/1.65 system-ui;max-width:980px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}</style></head><body>
+<h1>Request source diagnostics explicitly</h1>
+<p>Use <a href="RELATED_DIAGNOSTICS.html">related diagnostic source navigation</a> to inspect the other declarations or locations referenced by a message.</p>
+<p>Language servers deliver source problems in different ways. Some send notifications after a document opens. Others provide a diagnostic service that the editor must ask directly. Studio's Problems form offers both choices.</p>
+<ol><li>Open the source document to inspect. Current unsaved text and read-only drafts are supported.</li>
+<li>Choose <strong>Problems…</strong>. Enter or load the local language server's absolute executable path and arguments, then choose its absolute project folder.</li>
+<li>Select <strong>Request diagnostics explicitly (pull)</strong> if the server offers explicit document diagnostics. Leave it unchecked to use the <a href="SOURCE_DIAGNOSTICS.html">notification workflow</a>. Changing this option alone does not start a program.</li>
+<li>Choose <strong>Capture source diagnostics</strong>. Studio sends the complete captured draft to the selected local process. The process can also read project files. It requests a full diagnostic report and closes the temporary connection before displaying the result.</li>
+<li>Select a diagnostic to read its full message, code, source label and related locations. These values remain plain text.</li>
+<!-- Primary-only navigation is retained for engineering review. The source
+      destination chooser now selects a primary or related range before opening. -->
+<template data-preserved="primary-diagnostic-navigation"><li>Choose <strong>Open reported range</strong> to select its source range. The action does not edit or save the document. Related locations are currently informational.</li></template>
+<li>Choose the reported range or a related destination in <strong>Source location to open</strong>, then choose <strong>Open reported range</strong>. Navigation preserves draft text and does not edit or save it.</li></ol>
+<h2>Recognize the boundaries</h2>
+<p>An empty report means the requested report contained no diagnostics. It does not establish a successful compilation, completed project indexing or passing tests. Only the primary captured draft is sent. This form does not keep a background connection or continuously refresh problems.</p>
+<p>Changing the delivery mode, server settings, draft, caret or selection retires the result. Changing a setting back does not restore an earlier result. Close and capture again when the source changes.</p>
+<h2>If the request cannot finish</h2>
+<ol><li>If explicit diagnostics are unsupported, check the server's documentation. Choose notification mode only if it publishes diagnostics that way; Studio does not silently switch modes.</li>
+<li>If the server returns an unchanged report, capture again or inspect its configuration. A fresh Studio connection has no previous report to reuse, so it cannot treat an unchanged response as an empty result.</li>
+<li>If a report includes additional document reports, the complete response is refused. This form supports one document report, although individual messages can describe related source locations.</li>
+<li>If a query times out, check the server path, project folder and compilation database. The temporary connection has a five-second read budget. Large drafts can exceed the 65536-byte serialized-message limit.</li>
+<li>If a coordinate is rejected, capture current source again. Studio checks Unicode boundaries and does not round an invalid position to make the result appear usable.</li></ol>
+<!-- The notification-only description is preserved for review. Actions now
+     offers an explicit pull mode in its own connection; Problems remains independent. -->
+<template data-preserved="notification-only-actions"><p>For proposed corrections, see <a href="CODE_ACTIONS.html">Actions</a>. Its diagnostic-context option currently uses notification diagnostics in the action's own connection; this Problems option does not supply cached context to another connection.</p></template>
+<p>For proposed corrections, see <a href="CODE_ACTIONS.html">Actions</a>. It has separate controls for fresh diagnostic context and pull delivery. Its context is captured in the action's own connection; this Problems result is never replayed into another provider session.</p>
+</body></html>

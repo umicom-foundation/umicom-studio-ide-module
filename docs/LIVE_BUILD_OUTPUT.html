@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Follow a build in Studio</title><style>body{font:17px/1.6 system-ui;max-width:900px;margin:2rem auto;padding:0 24px;color:#18252d}code,pre{font-family:monospace}pre{padding:16px;background:#f1f5f7;overflow:auto}h1,h2{line-height:1.2}a{color:#07658a}</style></head><body><main><h1>Follow a build in Studio</h1>
+<p>The Output surface shows the current phase as it produces text. A separate <strong>Latest completed phase</strong>
+view keeps the existing command summary and completed output. This helps distinguish work still running from a result
+that is ready to review.</p>
+<h2>Watch your project build</h2>
+<ol><li>Open your project and review Project Settings. Confirm its source folder, build folder, target and run program.</li>
+<li>Confirm that you trust the project before requesting execution. Reading output does not change project trust.</li>
+<li>Choose Configure, Build, Test, Run or another supported action from the Build surface.</li>
+<li>Open the Output surface. Leave <strong>Follow output</strong> enabled to see new output and scroll to its end.
+The status line identifies the current phase and says when its result is still pending.</li>
+<li>To read or select an earlier line, turn Follow output off. Compilation continues. The display tells you when newer
+output is waiting.</li>
+<li>Choose <strong>Refresh output</strong> to show the newest copy once, or turn Follow output back on to resume updates.</li>
+<li>Choose <strong>Copy displayed output</strong> to copy the visible transcript. While paused, this copies what you
+are reviewing, not unseen output that arrived later.</li>
+<li>After the phase finishes, read its status and the Latest completed phase view. Use the existing build-history
+review to inspect retained completed results. Use Cancel in the Build surface when you want to stop the job itself.</li></ol>
+<h2>What the transcript contains</h2>
+<p>The live view retains at most 65,535 bytes from the current phase. A notice appears if earlier bytes were omitted.
+The next phase starts its own transcript. This is a bounded view rather than a complete log file, and it merges standard
+output with standard error. For long jobs, Copy displayed output captures only the current display.</p>
+<p>Some tools buffer text before sending it, so an empty live view does not necessarily mean the job is stuck.
+The view repairs invalid UTF-8 text for display and shows an embedded NUL byte as ␀. It does not behave as an interactive
+terminal or supply keyboard input to a running program. Completed diagnostics continue to use the existing final-result parser.</p>
+<h2>Recover from a confusing display</h2>
+<ol><li>If text seems frozen, inspect Follow output and the phase status. Refresh output resumes inspection without restarting the job.</li>
+<li>If the current phase is empty but the completed view contains output, the workflow may just have advanced to the next step.</li>
+<li>If the phase failed before emitting text, check its completed command and project paths. Correct the cause before starting another job.</li>
+<li>If output is truncated, do not treat the copied display as complete evidence. Keep the completed results and use your external
+build logging workflow when you need every byte.</li></ol>
+<h2>Keep a full emitted-output file</h2><p>The bounded viewer can now be used alongside an optional capture file. See <a href="SAVING_BUILD_LOGS.html">saving build logs</a> for deliberate file selection, completeness checks and recovery. The viewer and copied display remain bounded as described above.</p></main></body></html>

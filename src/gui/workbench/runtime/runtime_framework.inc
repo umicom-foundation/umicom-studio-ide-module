@@ -516,6 +516,8 @@ static void runtime_destroy_framework(
     /* Cancel deferred library requests before their borrowed workspace is released. */
     umi_gtk4_ws_layout_library_destroy(runtime->workspace_library);
     runtime->workspace_library = NULL;
+    umi_ui_workspace_library_history_destroy(runtime->workspace_library_history);
+    runtime->workspace_library_history = NULL;
 
     /* The shared host cancels gestures and owns every detached native window.
      * Restore the original adapter tree before its established teardown runs. */

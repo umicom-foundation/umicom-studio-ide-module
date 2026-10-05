@@ -300,6 +300,13 @@ static GtkWidget *runtime_build_layout_tabs(
             runtime_workspace_library_storage_read, runtime_workspace_library_storage_operation, runtime);
         (void)umi_gtk4_ws_layout_library_set_preview_handler(runtime->workspace_library,
             runtime_workspace_library_preview, runtime);
+        (void)umi_gtk4_ws_layout_library_set_history_handlers(runtime->workspace_library,
+            runtime_workspace_library_history_read, runtime_workspace_library_history_navigate, runtime);
+        (void)umi_gtk4_ws_layout_library_set_exchange_handlers(runtime->workspace_library,
+            runtime_workspace_library_export, runtime_workspace_library_import,
+            runtime_workspace_library_import_apply, runtime);
+        (void)umi_gtk4_ws_layout_library_set_saved_review_handler(runtime->workspace_library,
+            runtime_workspace_library_saved_review, runtime);
     } else {
         gtk_widget_set_sensitive(manage, FALSE);
         gtk_widget_set_tooltip_text(manage, "Layout library unavailable; existing layout selection and Save remain available");

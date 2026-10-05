@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Review language completions in Studio</title>
+<style>body{font:17px/1.6 system-ui;max-width:900px;margin:36px auto;padding:0 24px;color:#193542}</style></head>
+<body><h1>Review language completions in Studio</h1>
+<p>Studio's editor command bar includes <strong>Complete…</strong>. It requests
+suggestions from a local language server that you choose. Framework captures
+the draft, handles the temporary connection and applies an accepted result
+through the same Undo history as other edits.</p><ol>
+<li>Open a writable source file. Select a typed word within one line if you want
+it replaced. Otherwise leave the caret where text should be inserted.</li>
+<li>Select <strong>Complete…</strong>. If the command bar is narrow, scroll it
+horizontally. Opening the form sends nothing.</li>
+<li>Enter the absolute language-server executable path, its arguments and the
+project folder. Select a program you trust to read source and inspect that folder.</li>
+<li>Select <strong>Request suggestions</strong>. Wait for the temporary connection
+to close and the suggestion list to appear.</li>
+<li>Choose a suggestion and select <strong>Preview complete draft</strong>.
+Review the entire result, including additional imports. Select the approval
+checkbox and <strong>Apply to captured draft</strong> only when it is correct.</li>
+<li>Use Undo to restore the earlier draft, or Save to write the accepted result
+to disk. Cancel leaves the draft unchanged.</li></ol>
+<p>If the source or selection changed, close the review and start again. Editing
+connection fields or selecting another suggestion invalidates approval. Server
+snippets and commands are refused rather than applied as ordinary text.</p>
+<p>This explicit action does not yet supply automatic completion popups or a
+persistent server session. It does not install servers.
+<!-- Explicit local Save/Load now replaces the previous transient-only limitation.
+The previous wording is retained so contributors can review the changed behavior:
+persistent server session. It does not install servers or persist their settings.
+-->
+The native message limit is 65536 bytes per JSON message, including the protocol envelope and escaped source, with
+4096 parser tokens; escaping may make a smaller source exceed that limit.
+Drafts of 65536 bytes or more are refused before launch. Each replacement span
+is limited to 511 UTF-8 bytes and 64 additional edits. The request uses a
+five-second read budget. A large project or a server requiring client-side
+configuration requests may need a future persistent-session integration.</p>
+<h2>Save and reuse your choice</h2>
+<ol><li>After entering the server path and arguments, choose <strong>Save server
+for this language</strong>. Studio reports the file in your user-local settings.</li>
+<li>When you reopen the form, choose <strong>Load saved server</strong>. Review
+the loaded values and current project folder.</li>
+<li>Choose <strong>Request suggestions</strong> when ready. Load does not start
+the server, send source, or change the editor.</li></ol>
+<p>Use these settings for ordinary flags, never API keys or passwords; the local
+JSON file is not encrypted. A missing, invalid or wrong-language file is rejected.
+Editing the fields during a load discards the pending result. A save uses the
+values present when you selected Save and may finish after closing the form;
+save again if you want to keep newer edits. Each language has its own file.
+The workspace folder is not saved as part of the server choice.</p>
+<p>The Outline panel's connection check is separate: it checks initialization
+and shutdown without sending the draft.</p><p>For whole-document layout changes, see <a href="DOCUMENT_FORMATTING.html">document formatting</a>.</p><p>To read symbol documentation without editing the draft, see <a href="SOURCE_INFORMATION.html">source information</a>.</p><p>Continue with <a href="SOURCE_NAVIGATION.html">definition and reference navigation</a>.</p>
+</body></html>

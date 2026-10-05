@@ -13,6 +13,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/gtk4/language_connection.h"
+
 static GtkWidget *runtime_build_surface_outline(UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *panel = runtime_panel_new("Outline");
@@ -50,6 +52,25 @@ static GtkWidget *runtime_build_surface_outline(UmiStudioGtkRuntimeChrome *runti
     } /* Use this fallback path when the earlier condition does not apply. */ else {
         runtime_panel_add_stat(panel, "Language service", "Unavailable");
     }
+
+    /* Reuse the editor's weak owner binding. The outline action captures the
+     * active draft only when clicked and still requires an explicit request
+     * before running a server or sending source text. */
+    GtkWidget *symbols=gtk_button_new_with_label("Document symbols…");
+    (void)umi_gtk4_automation_tag_widget(symbols,"studio.outline.symbols");
+    runtime_bind_editor_action(runtime,symbols,RuntimeDocumentSymbols);
+    gtk_box_append(GTK_BOX(panel),symbols);
+
+    /* Framework owns native launching, protocol checks and worker lifetime.
+     * Studio supplies only the current folder as an editable draft. Opening
+     * the Outline view must never start a workspace-selected executable. */
+    UmiStudioWorkspaceSnapshot workspace;
+    const char *folder = NULL;
+    if (services != NULL && umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK &&
+        workspace.graph.open) folder = workspace.graph.root;
+    GtkWidget *connection = NULL;
+    if (UmiGtk4LanguageConnectionPanelCreate(folder, &connection) == UMI_STATUS_OK)
+        gtk_box_append(GTK_BOX(panel), connection);
 
     return runtime_scroll(panel);
 }

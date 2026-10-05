@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspect a symbol in Studio</title>
+<style>body{font:17px/1.6 system-ui;max-width:900px;margin:36px auto;padding:0 24px;color:#193542}</style></head>
+<body><h1>Inspect a symbol in Studio</h1>
+<p><strong>Source info…</strong> asks a selected local language server for
+documentation at your caret. It works with unsaved text and read-only documents
+and never applies an edit.</p><ol>
+<li>Open a source document and place the caret immediately before the symbol.
+If text is selected, the request uses the selection's start.</li>
+<li>Choose <strong>Source info…</strong> in the editor command bar. Scroll the
+bar horizontally if necessary. Opening the form captures the draft but does
+not start the server.</li>
+<li>Enter a trusted server's absolute program path, arguments and project folder,
+or choose <strong>Load saved server</strong>. Completion and formatting use the
+same per-language settings. Review loaded values before starting a program.</li>
+<li>Choose <strong>Request source information</strong>. The program receives
+your captured draft and can inspect the project folder. After the temporary
+connection closes, the form shows the returned documentation.</li>
+<li>Read or select the text, then choose <strong>Close</strong>. Code examples,
+HTML and markdown remain literal text. There is no Apply action.</li></ol>
+<p>If the server returns no information, try another caret position in a new
+form. If the document, selection or permissions changed, capture it again.
+Changing server settings clears the previous output. A late worker cannot
+publish into an editor that has closed or been unbound.</p>
+<p>The server must advertise hover, document open/close support and UTF-16
+positions. Requests have a five-second read budget and a 65536-byte message
+capacity including the JSON envelope and escaped draft, with at most 4096 parser
+tokens. Launch and synchronous writes may complete before cancellation.
+This explicit workflow does not provide automatic mouse hover or persistent indexing.</p>
+<p>Server settings store paths and ordinary arguments locally as JSON. Keep
+credentials out of those fields; they are not encrypted credential storage.
+See <a href="LANGUAGE_COMPLETION.html">completion and saved server settings</a>
+and <a href="DOCUMENT_FORMATTING.html">document formatting</a>.</p>
+<p>Continue with <a href="SOURCE_NAVIGATION.html">definition and reference navigation</a>.</p>
+<p>Explore the whole file with <a href="DOCUMENT_SYMBOLS.html">document symbols</a>.</p>
+</body></html>

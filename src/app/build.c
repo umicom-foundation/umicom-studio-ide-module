@@ -31,6 +31,8 @@ struct UmiStudioBuildService {
     UmiCancellationToken *cancellation;
     UmiBuildResult last_result;
     int has_last_result;
+    /* One-shot selection prevents a later job from reusing an old log path. */
+    char next_log_path[UMI_PATH_CAPACITY];
 };
 
 /* Provide the copy text operation used by this module and its client applications. */
@@ -486,6 +488,10 @@ UmiBuildWorkspace *umi_studio_build_service_workspace(
 
 /* Keep submission cheap: the Framework session creates its worker only when a
  * developer actually requests a build, not during every Studio startup/test. */
+/* The Framework logged submission path adds a deliberate one-job file selection.
+ * Unselected jobs keep the existing workflow, and refused submissions keep the draft.
+ * The former implementation is retained for engineering review. */
+#if 0
 UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
     UmiBuildPhase phase, int trusted)
 {
@@ -501,6 +507,28 @@ UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
     status = umi_build_project_session_submit(service->project_session,
         &service->profile, phase, trusted != 0);
     if (status == UMI_STATUS_OK) service->published_results = 0U;
+    return status;
+}
+#endif
+UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
+    UmiBuildPhase phase, int trusted)
+{
+    UmiStatus status;
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (!trusted) return UMI_STATUS_PERMISSION_DENIED;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    if (service->project_session == NULL) {
+        UmiBuildProjectSessionConfig config = {service->clock, NULL, NULL};
+        status = umi_build_project_session_create(&config, &service->project_session);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    status = UmiBuildProjectSessionSubmitLogged(service->project_session,
+        &service->profile, phase, trusted != 0,
+        service->next_log_path[0] != '\0' ? service->next_log_path : NULL);
+    if (status == UMI_STATUS_OK) {
+        service->published_results = 0U;
+        service->next_log_path[0] = '\0';
+    }
     return status;
 }
 
@@ -544,4 +572,40 @@ UmiStatus UmiStudioBuildProgress(UmiStudioBuildService *service,
         return UMI_STATUS_OK;
     }
     return umi_build_project_session_snapshot(service->project_session, outSnapshot);
+}
+
+/* Framework owns synchronisation and retention. Studio only bridges its
+ * existing service lifetime to the reusable native transcript presenter. */
+UmiStatus UmiStudioBuildReadOutput(UmiStudioBuildService *service, UmiBuildOutputSnapshot *outSnapshot)
+{
+    if (service == NULL || outSnapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->project_session == NULL) {
+        memset(outSnapshot, 0, sizeof(*outSnapshot));
+        return UMI_STATUS_OK;
+    }
+    return UmiBuildProjectSessionReadOutput(service->project_session, outSnapshot);
+}
+
+/* Configuration is a copied selection, not a file reservation or permission
+ * to run project code. The ordinary submission trust check remains required. */
+UmiStatus UmiStudioBuildArmLog(UmiStudioBuildService *service, const char *path)
+{
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    if (path == NULL || path[0] == '\0') { service->next_log_path[0] = '\0'; return UMI_STATUS_OK; }
+    UmiStatus status = UmiOutputFileValidatePath(path);
+    if (status != UMI_STATUS_OK) return status;
+    memmove(service->next_log_path, path, strlen(path) + 1U);
+    return UMI_STATUS_OK;
+}
+
+/* Read the pending selection and the last accepted job's independent log
+ * status. Failed logging never replaces the project's actual build status. */
+UmiStatus UmiStudioBuildReadLog(UmiStudioBuildService *service, UmiStudioBuildLogState *out_state)
+{
+    if (service == NULL || out_state == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    memset(out_state, 0, sizeof(*out_state));
+    strcpy(out_state->next_path, service->next_log_path);
+    return service->project_session != NULL ?
+        UmiBuildProjectSessionReadLog(service->project_session, &out_state->captured) : UMI_STATUS_OK;
 }

@@ -149,6 +149,10 @@ static UmiStatus runtime_workspace_library_read(
 
 /* Stage Framework validation first, then reuse the native transactional publish
  * path. A failed renderer cannot replace the live layout or editor drafts. */
+/* The former direct publication flow is retained for review. The replacement
+ * stages Framework recovery evidence first and preserves the same lightweight
+ * metadata update when the active panel arrangement has not changed. */
+#if 0
 static UmiStatus runtime_workspace_library_apply(
     const UmiUiWorkspaceLibraryRequest *request, void *context)
 {
@@ -194,6 +198,26 @@ static UmiStatus runtime_workspace_library_apply(
             }
         }
     }
+    free(candidate);
+    return status;
+}
+
+#endif
+static UmiStatus runtime_workspace_publish_library_change(UmiStudioGtkRuntimeChrome *runtime,
+    const UmiUiWorkspaceCustomisation *candidate, bool metadata_only);
+static UmiStatus runtime_workspace_library_apply(
+    const UmiUiWorkspaceLibraryRequest *request, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    UmiUiWorkspaceCustomisation *candidate = malloc(sizeof(*candidate));
+    if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    *candidate = *model;
+    UmiStatus status = umi_ui_workspace_library_apply(candidate,
+        &(const UmiUiWorkspaceLibraryPolicy){UMI_STUDIO_RUNTIME_WORKSPACE_PREFIX}, request, NULL);
+    if (status == UMI_STATUS_OK)
+        status = runtime_workspace_publish_library_change(runtime, candidate, true);
     free(candidate);
     return status;
 }

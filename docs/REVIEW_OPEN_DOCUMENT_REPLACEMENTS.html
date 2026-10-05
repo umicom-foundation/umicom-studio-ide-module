@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review replacements in open Studio documents</title><style>body{font:17px/1.6 system-ui;max-width:900px;margin:3rem auto;padding:0 20px;color:#202630}code,pre{font-family:Consolas,monospace}pre{padding:1rem;background:#f1f4f7;overflow:auto}th,td{padding:.5rem;text-align:left;border-bottom:1px solid #ddd}a{color:#12649d}</style></head><body><h1>Review replacements in open Studio documents</h1>
+<p>Use this workflow when the same literal text needs changing in several open source files.
+Studio shows a before-and-after comparison for each changed draft so you can decide separately.</p>
+<ol><li>Open the documents you want to review. Include unsaved or pinned tabs if they need the same edit.</li>
+<li>On the editor toolbar, enter the existing text in <strong>Find</strong> and the new text in <strong>Replace with</strong>.
+Leave Replace with empty to remove matching text.</li>
+<li>Choose <strong>Review Open Documents</strong>. On a narrow window, scroll the editor toolbar horizontally to reach it.
+You can also search for <strong>Review Replacements in Open Documents</strong> in command search; it uses those same fields.</li>
+<li>Read <strong>Captured draft</strong> and <strong>Proposed draft</strong>. Both comparison panes are read-only.
+Choose <strong>Apply to this document</strong> to change this draft, or <strong>Skip this document</strong> to leave it alone.</li>
+<li>Repeat for each question. Choose <strong>Stop</strong> when you want to leave the remaining drafts untouched.</li>
+<li>Read the result counts, then choose <strong>Close</strong>. Check the changed tabs and use Save when ready to write them to disk.</li></ol>
+<h2>Try a small example</h2><p>Open two drafts containing <code>customer_name</code>. Find <code>customer_name</code> and replace it with
+<code>client_name</code>. Apply the first question and skip the second. The first draft should contain the new name; the second should remain unchanged.
+Return to the first tab and use Undo to restore its previous draft. Saving remains a separate action.</p>
+<h2>Search rules and limits</h2><p>Matching is literal, with no regular expressions or replacement templates.
+ASCII uppercase in Find requests case-sensitive matching; otherwise ASCII letters match without case. Non-ASCII text matches exactly.
+The starting set includes untitled and pinned drafts. Later-opened tabs and unopened project files are excluded.
+No-match, unchanged, read-only and already-closed documents are counted without an Apply question.</p>
+<p>The existing <strong>Replace All</strong> button continues to review replacements in the active document only.
+The open-document workflow applies one reviewed draft at a time and retains the active tab.</p>
+<h2>If the review stops</h2><p>A draft that changes after its question is captured cannot accept that old proposal.
+Close the result, inspect the newer text and start again. Changing the Find or Replace with fields does not change a question already underway.</p>
+<p>Stop and errors keep earlier accepted edits. There is no global rollback: Undo belongs to each changed document.
+Closing the Studio host cancels pending review work. A button retained from a closed review cannot edit a later document.</p>
+<footer><p>Sammy Hegab · Umicom Foundation · MIT</p></footer><p><a href="COMPLETE_DOCUMENT_REPLACEMENTS.html">Review a complete replacement set before applying any draft</a></p>
+</body></html>

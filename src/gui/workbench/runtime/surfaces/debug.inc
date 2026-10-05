@@ -44,14 +44,40 @@ static GtkWidget *runtime_build_surface_debug(
     gtk_entry_set_placeholder_text(GTK_ENTRY(runtime->debug_adapter_executable),
         "Adapter executable path (empty uses PATH)");
     gtk_widget_set_hexpand(runtime->debug_adapter_executable, TRUE);
+    /* Reopening the panel displays the actual per-window selection. Saved
+     * preferences remain an explicit Load action, never project-supplied code. */
+    UmiDebugAdapterPreferences selectedAdapter;
+    if (UmiStudioDebuggerNativeChoice(umi_studio_services_debugger(umi_studio_ui_services(runtime->owner->ui)),
+        selectedAdapter.kind, sizeof(selectedAdapter.kind), selectedAdapter.executable, sizeof(selectedAdapter.executable)) == UMI_STATUS_OK) {
+        gtk_drop_down_set_selected(GTK_DROP_DOWN(runtime->debug_adapter_kind), strcmp(selectedAdapter.kind, "gdb") == 0 ? 0U : 1U);
+        gtk_editable_set_text(GTK_EDITABLE(runtime->debug_adapter_executable), selectedAdapter.executable);
+    }
+    (void)umi_gtk4_automation_tag_widget(runtime->debug_adapter_kind, "studio.debug.adapter.kind");
+    (void)umi_gtk4_automation_tag_widget(runtime->debug_adapter_executable, "studio.debug.adapter.executable");
     GtkWidget *applyAdapter = gtk_button_new_with_label("Use adapter");
     gtk_widget_set_tooltip_text(applyAdapter,
         "Select installed gdb with DAP support or lldb-dap. No debugger is downloaded.");
     runtime_bind_editor_action(runtime, applyAdapter, RuntimeDebugConfigure);
+    (void)umi_gtk4_automation_tag_widget(applyAdapter, "studio.debug.adapter.use");
     gtk_box_append(GTK_BOX(adapterRow), runtime->debug_adapter_kind);
     gtk_box_append(GTK_BOX(adapterRow), runtime->debug_adapter_executable);
     gtk_box_append(GTK_BOX(adapterRow), applyAdapter);
     gtk_box_append(GTK_BOX(panel), adapterRow);
+    GtkWidget *preferenceRow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    GtkWidget *saveAdapter = gtk_button_new_with_label("Save adapter choice locally");
+    GtkWidget *loadAdapter = gtk_button_new_with_label("Load saved adapter choice");
+    g_object_set_data(G_OBJECT(saveAdapter), "umicom-debug-preference-save", GINT_TO_POINTER(1));
+    gtk_widget_set_tooltip_text(saveAdapter, "Save this draft in your user configuration folder. It does not change a running debugger; the write may finish after closing this window.");
+    gtk_widget_set_tooltip_text(loadAdapter, "Load a saved choice into these fields. Review it and choose Use adapter separately.");
+    (void)umi_gtk4_automation_tag_widget(saveAdapter, "studio.debug.adapter.save");
+    (void)umi_gtk4_automation_tag_widget(loadAdapter, "studio.debug.adapter.load");
+    runtime_bind_editor_action(runtime, saveAdapter, RuntimeDebugPreferenceClicked);
+    runtime_bind_editor_action(runtime, loadAdapter, RuntimeDebugPreferenceClicked);
+    gtk_box_append(GTK_BOX(preferenceRow), saveAdapter);
+    gtk_box_append(GTK_BOX(preferenceRow), loadAdapter);
+    gtk_box_append(GTK_BOX(panel), preferenceRow);
+    /* File review and restoration use Framework's shared setup owner. */
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugSetupCreate(runtime));
 
     runtime->debug_summary_label = runtime_label("", 0.0F);
     runtime->debug_thread_entry = gtk_entry_new();

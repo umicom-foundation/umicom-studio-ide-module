@@ -13,6 +13,25 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Studio collects the two fields; Framework owns capture, decisions and undo.
+ * Keeping this route shared gives toolbar and command search the same limits. */
+/* Native construction can reenter Studio teardown. The implementation below
+ * is retained for review; the route defined after the weak-owner helpers now
+ * reacquires the owner before reporting an immediate error. */
+#if 0
+static UmiStatus RuntimeReviewOpenReplacements(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (runtime->editor_find_entry == NULL || runtime->editor_replace_entry == NULL)
+        return UMI_STATUS_UNAVAILABLE;
+    return UmiGtk4AdapterReviewOpenReplacements(runtime->owner->adapter,
+        gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry)),
+        gtk_editable_get_text(GTK_EDITABLE(runtime->editor_replace_entry)));
+}
+#endif
+static UmiStatus RuntimeReviewOpenReplacements(UmiStudioGtkRuntimeChrome *runtime);
+static UmiStatus RuntimeReviewReplacementSet(UmiStudioGtkRuntimeChrome *runtime);
+
 static void runtime_clear_box(GtkWidget *box)
 {
     GtkWidget *child;
@@ -262,6 +281,22 @@ static int runtime_command_enabled(
      */
     if (bindings == NULL || bindings->commands == NULL) return 0;
 
+    /* A replacement sequence must finish before another host-changing flow.
+     * Dispatch repeats this check so a retained action cannot bypass it. */
+    if (UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
+         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0 ||
+         strcmp(command_id, "file.close") == 0 || strcmp(command_id, "file.close-all") == 0 ||
+         strcmp(command_id, "file.close-others") == 0)) return 0;
+    if (strcmp(command_id, "editor.replace-open-documents") == 0)
+        return runtime->editor_find_entry != NULL && runtime->editor_replace_entry != NULL &&
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry))[0] != '\0' &&
+            umi_document_coordinator_count(umi_studio_ui_documents(runtime->owner->ui)) != 0U &&
+            !UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
+
     if (strcmp(command_id, "umicom.document.go-to-line") == 0) {
         UmiDocumentWorkingCopySnapshot active;
         return umi_document_coordinator_active_snapshot(
@@ -279,6 +314,23 @@ static int runtime_command_enabled(
 
     /* Group-close availability is queried from Framework, not inferred from
      * the caption of a button. Dispatch repeats these checks. */
+    /* History availability belongs to the shared document binding. It remains
+     * useful when no source tabs are open, so it precedes active-tab checks. */
+    /* Native availability and execution ask the same owner, including busy
+     * decisions. A contribution alone is not proof of a reachable destination. */
+    if (strcmp(command_id, "navigate.back") == 0 || strcmp(command_id, "editor.navigate.back") == 0)
+        return UmiGtk4AdapterNavigationHistoryEnabled(runtime->owner->adapter, -1);
+    if (strcmp(command_id, "navigate.forward") == 0 || strcmp(command_id, "editor.navigate.forward") == 0)
+        return UmiGtk4AdapterNavigationHistoryEnabled(runtime->owner->adapter, 1);
+    /* Bookmark state and navigation remain owned by Framework. */
+    if (strcmp(command_id, "editor.bookmark.toggle") == 0) return UmiGtk4AdapterBookmarkEnabled(runtime->owner->adapter, 0);
+    if (strcmp(command_id, "editor.bookmark.next") == 0) return UmiGtk4AdapterBookmarkEnabled(runtime->owner->adapter, 1);
+    if (strcmp(command_id, "editor.bookmark.previous") == 0) return UmiGtk4AdapterBookmarkEnabled(runtime->owner->adapter, -1);
+    if (strcmp(command_id, "editor.bookmark.clear") == 0) return UmiGtk4AdapterBookmarkEnabled(runtime->owner->adapter, 2);
+    if (strcmp(command_id, "navigate.history.clear") == 0)
+        return UmiGtk4AdapterNavigationHistoryEnabled(runtime->owner->adapter, 0);
+    if (strcmp(command_id, "file.reopen-closed") == 0 || strcmp(command_id, "file.forget-closed") == 0)
+        return UmiGtk4AdapterReopenDocumentEnabled(runtime->owner->adapter);
     if (strcmp(command_id, "file.close-all.cancel") == 0)
         return UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter);
     if (strcmp(command_id, "file.close-all") == 0 || strcmp(command_id, "file.close-others") == 0) {
