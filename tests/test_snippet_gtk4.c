@@ -5,6 +5,9 @@
  * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
  * LICENCE: MIT
  *---------------------------------------------------------------------------*/
+/* Snippet Undo is a Framework document-edit operation. Include its owning
+ * contract directly rather than relying on the Studio window umbrella header. */
+#include "umicom/document/edit.h"
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"

@@ -5,6 +5,9 @@
  * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
  * LICENCE: MIT
  *---------------------------------------------------------------------------*/
+/* The source-history case deliberately invokes the Framework Undo operation.
+ * Its edit contract must be included explicitly before the test calls it. */
+#include "umicom/document/edit.h"
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"

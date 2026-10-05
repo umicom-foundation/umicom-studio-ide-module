@@ -12,6 +12,8 @@
 #include "umicom/studio/settings.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
 #include "umicom/debug/setup_document.h"
+/* Live workspace snapshots are distinct from saved setup-document records. */
+#include "umicom/debug/workspace.h"
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <string.h>
@@ -164,23 +166,48 @@ int main(int argc, char **argv)
         CHECK(Wait(panel));
         if (bootstrap != NULL)
         {
+            /* Read live state into the exact output type required by the
+             * workspace API. Keep point as the saved setup record above;
+             * casting between these layouts would corrupt the fixture. */
+            UmiDebugBreakpointSnapshot livePoint;
+            /* Verify the live breakpoint without overwriting the saved input.
+             * The previous incompatible-output call is retained for review. */
+#if 0
             CHECK(umi_debug_workspace_breakpoint_at(workspace, 0U, &point) == UMI_STATUS_OK &&
                   point.line == 11U);
+#endif
+            /* Verify the live breakpoint without overwriting the saved input */
+            CHECK(umi_debug_workspace_breakpoint_at(workspace, 0U, &livePoint) == UMI_STATUS_OK &&
+                  livePoint.line == 11U);
             if (strcmp(mode, "stale") == 0)
                 CHECK(umi_debug_workspace_add_watch(workspace, "newer watch", NULL, 0U) == UMI_STATUS_OK);
             if (strcmp(mode, "no-approval") != 0)
                 gtk_check_button_set_active(GTK_CHECK_BUTTON(approval), TRUE);
             g_signal_emit_by_name(apply, "clicked");
             int accepted = strcmp(mode, "apply") == 0 || strcmp(mode, "previous") == 0;
+            /* Verify the live breakpoint without overwriting the saved input.
+             * The previous incompatible-output call is retained for review. */
+#if 0
             CHECK(umi_debug_workspace_breakpoint_at(workspace, 0U, &point) == UMI_STATUS_OK &&
                   point.line == (accepted ? 42U : 11U));
+#endif
+            /* Verify the live breakpoint without overwriting the saved input */
+            CHECK(umi_debug_workspace_breakpoint_at(workspace, 0U, &livePoint) == UMI_STATUS_OK &&
+                  livePoint.line == (accepted ? 42U : 11U));
             if (strcmp(mode, "previous") == 0)
             {
                 g_signal_emit_by_name(previous, "clicked");
                 gtk_check_button_set_active(GTK_CHECK_BUTTON(approval), TRUE);
                 g_signal_emit_by_name(apply, "clicked");
+                /* Verify the live breakpoint without overwriting the saved input.
+                 * The previous incompatible-output call is retained for review. */
+#if 0
                 CHECK(umi_debug_workspace_breakpoint_at(workspace, 0U, &point) == UMI_STATUS_OK &&
                       point.line == 11U);
+#endif
+                /* Verify the live breakpoint without overwriting the saved input */
+                CHECK(umi_debug_workspace_breakpoint_at(workspace, 0U, &livePoint) == UMI_STATUS_OK &&
+                      livePoint.line == 11U);
             }
             CHECK(!UmiStudioDebuggerNativeBusy(debugger));
         }
