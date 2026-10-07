@@ -191,3 +191,9 @@ copying its build target or program. A hidden selection is cleared; changes to
 build inputs still require a fresh read. See Framework's installed learning
 guide, **Find a configured target or captured position**, for the workflow and
 text-matching limits.
+
+Installed-file review also supports literal path/status filtering and original,
+ascending or descending text order. The chosen file retains its source identity
+when rows move; hiding it while validation runs refuses the late selection.
+See Framework's installed-file review guide for the complete install-to-launch
+workflow. Applying a filter neither runs a program nor accepts build settings.
