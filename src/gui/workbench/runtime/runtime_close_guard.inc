@@ -15,15 +15,71 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/test_execution.h"
+#include "umicom/studio/test_archive.h"
 
 /* Do not enter synchronous service destruction with a live discovery payload.
  * The ordinary refresh loop reaps Stop. No discarded edits or automatic close
  * are implied: after it completes the user requests close again. */
+/* Window closure now also waits for the private archive worker without blocking GTK.
+ * The previous implementation remains here for engineering review. */
+#if 0
 static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
     UmiStudioTestService *tests = umi_studio_services_tests(
         umi_studio_ui_services(runtime->owner->ui));
+    if (UmiStudioTestRunPending(tests)) {
+        (void)UmiStudioTestRunCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping the test run. Close again after it finishes; your documents remain open.");
+        return 1;
+    }
+    if (!UmiStudioTestDiscoveryPending(tests)) return 0;
+    (void)umi_studio_test_service_stop(tests);
+    runtime_show_notification(runtime,
+        "Stopping test discovery. Close again after it finishes; your documents remain open.");
+    return 1;
+}
+#endif
+/* Closing now cancels both archive saves and comparisons before releasing their shared database. The prior save-only close guard is retained for review.
+ * The previous implementation remains here for engineering review. */
+#if 0
+static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    UmiStudioTestService *tests = umi_studio_services_tests(
+        umi_studio_ui_services(runtime->owner->ui));
+    if (UmiStudioTestArchivePending(tests)) {
+        (void)UmiStudioTestArchiveCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping the archive save. Close again when it finishes; saved evidence is retained.");
+        return 1;
+    }
+    if (UmiStudioTestRunPending(tests)) {
+        (void)UmiStudioTestRunCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping the test run. Close again after it finishes; your documents remain open.");
+        return 1;
+    }
+    if (!UmiStudioTestDiscoveryPending(tests)) return 0;
+    (void)umi_studio_test_service_stop(tests);
+    runtime_show_notification(runtime,
+        "Stopping test discovery. Close again after it finishes; your documents remain open.");
+    return 1;
+}
+#endif
+static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    UmiStudioTestService *tests = umi_studio_services_tests(
+        umi_studio_ui_services(runtime->owner->ui));
+    if (UmiStudioTestArchivePending(tests)) {
+        (void)UmiStudioTestArchiveCancel(tests);
+        (void)UmiStudioTestArchiveComparisonCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping test archive work. Close again when it finishes; saved evidence is retained.");
+        return 1;
+    }
     if (UmiStudioTestRunPending(tests)) {
         (void)UmiStudioTestRunCancel(tests);
         runtime_show_notification(runtime,

@@ -33,6 +33,10 @@ struct UmiStudioBuildService {
     int has_last_result;
     /* One-shot selection prevents a later job from reusing an old log path. */
     char next_log_path[UMI_PATH_CAPACITY];
+    /* Framework owns transaction rules; Studio owns this optional connection. */
+    UmiDataServer *job_database;
+    UmiJobHistory *job_history;
+    char job_database_path[UMI_PATH_CAPACITY];
 };
 
 /* Provide the copy text operation used by this module and its client applications. */
@@ -175,6 +179,9 @@ void umi_studio_build_service_destroy(UmiStudioBuildService *service)
     if (service == NULL) return;
     /* Finish the Framework worker before releasing its borrowed clock/history. */
     umi_build_project_session_destroy(service->project_session);
+    /* Join the session first so no worker can access a closed database. */
+    UmiJobHistoryDestroy(service->job_history);
+    umi_data_server_destroy(service->job_database);
     umi_build_workspace_destroy(service->workspace);
     umi_build_artifact_index_destroy(service->artifacts);
     umi_build_engine_destroy(service->engine);
@@ -522,6 +529,15 @@ UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
         status = umi_build_project_session_create(&config, &service->project_session);
         if (status != UMI_STATUS_OK) return status;
     }
+    if (service->job_history != NULL) {
+        UmiBuildJobHistoryState history;
+        status = UmiBuildProjectSessionReadHistory(service->project_session, &history);
+        if (status != UMI_STATUS_OK) return status;
+        if (!history.enabled) {
+            status = UmiBuildProjectSessionSetHistory(service->project_session, service->job_history);
+            if (status != UMI_STATUS_OK) return status;
+        }
+    }
     status = UmiBuildProjectSessionSubmitLogged(service->project_session,
         &service->profile, phase, trusted != 0,
         service->next_log_path[0] != '\0' ? service->next_log_path : NULL);
@@ -608,4 +624,67 @@ UmiStatus UmiStudioBuildReadLog(UmiStudioBuildService *service, UmiStudioBuildLo
     strcpy(out_state->next_path, service->next_log_path);
     return service->project_session != NULL ?
         UmiBuildProjectSessionReadLog(service->project_session, &out_state->captured) : UMI_STATUS_OK;
+}
+
+/* A replacement connection is fully checked before detaching the old one.
+ * The database path is explicit, so working-directory changes cannot redirect
+ * private evidence into a source checkout or a different project. */
+UmiStatus UmiStudioBuildOpenJobHistory(UmiStudioBuildService *service,const char *path)
+{
+    if (service==NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    UmiDataServer *database=NULL;
+    UmiJobHistory *history=NULL;
+    UmiStatus status=UMI_STATUS_OK;
+    if (path!=NULL) {
+        status=UmiOutputFileValidatePath(path);
+        if (status!=UMI_STATUS_OK) return status;
+        status=umi_data_server_create_sqlite(path,&database);
+        if (status==UMI_STATUS_OK) status=UmiJobHistoryCreate(database,"studio.build",&history);
+        UmiJobHistorySnapshot *snapshot=NULL;
+        if (status==UMI_STATUS_OK) {
+            snapshot=calloc(1U,sizeof(*snapshot));
+            status=snapshot!=NULL?UmiJobHistoryCapture(history,snapshot):UMI_STATUS_OUT_OF_MEMORY;
+        }
+        free(snapshot);
+    }
+    if (status==UMI_STATUS_OK && service->project_session!=NULL)
+        status=UmiBuildProjectSessionSetHistory(service->project_session,history);
+    if (status!=UMI_STATUS_OK) {
+        UmiJobHistoryDestroy(history);
+        umi_data_server_destroy(database);
+        return status;
+    }
+    UmiJobHistoryDestroy(service->job_history);
+    umi_data_server_destroy(service->job_database);
+    service->job_history=history;
+    service->job_database=database;
+    if (path!=NULL) memmove(service->job_database_path,path,strlen(path)+1U);
+    else service->job_database_path[0]='\0';
+    return UMI_STATUS_OK;
+}
+/* Frontend polling consumes only metadata published under the session lock. */
+UmiStatus UmiStudioBuildReadJobHistory(UmiStudioBuildService *service,UmiStudioBuildJobHistory *out_state)
+{
+    if (service==NULL || out_state==NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    memset(out_state,0,sizeof(*out_state));
+    memcpy(out_state->path,service->job_database_path,sizeof(out_state->path));
+    out_state->current.enabled=service->job_history!=NULL;
+    if (service->project_session!=NULL)
+        return UmiBuildProjectSessionReadHistory(service->project_session,&out_state->current);
+    return UMI_STATUS_OK;
+}
+UmiStatus UmiStudioBuildCaptureJobs(UmiStudioBuildService *service,UmiJobHistorySnapshot *out_snapshot)
+{
+    if (service==NULL || out_snapshot==NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    if (service->job_history==NULL) return UMI_STATUS_INVALID_STATE;
+    return UmiJobHistoryCapture(service->job_history,out_snapshot);
+}
+UmiStatus UmiStudioBuildPruneFinishedJobs(UmiStudioBuildService *service,size_t *out_removed)
+{
+    if (service==NULL || out_removed==NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    if (service->job_history==NULL) return UMI_STATUS_INVALID_STATE;
+    return UmiJobHistoryPruneFinished(service->job_history,out_removed);
 }

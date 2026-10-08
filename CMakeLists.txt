@@ -3134,3 +3134,43 @@ if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture AND TARGET umicom-studio
     endforeach()
 endif()
 install(FILES docs/READING_DEBUGGER_MEMORY.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+# Native and service restart use a controlled DAP peer, not an installed debugger.
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
+    add_executable(umicom-studio-debug-restart-test tests/test_debug_restart.c)
+    target_link_libraries(umicom-studio-debug-restart-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-debug-restart-test)
+    umicom_apply_sanitizers(umicom-studio-debug-restart-test)
+    add_dependencies(umicom-studio-debug-restart-test umicom-dap-protocol-fixture)
+    foreach(case supported unsupported rejected event-first)
+        add_test(NAME studio.debug_restart.service.${case} COMMAND umicom-studio-debug-restart-test
+            "$<TARGET_FILE:umicom-dap-protocol-fixture>" "${case}")
+        set_tests_properties(studio.debug_restart.service.${case} PROPERTIES
+            TIMEOUT 30 LABELS "studio;debugger;restart;protocol-fixture;regression")
+    endforeach()
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-debug-restart-test)
+    endif()
+endif()
+if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-debug-restart-native-test tests/test_debug_restart_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-debug-restart-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-debug-restart-native-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-debug-restart-native-test)
+    umicom_apply_sanitizers(umicom-studio-debug-restart-native-test)
+    add_dependencies(umicom-studio-debug-restart-native-test umicom-dap-protocol-fixture)
+    foreach(case supported unsupported close)
+        add_test(NAME studio.debug_restart.gtk4.${case} COMMAND umicom-studio-debug-restart-native-test
+            "$<TARGET_FILE:umicom-dap-protocol-fixture>" "${case}")
+        set_tests_properties(studio.debug_restart.gtk4.${case} PROPERTIES
+            TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;debugger;restart;ownership;acceptance")
+    endforeach()
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-debug-restart-native-test)
+    endif()
+endif()
+install(FILES docs/RESTARTING_DEBUG_SESSIONS.html DESTINATION ${CMAKE_INSTALL_DATADIR}/umicom-studio/docs)
+
+include(cmake/UmicomStudioJobHistory.cmake)
+include(cmake/UmicomStudioTestArchive.cmake)

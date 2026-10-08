@@ -302,7 +302,23 @@ UmiStatus umi_studio_debugger_service_stop(UmiStudioDebuggerService *service,int
 {
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     if (!service->nativeMode) return umi_debug_controller_terminate(service->controller,restart);
+    /* Capability negotiation and inspection lifetime belong in Framework.
+     * Retain the former refusal for review; unsupported adapters still require
+     * explicit Stop followed by Debug instead of an implicit relaunch. */
+#if 0
     if (restart) return UMI_STATUS_NOT_IMPLEMENTED; /* Explicit Stop then Debug rebuilds safely. */
+#endif
+    if (restart) {
+        if (service->launchPending) return UMI_STATUS_BUSY;
+        UmiStatus status = umi_debug_runtime_platform_restart(service->native, 1500U);
+        service->nativeStatus = status;
+        /* An attempted restart retires the paused state even when its reply
+         * fails. Preflight refusals keep the current inspection untouched. */
+        UmiDebugRuntimePlatformSnapshot after;
+        if (umi_debug_runtime_platform_snapshot(service->native, &after) == UMI_STATUS_OK && !after.paused)
+            service->inspectedStop = 0;
+        return status;
+    }
     service->launchPending = 0;
     UmiStatus status = umi_debug_runtime_platform_stop(service->native, 1, 1500U);
     if (status == UMI_STATUS_NOT_FOUND) status = UMI_STATUS_OK;

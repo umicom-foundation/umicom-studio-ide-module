@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Follow tests as they run</title><style>body{font:17px/1.65 system-ui;max-width:920px;margin:2rem auto;padding:0 24px;color:#18252d}code,pre{font-family:monospace}pre{padding:16px;background:#f1f5f7;overflow:auto}h1,h2{line-height:1.25}a{color:#07658a}</style></head><body><main><h1>Follow tests as they run</h1>
+
+<p>Test Explorer shows a live transcript for the most recently started test invocation.
+You can read progress before the test finishes, keep a passage still while selecting it, and copy the text
+that is on screen. The existing completed results and selected-test details remain available.</p>
+<h2>Use the live panel</h2>
+<ol><li>Open your trusted project and choose its configured build profile. Discover its tests in Test Explorer.
+A configured build folder supplies CTest's test catalogue.</li>
+<li>Run the desired tests using the existing run controls. Look for <strong>Latest test invocation output</strong>.
+The context names the test, repetition attempt and invocation number.</li>
+<li>Leave <strong>Follow output</strong> enabled to show the latest capture. Output may also include CTest's
+own progress and setup or cleanup fixtures associated with the selection.</li>
+<li>Turn off Follow output to select and read a stable passage. The status indicates when newer output is
+waiting. <strong>Refresh output</strong> shows that newer copy once while leaving Follow disabled.</li>
+<li>Select <strong>Copy displayed output</strong> to copy exactly the text currently visible.
+It does not silently substitute newer output that arrived while the display was paused.</li>
+<li>Use <strong>Stop</strong> to request cancellation. Wait for the run summary before starting another run.
+A cancelled or skipped attempt is never shown as a passed test.</li>
+<li>Inspect the completed result and failure details after the run. Live text alone cannot establish success;
+a report or fixture failure can still make the invocation fail.</li></ol>
+<h2>What is retained</h2>
+<p>The panel keeps the latest 65,535 raw bytes for the current invocation. A new test attempt starts a new tail.
+If earlier bytes are omitted, the status says so. This panel does not save a full log to disk or recover
+test output after restarting Studio. Completed results remain in the existing result view.</p>
+<p>A zero byte appears as &#x2400;, and invalid text encoding is repaired for display. This preserves readable
+text after binary bytes without changing the captured raw data. Compiler output uses the same Framework
+controls in the Output surface.</p>
+<h2>If output does not appear</h2>
+<ol><li>Check whether a test is queued, running, cancelled or already complete in the Test Explorer summary.</li>
+<li>Check Follow output. Pausing only affects the display; the running job still captures output.</li>
+<li>Some tests keep their own output buffered until they finish. Use a sensible test timeout and inspect final
+results before assuming the application has stopped responding.</li>
+<li>For an execution or report error, inspect the completed result, configured build folder and CTest installation.
+Discover again after changing the build profile.</li></ol>
+<p>Contributors can read the <a href="../../../framework/docs/learning/live-test-output.html">Framework output
+ownership guide</a>. Studio only selects the current job and copies its evidence; Framework owns execution,
+byte retention, synchronisation and native output controls.</p>
+
+</main></body></html>

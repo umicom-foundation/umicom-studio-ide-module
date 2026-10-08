@@ -20,6 +20,7 @@
 #include "umicom/build/project_session.h"
 #include "umicom/build/live_output.h"
 #include "umicom/build/log_capture.h"
+#include "umicom/build/job_history.h"
 
 #include "umicom/umicom.h"
 
@@ -201,6 +202,24 @@ typedef struct UmiStudioBuildLogState {
  * Syntax validation does not reserve a path. Submission checks exclusivity. */
 UmiStatus UmiStudioBuildArmLog(UmiStudioBuildService *service, const char *path);
 UmiStatus UmiStudioBuildReadLog(UmiStudioBuildService *service, UmiStudioBuildLogState *out_state);
+
+
+/* Choose a private, absolute SQLite path for this project's job metadata.
+ * The service owns the connection until replacement or destruction. Opening a
+ * database does not run a build. Select it again after reopening the project.
+ * Passing NULL detaches while idle. Failed replacement keeps the old history.
+ * A database stores captions and outcomes, never compiler output or commands. */
+typedef struct UmiStudioBuildJobHistory {
+    char path[UMI_PATH_CAPACITY];
+    UmiBuildJobHistoryState current;
+} UmiStudioBuildJobHistory;
+UmiStatus UmiStudioBuildOpenJobHistory(UmiStudioBuildService *service,const char *path);
+/* Metadata reads are safe during a build and perform no database I/O. */
+UmiStatus UmiStudioBuildReadJobHistory(UmiStudioBuildService *service,UmiStudioBuildJobHistory *out_state);
+/* Explicit owner-thread actions, refused while the build has uncollected results.
+ * Old unfinished records are displayed as uncertain and never resubmitted. */
+UmiStatus UmiStudioBuildCaptureJobs(UmiStudioBuildService *service,UmiJobHistorySnapshot *out_snapshot);
+UmiStatus UmiStudioBuildPruneFinishedJobs(UmiStudioBuildService *service,size_t *out_removed);
 
 #ifdef __cplusplus
 }

@@ -213,6 +213,10 @@ UmiStatus umi_studio_debugger_service_step_out(
  * Provide the studio debugger service stop operation used by this module and its client
  * applications.
  */
+/* restart != 0 requests the active adapter's advertised restart operation.
+ * It reuses current launch settings and performs no build. Pending builds return
+ * BUSY; unsupported adapters retain explicit Stop then Debug as the alternative.
+ * Uncertain replies retire old inspection data and require an explicit Stop. */
 UmiStatus umi_studio_debugger_service_stop(
     UmiStudioDebuggerService *service, int restart
 );

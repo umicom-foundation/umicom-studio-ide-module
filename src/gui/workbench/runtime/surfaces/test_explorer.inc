@@ -13,6 +13,39 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/testing/ctest_output_gtk4.h"
+#include "test_archive.inc"
+
+/* Poll one copied capture on the GTK thread. Output controls remain independent
+ * of selection and never dispatch another test or retain a Studio service. */
+/* Periodic refresh now also copies archive-worker status without database reads.
+ * The previous implementation remains here for engineering review. */
+#if 0
+static void RuntimeTestLiveOutputRefresh(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime->test_live_output == NULL || runtime->owner == NULL ||
+        runtime->owner->ui == NULL) return;
+    UmiStudioTestService *service =
+        umi_studio_services_tests(umi_studio_ui_services(runtime->owner->ui));
+    UmiCtestOutputSnapshot *output = g_new0(UmiCtestOutputSnapshot, 1);
+    if (UmiStudioTestRunReadOutput(service, output) == UMI_STATUS_OK)
+        (void)UmiCtestOutputGtk4Update(runtime->test_live_output, output);
+    g_free(output);
+}
+#endif
+static void RuntimeTestLiveOutputRefresh(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime->test_live_output == NULL || runtime->owner == NULL ||
+        runtime->owner->ui == NULL) return;
+    UmiStudioTestService *service =
+        umi_studio_services_tests(umi_studio_ui_services(runtime->owner->ui));
+    UmiCtestOutputSnapshot *output = g_new0(UmiCtestOutputSnapshot, 1);
+    if (UmiStudioTestRunReadOutput(service, output) == UMI_STATUS_OK)
+        (void)UmiCtestOutputGtk4Update(runtime->test_live_output, output);
+    g_free(output);
+    RuntimeTestArchiveRefresh(runtime);
+}
+
 static void runtime_on_tests_discover_button(
     GtkButton *button,
     gpointer user_data)
@@ -375,6 +408,13 @@ static GtkWidget *runtime_build_surface_test_explorer(
             gtk_box_append(GTK_BOX(panel), details);
         }
     }
+
+    GtkWidget *live_title = runtime_label("Latest test invocation output", 0.0F);
+    gtk_box_append(GTK_BOX(panel), live_title);
+    runtime->test_live_output = UmiCtestOutputGtk4Create();
+    gtk_box_append(GTK_BOX(panel), runtime->test_live_output);
+    RuntimeTestArchiveControls(runtime, panel);
+    RuntimeTestLiveOutputRefresh(runtime);
 
     runtime_append_context_actions(runtime, panel, "tests");
 

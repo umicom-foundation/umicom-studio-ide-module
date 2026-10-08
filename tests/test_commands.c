@@ -41,6 +41,11 @@ int main(void)
     assert(umi_studio_bootstrap_start(bootstrap) == UMI_STATUS_OK);
 
     registry = umi_studio_bootstrap_command_registry(bootstrap);
+    /* The explicit restart command is registered even before a session exists.
+     * It must report missing execution state rather than creating a process. */
+    assert(umi_command_registry_snapshot(registry, UMI_STUDIO_COMMAND_DEBUG_RESTART, &snapshot) == UMI_STATUS_OK);
+    assert(umi_command_registry_execute(registry, UMI_STUDIO_COMMAND_DEBUG_RESTART, NULL,
+        message, sizeof message) == UMI_STATUS_INVALID_STATE);
     assert(registry != NULL);
     /*
      * The old assertion is retained for builds that intentionally enforce an

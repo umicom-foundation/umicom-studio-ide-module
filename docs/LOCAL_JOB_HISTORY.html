@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reviewing local build-job history</title><style>body{font:17px/1.6 system-ui,sans-serif;max-width:920px;margin:3rem auto;padding:0 1.4rem;color:#203144}h1,h2{line-height:1.2}code,pre{font-family:Consolas,monospace}pre{background:#f1f4f7;padding:1rem;overflow:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #c9d3df;padding:.7rem;text-align:left}a{color:#155bb0}</style></head><body><main><h1>Reviewing local build-job history</h1>
+<p>Local job history keeps the outcome of a build workflow after Studio closes.
+It complements the live Output view and optional build log. It does not save compiler
+output, command arguments, credentials or the build profile.</p>
+<h2>Open a private history file</h2>
+<ol><li>Finish the current build and let Studio collect its results.</li>
+<li>Open the <strong>Output</strong> surface and expand <strong>Local job history</strong>.</li>
+<li>Create a private folder outside your source repositories, then enter an absolute database
+path in that folder. For example, choose a file inside your personal application-data directory.
+The parent folder must exist.</li>
+<li>Click <strong>Open history</strong>. Studio opens or creates that SQLite file.
+The status shows the accepted path. Typing a different path alone does not change the active database.</li>
+<li>Use Studio's normal configure, build, test, install or launch workflow.
+The existing project trust and profile checks still apply.</li>
+<li>After the workflow finishes, click <strong>Refresh saved jobs</strong> to see saved outcomes.</li></ol>
+<p>Use one history file per project. The record caption identifies the requested workflow,
+such as Build or Test, rather than persisting a potentially sensitive project path.</p>
+<h2>Review after restarting</h2>
+<ol><li>Reopen the project and the Output surface.</li>
+<li>Enter the same private database path and click <strong>Open history</strong>.</li>
+<li>Read the saved outcomes. A finished record shows success, failure or cancellation.
+An unfinished record says its outcome is unknown outside its original session.</li>
+<li>Inspect the build folder, saved log or installed files before deciding what to do next.
+Start any new workflow explicitly through Studio's normal controls.</li></ol>
+<p>Opening history never resumes a build or launches an application. Studio does not automatically
+remember the database selection; choose it again when reopening the project.</p>
+<h2>Manage retained records</h2>
+<p><strong>Remove finished records</strong> deletes successful, failed and cancelled metadata from
+the selected history. It retains unfinished evidence. It does not delete log files, build
+artifacts or source files. A history scope holds up to 64 records and refuses new recorded jobs
+when full. Preserve a full database before selecting a different private file if unfinished
+records occupy every slot.</p>
+<p><strong>Detach history</strong> returns future jobs to the existing in-memory workflow.
+The database stays on disk. Attachment, refresh and removal are refused while a job is active
+or has results still waiting to be collected.</p>
+<h2>If something goes wrong</h2>
+<ul><li><strong>Unavailable:</strong> the current Framework build may lack SQLite support.
+The normal build workflow remains available without persistent history.</li>
+<li><strong>Busy:</strong> wait for the active job or competing database operation, then review again.
+A refused database replacement leaves the previously selected history attached.</li>
+<li><strong>Storage error:</strong> inspect free space and folder access. Framework stops later build
+phases after a failed checkpoint. Completed phase results remain visible, but a final saved outcome
+may be missing.</li>
+<li><strong>Malformed history:</strong> preserve the file. Studio refuses it instead of discarding
+unknown records. Select a separate private history file only after reviewing the problem.</li></ul>
+<p>Job metadata is local and is not encrypted by this feature. Keep the database in a private
+folder and out of Git. Saved history is evidence of what Studio recorded, not proof that an
+external process is still running or that interrupted work can safely be repeated.</p>
+</main></body></html>

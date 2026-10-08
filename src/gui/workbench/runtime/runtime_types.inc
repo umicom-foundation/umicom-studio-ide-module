@@ -204,6 +204,19 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *test_failure_summary;
     GtkWidget *test_coverage_view;
     GtkWidget *test_output_view;
+    /* The parent panel owns this Framework presenter; it never owns the running job. */
+    GtkWidget *test_live_output;
+    /* The chrome borrows these controls from its widget tree; weak action
+     * bindings prevent retained buttons from touching a closed service. */
+    GtkWidget *test_archive_path;
+    GtkWidget *test_archive_output;
+    GtkWidget *test_archive_id;
+    GtkWidget *test_archive_attempt;
+    GtkWidget *test_archive_status;
+    GtkWidget *test_archive_entries;
+    GtkWidget *test_archive_baseline;
+    GtkWidget *test_archive_comparison_page;
+    bool test_archive_comparison_pending;
 
     GtkWidget *source_control_list;
     GtkWidget *source_control_history_list;
@@ -224,6 +237,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *build_live_output;
     GtkWidget *build_log_path;
     GtkWidget *build_log_status;
+    GtkWidget *build_history_path;
+    GtkWidget *build_history_status;
+    GtkWidget *build_history_entries;
     GtkWidget *build_progress_label;
     uint64_t build_output_operation;
 

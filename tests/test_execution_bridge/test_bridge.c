@@ -49,8 +49,15 @@ struct UmiStudioTestService {
     size_t executionPublished;
     int executionPending;
     int executionStale;
+    UmiStudioTestRunContext executionRecordedContext;
+    int archivePending;
 
 };
+/* This focused execution fixture substitutes archive lifetime only. The archive
+ * codec, transactions and worker are covered by their independent fixtures. */
+static int UmiStudioTestArchivePending(const UmiStudioTestService *s) { return s->archivePending; }
+static UmiStatus StudioArchiveReleaseWriter(UmiStudioTestService *s)
+{ return s->archivePending ? UMI_STATUS_BUSY : UMI_STATUS_OK; }
 static int UmiStudioTestDiscoveryPending(const UmiStudioTestService *s) { return s->discoveryPending; }
 static UmiTestPlatformItemRegistry *umi_test_platform_service_item(UmiTestPlatformService *s) { return s->items; }
 static UmiTestPlatformDiscoveryRegistry *umi_test_platform_service_discovery(UmiTestPlatformService *s) { return s->discoveries; }
@@ -144,6 +151,8 @@ static UmiStatus Blocking(UmiTaskContext *context,void *data)
     }
     return UMI_STATUS_OK;
 }
+#include "live_output_cases.inc"
+
 int main(int argc,char **argv)
 {
     CHECK(argc==3);const char *mode=argv[1];
@@ -184,6 +193,14 @@ int main(int argc,char **argv)
     copy_text(result.id,sizeof(result.id),"previous");result.sequence=40U;result.outcome=UMI_TEST_PLATFORM_OUTCOME_PASSED;
     CHECK(umi_test_platform_result_registry_upsert(platform.results,&result)==UMI_STATUS_OK);
     service.last_summary.passed=7U;
+    if (strncmp(mode, "output-", 7U) == 0 && strcmp(mode, "output-full") != 0) {
+        LiveOutputCase(mode, &service, queue, &context, plan); goto done;
+    }
+    if(strcmp(mode,"archive-busy")==0) {
+        service.archivePending=1;
+        CHECK(Start(&service,queue,&context,plan)==UMI_STATUS_BUSY && service.executionJob==NULL);
+        service.archivePending=0; goto done;
+    }
     if(strcmp(mode,"invalid-kind")==0){plan->kind=(UmiTestPlatformOperationKind)99;CHECK(Start(&service,queue,&context,plan)==UMI_STATUS_INVALID_ARGUMENT);goto done;}
     if(strcmp(mode,"stale-selection")==0){plan->selection.source_revision=UINT64_MAX;CHECK(Start(&service,queue,&context,plan)==UMI_STATUS_INVALID_STATE);goto done;}
     if(strcmp(mode,"invalid-context")==0){

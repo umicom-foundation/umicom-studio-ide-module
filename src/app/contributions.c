@@ -233,6 +233,8 @@ static const UmiUiActionSnapshot STUDIO_ACTIONS[] = {
     { "studio.action.debug.step-in", UMI_STUDIO_COMMAND_DEBUG_STEP_IN, "Step Into", "Step into the next function call", "go-down-symbolic", "F11", 1, 1, 0, 0, 360, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.debug.step-out", UMI_STUDIO_COMMAND_DEBUG_STEP_OUT, "Step Out", "Step out of the current function", "go-up-symbolic", "Shift+F11", 1, 1, 0, 0, 370, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.debug.stop", UMI_STUDIO_COMMAND_DEBUG_STOP, "Stop Debugging", "Terminate the active debug session", "media-playback-stop-symbolic", "Shift+F5", 1, 1, 0, 0, 380, "", UMI_UI_ACTION_ARGUMENT_NONE },
+    /* Restart uses the same permission and command dispatcher as other debugger actions. */
+    { "studio.action.debug.restart", UMI_STUDIO_COMMAND_DEBUG_RESTART, "Restart Debugging", "Restart with the current adapter and launch settings; no rebuild", "view-refresh-symbolic", "", 1, 1, 0, 0, 385, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.debug.add-breakpoint", UMI_STUDIO_COMMAND_DEBUG_ADD_BREAKPOINT, "Add Breakpoint…", "Add a Framework-owned source breakpoint using path:line", "media-record-symbolic", "F9", 1, 1, 0, 0, 390, "", UMI_UI_ACTION_ARGUMENT_TEXT },
     { "studio.action.debug.toggle-breakpoint", UMI_STUDIO_COMMAND_DEBUG_SET_BREAKPOINT_ENABLED, "Enable or Disable Breakpoint…", "Set breakpoint state using id=1 or id=0", "object-select-symbolic", "", 1, 1, 0, 0, 391, "", UMI_UI_ACTION_ARGUMENT_TEXT },
     { "studio.action.debug.remove-breakpoint", UMI_STUDIO_COMMAND_DEBUG_REMOVE_BREAKPOINT, "Remove Breakpoint…", "Remove a breakpoint by its stable ID", "list-remove-symbolic", "", 1, 1, 0, 0, 392, "", UMI_UI_ACTION_ARGUMENT_TEXT },
@@ -426,6 +428,7 @@ static const UmiUiMenuSnapshot STUDIO_MENUS[] = {
     { "menu.run.debug-step-in", "run", "debug", "studio.action.debug.step-in", "", 0, 120 },
     { "menu.run.debug-step-out", "run", "debug", "studio.action.debug.step-out", "", 0, 130 },
     { "menu.run.debug-stop", "run", "debug", "studio.action.debug.stop", "", 0, 140 },
+    { "menu.run.debug-restart", "run", "debug", "studio.action.debug.restart", "", 0, 145 },
     { "menu.run.debug-breakpoint", "run", "debug", "studio.action.debug.add-breakpoint", "", 0, 150 },
     { "menu.run.debug-watch", "run", "debug-data", "studio.action.debug.add-watch", "", 0, 160 },
     { "menu.run.debug-clear-console", "run", "debug-data", "studio.action.debug.clear-console", "", 0, 170 },

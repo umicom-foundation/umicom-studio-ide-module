@@ -118,6 +118,8 @@ extern "C" {
 #define UMI_STUDIO_COMMAND_DEBUG_STEP_IN "studio.debug.step-in"
 #define UMI_STUDIO_COMMAND_DEBUG_STEP_OUT "studio.debug.step-out"
 #define UMI_STUDIO_COMMAND_DEBUG_STOP "studio.debug.stop"
+/* Restart reuses the active adapter and its current launch settings. */
+#define UMI_STUDIO_COMMAND_DEBUG_RESTART "studio.debug.restart"
 #define UMI_STUDIO_COMMAND_DEBUG_ADD_BREAKPOINT "studio.debug.add-breakpoint"
 #define UMI_STUDIO_COMMAND_DEBUG_SET_BREAKPOINT_ENABLED \
     "studio.debug.set-breakpoint-enabled"
@@ -191,7 +193,12 @@ extern "C" {
     "studio.trading.resume-trade-tape"
 #define UMI_STUDIO_COMMAND_DEVELOPER_REPORT "studio.developer.report"
 
+/* The Restart command adds one canonical operation. Keep the former count for
+ * review alongside the compatibility constant's original definition. */
+#if 0
 #define UMI_STUDIO_CORE_COMMAND_COUNT 142U
+#endif
+#define UMI_STUDIO_CORE_COMMAND_COUNT 143U
 
 /**
  * Add studio commands only after its inputs and available capacity have been checked.

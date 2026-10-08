@@ -196,6 +196,8 @@ static UmiStatus runtime_refresh_services(
     runtime_refresh_command_sensitivity(runtime, runtime->toolbar);
     runtime_refresh_command_sensitivity(runtime, runtime->activity_bar);
 
+    RuntimeTestLiveOutputRefresh(runtime);
+
     if (runtime->test_summary_label != NULL && runtime->owner->ui != NULL) {
         UmiStudioTestService *tests = umi_studio_services_tests(umi_studio_ui_services(runtime->owner->ui));
         UmiCtestJobSnapshot progress;

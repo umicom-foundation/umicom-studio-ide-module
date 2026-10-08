@@ -8,6 +8,7 @@
 #ifndef UMICOM_STUDIO_TEST_EXECUTION_H
 #define UMICOM_STUDIO_TEST_EXECUTION_H
 #include "umicom/testing/ctest_job.h"
+#include "umicom/testing/ctest_output.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +47,11 @@ UmiStatus UmiStudioTestRunSnapshot(UmiStudioTestService *service,
     UmiCtestJobSnapshot *outSnapshot);
 UmiStatus UmiStudioTestRunResultAt(UmiStudioTestService *service, size_t index,
     UmiTestResult *outResult, uint32_t *outAttempt);
+/* Read the most recent accepted run's copied output on the service owner thread.
+ * NOT_FOUND means no queued job has been accepted. The result includes its test
+ * identity; it is not the output of whichever row happens to be selected now. */
+UmiStatus UmiStudioTestRunReadOutput(UmiStudioTestService *service,
+    UmiCtestOutputSnapshot *out_snapshot);
 #ifdef __cplusplus
 }
 #endif

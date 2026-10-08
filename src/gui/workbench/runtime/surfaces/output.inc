@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/build/live_output_gtk4.h"
+#include "job_history.inc"
 
 /* Resolve the current service only during a weakly bound owner action. The
  * controls keep no raw service pointer after the workbench closes. */
@@ -79,6 +80,7 @@ static void RuntimeRefreshBuildOutput(UmiStudioGtkRuntimeChrome *runtime)
     service = umi_studio_services_build(umi_studio_ui_services(runtime->owner->ui));
     if (service == NULL) return;
     RuntimeBuildLogRefresh(runtime, service);
+    RuntimeBuildHistoryRefresh(runtime, service);
     if (runtime->build_live_output != NULL) {
         UmiBuildOutputSnapshot *output = g_new0(UmiBuildOutputSnapshot, 1);
         if (UmiStudioBuildReadOutput(service, output) == UMI_STATUS_OK)
@@ -168,6 +170,7 @@ static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtim
     gtk_label_set_xalign(GTK_LABEL(runtime->build_log_status), 0.0F);
     (void)umi_gtk4_automation_tag_widget(runtime->build_log_status, "studio.build.log.status");
     gtk_box_append(GTK_BOX(panel), runtime->build_log_status);
+    RuntimeBuildHistoryControls(runtime, panel);
     runtime->build_live_output = UmiBuildOutputGtk4Create();
     gtk_box_append(GTK_BOX(panel), runtime->build_live_output);
     GtkWidget *completed = gtk_label_new("Latest completed phase");

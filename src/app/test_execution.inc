@@ -24,10 +24,29 @@ static int StudioRunContextEqual(const UmiStudioTestRunContext *a,
                b->configuration[0] ? b->configuration : "Debug") == 0;
 }
 
+/* A pending archive owns the previous job until its save finishes.
+ * The previous implementation remains here for engineering review. */
+#if 0
 UmiStatus UmiStudioTestRunArm(UmiStudioTestService *service, UmiTaskQueue *queue,
     const UmiStudioTestRunContext *context)
 {
     if (service == NULL || queue == NULL || context == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (!StudioRunContextValid(context)) return UMI_STATUS_PERMISSION_DENIED;
+    if (UmiStudioTestDiscoveryPending(service) || service->discoveryQueue != NULL ||
+        service->executionPending || service->executionQueue != NULL) return UMI_STATUS_BUSY;
+    if (service->executionJob != NULL && service->executionOwner != umi_thread_current_id())
+        return UMI_STATUS_INVALID_STATE;
+    service->executionQueue = queue;
+    service->executionContext = *context;
+    service->executionOwner = umi_thread_current_id();
+    return UMI_STATUS_OK;
+}
+#endif
+UmiStatus UmiStudioTestRunArm(UmiStudioTestService *service, UmiTaskQueue *queue,
+    const UmiStudioTestRunContext *context)
+{
+    if (service == NULL || queue == NULL || context == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioTestArchivePending(service)) return UMI_STATUS_BUSY;
     if (!StudioRunContextValid(context)) return UMI_STATUS_PERMISSION_DENIED;
     if (UmiStudioTestDiscoveryPending(service) || service->discoveryQueue != NULL ||
         service->executionPending || service->executionQueue != NULL) return UMI_STATUS_BUSY;
@@ -61,6 +80,9 @@ UmiStatus UmiStudioTestRunCancel(UmiStudioTestService *service)
 
 /* Check capacity for the entire plan before a child can run. Existing history
  * is never silently cleared to make room. Identifiers stay unique across runs. */
+/* Accepted runs now capture immutable origin and respect archive-worker lifetime.
+ * The previous implementation remains here for engineering review. */
+#if 0
 static UmiStatus UmiStudioExecutionStart(UmiStudioTestService *service,
     const UmiTestPlatformOperationPlan *plan, UmiTestPlatformExecutionSummary *outSummary)
 {
@@ -144,6 +166,110 @@ static UmiStatus UmiStudioExecutionStart(UmiStudioTestService *service,
     /* The previous terminal job remains available until another run is accepted. */
     (void)UmiCtestJobDestroy(service->executionJob);
     service->executionJob = job;
+    service->executionPending = 1;
+    service->executionStale = 0;
+    service->executionPublished = 0U;
+    service->executionSequence = sequence;
+    service->executionItemsRevision = umi_test_platform_item_registry_revision(
+        umi_test_platform_service_item(service->platform));
+    service->executionDiscoveryRevision = umi_test_platform_discovery_registry_revision(
+        umi_test_platform_service_discovery(service->platform));
+    service->executionResultsRevision = umi_test_platform_result_registry_revision(results);
+    service->executionOutputRevision = umi_test_platform_output_registry_revision(outputs);
+    memset(&service->last_summary, 0, sizeof(service->last_summary));
+    memset(outSummary, 0, sizeof(*outSummary)); outSummary->planned = total;
+    ++service->explorer.revision;
+    return UMI_STATUS_OK;
+}
+#endif
+static UmiStatus UmiStudioExecutionStart(UmiStudioTestService *service,
+    const UmiTestPlatformOperationPlan *plan, UmiTestPlatformExecutionSummary *outSummary)
+{
+    UmiTaskQueue *queue = service->executionQueue;
+    service->executionQueue = NULL;
+    if (service->executionOwner != umi_thread_current_id()) return UMI_STATUS_INVALID_STATE;
+    if (UmiStudioTestArchivePending(service)) return UMI_STATUS_BUSY;
+    UmiStatus archiveStatus = StudioArchiveReleaseWriter(service);
+    if (archiveStatus != UMI_STATUS_OK) return archiveStatus;
+    if (queue == NULL || service->executionPending || UmiStudioTestDiscoveryPending(service))
+        return UMI_STATUS_BUSY;
+    if (plan->kind < UMI_TEST_PLATFORM_OPERATION_RUN_ALL ||
+        plan->kind > UMI_TEST_PLATFORM_OPERATION_REPEAT) return UMI_STATUS_INVALID_ARGUMENT;
+    if (plan->selection.source_revision != 0U && plan->selection.source_revision !=
+        umi_test_platform_item_registry_revision(umi_test_platform_service_item(service->platform)))
+        return UMI_STATUS_INVALID_STATE;
+    const size_t count = plan->selection.count;
+    const uint32_t repeats = plan->repeat_count ? plan->repeat_count : 1U;
+    if (count == 0U) return UMI_STATUS_INVALID_ARGUMENT;
+    if (count > sizeof(plan->selection.item_ids) / sizeof(plan->selection.item_ids[0]) ||
+        count > UMI_CTEST_JOB_MAX_ATTEMPTS || repeats > UMI_CTEST_JOB_MAX_ATTEMPTS / count)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    const size_t total = count * (size_t)repeats;
+    UmiTestPlatformResultRegistry *results = umi_test_platform_service_result(service->platform);
+    UmiTestPlatformOutputRegistry *outputs = umi_test_platform_service_output(service->platform);
+    if (total > UMI_TEST_PLATFORM_RESULT_CAPACITY - umi_test_platform_result_registry_count(results) ||
+        total > UMI_TEST_PLATFORM_OUTPUT_CAPACITY - umi_test_platform_output_registry_count(outputs))
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    UmiCtestJobRequest *requests = calloc(count, sizeof(*requests));
+    if (requests == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiStatus status = UMI_STATUS_OK;
+    for (size_t i = 0U; i < count && status == UMI_STATUS_OK; ++i) {
+        if (memchr(plan->selection.item_ids[i], '\0', sizeof(plan->selection.item_ids[i])) == NULL) {
+            status = UMI_STATUS_INVALID_ARGUMENT; break;
+        }
+        UmiTestPlatformItemSnapshot item;
+        status = umi_test_platform_item_registry_find(
+            umi_test_platform_service_item(service->platform), plan->selection.item_ids[i], &item);
+        if (status == UMI_STATUS_OK)
+            status = UmiTestPlatformCtestMakeRunRequest(&item,
+                umi_test_platform_service_discovery(service->platform), &requests[i]);
+        if (status == UMI_STATUS_OK &&
+            (strcmp(requests[i].build_directory, service->executionContext.build_root) != 0 ||
+             strcmp(requests[i].configuration, service->executionContext.configuration[0]
+                ? service->executionContext.configuration : "Debug") != 0))
+            status = UMI_STATUS_INVALID_STATE;
+    }
+    uint64_t sequence = umi_test_platform_result_registry_revision(results);
+    for (size_t i = 0U; status == UMI_STATUS_OK && i < umi_test_platform_result_registry_count(results); ++i) {
+        UmiTestPlatformResultSnapshot result;
+        status = umi_test_platform_result_registry_at(results, i, &result);
+        if (status == UMI_STATUS_OK && result.sequence > sequence) sequence = result.sequence;
+    }
+    if (status == UMI_STATUS_OK && (uint64_t)total > UINT64_MAX - sequence)
+        status = UMI_STATUS_CAPACITY_EXCEEDED;
+    for (size_t i = 0U; status == UMI_STATUS_OK && i < total; ++i) {
+        UmiTestPlatformResultSnapshot result;
+        UmiTestPlatformOutputSnapshot output;
+        char identity[128];
+        (void)snprintf(identity, sizeof(identity), "result.job.%llu",
+            (unsigned long long)(sequence + (uint64_t)i + 1U));
+        if (umi_test_platform_result_registry_find(results, identity, &result) != UMI_STATUS_NOT_FOUND)
+            status = UMI_STATUS_INVALID_STATE;
+        (void)snprintf(identity, sizeof(identity), "output.job.%llu",
+            (unsigned long long)(sequence + (uint64_t)i + 1U));
+        if (umi_test_platform_output_registry_find(outputs, identity, &output) != UMI_STATUS_NOT_FOUND)
+            status = UMI_STATUS_INVALID_STATE;
+    }
+    UmiCtestJob *job = NULL;
+    UmiCtestJobOptions options = {repeats, plan->stop_on_failure};
+    if (status == UMI_STATUS_OK) status = UmiCtestJobCreate(requests, count, &options, &job);
+    free(requests);
+    int began = 0;
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_platform_service_begin_operation(service->platform, plan);
+        began = status == UMI_STATUS_OK;
+    }
+    if (status == UMI_STATUS_OK) status = UmiCtestJobSubmit(job, queue);
+    if (status != UMI_STATUS_OK) {
+        if (began) umi_test_platform_service_finish_operation(service->platform);
+        (void)UmiCtestJobDestroy(job);
+        return status;
+    }
+    /* The previous terminal job remains available until another run is accepted. */
+    (void)UmiCtestJobDestroy(service->executionJob);
+    service->executionJob = job;
+    /* Only an accepted job may replace the origin kept with historical evidence. */
+    service->executionRecordedContext = service->executionContext;
     service->executionPending = 1;
     service->executionStale = 0;
     service->executionPublished = 0U;
@@ -317,4 +443,16 @@ static int UmiStudioExecutionDispose(UmiStudioTestService *service)
     service->executionJob = NULL;
     service->executionPending = 0;
     return 1;
+}
+
+
+/* Application code only selects the current job. Framework owns byte retention,
+ * synchronisation and result policy so other frontends can reuse the same run. */
+UmiStatus UmiStudioTestRunReadOutput(UmiStudioTestService *service,
+    UmiCtestOutputSnapshot *outSnapshot)
+{
+    if (service == NULL || outSnapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->executionJob == NULL) return UMI_STATUS_NOT_FOUND;
+    if (service->executionOwner != umi_thread_current_id()) return UMI_STATUS_INVALID_STATE;
+    return UmiCtestJobReadOutput(service->executionJob, outSnapshot);
 }

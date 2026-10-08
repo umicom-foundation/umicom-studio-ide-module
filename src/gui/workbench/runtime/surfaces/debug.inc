@@ -194,6 +194,12 @@ static GtkWidget *runtime_build_surface_debug(
         gtk_box_append(GTK_BOX(controls), step_in);
         gtk_box_append(GTK_BOX(controls), step_out);
         gtk_box_append(GTK_BOX(controls), stop);
+        GtkWidget *restart = gtk_button_new_with_label("Restart");
+        gtk_widget_set_tooltip_text(restart,
+            "Restart the active session without rebuilding. The adapter must advertise restart support.");
+        (void)umi_gtk4_automation_tag_widget(restart, "studio.debug.restart");
+        runtime_bind_editor_action(runtime, restart, RuntimeDebugRestart);
+        gtk_box_append(GTK_BOX(controls), restart);
         gtk_box_append(GTK_BOX(controls), watch);
         gtk_box_append(GTK_BOX(panel), controls);
     }

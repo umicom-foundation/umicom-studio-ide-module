@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Use private test history in Umicom Studio</title><style>body{font:17px/1.6 system-ui,sans-serif;max-width:980px;margin:3rem auto;padding:0 1.3rem;color:#203144}h1,h2{line-height:1.25}code,pre{font-family:Consolas,monospace}pre{background:#eef3f7;padding:1rem;overflow:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccd5df;padding:.65rem;text-align:left;vertical-align:top}a{color:#155bb0}</style></head><body><main><h1>Use private test history in Umicom Studio</h1>
+
+<p>The Test Explorer can save completed queued runs in a local SQLite database. Saved evidence belongs
+to its original run. Opening history does not rerun tests, recover a running process, or mark the
+current source files as passed.</p>
+<h2>Save a completed run</h2>
+<ol><li>Open Test Explorer and expand <strong>Private test history</strong>.</li>
+<li>Choose an absolute filename in a private existing directory outside your source repositories.
+For example, use a personal application-data directory rather than a project folder.
+Enter the filename and select <strong>Open archive</strong>. Studio creates the database if needed.
+The parent directory must already exist.</li>
+<li>Run tests through the Test Explorer and wait for result publication to finish.</li>
+<li>Leave <strong>Retain diagnostic text</strong> off to save outcomes without output.
+Enable it only when the bounded output tail is useful and suitable for your private database.
+Names, paths and results are saved in either case. The database is not encrypted and no automatic
+redaction is promised.</li>
+<li>Select <strong>Save completed run</strong>. Studio saves on a worker so the window remains responsive.
+The status shows the committed saved run ID, or the reason a save did not complete.</li>
+<li>Select <strong>Refresh saved runs</strong> to view the catalogue.
+A failed save leaves the actual test results unchanged.</li></ol>
+<p>Studio captures the source root and workspace generation accepted with the run.
+It currently does not capture a Git revision or a hash of the tested executable.
+The catalogue says when a revision was not captured. Source edits after the run do not change saved evidence.</p>
+<h2>Read a saved attempt</h2>
+<ol><li>Find a saved run's ID in the catalogue and enter it in <strong>Saved run ID</strong>.</li>
+<li>Enter a completed attempt number starting at 1. For a repeated selection, attempts follow
+the original selection order for each repeat.</li>
+<li>Select <strong>Read saved attempt</strong>. Studio displays its test name, ID, build directory,
+configuration, outcome, exit code and duration. It displays the diagnostic tail only if that run retained it.</li></ol>
+<p>“Skipped”, “cancelled”, “timed out” and “not run” remain distinct outcomes.
+“Never started” means the run ended before reaching those planned attempts.
+An empty successful catalogue means no runs were saved; it does not mean tests passed.</p>
+<h2>Restart, detach and remove</h2>
+<ol><li>After restarting Studio, reopen the same private database filename. Its selection is not
+written into your project files.</li><li>Use <strong>Detach</strong> to close the attachment while keeping
+the database on disk.</li><li>To free space, enter the exact saved run ID and select
+<strong>Remove this saved run</strong>. This removes that archive record and its saved results;
+it does not delete source files or change the current Test Explorer results.</li></ol>
+<p>One archive scope holds up to 32 runs and never evicts records automatically.
+A duplicate save of the same accepted job in one attachment is refused.
+Reopening an attachment resets that session-local duplicate check.</p>
+<h2>If something goes wrong</h2>
+<p><strong>BUSY:</strong> wait for the current run or save to finish. New queued runs cannot replace
+a job while it is being saved. <strong>Stop save</strong> requests cancellation; a commit that already
+succeeded remains saved. Closing the window during a save requests Stop and asks you to close again
+afterward, keeping the worker's borrowed data alive.</p>
+<p><strong>Invalid path:</strong> use an absolute filename with a valid parent directory.
+An unsuccessful replacement leaves the previous archive attached.
+<strong>Storage or parse error:</strong> retain the database for inspection and choose a different file
+if necessary. Do not erase evidence merely to make the error disappear. If commit or rollback reports an I/O error,
+reopen and inspect the saved records before retrying; an uncertain storage outcome is not proof that nothing was written.
+<strong>SQLite unavailable:</strong> use a build that includes the Framework SQLite adapter.</p>
+<p>Opening, listing, reading and removing records are explicit database operations and may take longer on
+slow or contended storage. Use a local private location. The periodic UI refresh reads only worker state.
+Saved runs are not a complete CI history or a signed release qualification.</p>
+
+</main><section id="comparison"><h2>Compare saved test runs</h2>
+<ol><li>Open your private archive and choose <strong>Refresh saved runs</strong> to find two run IDs.</li>
+<li>Enter the newer run in <strong>Saved run ID</strong> and the earlier run in <strong>Baseline run ID for comparison</strong>.</li>
+<li>Choose <strong>Compare saved runs</strong>. The database is read in the background. Use <strong>Stop comparison</strong> if you no longer need the result.</li>
+<li>Read the summary and the first page. A page contains at most 100 named tests. Enter another page number and choose <strong>View comparison page</strong> to continue.</li>
+<li>For a changed test, use <strong>Read saved attempt</strong> with the original run ID to inspect any diagnostic output retained when that run was saved.</li></ol>
+<p>A new failure requires a complete passing baseline under the same recorded conditions. Source-root changes, repeat counts, early-stop policies, timeouts and enabled flags are shown separately. Cancelled, skipped and never-started attempts are never treated as passes. Discovery IDs may change; matching uses test name, configuration and exact build directory.</p>
+<p>The summary includes all rows, even those on other pages. Rows show counts for both runs and their total recorded durations. A copied comparison remains available if you remove one of its saved runs, until you compare again or detach the archive. Reopening an archive clears the previous comparison.</p>
+<p>If a run is missing, or storage is corrupt or busy, Studio reports the error without changing live test results. Closing during archive work requests cancellation first; close again after it finishes. Comparison results describe historical observations, not the current checkout or verified source fingerprints.</p></section>
+
+</body></html>

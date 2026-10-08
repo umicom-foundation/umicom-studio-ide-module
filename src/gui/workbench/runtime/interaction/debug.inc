@@ -168,6 +168,15 @@ static void runtime_on_debug_step_out(GtkButton *button, gpointer user_data)
  * Provide the runtime on debug stop operation used by this module and its client
  * applications.
  */
+/* Use the window's retained action binding; a button kept after close cannot
+ * reach a destroyed service. All adapter behavior remains in Framework. */
+static void RuntimeDebugRestart(GtkButton *button, gpointer user_data)
+{
+    (void)button;
+    runtime_debug_command((UmiStudioGtkRuntimeChrome *)user_data,
+        UMI_STUDIO_COMMAND_DEBUG_RESTART, 0);
+}
+
 static void runtime_on_debug_stop(GtkButton *button, gpointer user_data)
 {
     (void)button;

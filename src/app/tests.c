@@ -17,6 +17,8 @@
 #include "umicom/testing/ctest_adapter.h"
 #include "umicom/studio/test_discovery.h"
 #include "umicom/studio/test_execution.h"
+#include "umicom/studio/test_archive.h"
+#include "umicom/platform/output_file.h"
 #include "umicom/platform/threading.h"
 
 #include <stdio.h>
@@ -56,6 +58,18 @@ struct UmiStudioTestService {
     size_t executionPublished;
     int executionPending;
     int executionStale;
+    /* Archive ownership stays with the service, so retained GTK controls cannot
+     * outlive a database or worker. Accepted context is separate from an armed
+     * command that may fail before a new run is actually submitted. */
+    UmiStudioTestRunContext executionRecordedContext;
+    UmiDataServer *archiveDatabase;
+    UmiTestArchive *archive;
+    UmiTestArchiveWrite *archiveWriter;
+    UmiTestArchiveReview *archiveReview;
+    UmiTestArchiveWriteSnapshot archiveLastWrite;
+    uint64_t archiveOwner;
+    uint64_t archiveSavedTask;
+    char archivePath[UMI_PATH_CAPACITY];
 };
 
 static int UmiStudioExecutionDispose(UmiStudioTestService *service);
@@ -82,12 +96,16 @@ static void copy_text(char *destination, size_t capacity, const char *source)
     destination[length] = '\0';
 }
 
+#include "test_archive.inc"
 #include "test_discovery.inc"
 
 /*
  * Initialise studio test service from caller-provided values so later operations receive a
  * known state.
  */
+/* The service now records the owner thread for private archive actions.
+ * The previous implementation remains here for engineering review. */
+#if 0
 UmiStatus umi_studio_test_service_create(UmiStudioTestService **out_service)
 {
     UmiStudioTestService *service;
@@ -135,11 +153,63 @@ UmiStatus umi_studio_test_service_create(UmiStudioTestService **out_service)
     *out_service = service;
     return UMI_STATUS_OK;
 }
+#endif
+UmiStatus umi_studio_test_service_create(UmiStudioTestService **out_service)
+{
+    UmiStudioTestService *service;
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    *out_service = NULL;
+    service = (UmiStudioTestService *)calloc(1U, sizeof(*service));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (service == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    status = umi_test_registry_create(&service->registry);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_suite_create("studio.ctest", "Studio CTest",
+                                       &service->ctest_suite);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_registry_add(service->registry,
+                                       service->ctest_suite);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_platform_service_create(&service->platform);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_workspace_create(service->platform,
+                                           &service->workspace);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) {
+        umi_studio_test_service_destroy(service);
+        return status;
+    }
+    service->archiveOwner = umi_thread_current_id();
+    umi_test_platform_filter_init(&service->filter);
+    service->explorer.outcome_filter = -1;
+    service->explorer.revision = 1U;
+    *out_service = service;
+    return UMI_STATUS_OK;
+}
 
 /*
  * Release or reset state held by studio test service so the same storage can be reused
  * safely.
  */
+/* Archive workers must finish before their borrowed test job is released.
+ * The previous implementation remains here for engineering review. */
+#if 0
 void umi_studio_test_service_destroy(UmiStudioTestService *service)
 {
     /*
@@ -148,6 +218,24 @@ void umi_studio_test_service_destroy(UmiStudioTestService *service)
      */
     if (service == NULL) return;
     if (!UmiStudioDiscoveryDispose(service)) return;
+    if (!UmiStudioExecutionDispose(service)) return;
+    umi_test_workspace_destroy(service->workspace);
+    umi_test_platform_service_destroy(service->platform);
+    umi_test_registry_destroy(service->registry);
+    /* Framework's registry borrows suites; Studio owns this allocated suite. */
+    umi_test_suite_destroy(service->ctest_suite);
+    free(service);
+}
+#endif
+void umi_studio_test_service_destroy(UmiStudioTestService *service)
+{
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (service == NULL) return;
+    if (!UmiStudioDiscoveryDispose(service)) return;
+    if (!StudioArchiveDispose(service)) return;
     if (!UmiStudioExecutionDispose(service)) return;
     umi_test_workspace_destroy(service->workspace);
     umi_test_platform_service_destroy(service->platform);

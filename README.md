@@ -197,3 +197,9 @@ ascending or descending text order. The chosen file retains its source identity
 when rows move; hiding it while validation runs refuses the late selection.
 See Framework's installed-file review guide for the complete install-to-launch
 workflow. Applying a filter neither runs a program nor accepts build settings.
+
+For persistent build outcomes, see [Reviewing local build-job history](docs/LOCAL_JOB_HISTORY.html). Select a private SQLite file in Output; reopening it never restarts work.
+
+## Private test history
+
+Test Explorer can retain completed queued runs in an explicitly selected local SQLite database. Read [Private test history](docs/PRIVATE_TEST_HISTORY.html) for saving, reopening and inspecting evidence without changing current test results.

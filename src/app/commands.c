@@ -2317,9 +2317,34 @@ DEBUG_THREAD_HANDLER(debug_step_out_handler, "Step out", umi_studio_debugger_ser
  * Provide the debug stop handler operation used by this module and its client
  * applications.
  */
+/* Restart is separate from Stop so a pending build is never cancelled as an
+ * incidental effect. Framework decides whether the active adapter supports it. */
+static UmiStatus debug_restart_handler(void *user_data, const char *argument,
+    char *out_message, size_t capacity)
+{
+    UmiStudioServices *services = user_data;
+    if (services == NULL || (argument != NULL && argument[0] != '\0'))
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStatus status = umi_studio_debugger_service_stop(umi_studio_services_debugger(services), 1);
+    if (out_message != NULL && capacity > 0U) {
+        const char *message = status == UMI_STATUS_OK
+            ? "Restart accepted. Waiting for fresh debugger events."
+            : status == UMI_STATUS_NOT_IMPLEMENTED
+            ? "This adapter does not support Restart. Use Stop, then Debug."
+            : status == UMI_STATUS_BUSY
+            ? "Wait for the current build or debugger events before restarting."
+            : "Restart not confirmed. Inspect the debugger state; use Stop and Debug after an uncertain request.";
+        (void)snprintf(out_message, capacity, "%s (%s)", message, umi_status_text(status));
+    }
+    return status;
+}
+
 static UmiStatus debug_stop_handler(void *user_data, const char *argument,
                                     char *out_message, size_t capacity)
 {
+    /* Preserve the legacy Stop-with-restart argument without cancelling a build. */
+    if (argument != NULL && strcmp(argument, "restart") == 0)
+        return debug_restart_handler(user_data, NULL, out_message, capacity);
     UmiStudioServices *services = user_data;
     if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) &&
         UmiStudioBuildBusy(umi_studio_services_build(services)))
@@ -4683,6 +4708,10 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               "studio.debug.use", UMI_COMMAND_NONE,
                               debug_step_out_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_RESTART,
+        "Restart Debugging", "Debug", "Restart the current program through the active adapter; no rebuild.",
+        "studio.debug.use", UMI_COMMAND_AUDITED, debug_restart_handler);
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_STOP,
                               "Stop Debugging", "Debug", "Terminate the debuggee.",

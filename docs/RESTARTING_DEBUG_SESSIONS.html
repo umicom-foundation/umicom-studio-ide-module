@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Restart a debug session in Umicom Studio</title>
+<style>body{max-width:58rem;margin:3rem auto;padding:0 1.2rem;font:1.05rem/1.65 system-ui,sans-serif;color:#183047}code{background:#eef3f6;padding:.1rem .3rem}h1,h2{line-height:1.25}</style>
+</head><body><main><h1>Restart a debug session</h1>
+<p>Restart asks the active debugger to run the same program again with the launch settings it already holds.
+It does not compile changed source or load a different project. To compile your edits, use Stop and then Debug.</p>
+<h2>Use Restart</h2><ol>
+<li>Open a project you trust and select its program, arguments and working folder in the build settings.</li>
+<li>Choose an installed GDB with DAP support or LLDB DAP, then choose Debug. Wait for the build and debugger startup to finish.</li>
+<li>Open Run and Debug and choose <strong>Restart</strong>. The same command is available from the Run menu and command search as <strong>Restart Debugging</strong>.</li>
+<li>After the debugger reports a new stop, inspect the new thread, stack and variable values. Old captured values are retired when the restart is attempted.</li>
+<li>Your watch expressions remain in the list, but their previous results are cleared. Evaluate an expression explicitly when you want its new value; evaluation can execute code in the program.</li></ol>
+<h2>Understand the result</h2>
+<p>An accepted restart means that the adapter acknowledged the request. Studio still waits for debugger events before presenting the next stopped location. Breakpoint choices and watch expressions remain yours.</p>
+<p>If the adapter does not advertise restart support, Studio leaves the session intact and reports that it is unsupported. Choose Stop and Debug to start again.
+If a build is pending, wait or cancel it separately. Restart does not cancel the build.</p>
+<p>A timeout, refused request or invalid response can leave the program state uncertain. Studio does not restore old variable references or automatically resend the request. Use Stop, inspect any reported error, and choose Debug to create a new session.</p>
+<h2>For contributors</h2>
+<p>Studio contributes the command and native controls. Framework checks the adapter capability, owns the protocol request and retires inspection evidence before any possible write. Keep new frontends on this shared path so they apply the same lifetime rules.</p>
+<p>The operation follows the <a href="https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Restart">Debug Adapter Protocol restart contract</a>. Support depends on the installed adapter. A saved project change is deliberately separate from restarting an existing session.</p>
+</main><h2>Adapters that initialize again</h2>
+<p>Some adapters request another configuration exchange while restarting. Framework sends the saved
+source breakpoints and, when supported, configuration completion before continuing. The same restart
+timeout bounds this exchange. An initialization event that arrives after the restart reply is handled
+by normal debugger polling within that original budget.</p>
+<p>If configuration is rejected or times out, use Stop before beginning a new session. The old variable
+references remain retired, and Studio does not automatically repeat the restart request.</p>
+<p>After restart is acknowledged, Studio waits for the adapter to report initialization, continuation or a new stop before allowing another restart. If the adapter stays silent, use Stop and start a fresh debug session. A successful request reply alone does not provide fresh stack frames or variable references.</p>
+</body></html>

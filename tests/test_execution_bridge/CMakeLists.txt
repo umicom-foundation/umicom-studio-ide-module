@@ -35,7 +35,8 @@ foreach(target umicom-studio-test-run-checks umicom-studio-run-records)
     endif()
 endforeach()
 if(BUILD_TESTING)
-    foreach(case success repeat disabled skipped failure stop-failure partial-stop
+    foreach(case archive-busy success repeat disabled skipped failure stop-failure partial-stop
+            output-empty output-finished output-copy output-wrong-thread output-next-run
             queued-stop double-arm busy-operation invalid-context copied-context
             wrong-root wrong-configuration missing-item history-full output-full
             sequence-overflow existing-output generation source configuration trust
