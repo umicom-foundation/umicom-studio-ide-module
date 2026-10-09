@@ -121,7 +121,13 @@ int main(int argc, char **argv)
         CHECK(umi_studio_workspace_set_trusted(services, 0) == UMI_STATUS_OK);
     if (stale)
     {
+        /* This stale-selection test needs the filter aggregate, whose storage is
+         * distinct from the Framework exception registry record. Keep the former
+         * declaration for review and retain the same selection and ownership test. */
+#if 0
         UmiDebugExceptionSnapshot *snapshot = g_new0(UmiDebugExceptionSnapshot, 1);
+#endif
+        UmiDebugExceptionFiltersSnapshot *snapshot = g_new0(UmiDebugExceptionFiltersSnapshot, 1);
         UmiDebugRuntimePlatform *platform = UmiStudioDebuggerNativePlatform(debugger);
         UmiStatus status = UmiDebugRuntimeExceptionFiltersRead(platform, snapshot);
         if (status == UMI_STATUS_OK)

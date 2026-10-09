@@ -51,7 +51,14 @@ static UmiStatus RuntimeExceptionOwner(StudioExceptionBinding *binding, GObject 
 {
     return RuntimeDebugWorkspaceOwner(binding, window, services, workspace);
 }
+/* Exception controls exchange the Framework filter catalogue and selection, not
+ * an individual exception registry record. The distinct aggregate type keeps
+ * callback ownership and behaviour unchanged; retain the former signature for
+ * source review while the shared public contracts coexist. */
+#if 0
 static UmiStatus RuntimeExceptionRead(void *context, UmiDebugExceptionSnapshot *out)
+#endif
+static UmiStatus RuntimeExceptionRead(void *context, UmiDebugExceptionFiltersSnapshot *out)
 {
     StudioExceptionBinding *binding = context;
     GObject *window = NULL;
