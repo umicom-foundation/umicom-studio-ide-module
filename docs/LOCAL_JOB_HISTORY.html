@@ -47,4 +47,28 @@ unknown records. Select a separate private history file only after reviewing the
 <p>Job metadata is local and is not encrypted by this feature. Keep the database in a private
 folder and out of Git. Saved history is evidence of what Studio recorded, not proof that an
 external process is still running or that interrupted work can safely be repeated.</p>
+
+<h2>Understand the project comparison</h2>
+<ol>
+<li>Open the project and select the build settings you intend to use.</li>
+<li>Open <strong>Output</strong>, expand <strong>Local job history</strong>, and open the
+private SQLite file used for your earlier jobs.</li>
+<li>Choose <strong>Refresh saved jobs</strong>. Each entry shows its recorded outcome
+and a separate <strong>Context</strong> explanation.</li>
+<li>If you see <strong>Different project or resource</strong>, the entry belongs to another
+project root. <strong>Different settings</strong> means at least one reviewed profile value
+has changed. Neither entry qualifies the current selection.</li>
+<li><strong>Same settings; input contents not recorded</strong> confirms only the settings
+comparison. Save the intended sources and request a new build and test run to check your edits.
+The comparison does not inspect source contents, preset file contents, tool versions or
+environment changes.</li>
+</ol>
+<p>Old entries without identity still show their outcomes and are labelled
+<strong>Identity not recorded or unavailable</strong>. They are not discarded or silently
+assigned to today's project. Refresh is read-only: it never starts, resumes or retries a job.
+Choose Refresh again after changing the selected project or settings.</p>
+<p>Background builds capture the selected project's absolute root before queuing work.
+Changing Studio's process directory cannot redirect later phases to another relative project.
+External file edits are still possible while a build runs; this is not an immutable source snapshot.</p>
+
 </main></body></html>

@@ -22,6 +22,8 @@
 
 #include <glib/gstdio.h>
 #include "umicom/ui/gtk4/developer_dialog.h"
+#include "umicom/ui/gtk4/build_configurations.h"
+#include "umicom/studio/build_configurations.h"
 #include "umicom/studio/security.h"
 
 #include "umicom/application_shell/persona.h"
@@ -217,6 +219,10 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *test_archive_baseline;
     GtkWidget *test_archive_comparison_page;
     bool test_archive_comparison_pending;
+    bool test_archive_read_pending;
+    /* Completion notices belong to the latest accepted archive action. */
+    bool test_archive_remove_pending;
+    bool test_archive_open_pending;
 
     GtkWidget *source_control_list;
     GtkWidget *source_control_history_list;
@@ -232,9 +238,11 @@ typedef struct UmiStudioGtkRuntimeChrome {
 
     UmiGtk4DeveloperDialog *project_dialog;
     UmiGtk4DeveloperDialog *build_settings_dialog;
+    UmiStudioBuildConfigurationContext build_configuration_context;
     GtkWidget *build_output_view;
     /* The shared presenter owns display controls; this is a host widget link. */
     GtkWidget *build_live_output;
+    GtkWidget *build_live_diagnostics;
     GtkWidget *build_log_path;
     GtkWidget *build_log_status;
     GtkWidget *build_history_path;
@@ -246,6 +254,12 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *terminal_text_view;
     GtkWidget *terminal_entry;
     GtkWidget *terminal_summary_label;
+    GtkWidget *terminal_run_button;
+    GtkWidget *terminal_stop_button;
+    GtkWidget *terminal_directory_entry;
+    char terminal_directory_session[UMI_TERMINAL_ID_CAPACITY];
+    uint64_t terminal_directory_revision;
+    int terminal_directory_choosing;
 
     GtkWidget *ai_prompt_view;
     GtkWidget *ai_result_view;
@@ -271,6 +285,15 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *documentation_summary_label;
     GtkWidget *documentation_preview_view;
     GtkWidget *learning_summary_label;
+    /* Lesson sources are selected separately from the user's writable project. */
+    /* The current lesson label is resolved through the logical widget tree.
+     * Preserve the earlier borrowed field for review; it could outlive a panel. */
+#if 0
+    GtkWidget *learning_location_label;
+#endif
+    int learning_location_pending;
+    char learning_directory[UMI_PATH_CAPACITY];
+
 
     GtkCssProvider *css_provider;
     guint refresh_source;

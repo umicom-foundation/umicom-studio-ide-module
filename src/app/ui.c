@@ -15,6 +15,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/document/file_search.h"
+#include "umicom/build/diagnostic_location.h"
 #include "umicom/studio/ui.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/diagnostics.h"
@@ -695,4 +696,45 @@ UmiStatus UmiStudioUiSearchOpen(UmiStudioUi *ui, uint64_t requestId, size_t posi
     if (status != UMI_STATUS_OK) return status;
     return UmiDocumentCoordinatorOpenSearchMatch(ui->document_coordinator,
         &match, state.query, state.caseSensitive, NULL);
+}
+
+/* Keep operation identity and source resolution in the shared build model. The
+ * application only adapts the resolved location to its existing document owner. */
+UmiStatus UmiStudioUiOpenBuildDiagnostic(UmiStudioUi *ui, uint64_t operation,
+    size_t phase_index, size_t diagnostic_index)
+{
+    if (ui == NULL || operation == 0U ||
+        phase_index >= UMI_BUILD_PROJECT_SESSION_MAX_PHASES ||
+        diagnostic_index >= UMI_BUILD_MAX_DIAGNOSTICS) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiBuildDiagnosticPage *page = calloc(1U, sizeof *page);
+    if (page == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiStudioBuildService *service = umi_studio_services_build(ui->services);
+    UmiStatus status = UmiStudioBuildReadDiagnosticPage(service, operation,
+        phase_index, diagnostic_index, page);
+    UmiBuildDiagnosticLocation location;
+    if (status == UMI_STATUS_OK && page->count == 0U) status = UMI_STATUS_NOT_FOUND;
+    if (status == UMI_STATUS_OK) status = UmiBuildDiagnosticResolveLocation(page, 0U, &location);
+    UmiDiagnosticSnapshot diagnostic;
+    if (status == UMI_STATUS_OK) {
+        const UmiBuildDiagnostic *item = &page->items[0];
+        UmiDiagnosticSeverity severity = item->severity == UMI_BUILD_DIAGNOSTIC_FATAL
+            ? UMI_DIAGNOSTIC_FATAL : item->severity == UMI_BUILD_DIAGNOSTIC_ERROR
+            ? UMI_DIAGNOSTIC_ERROR : item->severity == UMI_BUILD_DIAGNOSTIC_WARNING
+            ? UMI_DIAGNOSTIC_WARNING : UMI_DIAGNOSTIC_INFO;
+        status = umi_diagnostic_snapshot_init(&diagnostic, "studio.build.source",
+            severity, UMI_DIAGNOSTIC_KIND_COMPILER, "build", item->message);
+        if (status == UMI_STATUS_OK && strlen(location.path) >= sizeof diagnostic.uri)
+            status = UMI_STATUS_CAPACITY_EXCEEDED;
+        if (status == UMI_STATUS_OK) {
+            memcpy(diagnostic.uri, location.path, strlen(location.path) + 1U);
+            diagnostic.line = location.line;
+            diagnostic.column = location.column;
+            diagnostic.correlation_id = operation;
+        }
+    }
+    free(page);
+    /* Navigation may notify a frontend. Do not access application state after
+     * the coordinator is called; all required diagnostic data is already owned. */
+    return status == UMI_STATUS_OK
+        ? UmiDiagnosticOpenSource(ui->document_coordinator, &diagnostic, NULL, NULL) : status;
 }

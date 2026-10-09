@@ -8,6 +8,7 @@
 #ifndef UMICOM_STUDIO_TEST_EXECUTION_H
 #define UMICOM_STUDIO_TEST_EXECUTION_H
 #include "umicom/testing/ctest_job.h"
+#include "umicom/data/job_identity.h"
 #include "umicom/testing/ctest_output.h"
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +24,12 @@ typedef struct UmiStudioTestRunContext {
     char source_root[1024];
     char build_root[1024];
     char configuration[128];
+    /* Capture project/settings evidence before dispatch. Optional input evidence
+     * is supplied by the host; an empty digest never means unchanged sources.
+     * Zero-initialised legacy callers retain their existing context checks. */
+    UmiJobIdentity identity;
+    /* Owned CTest folder; empty inherits PATH. Compared again during polling. */
+    char tool_directory[UMI_CTEST_JOB_PATH_CAPACITY];
 } UmiStudioTestRunContext;
 
 /** Arm one existing execution-command dispatch; Disarm after dispatch on every

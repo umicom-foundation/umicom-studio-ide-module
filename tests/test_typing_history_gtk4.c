@@ -29,6 +29,8 @@
 
 /* Follow the actual native editor binding; no test-owned text widget stands
  * in for Studio's document surface. Retained buffers are released separately. */
+/* The first visible editor may belong to another tab. Select the page by its document view identity; retain the earlier positional finder for review. */
+#if 0
 static GtkWidget *FindEditor(GtkWidget *root)
 {
     if (GTK_IS_TEXT_VIEW(root) && gtk_widget_has_css_class(root, "umicom-editor"))
@@ -39,6 +41,24 @@ static GtkWidget *FindEditor(GtkWidget *root)
         GtkWidget *found = FindEditor(child);
         if (found != NULL)
             return found;
+    }
+    return NULL;
+}
+#endif
+static GtkWidget *FindEditor(GtkWidget *root, const char *viewId)
+{
+    /* Studio may open a welcome document alongside the test document. Match
+     * the notebook page identity before taking its editor, so typing and model
+     * assertions always address the same working copy. */
+    const char *id = g_object_get_data(G_OBJECT(root), "umicom-view-id");
+    if (id != NULL && strcmp(id, viewId) == 0) {
+        GtkWidget *editor = g_object_get_data(G_OBJECT(root), "umicom-editor-view");
+        if (GTK_IS_TEXT_VIEW(editor)) return editor;
+    }
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = FindEditor(child, viewId);
+        if (found != NULL) return found;
     }
     return NULL;
 }
@@ -137,7 +157,11 @@ int main(int argc, char **argv)
     CHECK(umi_document_coordinator_sync_active(documents) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
     Pump();
+/* Tie the native buffer to the working copy created by this test. Preserve the earlier lookup for review. */
+#if 0
     GtkWidget *editor = FindEditor(GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)));
+#endif
+    GtkWidget *editor = FindEditor(GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), id);
     CHECK(editor != NULL);
     buffer = g_object_ref(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)));
     GtkTextIter a, b;

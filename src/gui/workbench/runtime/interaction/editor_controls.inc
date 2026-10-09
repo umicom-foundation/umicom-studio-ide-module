@@ -777,7 +777,10 @@ static void RuntimeSourceCallees(GtkButton *button,gpointer data);
 #include "editor_line_edits.inc"
 #include "editor_document_format.inc"
 #include "editor_recovery.inc"
+#include "live_diagnostics.inc"
 
+/* Expose the shared persistent diagnostic session beside the existing captured-source review while preserving every editor action. The previous implementation is retained for engineering review. */
+#if 0
 static GtkWidget *runtime_build_editor_command_bar(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -944,6 +947,326 @@ static GtkWidget *runtime_build_editor_command_bar(
     (void)umi_gtk4_automation_tag_widget(diagnostics,"studio.editor.diagnostics");
     runtime_bind_editor_action(runtime,diagnostics,RuntimeSourceDiagnostics);
     gtk_box_append(GTK_BOX(bar),diagnostics);
+
+    gtk_box_append(GTK_BOX(bar),actions);
+
+    gtk_box_append(GTK_BOX(bar),rename);
+
+    gtk_box_append(GTK_BOX(bar),parameters);
+
+    gtk_box_append(GTK_BOX(bar),symbols);
+
+    GtkWidget *definition=gtk_button_new_with_label("Definitions…");
+    GtkWidget *references=gtk_button_new_with_label("References…");
+    (void)umi_gtk4_automation_tag_widget(definition,"studio.editor.definition");
+    (void)umi_gtk4_automation_tag_widget(references,"studio.editor.references");
+    runtime_bind_editor_action(runtime,definition,RuntimeSourceDefinition);
+    runtime_bind_editor_action(runtime,references,RuntimeSourceReferences);
+    gtk_box_append(GTK_BOX(bar),definition);gtk_box_append(GTK_BOX(bar),references);
+    /* Reuse Framework source navigation so every destination is reviewed and
+     * checked against its current draft before the editor moves the caret. */
+    GtkWidget *type_definition=gtk_button_new_with_label("Type definitions…");
+    GtkWidget *implementation=gtk_button_new_with_label("Implementations…");
+    (void)umi_gtk4_automation_tag_widget(type_definition,"studio.editor.type-definition");
+    (void)umi_gtk4_automation_tag_widget(implementation,"studio.editor.implementation");
+    runtime_bind_editor_action(runtime,type_definition,RuntimeSourceTypeDefinition);
+    runtime_bind_editor_action(runtime,implementation,RuntimeSourceImplementation);
+    gtk_widget_set_tooltip_text(type_definition,"Ask the local language server where the type of the symbol at the caret is defined.");
+    gtk_widget_set_tooltip_text(implementation,"Ask the local language server for implementations of the symbol at the caret.");
+    gtk_box_append(GTK_BOX(bar),type_definition);gtk_box_append(GTK_BOX(bar),implementation);
+    /* The language service supplies syntax boundaries. Framework validates the
+     * complete enclosing chain and moves the selection only after a choice. */
+    GtkWidget *syntax_selection=gtk_button_new_with_label("Syntax selection…");
+    (void)umi_gtk4_automation_tag_widget(syntax_selection,"studio.editor.syntax-selection");
+    runtime_bind_editor_action(runtime,syntax_selection,RuntimeSourceSelectionRanges);
+    gtk_widget_set_tooltip_text(syntax_selection,"Ask the selected language server for enclosing expressions and blocks at the captured caret.");
+    gtk_box_append(GTK_BOX(bar),syntax_selection);
+    /* A server supplies the structural regions; selecting one still passes
+     * through Framework's captured-draft check. Manual Fold selection remains
+     * available when a language server is absent or lacks folding support. */
+    GtkWidget *syntax_folding=gtk_button_new_with_label("Syntax folding…");
+    (void)umi_gtk4_automation_tag_widget(syntax_folding,"studio.editor.syntax-folding");
+    runtime_bind_editor_action(runtime,syntax_folding,RuntimeSourceFoldingRanges);
+    gtk_widget_set_tooltip_text(syntax_folding,"Find complete-line regions with the selected language server, select one, then use Fold selection.");
+    gtk_box_append(GTK_BOX(bar),syntax_folding);
+
+    /* Framework captures the draft and owns call-site navigation. Studio adds
+     * only the two user intents and the per-language settings namespace. */
+    GtkWidget *callers=gtk_button_new_with_label("Callers…"),*callees=gtk_button_new_with_label("Callees…");
+    (void)umi_gtk4_automation_tag_widget(callers,"studio.editor.callers");
+    (void)umi_gtk4_automation_tag_widget(callees,"studio.editor.callees");
+    runtime_bind_editor_action(runtime,callers,RuntimeSourceCallers);
+    runtime_bind_editor_action(runtime,callees,RuntimeSourceCallees);
+    gtk_widget_set_tooltip_text(callers,"Inspect direct callers and their call sites through the selected language server.");
+    gtk_widget_set_tooltip_text(callees,"Inspect direct callees and the expressions that call them.");
+    gtk_box_append(GTK_BOX(bar),callers);gtk_box_append(GTK_BOX(bar),callees);
+    /* Local snippet state and insertion review belong to Framework so every
+     * editor host can use the same linked values and document history. */
+    GtkWidget *snippet=gtk_button_new_with_label("Snippet…");
+    (void)umi_gtk4_automation_tag_widget(snippet,"studio.editor.snippet");
+    runtime_bind_editor_action(runtime,snippet,RuntimeSourceSnippet);
+    gtk_widget_set_tooltip_text(snippet,"Compose linked template values, review the complete insertion, and apply it as one undoable edit.");
+    gtk_box_append(GTK_BOX(bar),snippet);
+    /* Keep folding as a view operation. Framework owns ranges and reveals
+     * hidden source when edits or navigation invalidate the presentation. */
+    GtkWidget *fold=gtk_button_new_with_label("Fold selection"),*reveal=gtk_button_new_with_label("Show all code");
+    (void)umi_gtk4_automation_tag_widget(fold,"studio.editor.fold-selection");
+    (void)umi_gtk4_automation_tag_widget(reveal,"studio.editor.reveal-folds");
+    runtime_bind_editor_action(runtime,fold,RuntimeFoldSelectedCode);
+    runtime_bind_editor_action(runtime,reveal,RuntimeRevealFoldedCode);
+    gtk_widget_set_tooltip_text(fold,"Keep the first selected line visible and hide the following selected lines without changing source.");
+    gtk_widget_set_tooltip_text(reveal,"Reveal every manual fold in this editor.");
+    gtk_box_append(GTK_BOX(bar),fold);gtk_box_append(GTK_BOX(bar),reveal);
+    /* Framework discovers complete balanced pairs and owns source navigation.
+     * These actions work without starting a compiler or language server. */
+    const char *delimiter_labels[]={"Matching bracket","Select inside brackets","Select bracket pair"};
+    const char *delimiter_ids[]={"studio.editor.match-delimiter","studio.editor.select-delimiter-content","studio.editor.select-delimiter-pair"};
+    for(size_t index=0U;index<3U;++index) {
+        GtkWidget *delimiter=gtk_button_new_with_label(delimiter_labels[index]);
+        (void)umi_gtk4_automation_tag_widget(delimiter,delimiter_ids[index]);
+        g_object_set_data(G_OBJECT(delimiter),"document-delimiter-action",GINT_TO_POINTER((int)index));
+        runtime_bind_editor_action(runtime,delimiter,RuntimeSourceDelimiter);
+        gtk_widget_set_tooltip_text(delimiter,"Navigate balanced parentheses, square brackets and braces. C and JSON skip quoted content; other languages use literal matching.");
+        gtk_box_append(GTK_BOX(bar),delimiter);
+    }
+
+
+
+
+
+
+
+
+    gtk_box_append(GTK_BOX(bar),format);
+
+    gtk_box_append(GTK_BOX(bar), runtime->editor_find_entry);
+    RuntimeAppendSearchOptions(runtime, bar);
+    gtk_box_append(GTK_BOX(bar), find);
+    gtk_box_append(GTK_BOX(bar), previous);
+    gtk_box_append(GTK_BOX(bar), runtime->editor_replace_entry);
+    gtk_box_append(GTK_BOX(bar), replace);
+    gtk_box_append(GTK_BOX(bar), replace_all);
+    gtk_box_append(GTK_BOX(bar), replace_open);
+    GtkWidget *replace_set = gtk_button_new_with_label("Review Complete Set");
+    gtk_widget_set_tooltip_text(replace_set,
+        "Review all open draft replacements before applying the complete set together. No files are saved.");
+    (void)umi_gtk4_automation_tag_widget(replace_set, "studio.editor.replace-complete-set");
+    runtime_bind_editor_action(runtime, replace_set, RuntimeReviewCompleteReplacementSet);
+    gtk_box_append(GTK_BOX(bar), replace_set);
+    gtk_box_append(GTK_BOX(bar), runtime->editor_goto_entry);
+    gtk_box_append(GTK_BOX(bar), go_to);
+    gtk_box_append(GTK_BOX(bar), external);
+    gtk_box_append(GTK_BOX(bar), compare);
+    gtk_box_append(GTK_BOX(bar), reload);
+    /* These are location metadata actions: drafts are neither saved nor edited. */
+    const char *bookmarkLabels[] = {"Bookmark Line", "Next Bookmark", "Previous Bookmark"};
+    const char *bookmarkTags[] = {"studio.editor.bookmark-toggle", "studio.editor.bookmark-next", "studio.editor.bookmark-previous"};
+    const int bookmarkActions[] = {0, 1, -1};
+    for (size_t index = 0U; index < 3U; ++index) {
+        GtkWidget *bookmark = gtk_button_new_with_label(bookmarkLabels[index]);
+        (void)umi_gtk4_automation_tag_widget(bookmark, bookmarkTags[index]);
+        g_object_set_data(G_OBJECT(bookmark), "bookmark-action", GINT_TO_POINTER(bookmarkActions[index]));
+        gtk_widget_set_tooltip_text(bookmark, "Session bookmarks remember fixed lines in open drafts. Use command search to Clear Bookmarks.");
+        runtime_bind_editor_action(runtime, bookmark, runtime_on_editor_bookmark);
+        gtk_box_append(GTK_BOX(bar), bookmark);
+    }
+    gtk_box_append(GTK_BOX(bar), runtime->editor_info_label);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (more != NULL) gtk_box_append(GTK_BOX(bar), more);
+
+    runtime_editor_update_info(runtime);
+    RuntimeAppendLineEdits(runtime,bar);
+    RuntimeAppendDocumentFormats(runtime,bar);
+    RuntimeGroupEditorActions(bar,save);
+    /* Recovery is a document workflow and remains next to Save. */
+    RuntimeAppendRecovery(runtime,bar,save);
+    /* Keep every control reachable on a narrow workbench without increasing
+     * the window's minimum width or removing existing actions. */
+    GtkWidget *scroller = gtk_scrolled_window_new();
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+    gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scroller), TRUE);
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), bar);
+    runtime->editor_command_bar = scroller;
+    return scroller;
+}
+#endif
+static GtkWidget *runtime_build_editor_command_bar(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    GtkWidget *bar;
+    GtkWidget *undo;
+    GtkWidget *redo;
+    GtkWidget *save;
+    GtkWidget *find;
+    GtkWidget *previous;
+    GtkWidget *replace_all;
+    GtkWidget *replace_open;
+    GtkWidget *replace;
+    GtkWidget *go_to;
+    GtkWidget *external;
+    GtkWidget *reload;
+    GtkWidget *compare;
+    GtkWidget *more;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime == NULL) return NULL;
+
+    bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    runtime->editor_find_entry = gtk_entry_new();
+    runtime->editor_replace_entry = gtk_entry_new();
+    runtime->editor_goto_entry = gtk_entry_new();
+    runtime->editor_info_label = gtk_label_new("");
+
+    undo = gtk_button_new_with_label("Undo");
+    redo = gtk_button_new_with_label("Redo");
+    save = gtk_button_new_with_label("Save");
+    find = gtk_button_new_with_label("Find");
+    previous = gtk_button_new_with_label("Previous");
+    replace_all = gtk_button_new_with_label("Replace All");
+    replace_open = gtk_button_new_with_label("Review Open Documents");
+    gtk_widget_set_tooltip_text(replace_open,
+        "Use Find and Replace with to review each open draft. Apply or Skip each document; Stop keeps earlier edits. Save remains separate.");
+    (void)umi_gtk4_automation_tag_widget(replace_open, "studio.editor.replace-open-documents");
+    runtime_bind_editor_action(runtime, replace_open, runtime_on_editor_replace_open);
+    replace = gtk_button_new_with_label("Replace");
+    go_to = gtk_button_new_with_label("Go");
+    external = gtk_button_new_with_label("External?");
+    reload = gtk_button_new_with_label("Reload from disk");
+    compare = gtk_button_new_with_label("Compare with saved");
+    more = runtime_context_actions_expander(runtime, "editor");
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (bar == NULL ||
+        runtime->editor_find_entry == NULL ||
+        runtime->editor_replace_entry == NULL ||
+        runtime->editor_goto_entry == NULL ||
+        runtime->editor_info_label == NULL ||
+        undo == NULL || redo == NULL || save == NULL ||
+        find == NULL || previous == NULL || replace_all == NULL || replace == NULL || go_to == NULL ||
+        external == NULL || reload == NULL || compare == NULL) {
+        return bar;
+    }
+
+    gtk_widget_add_css_class(bar, "umicom-runtime-editor-command-bar");
+    gtk_widget_add_css_class(
+        runtime->editor_info_label,
+        "umicom-runtime-muted");
+
+    gtk_entry_set_placeholder_text(
+        GTK_ENTRY(runtime->editor_find_entry),
+        "Find");
+    gtk_entry_set_placeholder_text(
+        GTK_ENTRY(runtime->editor_replace_entry),
+        "Replace with");
+    gtk_entry_set_placeholder_text(
+        GTK_ENTRY(runtime->editor_goto_entry),
+        /* Former placeholder: "Line". The same field now accepts a column. */
+        "Line:column");
+    gtk_widget_set_tooltip_text(runtime->editor_goto_entry,
+        "Enter a line or line:column, for example 12:5. Columns count UTF-8 bytes.");
+
+    /* Stable control names let native acceptance exercise the same fields. */
+    (void)umi_gtk4_automation_tag_widget(runtime->editor_find_entry, "studio.editor.find-text");
+    (void)umi_gtk4_automation_tag_widget(runtime->editor_replace_entry, "studio.editor.replace-text");
+    gtk_widget_set_size_request(runtime->editor_find_entry, 150, -1);
+    gtk_widget_set_size_request(runtime->editor_replace_entry, 150, -1);
+    gtk_widget_set_size_request(runtime->editor_goto_entry, 70, -1);
+
+    runtime_bind_editor_action(runtime, undo, runtime_on_editor_undo);
+    runtime_bind_editor_action(runtime, redo, runtime_on_editor_redo);
+    runtime_bind_editor_action(runtime, save, runtime_on_editor_save);
+    runtime_bind_editor_action(runtime, find, runtime_on_editor_find);
+    runtime_bind_editor_action(runtime, replace, runtime_on_editor_replace);
+    runtime_bind_editor_action(runtime, go_to, runtime_on_editor_goto);
+    runtime_bind_editor_action(runtime, external, runtime_on_editor_external_check);
+
+    gtk_widget_set_tooltip_text(reload,
+        "Review the saved version before replacing this document. Unsaved text requires confirmation; Undo restores the previous text.");
+    (void)umi_gtk4_automation_tag_widget(reload, "studio.editor.reload");
+    (void)umi_gtk4_automation_tag_widget(external, "studio.editor.check-external");
+    runtime_bind_editor_action(runtime, reload, runtime_on_editor_reload);
+    gtk_widget_set_tooltip_text(compare,
+        "Compare the complete current draft with the saved file. Both panes are read-only; Cancel keeps your work unchanged.");
+    (void)umi_gtk4_automation_tag_widget(compare, "studio.editor.compare-saved");
+    runtime_bind_editor_action(runtime, compare, runtime_on_editor_reload);
+
+    gtk_widget_set_tooltip_text(find, "Find the next occurrence. Search wraps at the end of the document.");
+    gtk_widget_set_tooltip_text(previous, "Find the previous occurrence. Search wraps at the beginning.");
+/* The toolbar now explains the review step before the shared replacement transaction. The previous implementation remains for engineering review. */
+#if 0
+    gtk_widget_set_tooltip_text(replace_all, "Replace all non-overlapping occurrences in this document. Undo restores the previous text.");
+#endif
+    gtk_widget_set_tooltip_text(replace_all, "Review all literal replacements in this document before applying. Cancel keeps the draft; Undo restores the reviewed text.");
+    (void)umi_gtk4_automation_tag_widget(find, "studio.editor.find-next");
+    (void)umi_gtk4_automation_tag_widget(previous, "studio.editor.find-previous");
+    (void)umi_gtk4_automation_tag_widget(replace_all, "studio.editor.replace-all");
+    (void)umi_gtk4_automation_tag_widget(replace, "studio.editor.replace-next");
+    runtime_bind_editor_action(runtime, previous, runtime_on_editor_find_previous);
+    runtime_bind_editor_action(runtime, replace_all, runtime_on_editor_replace_all);
+
+    gtk_box_append(GTK_BOX(bar), undo);
+    gtk_box_append(GTK_BOX(bar), redo);
+    gtk_box_append(GTK_BOX(bar), save);
+    /* Filename navigation shares Explorer's index and the document owner;
+     * it does not launch a second scan or save the active source draft. */
+    GtkWidget *quickOpen = gtk_button_new_with_label("Quick Open…");
+    (void)umi_gtk4_automation_tag_widget(quickOpen, "studio.editor.quick-open");
+    gtk_widget_set_tooltip_text(quickOpen, "Find a file in the current workspace index (Ctrl+P).");
+    runtime_bind_editor_action(runtime, quickOpen, RuntimeQuickOpenClicked);
+    gtk_box_append(GTK_BOX(bar), quickOpen);
+
+    /* Keep the language action beside editing commands as well as in the
+     * source-assistance panel; both routes use the same captured review. */
+    GtkWidget *complete = gtk_button_new_with_label("Complete…");
+    (void)umi_gtk4_automation_tag_widget(complete, "studio.editor.completion");
+    runtime_bind_editor_action(runtime, complete, RuntimeSourceCompletion);
+    gtk_widget_set_tooltip_text(complete, "Choose a local language server, request suggestions and review the result before changing this draft.");
+    gtk_box_append(GTK_BOX(bar), complete);
+    GtkWidget *format=gtk_button_new_with_label("Format…");
+    (void)umi_gtk4_automation_tag_widget(format,"studio.editor.formatting");
+    runtime_bind_editor_action(runtime,format,RuntimeSourceFormatting);
+    /* Correct a misdecoded caption while preserving its original spelling
+     * for review. The action and its automation identity are unchanged. */
+#if 0
+    GtkWidget *information=gtk_button_new_with_label("Source infoâ€¦");
+#endif
+    GtkWidget *information=gtk_button_new_with_label("Source info…");
+    gtk_box_append(GTK_BOX(bar),information);
+    (void)umi_gtk4_automation_tag_widget(information,"studio.editor.source-information");
+    runtime_bind_editor_action(runtime,information,RuntimeSourceInformation);
+    GtkWidget *symbols=gtk_button_new_with_label("Symbols…");
+    (void)umi_gtk4_automation_tag_widget(symbols,"studio.editor.symbols");
+    runtime_bind_editor_action(runtime,symbols,RuntimeDocumentSymbols);
+    GtkWidget *parameters=gtk_button_new_with_label("Parameters…");
+    (void)umi_gtk4_automation_tag_widget(parameters,"studio.editor.parameters");
+    runtime_bind_editor_action(runtime,parameters,RuntimeParameterHelp);
+    GtkWidget *rename=gtk_button_new_with_label("Rename…");
+    (void)umi_gtk4_automation_tag_widget(rename,"studio.editor.rename");
+    runtime_bind_editor_action(runtime,rename,RuntimeSymbolRename);
+    GtkWidget *actions=gtk_button_new_with_label("Actions…");
+    (void)umi_gtk4_automation_tag_widget(actions,"studio.editor.actions");
+    runtime_bind_editor_action(runtime,actions,RuntimeCodeActions);
+    GtkWidget *diagnostics=gtk_button_new_with_label("Problems…");
+    (void)umi_gtk4_automation_tag_widget(diagnostics,"studio.editor.diagnostics");
+    runtime_bind_editor_action(runtime,diagnostics,RuntimeSourceDiagnostics);
+    gtk_box_append(GTK_BOX(bar),diagnostics);
+    /* Keep the one-shot diagnostic review available alongside a persistent,
+     * explicitly started session for the current named document. */
+    GtkWidget *live_diagnostics = gtk_button_new_with_label("Live diagnostics…");
+    (void)umi_gtk4_automation_tag_widget(live_diagnostics, "studio.editor.live-diagnostics");
+    runtime_bind_editor_action(runtime, live_diagnostics, RuntimeLiveDiagnostics);
+    gtk_widget_set_tooltip_text(live_diagnostics, "Keep a selected language server running as this source changes. Stop or close the window to end it.");
+    gtk_box_append(GTK_BOX(bar), live_diagnostics);
+
 
     gtk_box_append(GTK_BOX(bar),actions);
 

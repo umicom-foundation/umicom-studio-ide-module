@@ -113,6 +113,8 @@ static UmiStatus runtime_documentation_read_local(
 }
 
 /* Display a location, optionally recording it in the shared browser history. */
+/* Relative documentation now requires an explicit project root; the former current-directory fallback is retained for review because application storage is not a source workspace. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus runtime_documentation_display_location(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *location,
@@ -134,6 +136,63 @@ static UmiStatus runtime_documentation_display_location(
             runtime->workspace_root[0] != '\0'
                 ? runtime->workspace_root
                 : NULL);
+    }
+    if (local_path != NULL) {
+        browser_location = g_filename_to_uri(local_path, NULL, NULL);
+    }
+
+    if (record_navigation && browser != NULL && browser->navigate != NULL) {
+        status = browser->navigate(
+            browser->instance,
+            browser_location != NULL ? browser_location : location);
+    }
+    if (runtime->documentation_location_entry != NULL) {
+        gtk_editable_set_text(
+            GTK_EDITABLE(runtime->documentation_location_entry),
+            browser_location != NULL ? browser_location : location);
+    }
+    if (status == UMI_STATUS_OK && local_path != NULL) {
+        status = runtime_documentation_read_local(runtime, local_path);
+    } else if (status == UMI_STATUS_OK) {
+        runtime_documentation_set_text(
+            runtime,
+            "Navigation recorded by the Framework browser",
+            "This panel renders local HTML documentation as readable text. "
+            "A native web renderer can implement the same browser contract "
+            "for interactive remote pages without changing Studio commands.");
+    }
+
+    g_free(browser_location);
+    g_free(local_path);
+    return status;
+}
+#endif
+static UmiStatus runtime_documentation_display_location(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *location,
+    int record_navigation)
+{
+    UmiBrowser *browser = runtime_documentation_browser(runtime);
+    gchar *local_path = NULL;
+    gchar *browser_location = NULL;
+    UmiStatus status = UMI_STATUS_OK;
+
+    if (runtime == NULL || location == NULL || location[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    if (g_str_has_prefix(location, "file://")) {
+        local_path = g_filename_from_uri(location, NULL, NULL);
+    } else if (strstr(location, "://") == NULL) {
+        /* Relative documents need the user's source root. The process CWD
+         * can be private settings storage and cannot supply project identity. */
+        if (!g_path_is_absolute(location) && runtime->workspace_root[0] == '\0') {
+            runtime_documentation_set_text(runtime, "Choose a document location",
+                "Open a project for relative paths, enter a full document path, "
+                "or choose a lesson library in Guided Learning.");
+            return UMI_STATUS_INVALID_STATE;
+        }
+        local_path = g_canonicalize_filename(location,
+            runtime->workspace_root[0] != '\0' ? runtime->workspace_root : NULL);
     }
     if (local_path != NULL) {
         browser_location = g_filename_to_uri(local_path, NULL, NULL);
@@ -282,6 +341,8 @@ static void runtime_on_documentation_reload(
 }
 
 /* Build the thin GTK adapter over Framework browser and preview services. */
+/* Give document navigation and its readable preview stable identities so the real first-open workflow can be checked independently of widget positions. The previous implementation is retained for engineering review. */
+#if 0
 static GtkWidget *runtime_build_surface_documentation(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -303,6 +364,98 @@ static GtkWidget *runtime_build_surface_documentation(
     forward = gtk_button_new_with_label("Forward");
     reload = gtk_button_new_with_label("Reload");
     open = gtk_button_new_with_label("Open");
+
+    /* GTK normally returns a widget here, but keeping the guard makes this
+     * presentation code safe if allocation fails during application startup. */
+    if (navigation == NULL) return panel;
+
+    if (runtime->documentation_location_entry != NULL) {
+        gtk_entry_set_placeholder_text(
+            GTK_ENTRY(runtime->documentation_location_entry),
+            "docs/index.html or file:///path/to/page.html");
+        gtk_widget_set_hexpand(runtime->documentation_location_entry, TRUE);
+        gtk_box_append(
+            GTK_BOX(navigation), runtime->documentation_location_entry);
+        g_signal_connect(
+            runtime->documentation_location_entry,
+            "activate",
+            G_CALLBACK(runtime_on_documentation_open), runtime);
+    }
+    if (back != NULL && forward != NULL && reload != NULL && open != NULL) {
+        g_signal_connect(back, "clicked",
+            G_CALLBACK(runtime_on_documentation_back), runtime);
+        g_signal_connect(forward, "clicked",
+            G_CALLBACK(runtime_on_documentation_forward), runtime);
+        g_signal_connect(reload, "clicked",
+            G_CALLBACK(runtime_on_documentation_reload), runtime);
+        g_signal_connect(open, "clicked",
+            G_CALLBACK(runtime_on_documentation_open), runtime);
+        gtk_box_prepend(GTK_BOX(navigation), back);
+        gtk_box_append(GTK_BOX(navigation), forward);
+        gtk_box_append(GTK_BOX(navigation), reload);
+        gtk_box_append(GTK_BOX(navigation), open);
+    }
+    gtk_box_append(GTK_BOX(panel), navigation);
+    if (runtime->documentation_search_entry != NULL) {
+        gtk_search_entry_set_placeholder_text(
+            GTK_SEARCH_ENTRY(runtime->documentation_search_entry),
+            "Find in documentation");
+        g_signal_connect(
+            runtime->documentation_search_entry,
+            "search-changed",
+            G_CALLBACK(runtime_on_documentation_search),
+            runtime);
+        gtk_box_append(
+            GTK_BOX(panel), runtime->documentation_search_entry);
+    }
+    if (runtime->documentation_summary_label != NULL) {
+        gtk_widget_add_css_class(
+            runtime->documentation_summary_label, "umicom-runtime-muted");
+        gtk_box_append(
+            GTK_BOX(panel), runtime->documentation_summary_label);
+    }
+    if (runtime->documentation_preview_view != NULL) {
+        gtk_text_view_set_editable(
+            GTK_TEXT_VIEW(runtime->documentation_preview_view), FALSE);
+        gtk_text_view_set_cursor_visible(
+            GTK_TEXT_VIEW(runtime->documentation_preview_view), FALSE);
+        gtk_text_view_set_wrap_mode(
+            GTK_TEXT_VIEW(runtime->documentation_preview_view),
+            GTK_WRAP_WORD_CHAR);
+        gtk_widget_set_vexpand(runtime->documentation_preview_view, TRUE);
+        gtk_box_append(
+            GTK_BOX(panel), runtime_scroll(
+                runtime->documentation_preview_view));
+    }
+    return panel;
+}
+#endif
+static GtkWidget *runtime_build_surface_documentation(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    GtkWidget *panel = runtime_panel_new("Documentation");
+    GtkWidget *navigation;
+    GtkWidget *back;
+    GtkWidget *forward;
+    GtkWidget *reload;
+    GtkWidget *open;
+
+    if (panel == NULL || runtime == NULL) return panel;
+    runtime->documentation_location_entry = gtk_entry_new();
+    runtime->documentation_search_entry = gtk_search_entry_new();
+    runtime->documentation_summary_label = runtime_label(
+        "Enter an HTML file path or file URL.", 0.0F);
+    runtime->documentation_preview_view = gtk_text_view_new();
+    navigation = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    back = gtk_button_new_with_label("Back");
+    forward = gtk_button_new_with_label("Forward");
+    reload = gtk_button_new_with_label("Reload");
+    open = gtk_button_new_with_label("Open");
+    /* Semantic identities support keyboard automation without inspecting labels. */
+    (void)umi_gtk4_automation_tag_widget(runtime->documentation_location_entry, "studio.documentation.location");
+    (void)umi_gtk4_automation_tag_widget(runtime->documentation_summary_label, "studio.documentation.summary");
+    (void)umi_gtk4_automation_tag_widget(runtime->documentation_preview_view, "studio.documentation.preview");
+    (void)umi_gtk4_automation_tag_widget(open, "studio.documentation.open");
 
     /* GTK normally returns a widget here, but keeping the guard makes this
      * presentation code safe if allocation fails during application startup. */

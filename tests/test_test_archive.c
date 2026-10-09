@@ -24,6 +24,9 @@ static inline int ReadElsewhere(void *data)
     return 0;
 }
 #include "test_test_archive_compare.inc"
+#include "test_test_archive_reader.inc"
+#include "test_test_archive_open.inc"
+#include "test_test_archive_removal.inc"
 
 int main(int argc, char **argv)
 {
@@ -47,6 +50,39 @@ int main(int argc, char **argv)
     CHECK(UmiStudioTestArchiveOpen(service, path) == UMI_STATUS_OK);
     if (strncmp(name, "compare-", 8) == 0)
         CompareServiceCase(name, service, queue, path);
+    else if (strncmp(name, "open-", 5) == 0)
+        OpenServiceCase(name, service, queue, path);
+    else if (strncmp(name, "removal-", 8) == 0)
+        RemovalServiceCase(name, service, queue, path);
+    else if (strncmp(name, "reader-", 7) == 0)
+        ReaderServiceCase(name, service, queue);
+    else if (strcmp(name, "identity") == 0)
+    {
+        UmiJobIdentity accepted = {0};
+        memset(accepted.subject, 'a', 64);
+        memset(accepted.configuration, 'b', 64);
+        CHECK(ArchiveDisabledRunWithIdentity(service, queue, &accepted) == UMI_STATUS_OK);
+        UmiStudioTestRunContext later = {0};
+        later.trusted = 1;
+        strcpy(later.source_root, "/different/source");
+        strcpy(later.build_root, "/different/build");
+        later.identity = accepted; later.identity.configuration[0] = 'c';
+        CHECK(UmiStudioTestRunArm(service, queue, &later) == UMI_STATUS_OK);
+        UmiStudioTestRunDisarm(service);
+        CHECK(UmiStudioTestArchiveSave(service, queue, false) == UMI_STATUS_OK);
+        CHECK(ArchiveAwaitSave(service, &state) == UMI_STATUS_OK);
+        CHECK(memcmp(&state.write.saved.origin.identity, &accepted, sizeof(accepted)) == 0);
+        CHECK(state.write.saved.selection_digest[0] != '\0');
+        CHECK(state.write.saved.run.passed == 0 && state.write.saved.run.skipped == 1);
+        umi_studio_test_service_destroy(service); service = NULL;
+        CHECK(umi_studio_test_service_create(&service) == UMI_STATUS_OK);
+        CHECK(UmiStudioTestArchiveOpen(service, path) == UMI_STATUS_OK);
+        UmiTestArchiveEntry saved = {0};
+        CHECK(UmiStudioTestArchiveRead(service, 1, &saved) == UMI_STATUS_OK);
+        CHECK(UmiJobIdentityCompare(&saved.origin.identity, &accepted) ==
+              UMI_JOB_IDENTITY_INPUTS_UNRECORDED);
+        CHECK(strcmp(saved.selection_digest, state.write.saved.selection_digest) == 0);
+    }
     else if (strcmp(name, "wrong-thread") == 0)
     {
         WrongThread request = {service, UMI_STATUS_OK};

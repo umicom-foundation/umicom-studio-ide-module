@@ -165,6 +165,13 @@ UmiStudioApplicationSurface *umi_studio_ui_application_surface(UmiStudioUi *ui);
  * Existing unsaved drafts are selected, never overwritten. No build or save
  * is performed. Call from the UI owner thread. */
 UmiStatus UmiStudioUiOpenProblem(UmiStudioUi *ui, const char *problemId);
+/** Open a retained live compiler record only while its operation and phase still
+ * match. The source/build folders come from that accepted job, not current UI
+ * drafts. Ambiguous or missing relative paths are refused without guessing.
+ * Existing editor drafts are retained; navigation neither builds nor saves. */
+UmiStatus UmiStudioUiOpenBuildDiagnostic(UmiStudioUi *ui, uint64_t operation,
+    size_t phase_index, size_t diagnostic_index);
+
 /** Open the next/previous available source location in the shared diagnostics
  * model. A nonzero backwards flag selects the previous location; wraps once. */
 UmiStatus UmiStudioUiNavigateProblem(UmiStudioUi *ui, int backwards);

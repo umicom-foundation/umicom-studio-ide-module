@@ -30,6 +30,11 @@ typedef struct UmiStudioTestService UmiStudioTestService;
  */
 UmiStatus UmiStudioTestDiscoveryArm(UmiStudioTestService *service,
     UmiTaskQueue *queue, uint64_t workspaceGeneration);
+/** Arm discovery with a copied explicit CTest directory. NULL/empty inherits
+ * PATH. PollWithToolDirectory must receive the current selection so changing
+ * installations during discovery prevents stale catalogue publication. */
+UmiStatus UmiStudioTestDiscoveryArmWithToolDirectory(UmiStudioTestService *service,
+    UmiTaskQueue *queue, uint64_t workspaceGeneration, const char *directory);
 void UmiStudioTestDiscoveryDisarm(UmiStudioTestService *service);
 /** Includes completed work that has not yet been polled/published. */
 int UmiStudioTestDiscoveryPending(const UmiStudioTestService *service);
@@ -43,6 +48,13 @@ UmiStatus UmiStudioTestDiscoveryPoll(UmiStudioTestService *service,
     const char *sourceRoot, const char *buildRoot, const char *configuration,
     uint64_t workspaceGeneration, int workspaceAllowed, int *outPublished,
     char *diagnostics, size_t capacity);
+
+/** Poll the copied tool selection in addition to the existing workspace
+ * and catalogue fences. A changed directory cancels and consumes the result. */
+UmiStatus UmiStudioTestDiscoveryPollWithToolDirectory(UmiStudioTestService *service,
+    const char *directory, const char *sourceRoot, const char *buildRoot,
+    const char *configuration, uint64_t workspaceGeneration, int workspaceAllowed,
+    int *outPublished, char *diagnostics, size_t capacity);
 
 #ifdef __cplusplus
 }

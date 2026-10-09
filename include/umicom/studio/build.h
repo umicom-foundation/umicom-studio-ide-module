@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include "umicom/build/project_session.h"
 #include "umicom/build/live_output.h"
+#include "umicom/build/live_diagnostics.h"
 #include "umicom/build/log_capture.h"
 #include "umicom/build/job_history.h"
 
@@ -179,6 +180,10 @@ UmiBuildWorkspace *umi_studio_build_service_workspace(
  * must be the current workspace decision. Existing synchronous APIs remain. */
 UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
     UmiBuildPhase phase, int trusted);
+/** Run the selected existing file as one background phase. This does not save
+ * documents, configure or build. Framework captures explicit launch paths and
+ * refuses unresolved program names. Existing busy/trust and log rules apply. */
+UmiStatus UmiStudioBuildRunCurrent(UmiStudioBuildService *service, int trusted);
 /** Collect one completed phase on the owning thread into the existing history.
  * NOT_FOUND means there is no new result. No compiler wait occurs here. */
 UmiStatus UmiStudioBuildCollect(UmiStudioBuildService *service, UmiBuildResult *outResult);
@@ -220,6 +225,21 @@ UmiStatus UmiStudioBuildReadJobHistory(UmiStudioBuildService *service,UmiStudioB
  * Old unfinished records are displayed as uncertain and never resubmitted. */
 UmiStatus UmiStudioBuildCaptureJobs(UmiStudioBuildService *service,UmiJobHistorySnapshot *out_snapshot);
 UmiStatus UmiStudioBuildPruneFinishedJobs(UmiStudioBuildService *service,size_t *out_removed);
+
+
+/** Read Framework's copied per-phase compiler counts without starting a job.
+ * A service with no session returns a zero snapshot. Counts do not replace
+ * the process exit status and may include warnings from a failed phase. */
+UmiStatus UmiStudioBuildReadDiagnostics(UmiStudioBuildService *service,
+    UmiBuildDiagnosticProgress *out);
+
+/** Copy a Framework diagnostic page for the current background build.
+ * The expected operation/phase prevents mixing records across phase changes.
+ * Heap-allocate the bounded page; the UI never borrows a worker-owned record. */
+UmiStatus UmiStudioBuildReadDiagnosticPage(UmiStudioBuildService *service,
+    uint64_t expected_operation, size_t expected_phase_index, size_t first_index,
+    UmiBuildDiagnosticPage *out);
+
 
 #ifdef __cplusplus
 }

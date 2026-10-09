@@ -16,9 +16,12 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/services.h"
+#include "umicom/terminal_ui/execution.h"
 #include "umicom/studio/build.h"
 #include "umicom/build/project_profile.h"
 #include "umicom/build/profile_store.h"
+#include "umicom/studio/build_configurations.h"
+#include "umicom/studio/debugger.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -61,6 +64,8 @@ struct UmiStudioServices {
      * The service-owned Data Server remains the headless default. */
     UmiDataServer *build_profile_server;
     uint64_t build_profile_revision;
+    /* Invalidates open configuration forms when their local storage binding changes. */
+    uint64_t build_profile_storage_generation;
     int build_profile_revision_known;
     UmiStore store;
     UmiSchemaRegistry *schemas;
@@ -343,6 +348,7 @@ UmiStatus umi_studio_services_create_with_options(
         return UMI_STATUS_OUT_OF_MEMORY;
     }
 
+    services->build_profile_storage_generation = 1U;
     status = umi_studio_settings_create(&services->settings);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
@@ -1502,6 +1508,8 @@ static UmiDataServer *BuildProfileServer(UmiStudioServices *services)
         ? services->build_profile_server : services->data_server;
 }
 
+/* A settings-storage rebind invalidates previously opened configuration forms. Preserve the earlier binding implementation while adding a monotonic ownership generation. The previous implementation is retained for engineering review. */
+#if 0
 UmiStatus UmiStudioBuildProfilesBind(UmiStudioServices *services,
     UmiDataServer *server)
 {
@@ -1528,10 +1536,54 @@ UmiStatus UmiStudioBuildProfilesBind(UmiStudioServices *services,
     services->build_profile_revision_known = workspace.open;
     return UMI_STATUS_OK;
 }
+#endif
+UmiStatus UmiStudioBuildProfilesBind(UmiStudioServices *services,
+    UmiDataServer *server)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiBuildProfile stored;
+    uint64_t revision = 0U;
+    UmiStatus status;
+    if (services == NULL || server == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (services->build_profile_storage_generation == 0U ||
+        services->build_profile_storage_generation == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    status = umi_workspace_graph_snapshot(services->workspace, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (workspace.open) {
+        status = UmiBuildProfileStoreLoad(server, workspace.root, &stored, &revision);
+        if (status == UMI_STATUS_OK) {
+            status = umi_studio_build_service_set_profile(
+                umi_studio_services_build(services), &stored);
+            if (status != UMI_STATUS_OK) return status;
+        } else if (status != UMI_STATUS_NOT_FOUND) {
+            return status; /* Keep the old binding and profile on corrupt input. */
+        }
+    }
+    ++services->build_profile_storage_generation;
+    services->build_profile_server = server;
+    services->build_profile_revision = revision;
+    services->build_profile_revision_known = workspace.open;
+    return UMI_STATUS_OK;
+}
 
+/* Detaching local settings storage revokes configuration-form authority. Preserve the earlier detach path for review; no database ownership changes. The previous implementation is retained for engineering review. */
+#if 0
 void UmiStudioBuildProfilesDetach(UmiStudioServices *services)
 {
     if (services == NULL) return;
+    services->build_profile_server = NULL;
+    services->build_profile_revision = 0U;
+    services->build_profile_revision_known = 0;
+}
+#endif
+void UmiStudioBuildProfilesDetach(UmiStudioServices *services)
+{
+    if (services == NULL) return;
+    /* Zero permanently exhausts the token rather than allowing a wrapped
+     * generation to authorise an old form against a different database. */
+    if (services->build_profile_storage_generation != 0U)
+        ++services->build_profile_storage_generation;
     services->build_profile_server = NULL;
     services->build_profile_revision = 0U;
     services->build_profile_revision_known = 0;
@@ -1567,10 +1619,15 @@ UmiStatus UmiStudioBuildProfileSave(UmiStudioServices *services,
     return status;
 }
 
+#include "build_configurations.inc"
+
+
 /*
  * Provide the studio services open workspace operation used by this module and its client
  * applications.
  */
+/* Workspace replacement must preserve the identity of an active terminal command. The previous transition remains for engineering review. The previous implementation is retained for engineering review. */
+#if 0
 UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
                                              const char *root,
                                              int trusted)
@@ -1661,11 +1718,107 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
     }
     return status;
 }
+#endif
+UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
+                                             const char *root,
+                                             int trusted)
+{
+    UmiStatus status;
+    UmiBuildProfile projectProfile;
+    uint64_t profileRevision = 0U;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL || root == NULL || root[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    /* Keep a running terminal attached to its reviewed workspace. Stop and Poll
+     * complete its captured command before another project can replace it. */
+    if (UmiTerminalControllerJobPending(services->terminal_controller)) return UMI_STATUS_BUSY;
+    status = UmiBuildProfileForWorkspace(root, &projectProfile);
+    if (status != UMI_STATUS_OK) return status;
+    /* Inspect saved settings before changing the current workspace. A corrupt
+     * record is reported and preserved, never treated as absent. Trust is not
+     * part of the stored profile; the caller supplies it for this open. */
+    status = UmiBuildProfileStoreLoad(BuildProfileServer(services), root,
+        &projectProfile, &profileRevision);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) return status;
+    status = umi_watcher_stop(services->watcher);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_file_index_set_root(services->file_index, root);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_watcher_set_root(services->watcher, root);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_workspace_graph_open(services->workspace, root, trusted);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_workspace_graph_discover(services->workspace);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_file_index_rebuild(services->file_index);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        UmiWorkspaceGraphSnapshot workspace_snapshot;
+        UmiWorkspaceProjectSnapshot project_snapshot;
+        const char *project_id = "workspace";
+        /* Apply this branch only when its contract condition is satisfied. */
+        if (umi_workspace_graph_snapshot(services->workspace,
+                                         &workspace_snapshot) ==
+                UMI_STATUS_OK) {
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (workspace_snapshot.project_count > 0U &&
+                umi_workspace_graph_project_at(services->workspace, 0U,
+                                                &project_snapshot) ==
+                    UMI_STATUS_OK) {
+                project_id = project_snapshot.stable_id;
+            }
+            status = umi_studio_test_service_set_workspace(
+                umi_studio_services_tests(services), root, project_id,
+                workspace_snapshot.revision);
+        }
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_build_service_set_profile(
+            umi_studio_services_build(services), &projectProfile);
+    }
+    if (status == UMI_STATUS_OK) {
+        services->build_profile_revision = profileRevision;
+        services->build_profile_revision_known = 1;
+        UmiStatus recent_status;
+        /* Recent-work persistence is helpful but not required to open a
+         * workspace. A history-file error must not turn a successful open into
+         * a failed developer operation. */
+        recent_status = studio_remember_workspace(services, root);
+        if (recent_status == UMI_STATUS_OK) {
+            services->recent_items_dirty = 1;
+            if (services->recent_items_persistence_enabled != 0 &&
+                umi_platform_recent_items_registry_save(
+                    services->recent_items,
+                    STUDIO_RECENT_ITEMS_PATH) == UMI_STATUS_OK) {
+                services->recent_items_dirty = 0;
+            }
+        }
+    }
+    return status;
+}
 
 /*
  * Provide the studio services close workspace operation used by this module and its client
  * applications.
  */
+/* Workspace replacement must preserve the identity of an active terminal command. The previous transition remains for engineering review. The previous implementation is retained for engineering review. */
+#if 0
 UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
 {
     UmiStatus status;
@@ -1675,6 +1828,36 @@ UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
      */
     if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    (void)umi_watcher_stop(services->watcher);
+    status = umi_workspace_graph_close(services->workspace);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_file_index_clear(services->file_index);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_test_service_set_workspace(
+            umi_studio_services_tests(services), "", "", 0U);
+    }
+    if (status == UMI_STATUS_OK) {
+        services->build_profile_revision = 0U;
+        services->build_profile_revision_known = 0;
+    }
+    return status;
+}
+#endif
+UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    /* Keep a running terminal attached to its reviewed workspace. Stop and Poll
+     * complete its captured command before another project can replace it. */
+    if (UmiTerminalControllerJobPending(services->terminal_controller)) return UMI_STATUS_BUSY;
     (void)umi_watcher_stop(services->watcher);
     status = umi_workspace_graph_close(services->workspace);
     /* Preserve the original failure result so the caller can respond to the correct cause. */

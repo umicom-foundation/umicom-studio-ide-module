@@ -38,6 +38,12 @@ static void RuntimeTestArchiveComparisonPage(GtkButton *button, gpointer data)
         (guint64)summary->baseline.id, (guint64)summary->candidate.id, summary->baseline.origin.source_root,
         summary->candidate.origin.source_root, summary->same_source_root ? "yes" : "no",
         summary->same_recorded_revision ? "yes" : "no");
+    g_string_append_printf(text, "Recorded context: %s\nOrdered selection: %s\n",
+        UmiJobIdentityComparisonText(summary->identity_comparison),
+        !summary->selection_evidence_recorded ? "Not recorded for both runs" :
+            summary->same_recorded_selection ? "Matches" : "Changed");
+    g_string_append(text,
+        "A selection match does not establish matching source files or test binaries.\n");
     for (unsigned kind = 0; kind < (unsigned)UMI_TEST_ARCHIVE_CHANGE_COUNT; ++kind)
         g_string_append_printf(text, "%s: %zu\n", UmiTestArchiveChangeText((UmiTestArchiveChange)kind),
                                summary->counts[kind]);
@@ -84,6 +90,8 @@ static void RuntimeTestArchiveComparisonPage(GtkButton *button, gpointer data)
         runtime_show_notification(runtime, umi_status_text(status));
     g_string_free(text, TRUE);
 }
+/* A newer comparison owns the history display and retires the earlier removal notice. The previous action is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 static void RuntimeTestArchiveCompare(GtkButton *button, gpointer data)
 {
     (void)button;
@@ -101,6 +109,36 @@ static void RuntimeTestArchiveCompare(GtkButton *button, gpointer data)
     if (status == UMI_STATUS_OK)
     {
         runtime->test_archive_comparison_pending = true;
+        /* A completed but not yet displayed browse must not overwrite this comparison. */
+        runtime->test_archive_read_pending = false;
+        gtk_editable_set_text(GTK_EDITABLE(runtime->test_archive_comparison_page), "1");
+    }
+    runtime_show_notification(
+        runtime, status == UMI_STATUS_OK
+                     ? "Comparing saved outcomes. Studio remains available while the archive is read."
+                     : umi_status_text(status));
+}
+#endif
+static void RuntimeTestArchiveCompare(GtkButton *button, gpointer data)
+{
+    (void)button;
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    uint64_t baseline = 0, candidate = 0;
+    if (!RuntimeTestArchiveNumber(runtime->test_archive_baseline, &baseline) ||
+        !RuntimeTestArchiveNumber(runtime->test_archive_id, &candidate))
+    {
+        runtime_show_notification(runtime, "Enter a baseline run ID and a candidate saved run ID.");
+        return;
+    }
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStatus status = UmiStudioTestArchiveCompare(
+        umi_studio_services_tests(services), umi_studio_services_task_queue(services), baseline, candidate);
+    if (status == UMI_STATUS_OK)
+    {
+        runtime->test_archive_remove_pending = false;
+        runtime->test_archive_comparison_pending = true;
+        /* A completed but not yet displayed browse must not overwrite this comparison. */
+        runtime->test_archive_read_pending = false;
         gtk_editable_set_text(GTK_EDITABLE(runtime->test_archive_comparison_page), "1");
     }
     runtime_show_notification(

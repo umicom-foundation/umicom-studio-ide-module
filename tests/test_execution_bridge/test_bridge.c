@@ -188,6 +188,24 @@ int main(int argc,char **argv)
     if(strcmp(mode,"publication-budget")==0)plan->repeat_count=17U;
     if(strcmp(mode,"partial-stop")==0){Add(&platform,plan,"notes.wait");Add(&platform,plan,"notes.after");}
     if(strcmp(mode,"stop-failure")==0){plan->stop_on_failure=1;Add(&platform,plan,"notes.after");}
+    if (strncmp(mode, "identity-", 9) == 0)
+    {
+        memset(context.identity.subject, 'a', 64);
+        memset(context.identity.configuration, 'b', 64);
+        memset(context.identity.inputs, 'c', 64);
+        if (strcmp(mode, "identity-invalid") == 0)
+        {
+            context.identity.configuration[0] = 'Q';
+            CHECK(Start(&service, queue, &context, plan) == UMI_STATUS_PERMISSION_DENIED);
+            CHECK(service.executionJob == NULL);
+            goto done;
+        }
+    }
+    if(strcmp(mode,"tool-invalid")==0) {
+        strcpy(context.tool_directory,"relative tools");
+        CHECK(Start(&service,queue,&context,plan)==UMI_STATUS_PERMISSION_DENIED);
+        CHECK(service.executionJob==NULL); goto done;
+    }
     char message[512]={0};UmiTestPlatformResultSnapshot result={0};
     /* Old history remains owned by the shared registries across new runs. */
     copy_text(result.id,sizeof(result.id),"previous");result.sequence=40U;result.outcome=UMI_TEST_PLATFORM_OUTCOME_PASSED;
@@ -269,6 +287,23 @@ int main(int argc,char **argv)
         CHECK(service.executionPublished==16U&&service.executionPending);
     }
     int stale=0;
+    if(strcmp(mode,"tool-changed")==0) {
+#ifdef _WIN32
+        strcpy(context.tool_directory,"C:\\Different Tools");
+#else
+        strcpy(context.tool_directory,"/opt/different tools");
+#endif
+        stale=1;
+    }
+
+    /* Even a terminal result remains fenced until owner-thread publication. */
+    if (strcmp(mode, "identity-settings") == 0)
+    { context.identity.configuration[0] = 'd'; stale = 1; }
+    if (strcmp(mode, "identity-inputs") == 0)
+    { context.identity.inputs[0] = 'd'; stale = 1; }
+    if (strcmp(mode, "identity-loss") == 0)
+    { memset(&context.identity, 0, sizeof(context.identity)); stale = 1; }
+
     if(strcmp(mode,"generation")==0){++context.workspace_generation;stale=1;}
     if(strcmp(mode,"source")==0){strcpy(context.source_root,"Other project");stale=1;}
     if(strcmp(mode,"configuration")==0){strcpy(context.configuration,"Release");stale=1;}

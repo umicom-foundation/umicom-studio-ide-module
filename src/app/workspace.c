@@ -16,6 +16,7 @@
 #include "umicom/studio/workspace.h"
 
 #include "umicom/studio/watcher.h"
+#include "umicom/terminal_ui/execution.h"
 
 /*
  * Provide the studio workspace open operation used by this module and its client
@@ -83,6 +84,8 @@ UmiStatus umi_studio_workspace_refresh(UmiStudioServices *services)
  * Provide the studio workspace set trusted operation used by this module and its client
  * applications.
  */
+/* Revoking workspace trust now stops its pending terminal command. The earlier trust-only update is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 UmiStatus umi_studio_workspace_set_trusted(UmiStudioServices *services,
                                            int trusted)
 {
@@ -91,6 +94,23 @@ UmiStatus umi_studio_workspace_set_trusted(UmiStudioServices *services,
      * used.
      */
     if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_workspace_graph_set_trusted(
+        umi_studio_services_workspace(services), trusted);
+}
+#endif
+UmiStatus umi_studio_workspace_set_trusted(UmiStudioServices *services,
+                                           int trusted)
+{
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Revocation requests cancellation immediately. It does not claim to undo
+     * effects already performed by the command; final status arrives through Poll. */
+    if (!trusted && UmiTerminalControllerJobPending(
+            umi_studio_services_terminal_controller(services)))
+        (void)UmiTerminalControllerStopJob(umi_studio_services_terminal_controller(services));
     return umi_workspace_graph_set_trusted(
         umi_studio_services_workspace(services), trusted);
 }

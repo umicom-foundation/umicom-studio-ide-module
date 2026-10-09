@@ -11,6 +11,7 @@
 #include "umicom/studio/build.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
+#include "umicom/ui/gtk4/automation.h"
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,6 +26,9 @@
         }                                                                                                    \
     } while (0)
 /* Keep the host test independent of translated labels and GTK child order. */
+/* The shared finder also visits collapsed history expanders and refuses
+ * duplicate automation IDs. Keep the original visual-tree search for review. */
+#if 0
 static GtkWidget *Find(GtkWidget *root, const char *tag)
 {
     if (root == NULL)
@@ -40,6 +44,11 @@ static GtkWidget *Find(GtkWidget *root, const char *tag)
             return found;
     }
     return NULL;
+}
+#endif
+static GtkWidget *Find(GtkWidget *root, const char *tag)
+{
+    return umi_gtk4_automation_find_tagged_widget(root, tag);
 }
 /* Isolate settings and evidence before starting the native host. This fixture
  * never submits a build, launches a compiler or opens a user's project. */
@@ -134,6 +143,50 @@ int main(int argc, char **argv)
             g_signal_emit_by_name(select, "clicked");
             CHECK(UmiStudioBuildReadJobHistory(build, history) == UMI_STATUS_OK &&
                   strcmp(history->path, databasePath) == 0);
+        }
+        else if (strcmp(argv[1], "identity") == 0)
+        {
+            UmiDataServer *server = NULL;
+            UmiJobHistory *records = NULL;
+            UmiJobHistoryEntry saved = {0};
+            UmiJobIdentity identity = {0};
+            UmiStatus recordStatus = UmiBuildProfileJobIdentity(
+                umi_studio_build_service_profile(build), &identity);
+            if (recordStatus == UMI_STATUS_OK)
+                recordStatus = umi_data_server_create_sqlite(databasePath, &server);
+            if (recordStatus == UMI_STATUS_OK)
+                recordStatus = UmiJobHistoryCreate(server, "studio.build", &records);
+            if (recordStatus == UMI_STATUS_OK)
+                recordStatus = UmiJobHistoryBegin(records, "build.workflow", "Legacy", 1U, &saved);
+            if (recordStatus == UMI_STATUS_OK)
+                recordStatus = UmiJobHistoryBeginIdentified(records, "build.workflow",
+                    "Selected settings", 1U, &identity, &saved);
+            /* Deliberately distinct digests make the frontend show both kinds
+             * of mismatch without executing project code or editing settings. */
+            identity.configuration[0] = identity.configuration[0] == 'a' ? 'b' : 'a';
+            if (recordStatus == UMI_STATUS_OK)
+                recordStatus = UmiJobHistoryBeginIdentified(records, "build.workflow",
+                    "Other settings", 1U, &identity, &saved);
+            identity.subject[0] = identity.subject[0] == 'a' ? 'b' : 'a';
+            if (recordStatus == UMI_STATUS_OK)
+                recordStatus = UmiJobHistoryBeginIdentified(records, "build.workflow",
+                    "Other project", 1U, &identity, &saved);
+            UmiJobHistoryDestroy(records);
+            umi_data_server_destroy(server);
+            CHECK(recordStatus == UMI_STATUS_OK);
+            g_signal_emit_by_name(refreshJobs, "clicked");
+            GtkTextBuffer *buffer = gtk_text_view_get_buffer(
+                GTK_TEXT_VIEW(Find(root, "studio.build.history.entries")));
+            GtkTextIter begin, end;
+            gtk_text_buffer_get_bounds(buffer, &begin, &end);
+            char *contents = gtk_text_buffer_get_text(buffer, &begin, &end, FALSE);
+            bool correct = strstr(contents, "Identity not recorded") != NULL &&
+                strstr(contents, "Same settings; input contents not recorded") != NULL &&
+                strstr(contents, "Different settings") != NULL &&
+                strstr(contents, "Different project or resource") != NULL &&
+                strstr(contents, "outcome unknown") != NULL;
+            g_free(contents);
+            CHECK(correct && !UmiStudioBuildBusy(build));
         }
         else if (strcmp(argv[1], "detach") == 0)
         {

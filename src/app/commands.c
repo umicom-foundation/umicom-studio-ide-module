@@ -41,6 +41,8 @@
 #include "umicom/studio/security.h"
 #include "umicom/studio/source_control.h"
 #include "umicom/studio/terminal.h"
+#include "umicom/terminal_ui/execution.h"
+#include "umicom/terminal/location.h"
 #include "umicom/studio/tests.h"
 #include "umicom/studio/trading.h"
 #include "umicom/studio/replay.h"
@@ -693,6 +695,36 @@ static UmiStatus build_run_handler(void *user_data,
                                out_message,
                                message_capacity);
 }
+
+/* A launch-only command deliberately bypasses document saving and build-phase
+ * expansion. This lets a user compare an existing binary with an unsaved draft
+ * while the shared worker still owns stop, output and result collection. */
+static UmiStatus build_run_current_handler(void *user_data, const char *argument,
+    char *out_message, size_t message_capacity)
+{
+    (void)argument;
+    UmiStudioServices *services = user_data;
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)))
+        return UMI_STATUS_BUSY;
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.graph.open) return UMI_STATUS_INVALID_STATE;
+    status = UmiStudioBuildRunCurrent(umi_studio_services_build(services),
+        workspace.graph.trusted ? 1 : 0);
+    if (out_message != NULL && message_capacity > 0U) {
+        if (status == UMI_STATUS_OK)
+            (void)snprintf(out_message, message_capacity,
+                "Run current executable queued. Sources were not saved or rebuilt; see Output.");
+        else
+            (void)snprintf(out_message, message_capacity,
+                "Run current executable: %s. Select an existing program path and working folder in Project Build Settings; workspace trust is required.",
+                umi_status_text(status));
+    }
+    return status;
+}
+
 
 /* Use the existing bounded build worker for the package sequence. */
 static UmiStatus build_package_handler(void *user_data, const char *argument,
@@ -1570,6 +1602,8 @@ DEFINE_TEST_CLEAR_HANDLER(tests_clear_coverage_handler,
  * Provide the terminal execute handler operation used by this module and its client
  * applications.
  */
+/* Studio keeps command policy in the registry while the Framework handles background execution. The synchronous handler is preserved for review. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus terminal_execute_handler(void *user_data,
                                           const char *argument,
                                           char *out_message,
@@ -1602,6 +1636,50 @@ static UmiStatus terminal_execute_handler(void *user_data,
                        exit_code,
                        umi_status_text(status));
     }
+    return status;
+}
+#endif
+static UmiStatus terminal_execute_handler(void *user_data,
+                                          const char *argument,
+                                          char *out_message,
+                                          size_t message_capacity)
+{
+    UmiStudioServices *services = (UmiStudioServices *)user_data;
+    int exit_code = 0;
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (argument == NULL || argument[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    UmiTerminalController *controller = umi_studio_services_terminal_controller(services);
+    int background = UmiTerminalControllerBackgroundArmed(controller);
+    status = umi_terminal_controller_execute(
+        umi_studio_services_terminal_controller(services),
+        argument,
+        /* Background commands have an explicit Stop action. CLI calls retain
+         * their previous bounded wait instead of silently becoming unbounded. */
+        background ? 0U : 30000U,
+        NULL,
+        &exit_code);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_message != NULL && message_capacity > 0U) {
+        (void)snprintf(out_message,
+                       message_capacity,
+                       "Terminal command exited with %d: %s",
+                       exit_code,
+                       umi_status_text(status));
+    }
+    if (background && out_message != NULL && message_capacity > 0U)
+        (void)snprintf(out_message, message_capacity, "%s",
+            status == UMI_STATUS_OK ? "Terminal command started. Stop is available in Terminal."
+            : status == UMI_STATUS_BUSY ? "Another terminal command is still running; stop it or wait."
+            : umi_status_text(status));
     return status;
 }
 
@@ -1655,6 +1733,41 @@ static UmiStatus output_clear_handler(void *user_data,
  * Provide the terminal clear handler operation used by this module and its client
  * applications.
  */
+
+/* Stopping an owned command needs no new process-launch permission. Keep this
+ * available after trust is revoked so the user can always end their own job. */
+
+/* Directory selection is shared with other Framework terminal frontends. It
+ * neither starts a shell nor grants workspace trust. */
+static UmiStatus TerminalDirectoryHandler(void *context, const char *argument,
+    char *out_message, size_t capacity)
+{
+    UmiTerminalController *controller = umi_studio_services_terminal_controller(context);
+    UmiStatus status = UmiTerminalSessionChooseDirectory(
+        umi_terminal_controller_active_session(controller), argument);
+    if (out_message != NULL && capacity != 0U)
+        (void)snprintf(out_message, capacity, "%s", status == UMI_STATUS_OK
+            ? "Terminal folder changed for the selected session."
+            : status == UMI_STATUS_BUSY ? "Stop the selected terminal command before changing its folder."
+            : status == UMI_STATUS_NOT_FOUND ? "Choose an existing folder."
+            : "Use an absolute local folder path. The previous folder was retained.");
+    return status;
+}
+
+static UmiStatus TerminalStopHandler(void *context, const char *argument,
+    char *out_message, size_t capacity)
+{
+    (void)argument;
+    UmiStatus status = UmiTerminalControllerStopJob(
+        umi_studio_services_terminal_controller(context));
+    if (out_message != NULL && capacity != 0U)
+        (void)snprintf(out_message, capacity, "%s", status == UMI_STATUS_OK
+            ? "Stop requested for the running terminal command."
+            : status == UMI_STATUS_NOT_FOUND ? "No terminal command is running."
+            : umi_status_text(status));
+    return status;
+}
+
 static UmiStatus terminal_clear_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -4282,6 +4395,12 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
+        UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT, "Run current executable", "Run",
+        "Launch the selected existing program without saving or rebuilding sources.",
+        "process.execute", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
+        build_run_current_handler);
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
         UMI_STUDIO_COMMAND_BUILD_PACKAGE, "Package project", "Build",
         "Run the reviewed project package sequence through Framework.",
         "studio.delivery.execute",
@@ -4526,6 +4645,20 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                   UMI_COMMAND_AUDITED,
                               terminal_execute_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_TERMINAL_DIRECTORY,
+                              "Set Terminal Folder", "Terminal",
+                              "Use an existing absolute directory in the selected terminal session.",
+                              "process.read", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
+                              TerminalDirectoryHandler);
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_TERMINAL_STOP,
+                              "Stop Terminal Command", "Terminal",
+                              "Cancel the running terminal command and its ordinary child processes.",
+                              "process.read", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
+                              TerminalStopHandler);
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TERMINAL_CLEAR,

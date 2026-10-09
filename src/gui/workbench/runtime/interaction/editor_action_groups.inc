@@ -21,6 +21,7 @@ static const RuntimeEditorActionGroup runtime_editor_action_groups[] = {
     {"studio.editor.rename", "rename symbol workspace", 0},
     {"studio.editor.actions", "code actions quick fix refactor", 0},
     {"studio.editor.diagnostics", "problems diagnostics errors warnings", 0},
+    {"studio.editor.live-diagnostics", "live diagnostics continuous language server source errors warnings", 0},
     {"studio.editor.definition", "source definition", 0},
     {"studio.editor.references", "find references usages", 0},
     {"studio.editor.type-definition", "type definition", 0},

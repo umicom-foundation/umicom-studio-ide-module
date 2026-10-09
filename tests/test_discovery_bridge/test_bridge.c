@@ -32,6 +32,7 @@ struct UmiStudioTestService {
     UmiTaskQueue *discoveryQueue;
     UmiTestPlatformCtestImportOptions discoveryOptions;
     char discoverySourceRoot[1024];
+    char discoveryToolDirectory[UMI_CTEST_JOB_PATH_CAPACITY];
     uint64_t discoveryGeneration;
     int discoveryStopRequested;
 };
@@ -98,6 +99,13 @@ int main(int argc,char **argv)
     CHECK(initial.discovered_count==1U && ContainsName(platform.items,"notes.previous"));
     copy_text(service.build_directory,sizeof(service.build_directory),"previous build");
     service.last_summary.passed=77U;
+    if(strcmp(scenario,"tool-copy")==0) {
+        char chosen[UMI_CTEST_JOB_PATH_CAPACITY];
+        copy_text(chosen,sizeof chosen,argv[2]);
+        CHECK(UmiStudioTestDiscoveryArmWithToolDirectory(&service,queue,42U,chosen)==UMI_STATUS_OK);
+        strcpy(chosen,"replaced after arm");
+        CHECK(strcmp(service.discoveryToolDirectory,argv[2])==0);
+    } else
     CHECK(UmiStudioTestDiscoveryArm(&service,queue,42U)==UMI_STATUS_OK);
     if(strcmp(scenario,"double-arm")==0) {
         CHECK(UmiStudioTestDiscoveryArm(&service,queue,43U)==UMI_STATUS_BUSY);
@@ -125,7 +133,17 @@ int main(int argc,char **argv)
             int published=0;char message[512];UmiStatus status;
             uint64_t start=TestNowMs();
             do {
+/* The bridge fixture now supplies current tool selection to verify copied inputs and stale publication. The previous implementation is retained for engineering review. */
+#if 0
                 status=UmiStudioTestDiscoveryPoll(&service,
+                    strcmp(scenario,"source")==0 ? "another source" : "notes source",
+                    strcmp(scenario,"build")==0 ? "another build" : argv[2],
+                    strcmp(scenario,"configuration")==0 ? "Release" : "Debug",
+                    strcmp(scenario,"generation")==0 ? 43U : 42U,
+                    strcmp(scenario,"trust")!=0,&published,message,sizeof(message));
+#endif
+                status=UmiStudioTestDiscoveryPollWithToolDirectory(&service,
+                    strcmp(scenario,"tool-copy")==0 || strcmp(scenario,"tool-changed")==0 ? argv[2] : NULL,
                     strcmp(scenario,"source")==0 ? "another source" : "notes source",
                     strcmp(scenario,"build")==0 ? "another build" : argv[2],
                     strcmp(scenario,"configuration")==0 ? "Release" : "Debug",
@@ -134,7 +152,7 @@ int main(int argc,char **argv)
                 if(status==UMI_STATUS_BUSY) umi_thread_sleep_ms(1U);
                 CHECK(TestNowMs()-start<10000U);
             } while(status==UMI_STATUS_BUSY);
-            int success=strcmp(scenario,"success")==0 || strcmp(scenario,"double-arm")==0 ||
+            int success=strcmp(scenario,"tool-copy")==0 || strcmp(scenario,"success")==0 || strcmp(scenario,"double-arm")==0 ||
                 strcmp(scenario,"view-capacity")==0;
             CHECK(status==(success ? UMI_STATUS_OK : UMI_STATUS_CANCELLED));
             CHECK(published==success);
@@ -160,4 +178,15 @@ int main(int argc,char **argv)
     umi_test_platform_suite_registry_destroy(platform.suites);
     umi_test_platform_discovery_registry_destroy(platform.discoveries);
     printf("PASS studio.discovery_bridge.%s\n",scenario);return 0;
+}
+
+/* This fixture substitutes process transport deliberately. Tool-aware launches
+ * must reach the same injected stream instead of starting an external program. */
+UmiStatus UmiProcessExecuteWithLifetime(const UmiProcessRequest *request,
+    UmiProcessLifetime lifetime,UmiProcessResultObserver observer,
+    UmiProcessOutputObserver rawObserver,void *context,UmiProcessResult *result)
+{
+    if(lifetime!=UMI_PROCESS_LIFETIME_CHILD || observer!=NULL || rawObserver==NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiProcessExecuteStreamed(request,rawObserver,context,result);
 }

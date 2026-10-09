@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Studio repository review</title></head><body>
+<!-- Umicom Studio IDE. Created by Sammy Hegab, Umicom Foundation. Licence: MIT. -->
+<h1>Review a project and its submodules</h1>
+<p>Source Control includes a read-only repository review. A submodule is a child Git repository: its parent stores a commit identifier, while the child owns its files.</p>
+<ol><li>Open the project's Source Control surface.</li><li>Expand <strong>Repository and submodule review</strong> and check the displayed path.</li><li>Select <strong>Inspect repository</strong>. Use the page buttons to read each group of changed paths.</li><li>If a child has modified or untracked files, review and commit those inside the child before recording its new revision in the parent.</li><li>Inspect again after repository changes. Select <strong>Stop</strong> to cancel a pending read.</li></ol>
+<p>A failed refresh retains the older observation and reports the failure. The review does not stage files, commit changes, fetch or push. It cannot prove that commits have been published or that builds and tests passed.</p>
+<p>The panel currently supports Windows and non-Android Linux GTK builds. It displays up to 50 paths per page within Framework's bounded 4,096-entry observation.</p>
+</body></html>

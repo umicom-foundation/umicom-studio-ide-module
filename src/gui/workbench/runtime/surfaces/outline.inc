@@ -69,7 +69,15 @@ static GtkWidget *runtime_build_surface_outline(UmiStudioGtkRuntimeChrome *runti
     if (services != NULL && umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK &&
         workspace.graph.open) folder = workspace.graph.root;
     GtkWidget *connection = NULL;
+/* Use the project tool folder as an editable connection-check draft. Framework copies it into the panel; Studio does not keep a borrowed settings pointer or start a server on opening Outline. The previous implementation is retained for engineering review. */
+#if 0
     if (UmiGtk4LanguageConnectionPanelCreate(folder, &connection) == UMI_STATUS_OK)
+        gtk_box_append(GTK_BOX(panel), connection);
+#endif
+    const UmiBuildProfile *buildProfile = services != NULL
+        ? umi_studio_build_service_profile(umi_studio_services_build(services)) : NULL;
+    if (UmiGtk4LanguageConnectionPanelCreateWithToolDirectory(folder,
+        buildProfile != NULL ? buildProfile->tool_directory : NULL, &connection) == UMI_STATUS_OK)
         gtk_box_append(GTK_BOX(panel), connection);
 
     return runtime_scroll(panel);

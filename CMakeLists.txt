@@ -3174,3 +3174,86 @@ install(FILES docs/RESTARTING_DEBUG_SESSIONS.html DESTINATION ${CMAKE_INSTALL_DA
 
 include(cmake/UmicomStudioJobHistory.cmake)
 include(cmake/UmicomStudioTestArchive.cmake)
+
+include(cmake/UmicomStudioLearningLocations.cmake)
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioTerminalJobs.cmake")
+
+# Launch an existing built program while preserving the editor's unsaved draft.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-run-current")
+    add_test(NAME studio.project_workflow.run_current COMMAND umicom-studio-project-workflow-test run-current)
+    set_tests_properties(studio.project_workflow.run_current PROPERTIES TIMEOUT 180
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-run-current"
+        LABELS "studio;project;launch;native;acceptance")
+endif()
+
+if(BUILD_TESTING)
+    add_executable(umicom-studio-build-configurations-test tests/test_build_configurations.c)
+    target_link_libraries(umicom-studio-build-configurations-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-build-configurations-test)
+    umicom_apply_sanitizers(umicom-studio-build-configurations-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-build-configurations-test)
+    endif()
+    foreach(case review rebind workspace trust)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/configurations-${case}")
+        add_test(NAME studio.build_configurations.${case} COMMAND umicom-studio-build-configurations-test "${case}")
+        set_tests_properties(studio.build_configurations.${case} PROPERTIES TIMEOUT 45
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/configurations-${case}"
+            LABELS "studio;build;configurations;persistence")
+    endforeach()
+endif()
+
+# This acceptance case asks real CMake to export the project's compiler commands.
+if(TARGET umicom-studio-project-workflow-test)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-compiler-database")
+    add_test(NAME studio.project_workflow.compiler_database
+        COMMAND umicom-studio-project-workflow-test compiler-database)
+    set_tests_properties(studio.project_workflow.compiler_database PROPERTIES TIMEOUT 180
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-workflow-compiler-database"
+        LABELS "studio;project;compiler-database;native;acceptance")
+endif()
+
+include(cmake/UmicomStudioProgramConsole.cmake)
+
+# Configuration management shares the same workspace and storage authority as build settings.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-configuration-lifecycle-test tests/test_configuration_lifecycle.c)
+    target_link_libraries(umicom-studio-configuration-lifecycle-test PRIVATE Umicom::StudioCore)
+    set_target_properties(umicom-studio-configuration-lifecycle-test PROPERTIES C_STANDARD 23 C_STANDARD_REQUIRED YES C_EXTENSIONS NO)
+    umicom_apply_warnings(umicom-studio-configuration-lifecycle-test)
+    umicom_apply_sanitizers(umicom-studio-configuration-lifecycle-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-configuration-lifecycle-test)
+    endif()
+    foreach(case rename remove revision workspace trust rebind detach)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/configuration-lifecycle-${case}")
+        add_test(NAME studio.build_configurations.lifecycle.${case}
+            COMMAND umicom-studio-configuration-lifecycle-test "${case}")
+        set_tests_properties(studio.build_configurations.lifecycle.${case} PROPERTIES TIMEOUT 45
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/configuration-lifecycle-${case}"
+            LABELS "studio;build;configurations;lifecycle")
+    endforeach()
+endif()
+
+# Validate native diagnostic updates without sharing editor or widget ownership with a worker.
+include(cmake/UmicomStudioLiveDiagnostics.cmake)
+
+include(cmake/UmicomStudioNativeAttach.cmake)
+
+include(cmake/UmicomStudioDebugExceptionFilters.cmake)
+
+include(cmake/UmicomStudioFunctionBreakpoints.cmake)
+
+# Module pages share the current native debugger and preserve the selected workspace.
+include(cmake/UmicomStudioDebugModules.cmake)
+
+# Adapter source text is displayed through the shared read-only inspection panel.
+include(cmake/UmicomStudioDebugSources.cmake)
+
+# Show descriptive exception details through the current native debugger owner.
+include(cmake/UmicomStudioExceptionInformation.cmake)
+
+# Process selection fills the existing attach form through Framework discovery.
+include(cmake/UmicomStudioProcessPicker.cmake)

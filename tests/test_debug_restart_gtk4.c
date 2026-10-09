@@ -6,6 +6,7 @@
  * LICENCE: MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/gtk4/automation.h"
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/debugger.h"
@@ -25,6 +26,8 @@
         }                                                                                                    \
     } while (0)
 /* Find semantic controls without depending on child positions or labels. */
+/* Rendered-child traversal missed controls owned by collapsed inspectors. The Framework logical lookup preserves those controls and rejects ambiguous identities. The original fixture traversal is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 static GtkWidget *Find(GtkWidget *root, const char *tag)
 {
     if (root == NULL)
@@ -40,6 +43,12 @@ static GtkWidget *Find(GtkWidget *root, const char *tag)
             return found;
     }
     return NULL;
+}
+#endif
+static GtkWidget *Find(GtkWidget *root, const char *tag)
+{
+    /* Inspect logical children without expanding or activating a panel. */
+    return umi_gtk4_automation_find_tagged_widget(root, tag);
 }
 
 int main(int argc, char **argv)

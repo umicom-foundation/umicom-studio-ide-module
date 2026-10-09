@@ -68,9 +68,44 @@ static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
     return 1;
 }
 #endif
+/* Window closure now lets the ordinary refresh loop retire a terminal command before service destruction. The previous close guard is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    UmiStudioTestService *tests = umi_studio_services_tests(
+        umi_studio_ui_services(runtime->owner->ui));
+    if (UmiStudioTestArchivePending(tests)) {
+        (void)UmiStudioTestArchiveCancel(tests);
+        (void)UmiStudioTestArchiveComparisonCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping test archive work. Close again when it finishes; saved evidence is retained.");
+        return 1;
+    }
+    if (UmiStudioTestRunPending(tests)) {
+        (void)UmiStudioTestRunCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping the test run. Close again after it finishes; your documents remain open.");
+        return 1;
+    }
+    if (!UmiStudioTestDiscoveryPending(tests)) return 0;
+    (void)umi_studio_test_service_stop(tests);
+    runtime_show_notification(runtime,
+        "Stopping test discovery. Close again after it finishes; your documents remain open.");
+    return 1;
+}
+#endif
+static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    UmiTerminalController *terminal = umi_studio_services_terminal_controller(
+        umi_studio_ui_services(runtime->owner->ui));
+    if (UmiTerminalControllerJobPending(terminal)) {
+        (void)UmiTerminalControllerStopJob(terminal);
+        runtime_show_notification(runtime,
+            "Stopping the terminal command. Close again after it finishes; your documents remain open.");
+        return 1;
+    }
     UmiStudioTestService *tests = umi_studio_services_tests(
         umi_studio_ui_services(runtime->owner->ui));
     if (UmiStudioTestArchivePending(tests)) {

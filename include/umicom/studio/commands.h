@@ -64,6 +64,7 @@ extern "C" {
 #define UMI_STUDIO_COMMAND_BUILD_TEST "studio.build.test"
 #define UMI_STUDIO_COMMAND_BUILD_CLEAN "studio.build.clean"
 #define UMI_STUDIO_COMMAND_BUILD_RUN "studio.build.run"
+#define UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT "studio.build.run-current"
 #define UMI_STUDIO_COMMAND_BUILD_INSTALL "studio.build.install"
 #define UMI_STUDIO_COMMAND_BUILD_PACKAGE "studio.build.package"
 #define UMI_STUDIO_COMMAND_BUILD_REBUILD "studio.build.rebuild"
@@ -95,6 +96,10 @@ extern "C" {
 #define UMI_STUDIO_COMMAND_TESTS_CLEAR_OUTPUT "studio.tests.clear-output"
 #define UMI_STUDIO_COMMAND_TESTS_CLEAR_COVERAGE "studio.tests.clear-coverage"
 #define UMI_STUDIO_COMMAND_TERMINAL_EXECUTE "studio.terminal.execute"
+/* Stop only the command owned by the current terminal controller. */
+#define UMI_STUDIO_COMMAND_TERMINAL_STOP "studio.terminal.stop"
+/* Change an explicit session folder without launching a command. */
+#define UMI_STUDIO_COMMAND_TERMINAL_DIRECTORY "studio.terminal.directory"
 #define UMI_STUDIO_COMMAND_TERMINAL_CLEAR "studio.terminal.clear"
 #define UMI_STUDIO_COMMAND_TERMINAL_NEW "studio.terminal.new"
 #define UMI_STUDIO_COMMAND_TERMINAL_CLOSE "studio.terminal.close"
@@ -198,7 +203,16 @@ extern "C" {
 #if 0
 #define UMI_STUDIO_CORE_COMMAND_COUNT 142U
 #endif
+/* Stop Terminal Command adds one canonical action. Preserve the previous
+ * registry total for review of consumers which enforce the exclusive count. */
+#if 0
 #define UMI_STUDIO_CORE_COMMAND_COUNT 143U
+#endif
+/* The additional command launches an already built program; the prior catalogue size is retained for review. The previous implementation is retained for engineering review. */
+#if 0
+#define UMI_STUDIO_CORE_COMMAND_COUNT 145U
+#endif
+#define UMI_STUDIO_CORE_COMMAND_COUNT 146U
 
 /**
  * Add studio commands only after its inputs and available capacity have been checked.

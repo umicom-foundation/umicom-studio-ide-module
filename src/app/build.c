@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/build.h"
+#include "umicom/build/run_current.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -517,6 +518,8 @@ UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
     return status;
 }
 #endif
+/* Share session and job-history ownership between Build and Run and the explicit launch-only action. The earlier submission implementation is retained for engineering review. The previous implementation is retained for engineering review. */
+#if 0
 UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
     UmiBuildPhase phase, int trusted)
 {
@@ -547,6 +550,51 @@ UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
     }
     return status;
 }
+#endif
+static UmiStatus StudioBuildSubmitMode(UmiStudioBuildService *service,
+    UmiBuildPhase phase, int trusted, bool run_current)
+{
+    UmiStatus status;
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (!trusted) return UMI_STATUS_PERMISSION_DENIED;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    if (service->project_session == NULL) {
+        UmiBuildProjectSessionConfig config = {service->clock, NULL, NULL};
+        status = umi_build_project_session_create(&config, &service->project_session);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    if (service->job_history != NULL) {
+        UmiBuildJobHistoryState history;
+        status = UmiBuildProjectSessionReadHistory(service->project_session, &history);
+        if (status != UMI_STATUS_OK) return status;
+        if (!history.enabled) {
+            status = UmiBuildProjectSessionSetHistory(service->project_session, service->job_history);
+            if (status != UMI_STATUS_OK) return status;
+        }
+    }
+    const char *log_path = service->next_log_path[0] != '\0' ? service->next_log_path : NULL;
+    status = run_current
+        ? UmiBuildProjectSessionRunCurrent(service->project_session, &service->profile,
+            trusted != 0, log_path)
+        : UmiBuildProjectSessionSubmitLogged(service->project_session, &service->profile,
+            phase, trusted != 0, log_path);
+    if (status == UMI_STATUS_OK) {
+        service->published_results = 0U;
+        service->next_log_path[0] = '\0';
+    }
+    return status;
+}
+
+UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service, UmiBuildPhase phase, int trusted)
+{
+    return StudioBuildSubmitMode(service, phase, trusted, false);
+}
+
+UmiStatus UmiStudioBuildRunCurrent(UmiStudioBuildService *service, int trusted)
+{
+    return StudioBuildSubmitMode(service, UMI_BUILD_PHASE_RUN, trusted, true);
+}
+
 
 /* Publish only completed results into the same history used by Output/Problems. */
 UmiStatus UmiStudioBuildCollect(UmiStudioBuildService *service, UmiBuildResult *outResult)
@@ -687,4 +735,33 @@ UmiStatus UmiStudioBuildPruneFinishedJobs(UmiStudioBuildService *service,size_t 
     if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
     if (service->job_history==NULL) return UMI_STATUS_INVALID_STATE;
     return UmiJobHistoryPruneFinished(service->job_history,out_removed);
+}
+
+/* Keep the frontend a thin owner of Framework's live diagnostic evidence. */
+UmiStatus UmiStudioBuildReadDiagnostics(UmiStudioBuildService *service,
+    UmiBuildDiagnosticProgress *out)
+{
+    if (service == NULL || out == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->project_session == NULL) {
+        memset(out, 0, sizeof *out);
+        return UMI_STATUS_OK;
+    }
+    return UmiBuildProjectSessionReadDiagnostics(service->project_session, out);
+}
+
+/* Keep phase identity and record retention in Framework. An idle Studio service
+ * exposes an empty page without constructing a build worker merely to render it. */
+UmiStatus UmiStudioBuildReadDiagnosticPage(UmiStudioBuildService *service,
+    uint64_t expected_operation, size_t expected_phase_index, size_t first_index,
+    UmiBuildDiagnosticPage *out)
+{
+    if (service == NULL || out == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->project_session == NULL) {
+        if (expected_operation != 0U) return UMI_STATUS_INVALID_STATE;
+        if (first_index != 0U) return UMI_STATUS_NOT_FOUND;
+        memset(out, 0, sizeof *out);
+        return UMI_STATUS_OK;
+    }
+    return UmiBuildProjectSessionReadDiagnosticPage(service->project_session,
+        expected_operation, expected_phase_index, first_index, out);
 }

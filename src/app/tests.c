@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/tests.h"
+#include "umicom/platform/process_search_path.h"
 #include "umicom/testing/ctest_adapter.h"
 #include "umicom/studio/test_discovery.h"
 #include "umicom/studio/test_execution.h"
@@ -43,6 +44,7 @@ struct UmiStudioTestService {
     UmiTaskQueue *discoveryQueue;
     UmiTestPlatformCtestImportOptions discoveryOptions;
     char discoverySourceRoot[UMI_BUILD_PATH_CAPACITY];
+    char discoveryToolDirectory[UMI_CTEST_JOB_PATH_CAPACITY];
     uint64_t discoveryGeneration;
     int discoveryStopRequested;
 
@@ -66,6 +68,10 @@ struct UmiStudioTestService {
     UmiTestArchive *archive;
     UmiTestArchiveWrite *archiveWriter;
     UmiTestArchiveReview *archiveReview;
+    UmiTestArchiveReader *archiveReader;
+    UmiTestArchiveOpen *archiveOpening;
+    /* Removal borrows the same attachment until its worker becomes terminal. */
+    UmiTestArchiveRemoval *archiveRemoval;
     UmiTestArchiveWriteSnapshot archiveLastWrite;
     uint64_t archiveOwner;
     uint64_t archiveSavedTask;

@@ -15,7 +15,23 @@ if(BUILD_TESTING)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-test-archive-service-test)
     endif()
+    # The earlier family list is retained while identity coverage joins the service suite.
+    #[[
     foreach(case invalid no-run reopen detach wrong-thread retain-output remove
+        compare-read compare-cancel compare-busy compare-missing compare-retry compare-remove)
+    ]]
+    # Keep the previous case registration while worker-owned opening adds replacement coverage.
+    #[[
+    foreach(case reader-catalog reader-attempt reader-missing reader-cancel reader-retry identity invalid no-run reopen detach wrong-thread retain-output remove
+        compare-read compare-cancel compare-busy compare-missing compare-retry compare-remove)
+    ]]
+    # The earlier leading case list is preserved for review.
+    #[[
+    foreach(case open-success open-same open-corrupt open-cancel open-late-stop open-retry open-superseded open-publish-busy
+    ]]
+    foreach(case open-success open-same open-corrupt open-cancel open-late-stop open-retry open-superseded open-publish-busy
+        removal-success removal-cancel removal-missing removal-late-stop removal-retry removal-resave removal-detach
+        reader-catalog reader-attempt reader-missing reader-cancel reader-retry identity invalid no-run reopen detach wrong-thread retain-output remove
         compare-read compare-cancel compare-busy compare-missing compare-retry compare-remove)
         add_test(NAME studio.test_archive.service.${case}
             COMMAND umicom-studio-test-archive-service-test "${case}")
@@ -40,7 +56,24 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-test-archive-native-test)
     endif()
+    # Read cancellation uses the same retained-control lifetime contract.
+    #[[
     foreach(case invalid save-read remove retained-open retained-refresh retained-save retained-stop
+            retained-read retained-remove retained-detach compare compare-page-invalid
+            retained-compare retained-compare.stop retained-compare.page)
+    ]]
+    # Opening Stop follows the same retained native-control lifetime contract.
+    #[[
+    foreach(case retained-read.stop invalid save-read remove retained-open retained-refresh retained-save retained-stop
+            retained-read retained-remove retained-detach compare compare-page-invalid
+            retained-compare retained-compare.stop retained-compare.page)
+    ]]
+    # Removal Stop shares the retained-control and commit-observation coverage.
+    #[[
+    foreach(case retained-open.stop open-cancel
+    ]]
+    foreach(case retained-open.stop open-cancel retained-remove.stop remove-late-stop remove-opening
+        retained-read.stop invalid save-read remove retained-open retained-refresh retained-save retained-stop
             retained-read retained-remove retained-detach compare compare-page-invalid
             retained-compare retained-compare.stop retained-compare.page)
         add_test(NAME studio.test_archive.gtk4.${case}

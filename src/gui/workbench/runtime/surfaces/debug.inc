@@ -78,6 +78,12 @@ static GtkWidget *runtime_build_surface_debug(
     gtk_box_append(GTK_BOX(panel), preferenceRow);
     /* File review and restoration use Framework's shared setup owner. */
     gtk_box_append(GTK_BOX(panel), RuntimeDebugSetupCreate(runtime));
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugAttachCreate(runtime));
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugExceptionFiltersCreate(runtime));
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugFunctionBreakpointsCreate(runtime));
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugModulesCreate(runtime));
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugSourcesCreate(runtime));
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugExceptionInformationCreate(runtime));
 
     runtime->debug_summary_label = runtime_label("", 0.0F);
     runtime->debug_thread_entry = gtk_entry_new();

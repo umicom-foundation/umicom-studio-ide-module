@@ -5,7 +5,11 @@
  * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
  * LICENCE: MIT
  *---------------------------------------------------------------------------*/
+#include "umicom/platform/process_search_path.h"
 
+
+/* Run context checks now include copied build identity so a settings change cannot publish stale test results. The previous implementation is retained for engineering review. */
+#if 0
 static int StudioRunContextValid(const UmiStudioTestRunContext *context)
 {
     return context != NULL && context->trusted &&
@@ -19,6 +23,60 @@ static int StudioRunContextEqual(const UmiStudioTestRunContext *a,
     const UmiStudioTestRunContext *b)
 {
     return StudioRunContextValid(b) && a->workspace_generation == b->workspace_generation &&
+        strcmp(a->source_root, b->source_root) == 0 && strcmp(a->build_root, b->build_root) == 0 &&
+        strcmp(a->configuration[0] ? a->configuration : "Debug",
+               b->configuration[0] ? b->configuration : "Debug") == 0;
+}
+
+
+#endif
+/* The selected tool folder is owned by the run context and validated before a worker can launch CTest. The previous implementation is retained for engineering review. */
+#if 0
+static int StudioRunContextValid(const UmiStudioTestRunContext *context)
+{
+    return context != NULL && context->trusted &&
+        memchr(context->source_root, '\0', sizeof(context->source_root)) != NULL &&
+        memchr(context->build_root, '\0', sizeof(context->build_root)) != NULL &&
+        memchr(context->configuration, '\0', sizeof(context->configuration)) != NULL &&
+        context->source_root[0] != '\0' && context->build_root[0] != '\0' &&
+        UmiJobIdentityValidate(&context->identity) == UMI_STATUS_OK;
+}
+#endif
+static int StudioRunContextValid(const UmiStudioTestRunContext *context)
+{
+    return context != NULL && context->trusted &&
+        memchr(context->tool_directory,'\0',sizeof context->tool_directory) != NULL &&
+        (context->tool_directory[0] == '\0' ||
+         UmiProcessSearchDirectoryValidate(context->tool_directory) == UMI_STATUS_OK) &&
+        memchr(context->source_root, '\0', sizeof(context->source_root)) != NULL &&
+        memchr(context->build_root, '\0', sizeof(context->build_root)) != NULL &&
+        memchr(context->configuration, '\0', sizeof(context->configuration)) != NULL &&
+        context->source_root[0] != '\0' && context->build_root[0] != '\0' &&
+        UmiJobIdentityValidate(&context->identity) == UMI_STATUS_OK;
+}
+
+/* A changed CTest installation invalidates publication even for legacy contexts without a profile digest. The previous implementation is retained for engineering review. */
+#if 0
+static int StudioRunContextEqual(const UmiStudioTestRunContext *a,
+    const UmiStudioTestRunContext *b)
+{
+    return StudioRunContextValid(a) && StudioRunContextValid(b) &&
+        strcmp(a->identity.subject, b->identity.subject) == 0 &&
+        strcmp(a->identity.configuration, b->identity.configuration) == 0 &&
+        strcmp(a->identity.inputs, b->identity.inputs) == 0 && a->workspace_generation == b->workspace_generation &&
+        strcmp(a->source_root, b->source_root) == 0 && strcmp(a->build_root, b->build_root) == 0 &&
+        strcmp(a->configuration[0] ? a->configuration : "Debug",
+               b->configuration[0] ? b->configuration : "Debug") == 0;
+}
+#endif
+static int StudioRunContextEqual(const UmiStudioTestRunContext *a,
+    const UmiStudioTestRunContext *b)
+{
+    return StudioRunContextValid(a) && StudioRunContextValid(b) &&
+        strcmp(a->tool_directory,b->tool_directory) == 0 &&
+        strcmp(a->identity.subject, b->identity.subject) == 0 &&
+        strcmp(a->identity.configuration, b->identity.configuration) == 0 &&
+        strcmp(a->identity.inputs, b->identity.inputs) == 0 && a->workspace_generation == b->workspace_generation &&
         strcmp(a->source_root, b->source_root) == 0 && strcmp(a->build_root, b->build_root) == 0 &&
         strcmp(a->configuration[0] ? a->configuration : "Debug",
                b->configuration[0] ? b->configuration : "Debug") == 0;
@@ -182,6 +240,8 @@ static UmiStatus UmiStudioExecutionStart(UmiStudioTestService *service,
     return UMI_STATUS_OK;
 }
 #endif
+/* Accepted test runs copy the reviewed tool folder into the Framework job. Archived selections keep their test identities, while new runs use the currently reviewed profile. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus UmiStudioExecutionStart(UmiStudioTestService *service,
     const UmiTestPlatformOperationPlan *plan, UmiTestPlatformExecutionSummary *outSummary)
 {
@@ -253,6 +313,111 @@ static UmiStatus UmiStudioExecutionStart(UmiStudioTestService *service,
     UmiCtestJob *job = NULL;
     UmiCtestJobOptions options = {repeats, plan->stop_on_failure};
     if (status == UMI_STATUS_OK) status = UmiCtestJobCreate(requests, count, &options, &job);
+    free(requests);
+    int began = 0;
+    if (status == UMI_STATUS_OK) {
+        status = umi_test_platform_service_begin_operation(service->platform, plan);
+        began = status == UMI_STATUS_OK;
+    }
+    if (status == UMI_STATUS_OK) status = UmiCtestJobSubmit(job, queue);
+    if (status != UMI_STATUS_OK) {
+        if (began) umi_test_platform_service_finish_operation(service->platform);
+        (void)UmiCtestJobDestroy(job);
+        return status;
+    }
+    /* The previous terminal job remains available until another run is accepted. */
+    (void)UmiCtestJobDestroy(service->executionJob);
+    service->executionJob = job;
+    /* Only an accepted job may replace the origin kept with historical evidence. */
+    service->executionRecordedContext = service->executionContext;
+    service->executionPending = 1;
+    service->executionStale = 0;
+    service->executionPublished = 0U;
+    service->executionSequence = sequence;
+    service->executionItemsRevision = umi_test_platform_item_registry_revision(
+        umi_test_platform_service_item(service->platform));
+    service->executionDiscoveryRevision = umi_test_platform_discovery_registry_revision(
+        umi_test_platform_service_discovery(service->platform));
+    service->executionResultsRevision = umi_test_platform_result_registry_revision(results);
+    service->executionOutputRevision = umi_test_platform_output_registry_revision(outputs);
+    memset(&service->last_summary, 0, sizeof(service->last_summary));
+    memset(outSummary, 0, sizeof(*outSummary)); outSummary->planned = total;
+    ++service->explorer.revision;
+    return UMI_STATUS_OK;
+}
+#endif
+static UmiStatus UmiStudioExecutionStart(UmiStudioTestService *service,
+    const UmiTestPlatformOperationPlan *plan, UmiTestPlatformExecutionSummary *outSummary)
+{
+    UmiTaskQueue *queue = service->executionQueue;
+    service->executionQueue = NULL;
+    if (service->executionOwner != umi_thread_current_id()) return UMI_STATUS_INVALID_STATE;
+    if (UmiStudioTestArchivePending(service)) return UMI_STATUS_BUSY;
+    UmiStatus archiveStatus = StudioArchiveReleaseWriter(service);
+    if (archiveStatus != UMI_STATUS_OK) return archiveStatus;
+    if (queue == NULL || service->executionPending || UmiStudioTestDiscoveryPending(service))
+        return UMI_STATUS_BUSY;
+    if (plan->kind < UMI_TEST_PLATFORM_OPERATION_RUN_ALL ||
+        plan->kind > UMI_TEST_PLATFORM_OPERATION_REPEAT) return UMI_STATUS_INVALID_ARGUMENT;
+    if (plan->selection.source_revision != 0U && plan->selection.source_revision !=
+        umi_test_platform_item_registry_revision(umi_test_platform_service_item(service->platform)))
+        return UMI_STATUS_INVALID_STATE;
+    const size_t count = plan->selection.count;
+    const uint32_t repeats = plan->repeat_count ? plan->repeat_count : 1U;
+    if (count == 0U) return UMI_STATUS_INVALID_ARGUMENT;
+    if (count > sizeof(plan->selection.item_ids) / sizeof(plan->selection.item_ids[0]) ||
+        count > UMI_CTEST_JOB_MAX_ATTEMPTS || repeats > UMI_CTEST_JOB_MAX_ATTEMPTS / count)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    const size_t total = count * (size_t)repeats;
+    UmiTestPlatformResultRegistry *results = umi_test_platform_service_result(service->platform);
+    UmiTestPlatformOutputRegistry *outputs = umi_test_platform_service_output(service->platform);
+    if (total > UMI_TEST_PLATFORM_RESULT_CAPACITY - umi_test_platform_result_registry_count(results) ||
+        total > UMI_TEST_PLATFORM_OUTPUT_CAPACITY - umi_test_platform_output_registry_count(outputs))
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    UmiCtestJobRequest *requests = calloc(count, sizeof(*requests));
+    if (requests == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiStatus status = UMI_STATUS_OK;
+    for (size_t i = 0U; i < count && status == UMI_STATUS_OK; ++i) {
+        if (memchr(plan->selection.item_ids[i], '\0', sizeof(plan->selection.item_ids[i])) == NULL) {
+            status = UMI_STATUS_INVALID_ARGUMENT; break;
+        }
+        UmiTestPlatformItemSnapshot item;
+        status = umi_test_platform_item_registry_find(
+            umi_test_platform_service_item(service->platform), plan->selection.item_ids[i], &item);
+        if (status == UMI_STATUS_OK)
+            status = UmiTestPlatformCtestMakeRunRequest(&item,
+                umi_test_platform_service_discovery(service->platform), &requests[i]);
+        if (status == UMI_STATUS_OK &&
+            (strcmp(requests[i].build_directory, service->executionContext.build_root) != 0 ||
+             strcmp(requests[i].configuration, service->executionContext.configuration[0]
+                ? service->executionContext.configuration : "Debug") != 0))
+            status = UMI_STATUS_INVALID_STATE;
+    }
+    uint64_t sequence = umi_test_platform_result_registry_revision(results);
+    for (size_t i = 0U; status == UMI_STATUS_OK && i < umi_test_platform_result_registry_count(results); ++i) {
+        UmiTestPlatformResultSnapshot result;
+        status = umi_test_platform_result_registry_at(results, i, &result);
+        if (status == UMI_STATUS_OK && result.sequence > sequence) sequence = result.sequence;
+    }
+    if (status == UMI_STATUS_OK && (uint64_t)total > UINT64_MAX - sequence)
+        status = UMI_STATUS_CAPACITY_EXCEEDED;
+    for (size_t i = 0U; status == UMI_STATUS_OK && i < total; ++i) {
+        UmiTestPlatformResultSnapshot result;
+        UmiTestPlatformOutputSnapshot output;
+        char identity[128];
+        (void)snprintf(identity, sizeof(identity), "result.job.%llu",
+            (unsigned long long)(sequence + (uint64_t)i + 1U));
+        if (umi_test_platform_result_registry_find(results, identity, &result) != UMI_STATUS_NOT_FOUND)
+            status = UMI_STATUS_INVALID_STATE;
+        (void)snprintf(identity, sizeof(identity), "output.job.%llu",
+            (unsigned long long)(sequence + (uint64_t)i + 1U));
+        if (umi_test_platform_output_registry_find(outputs, identity, &output) != UMI_STATUS_NOT_FOUND)
+            status = UMI_STATUS_INVALID_STATE;
+    }
+    UmiCtestJob *job = NULL;
+    UmiCtestJobOptions options = {repeats, plan->stop_on_failure};
+    if (status == UMI_STATUS_OK) status = UmiCtestJobCreateWithToolDirectory(requests, count, &options,
+        service->executionContext.tool_directory, &job);
     free(requests);
     int began = 0;
     if (status == UMI_STATUS_OK) {

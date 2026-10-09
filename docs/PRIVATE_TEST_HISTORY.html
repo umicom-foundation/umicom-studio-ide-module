@@ -65,4 +65,33 @@ Saved runs are not a complete CI history or a signed release qualification.</p>
 <p>The summary includes all rows, even those on other pages. Rows show counts for both runs and their total recorded durations. A copied comparison remains available if you remove one of its saved runs, until you compare again or detach the archive. Reopening an archive clears the previous comparison.</p>
 <p>If a run is missing, or storage is corrupt or busy, Studio reports the error without changing live test results. Closing during archive work requests cancellation first; close again after it finishes. Comparison results describe historical observations, not the current checkout or verified source fingerprints.</p></section>
 
+<section><h2>Read history while keeping Studio responsive</h2>
+<!-- Opening and catalogue validation now run on Framework's queue. The previous description is retained for review:
+<ol><li>Open your private test archive. Opening the SQLite file and validating its initial catalogue are still synchronous operations.</li>
+-->
+<ol><li>Choose <strong>Open archive</strong> after entering an absolute filename in a private directory. Studio opens the database and checks its catalogue in the background. The existing archive remains attached until the replacement is ready.</li>
+<li>Choose <strong>Stop opening</strong> if the selected file is no longer wanted. Wait for opening to finish before detaching or trying another file. A late Stop still prevents attachment if the UI has not published the replacement. Any database file already created remains on disk.</li>
+<li>Choose <strong>Refresh saved runs</strong>. Studio reads the catalogue on a Framework worker, then updates the history pane when the observation is complete.</li>
+<li>Enter a saved run ID and an attempt number, starting at 1, then choose <strong>Read saved attempt</strong>. The displayed origin, test request and outcome come from the same database observation.</li>
+<li>Choose <strong>Stop reading</strong> to cancel a pending read. Wait for the read to finish before detaching the archive or starting another archive operation.</li></ol>
+<p>The Context line compares recorded project and build settings with the current profile. Studio captures those settings when the test run is accepted, so switching profiles before saving cannot relabel an older run. Source files, test binaries, preset-file contents and compiler versions are not captured by this view.</p>
+<p>Comparing saved runs also shows whether the ordered selection matches. Matching selections can still produce different outcomes, and matching outcomes do not certify the current checkout. Older entries without fingerprints are labelled as unrecorded.</p>
+<p>If a read reports a missing row or damaged record, keep the database for investigation. Studio leaves the existing text pane intact and does not manufacture a passing result. Saving diagnostic text remains optional because logs may contain private information.</p>
+</section>
+<!-- The earlier description is preserved for review; queued removal replaces its synchronous action.
+<p>If opening reports a damaged catalogue or a storage error, the previous attachment and live test results remain unchanged. Correct the path or storage problem and choose <strong>Open archive</strong> again. The path is copied when the request starts: editing the field does not redirect work already running. Closing a previous attachment and explicitly removing a saved run still use synchronous storage cleanup; background opening does not make every storage operation asynchronous.</p>
+-->
+<p>If opening reports a damaged catalogue or a storage error, the previous attachment and live test results remain unchanged. Correct the path or storage problem and choose <strong>Open archive</strong> again. The path is copied when the request starts: editing the field does not redirect work already running. Closing a previous attachment can still perform synchronous storage cleanup. Saved-run removal now runs on the Framework task queue.</p>
+<section><h2>Remove a saved run</h2>
+<ol><li>Check the saved run ID in the history pane. Enter that exact ID in the saved-run field.</li>
+<li>Choose <strong>Remove this saved run</strong>. Studio copies the ID and queues the removal.
+Editing the field afterwards cannot redirect that request. Other archive operations wait until it finishes.</li>
+<li>If you change your mind, choose <strong>Stop removal</strong>. Cancellation can stop the transaction
+before it commits; it cannot restore an already committed removal.</li>
+<li>Wait for the completion message. When removal commits, Studio refreshes the saved-run list.
+Source files and current test results are unchanged. The database file remains on disk.</li></ol>
+<p>If no commit is confirmed, refresh the list after the operation finishes and read the reported error.
+A busy archive can be retried later. For damaged records or storage failures, preserve the database
+for investigation. Removing the most recently saved completed run lets you save that live run again;
+the new saved run receives a new ID.</p></section>
 </body></html>

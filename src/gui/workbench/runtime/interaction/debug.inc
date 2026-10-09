@@ -265,3 +265,17 @@ static void runtime_debug_update_summary(
 //         (UmiStudioGtkRuntimeChrome *)user_data,
 //         UMI_STUDIO_COMMAND_DEBUG_START,
 //         0);
+
+/* Explicit process attachment shares the existing native debugger owner. */
+#include "debug_attach.inc"
+
+#include "debug_workspace_binding.inc"
+#include "debug_exception_filters.inc"
+
+#include "debug_function_breakpoints.inc"
+
+#include "debug_modules.inc"
+
+#include "debug_sources.inc"
+
+#include "debug_exception_information.inc"

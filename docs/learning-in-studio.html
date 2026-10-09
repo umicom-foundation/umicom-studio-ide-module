@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Learning and building in Studio</title>
+<body><h1>Choose where you learn and build</h1>
+<p>The lesson library contains the reading material. Your project folder contains source you edit.
+Studio keeps these locations separate so a lesson link never depends on the folder that launched Studio.</p>
+<ol><li>Open Guided Learning and select <strong>Choose lesson library</strong>. Select your Umicom-Applications checkout, its Framework folder, or Framework's docs/learning folder. The chosen folder must contain the supplied welcome.html lesson.</li>
+<li>Open a lesson. Studio shows its readable local documentation. Reading a lesson does not run code.</li>
+<li>Select <strong>Create a practice project</strong>. Choose your own destination and a C console project. Existing files are not overwritten. Use <strong>Open my practice folder</strong> to resume an existing project.</li>
+<li>Edit src/main.c in Code Editor and save it.</li>
+<li>Open <strong>Build &gt; Project Settings</strong>. Check the CMake program, compiler, source folder and build folder. Grant workspace trust only after reviewing the project; build files can run commands.</li>
+<li>Configure the project, then Build. Read Output and Problems if either operation fails. Run starts the configured executable after a successful build.</li>
+<li>To debug, configure a supported debug adapter and use a Debug build. Set a breakpoint before starting Debug. To deploy locally, select an installation destination and review the install operation.</li></ol>
+<p>If a lesson is missing, choose the library again. A moved or incomplete checkout is not silently replaced with a different folder.
+The library choice is remembered when session storage is enabled. Project files stay in the destination you select; settings and recovery state remain in private application storage.</p>
+</body></html>

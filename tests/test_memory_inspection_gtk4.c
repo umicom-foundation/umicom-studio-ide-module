@@ -6,6 +6,7 @@
  * LICENCE: MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/gtk4/automation.h"
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/debugger.h"
@@ -25,6 +26,8 @@
         }                                                                                                    \
     } while (0)
 /* Find semantic controls without depending on child positions or labels. */
+/* The rendered-child walk omitted controls owned by collapsed expanders. The shared bounded logical-tree lookup replaces it; retain the earlier traversal for review. */
+#if 0
 static GtkWidget *Find(GtkWidget *root, const char *tag)
 {
     if (root == NULL)
@@ -40,6 +43,13 @@ static GtkWidget *Find(GtkWidget *root, const char *tag)
             return found;
     }
     return NULL;
+}
+#endif
+/* Use the Framework logical tree so a collapsed panel can be inspected
+ * without changing the user's layout or overlooking an ambiguous identifier. */
+static GtkWidget *Find(GtkWidget *root, const char *tag)
+{
+    return umi_gtk4_automation_find_tagged_widget(root, tag);
 }
 
 /* A text observer can react while a new report is being published. A second

@@ -20,6 +20,7 @@
 #include "umicom/diagnostic_ui/navigation.h"
 #include "umicom/developer_productivity/text_comparison.h"
 #include "umicom/developer_project/new_project.h"
+#include "umicom/developer_project/compilation_database.h"
 #include "umicom/platform/threading.h"
 static int Wait(UmiStudioBuildService *build, UmiStatus expected, UmiBuildResult *result)
 {
@@ -70,6 +71,10 @@ static int EditSource(UmiUiWorkbench *workbench, const char *viewId,
     return result;
 }
 
+#include "test_build_source_navigation.inc"
+#include "test_run_current_workflow.inc"
+#include "test_compiler_database_workflow.inc"
+
 int main(int argc, char **argv)
 {
     int largeSource = argc == 2 && strcmp(argv[1], "large-source") == 0;
@@ -81,12 +86,22 @@ int main(int argc, char **argv)
     int editCommands = argc == 2 && strcmp(argv[1], "edit-commands") == 0;
     int fileSearch = argc == 2 && strcmp(argv[1], "find-in-files") == 0;
     int presetLaunch = argc == 2 && strcmp(argv[1], "preset-launch") == 0;
+    int runCurrent = argc == 2 && strcmp(argv[1], "run-current") == 0;
+    int compilerDatabase = argc == 2 && strcmp(argv[1], "compiler-database") == 0;
     /* Extend the actual project workflow with named stages and a data-folder
      * launch. The earlier mode guard remains for review of existing scenarios. */
 #if 0
     CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow || editCommands);
 #endif
+/* The launch-only scenario extends the existing real project workflow; retain the previous mode guard for review. The previous implementation is retained for engineering review. */
+#if 0
     CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow || editCommands || presetLaunch);
+#endif
+/* The real project workflow now includes compiler database export. Preserve the previous accepted-mode check for review. The previous implementation is retained for engineering review. */
+#if 0
+    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow || editCommands || presetLaunch || runCurrent);
+#endif
+    CHECK(argc == 1 || largeSource || diagnosticsFlow || projectFiles || backgroundRefresh || fileSearch || reloadFlow || editCommands || presetLaunch || runCurrent || compilerDatabase);
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServicesOptions options = {0};
     UmiDeveloperProjectService *projects = NULL;
@@ -145,6 +160,9 @@ int main(int argc, char **argv)
     CHECK(umi_studio_workspace_open(services, root, 0, 0) == UMI_STATUS_OK);
     CHECK(umi_path_equal(umi_studio_build_service_profile(build)->source_directory, root));
     CHECK(umi_studio_build_service_profile(build)->run_program[0] == '\0');
+    /* Enabling export changes the same profile that Studio sends to CMake. */
+    if (compilerDatabase)
+        CHECK(UmiCompilationDatabaseEnableExport(&profile, &profile) == UMI_STATUS_OK);
     CHECK(umi_studio_build_service_set_profile(build, &profile) == UMI_STATUS_OK);
     CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_COMPILE,
         "background", message, sizeof(message)) == UMI_STATUS_PERMISSION_DENIED);
@@ -384,6 +402,11 @@ int main(int argc, char **argv)
     CHECK(result->phase == UMI_BUILD_PHASE_RUN);
     CHECK(strstr(result->output, "Umicom Notes: saved and built") != NULL);
     if (presetLaunch) CHECK(strstr(result->output, "Program data folder verified") != NULL);
+    if (compilerDatabase)
+        CHECK(VerifyCompilerDatabaseWorkflow(&profile, source) == EXIT_SUCCESS);
+    if (runCurrent)
+        CHECK(VerifyRunCurrentWorkflow(services, commands, workbench, documents, viewId, source, result) == EXIT_SUCCESS);
+
     CHECK(umi_command_registry_execute(commands, UMI_STUDIO_COMMAND_BUILD_TEST,
         "background", message, sizeof(message)) == UMI_STATUS_OK);
     CHECK(Wait(build, UMI_STATUS_OK, result) == EXIT_SUCCESS);
@@ -416,6 +439,7 @@ int main(int argc, char **argv)
     CHECK(strstr(result->output, "Umicom_expected_compile_failure") != NULL);
     if (diagnosticsFlow) {
         UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+        CHECK(VerifyBuildSourceNavigation(ui, build, documents, workbench, viewId) == EXIT_SUCCESS);
         UmiDiagnosticModel *problems = umi_diagnostic_pipeline_model(umi_studio_services_diagnostic_pipeline(services));
         UmiDiagnosticSnapshot problem;
         UmiDocumentWorkingCopySnapshot active;

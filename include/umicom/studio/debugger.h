@@ -19,6 +19,7 @@
 #include "umicom/umicom.h"
 #include "umicom/studio/build.h"
 #include "umicom/debug_runtime/platform.h"
+#include "umicom/debug_runtime/native_attach.h"
 #include "umicom/debug/breakpoint_edit.h"
 #include "umicom/debug_runtime/watch_evaluation.h"
 #include "umicom/debug_runtime/variable_inspection.h"
@@ -36,6 +37,15 @@ extern "C" {
  */
 typedef struct UmiStudioDebuggerService UmiStudioDebuggerService;
 
+/** Attach the selected native adapter to an explicit external process ID.
+ * The host supplies current workspace trust and an idle build service; this
+ * call does not save drafts or submit a build. Program is an optional absolute
+ * symbols file. The current project root and tool folder are copied into the
+ * shared attach plan; launch arguments and launch environment are not applied
+ * to an existing process. Operations remain on the debugger owner thread.
+ * A failed or uncertain attachment is reported without automatic retry. */
+UmiStatus UmiStudioDebuggerAttachNative(UmiStudioDebuggerService *service,
+    UmiStudioBuildService *build, uint64_t process_id, const char *program, int trusted);
 /** Observe whether this captured row can be assigned in the current native
  * stop. No adapter request is sent; queued launches and legacy sessions refuse. */
 UmiStatus UmiStudioDebuggerCheckVariableAssignment(UmiStudioDebuggerService *service,

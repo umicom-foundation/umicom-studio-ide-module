@@ -298,6 +298,8 @@ UmiStatus umi_studio_debugger_service_step_out(UmiStudioDebuggerService *service
  * applications.
  */
 // UmiStatus umi_studio_debugger_service_stop(UmiStudioDebuggerService *service,int restart){return service!=NULL?umi_debug_controller_terminate(service->controller,restart):UMI_STATUS_INVALID_ARGUMENT;}
+/* Stop preserves the lifetime of externally started processes by requesting detach for attached sessions. Launched targets retain their explicit termination behaviour; the previous unconditional termination path is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 UmiStatus umi_studio_debugger_service_stop(UmiStudioDebuggerService *service,int restart)
 {
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
@@ -321,6 +323,38 @@ UmiStatus umi_studio_debugger_service_stop(UmiStudioDebuggerService *service,int
     }
     service->launchPending = 0;
     UmiStatus status = umi_debug_runtime_platform_stop(service->native, 1, 1500U);
+    if (status == UMI_STATUS_NOT_FOUND) status = UMI_STATUS_OK;
+    service->inspectedStop = 0;
+    service->nativeStatus = status;
+    return status;
+}
+#endif
+UmiStatus umi_studio_debugger_service_stop(UmiStudioDebuggerService *service,int restart)
+{
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (!service->nativeMode) return umi_debug_controller_terminate(service->controller,restart);
+    /* Capability negotiation and inspection lifetime belong in Framework.
+     * Retain the former refusal for review; unsupported adapters still require
+     * explicit Stop followed by Debug instead of an implicit relaunch. */
+#if 0
+    if (restart) return UMI_STATUS_NOT_IMPLEMENTED; /* Explicit Stop then Debug rebuilds safely. */
+#endif
+    if (restart) {
+        if (service->launchPending) return UMI_STATUS_BUSY;
+        UmiStatus status = umi_debug_runtime_platform_restart(service->native, 1500U);
+        service->nativeStatus = status;
+        /* An attempted restart retires the paused state even when its reply
+         * fails. Preflight refusals keep the current inspection untouched. */
+        UmiDebugRuntimePlatformSnapshot after;
+        if (umi_debug_runtime_platform_snapshot(service->native, &after) == UMI_STATUS_OK && !after.paused)
+            service->inspectedStop = 0;
+        return status;
+    }
+    service->launchPending = 0;
+    UmiDebugRuntimePlatformSnapshot current;
+    UmiStatus status = umi_debug_runtime_platform_snapshot(service->native, &current);
+    if (status == UMI_STATUS_OK)
+        status = umi_debug_runtime_platform_stop(service->native, current.attached ? 0 : 1, 1500U);
     if (status == UMI_STATUS_NOT_FOUND) status = UMI_STATUS_OK;
     service->inspectedStop = 0;
     service->nativeStatus = status;
@@ -886,9 +920,24 @@ UmiStatus UmiStudioDebuggerPollNative(UmiStudioDebuggerService *service, UmiStud
             if (status == UMI_STATUS_OK) {
                 const char *arguments[UMI_ARGUMENTS_CAPACITY];
                 for (size_t i = 0U; i < launch.argument_count; ++i) arguments[i] = launch.arguments[i];
+/* Use the accepted build-profile snapshot for debugger tools as well as compilation. Framework owns child environment setup; changing the current project profile cannot silently alter this launch. The previous implementation is retained for engineering review. */
+#if 0
                 status = UmiDebugRuntimePlatformLaunchArguments(service->native, service->nativeKind,
                     service->nativeExecutable, launch.debug_program, launch.working_directory,
                     arguments, launch.argument_count, 3000U);
+#endif
+/* Use the captured project launch variables for native Debug as well as Run. The prior tools-only call is retained for review; changing settings invalidates the captured profile. The previous implementation is retained for engineering review. */
+#if 0
+                status = UmiDebugRuntimePlatformLaunchArgumentsWithToolDirectory(
+                    service->native, service->nativeKind, service->nativeExecutable,
+                    launch.debug_program, launch.working_directory, arguments,
+                    launch.argument_count, 3000U, service->launchProfile.tool_directory);
+#endif
+                status = UmiDebugRuntimePlatformLaunchArgumentsWithEnvironment(
+                    service->native, service->nativeKind, service->nativeExecutable,
+                    launch.debug_program, launch.working_directory, arguments,
+                    launch.argument_count, 3000U, service->launchProfile.tool_directory,
+                    service->launchProfile.run_environment);
             }
         }
         service->nativeStatus = status;
@@ -1092,6 +1141,27 @@ UmiStatus UmiStudioDebuggerInspectMemory(UmiStudioDebuggerService *service,
     UmiStatus status = UmiStudioDebuggerCheckMemory(service, target);
     if (status != UMI_STATUS_OK) return status;
     status = UmiDebugRuntimeInspectMemory(service->native, service->workspace, target, offset, count, 1500U, out);
+    service->nativeStatus = status;
+    return status;
+}
+
+/* Product authority remains in Studio; Framework owns attach validation,
+ * adapter selection, protocol sequencing and stopped-process inspection. */
+UmiStatus UmiStudioDebuggerAttachNative(UmiStudioDebuggerService *service,
+    UmiStudioBuildService *build, uint64_t process_id, const char *program, int trusted)
+{
+    if (service == NULL || build == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (!trusted) return UMI_STATUS_PERMISSION_DENIED;
+    if (UmiStudioBuildBusy(build) || UmiStudioDebuggerNativeBusy(service)) return UMI_STATUS_BUSY;
+    if (!service->nativeMode) return UMI_STATUS_INVALID_STATE;
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(build);
+    if (profile == NULL) return UMI_STATUS_INVALID_STATE;
+    UmiDebugNativeAttachOptions options = {
+        service->nativeKind, service->nativeExecutable, program,
+        profile->source_directory, profile->tool_directory, process_id
+    };
+    UmiStatus status = UmiDebugRuntimePlatformAttachNative(service->native, &options, 3000U);
+    service->inspectedStop = 0;
     service->nativeStatus = status;
     return status;
 }

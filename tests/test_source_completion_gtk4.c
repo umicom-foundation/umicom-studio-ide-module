@@ -134,6 +134,12 @@ int main(int argc, char **argv)
         goto inspect;
     }
     CHECK(dialog != NULL);
+    /* C-family source assistance exposes the shared compiler database inspector.
+     * Creating the review must not read build files or launch the language server. */
+    GtkWidget *compilerPanel = Find(GTK_WIDGET(dialog), "compiler.database.panel");
+    CHECK(compilerPanel != NULL);
+    CHECK(Find(compilerPanel, "compiler.database.read") != NULL);
+    CHECK(g_object_get_data(G_OBJECT(compilerPanel), "umicom-compilation-pending") == NULL);
     GtkWidget *program = Find(GTK_WIDGET(dialog), "document.completion.program");
     GtkWidget *request = Find(GTK_WIDGET(dialog), "document.completion.request");
     GtkWidget *apply = Find(GTK_WIDGET(dialog), "document.completion.apply");

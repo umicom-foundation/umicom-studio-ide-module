@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Run commands in Umicom Studio</title>
+<style>body{font:17px/1.6 system-ui,sans-serif;max-width:940px;margin:3rem auto;padding:0 1.4rem;color:#202b36}code{background:#edf2f6;padding:.1rem .3rem}h1,h2{line-height:1.25}li{margin:.5rem 0}</style>
+<main><h1>Run commands in Umicom Studio</h1>
+<p>The Terminal panel runs a command while the editor remains available. Each session has its own folder and transcript. The summary shows the selected session and its actual folder.</p>
+<h2>Choose where to run</h2><ol><li>Open Terminal from Studio's window controls.</li>
+<li>Choose <strong>Browse…</strong> or enter the full path of an existing folder. <strong>Project folder</strong> fills the field with the open workspace folder.</li>
+<li>Choose <strong>Apply folder</strong>. The summary should show the selected folder. If the folder is missing, relative, unsupported or in use, the previous folder remains active.</li>
+<li>Open and review the workspace, then grant it trust before running commands.</li></ol>
+<p>Filling the field does not change the active folder until you apply it. Choosing a folder does not create it, grant trust or move files. A chooser answer is ignored after a session change or a newer edit to the field.</p>
+<h2>Run and stop</h2><ol><li>Enter a command supported by the selected terminal profile, such as <code>cmake --version</code> when CMake is on that profile's executable search path.</li>
+<li>Choose <strong>Run</strong> or press Enter. Recent output appears in the originating session while the command runs in the background.</li>
+<li>Read the final exit code. Zero usually means success; another value requires checking the program's output.</li>
+<li>For a command still working, choose <strong>Stop</strong>. Wait for the final stopped or completed status before starting another command.</li></ol>
+<p>Stop refers to the running command even when another terminal tab is selected. The summary identifies that session. Closing its tab or switching projects is refused until completion is published. Closing Studio requests Stop first; close again after it finishes. Revoking workspace trust also requests cancellation.</p>
+<h2>Retained output</h2><p>The preview and transcript keep recent output within fixed limits. Earlier text may be omitted, with truncation reported. This is not a full build-log archive. Unchanged refreshes preserve text selection for copying diagnostics.</p>
+<p>Arguments, folder and environment are copied when the command starts. Editing another command or selecting another session cannot change the running request. Stop does not undo changes already made.</p>
+<h2>Use the right tool for the task</h2><p>Use Build Settings and Build commands for the project's selected compiler and tools. Terminal profiles use their own environment; project tool settings are not silently applied. Use an external terminal for interactive prompts, full-screen programs or a persistent shell. Running <code>cd</code> inside one command does not change the next command's folder; use <strong>Apply folder</strong>.</p>
+<h2>Troubleshooting</h2><ul><li><strong>Run is unavailable:</strong> check workspace trust and whether another terminal command is pending.</li>
+<li><strong>Program not found:</strong> check the selected profile's search path or supply an explicit program path using that shell's quoting rules.</li>
+<li><strong>Folder unchanged:</strong> apply the draft and read the summary. Failed selections retain the previous folder.</li>
+<li><strong>The command expects input:</strong> this panel does not provide interactive standard input. Stop it and use an external terminal.</li></ul>
+</main></html>

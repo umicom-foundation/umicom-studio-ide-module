@@ -14,7 +14,11 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-job-history-native-test)
     endif()
+    # Keep the former registration list for review as a non-executing CMake comment.
+    #[=[
     foreach(case reopen invalid detach prune retained-open retained-refresh retained-prune retained-detach)
+    ]=]
+    foreach(case identity reopen invalid detach prune retained-open retained-refresh retained-prune retained-detach)
         add_test(NAME studio.job_history.gtk4.${case} COMMAND umicom-studio-job-history-native-test "${case}")
         set_tests_properties(studio.job_history.gtk4.${case} PROPERTIES
             TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;job-history;gtk4;persistence;ownership;regression")

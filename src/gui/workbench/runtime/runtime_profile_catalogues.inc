@@ -442,6 +442,7 @@ static const UmiStudioGtkCommandProfile RUNTIME_COMMAND_PROFILES[] = {
 #include "profiles/commands/test_all.inc"
 #include "profiles/commands/test_failed.inc"
 #include "profiles/commands/test_stop.inc"
+#include "profiles/commands/run_current.inc"
 #include "profiles/commands/debug_start.inc"
 #include "profiles/commands/debug_continue.inc"
 #include "profiles/commands/debug_stop.inc"

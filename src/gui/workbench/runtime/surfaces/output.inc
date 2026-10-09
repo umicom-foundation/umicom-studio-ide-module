@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/build/live_output_gtk4.h"
+#include "umicom/build/live_diagnostics_gtk4.h"
 #include "job_history.inc"
 
 /* Resolve the current service only during a weakly bound owner action. The
@@ -69,6 +70,46 @@ static void RuntimeBuildLogRefresh(UmiStudioGtkRuntimeChrome *runtime, UmiStudio
 /* The Framework runner publishes complete phase output. The current phase
  * remains visible while the worker runs; partial output is not mislabelled as
  * a successful build. Compiler bytes are repaired for GTK's UTF-8 text API. */
+/* The shared presenter asks for one bounded page. If the worker advanced to
+ * another phase, begin that phase at its first page instead of combining rows. */
+
+static void RuntimeBuildSourceBindingFree(gpointer context)
+{
+    runtime_file_dialog_request_free(context);
+}
+static UmiStatus RuntimeBuildDiagnosticOpen(uint64_t operation, size_t phase,
+    size_t index, void *context)
+{
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context, &window);
+    UmiStatus status = runtime != NULL && runtime->owner != NULL
+        ? UmiStudioUiOpenBuildDiagnostic(runtime->owner->ui, operation, phase, index)
+        : UMI_STATUS_INVALID_STATE;
+    /* Opening a document may detach the host. Its existing coordinator handles
+     * editor selection; this callback does not touch a raw runtime afterwards. */
+    g_clear_object(&window);
+    return status;
+}
+
+static void RuntimeBuildDiagnosticsRefresh(UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioBuildService *service)
+{
+    if (runtime->build_live_diagnostics == NULL) return;
+    uint64_t operation = 0U;
+    size_t phase = 0U, first = 0U;
+    UmiStatus status = UmiBuildDiagnosticViewGtk4Request(runtime->build_live_diagnostics,
+        &operation, &phase, &first);
+    if (status != UMI_STATUS_OK) return;
+    UmiBuildDiagnosticPage *page = g_try_new0(UmiBuildDiagnosticPage, 1U);
+    if (page == NULL) return;
+    status = UmiStudioBuildReadDiagnosticPage(service, operation, phase, first, page);
+    if (status == UMI_STATUS_INVALID_STATE || status == UMI_STATUS_NOT_FOUND)
+        status = UmiStudioBuildReadDiagnosticPage(service, 0U, 0U, 0U, page);
+    if (status == UMI_STATUS_OK)
+        (void)UmiBuildDiagnosticViewGtk4Update(runtime->build_live_diagnostics, page);
+    g_free(page);
+}
+
 static void RuntimeRefreshBuildOutput(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioBuildService *service;
@@ -81,6 +122,7 @@ static void RuntimeRefreshBuildOutput(UmiStudioGtkRuntimeChrome *runtime)
     if (service == NULL) return;
     RuntimeBuildLogRefresh(runtime, service);
     RuntimeBuildHistoryRefresh(runtime, service);
+    RuntimeBuildDiagnosticsRefresh(runtime, service);
     if (runtime->build_live_output != NULL) {
         UmiBuildOutputSnapshot *output = g_new0(UmiBuildOutputSnapshot, 1);
         if (UmiStudioBuildReadOutput(service, output) == UMI_STATUS_OK)
@@ -100,7 +142,29 @@ static void RuntimeRefreshBuildOutput(UmiStudioGtkRuntimeChrome *runtime)
         } else {
             (void)snprintf(label, sizeof(label), "Ready. Review Project Settings, then configure or build.");
         }
+/* The existing phase status is retained and augmented with Framework-owned streaming counts. Preserve the earlier single-line display for review. The previous implementation is retained for engineering review. */
+#if 0
         gtk_label_set_text(GTK_LABEL(runtime->build_progress_label), label);
+#endif
+        /* Append live counts without turning zero recognised errors into a
+         * successful build. Scope the counts to the same accepted operation. */
+        UmiBuildDiagnosticProgress diagnostics;
+        if (UmiStudioBuildReadDiagnostics(service, &diagnostics) == UMI_STATUS_OK &&
+            diagnostics.operation_id != 0U && diagnostics.operation_id == progress.operation_id) {
+            char *combined = g_strdup_printf(
+                "%s\n%s: %" G_GUINT64_FORMAT " errors, %" G_GUINT64_FORMAT
+                " warnings, %" G_GUINT64_FORMAT " notes; %" G_GUINT64_FORMAT
+                " unrepresented records%s%s",
+                label, umi_build_phase_text(diagnostics.phase),
+                (guint64)diagnostics.errors, (guint64)diagnostics.warnings,
+                (guint64)diagnostics.notes, (guint64)diagnostics.unrepresented,
+                diagnostics.streamed ? "" : " (final preview only)",
+                diagnostics.counters_saturated ? " (counts saturated)" : "");
+            gtk_label_set_text(GTK_LABEL(runtime->build_progress_label), combined);
+            g_free(combined);
+        } else {
+            gtk_label_set_text(GTK_LABEL(runtime->build_progress_label), label);
+        }
     }
     if (runtime->build_output_view == NULL ||
         umi_studio_build_service_snapshot(service, &state) != UMI_STATUS_OK ||
@@ -122,6 +186,8 @@ static void RuntimeRefreshBuildOutput(UmiStudioGtkRuntimeChrome *runtime)
     umi_build_result_destroy(result);
 }
 
+/* Live compiler source selection now uses a weak host binding and revalidates the accepted build identity. The earlier text-only composition is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *panel = runtime_panel_new("Output");
@@ -173,6 +239,93 @@ static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtim
     RuntimeBuildHistoryControls(runtime, panel);
     runtime->build_live_output = UmiBuildOutputGtk4Create();
     gtk_box_append(GTK_BOX(panel), runtime->build_live_output);
+    GtkWidget *diagnostics = gtk_expander_new("Compiler messages for the current phase");
+    runtime->build_live_diagnostics = UmiBuildDiagnosticViewGtk4Create();
+    gtk_expander_set_child(GTK_EXPANDER(diagnostics), runtime->build_live_diagnostics);
+    gtk_expander_set_expanded(GTK_EXPANDER(diagnostics), TRUE);
+    gtk_box_append(GTK_BOX(panel), diagnostics);
+    GtkWidget *completed = gtk_label_new("Latest completed phase");
+    gtk_label_set_xalign(GTK_LABEL(completed), 0.0F);
+    gtk_box_append(GTK_BOX(panel), completed);
+    view = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(view), FALSE);
+    gtk_text_view_set_monospace(GTK_TEXT_VIEW(view), TRUE);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_NONE);
+    gtk_widget_set_vexpand(view, TRUE);
+    gtk_widget_set_hexpand(view, TRUE);
+    gtk_widget_set_tooltip_text(view, "Compiler, test or program output from the latest completed phase.");
+    (void)umi_gtk4_automation_tag_widget(view, "studio.build.output");
+    runtime->build_output_view = view;
+    runtime->build_output_operation = 0U;
+    gtk_text_buffer_set_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)),
+        "No build output yet. Output is updated when each phase finishes.", -1);
+    gtk_box_append(GTK_BOX(panel), view);
+    RuntimeRefreshBuildOutput(runtime);
+    return runtime_scroll(panel);
+}
+#endif
+static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtime)
+{
+    GtkWidget *panel = runtime_panel_new("Output");
+    GtkWidget *view;
+    char value[64];
+    if (panel == NULL || runtime == NULL) return panel;
+    /* Retain the existing task and diagnostic readouts alongside the new
+     * compiler transcript. Adding output must not remove earlier information. */
+    (void)snprintf(value, sizeof(value), "%zu",
+                   runtime->view_model_snapshot.queued_tasks);
+    runtime_panel_add_stat(panel, "Queued tasks", value);
+    (void)snprintf(value, sizeof(value), "%zu",
+                   runtime->view_model_snapshot.running_tasks);
+    runtime_panel_add_stat(panel, "Running tasks", value);
+    (void)snprintf(value, sizeof(value), "%zu",
+                   runtime->view_model_snapshot.retained_diagnostics);
+    runtime_panel_add_stat(panel, "Diagnostics", value);
+
+    /* Saving is deliberate and uses a fresh file. The entry is only a draft
+     * until Use log for next job succeeds; typing never changes a running job. */
+    GtkWidget *log_title = gtk_label_new("Save complete emitted output to a new file");
+    gtk_label_set_xalign(GTK_LABEL(log_title), 0.0F);
+    gtk_box_append(GTK_BOX(panel), log_title);
+    runtime->build_log_path = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(runtime->build_log_path), "Absolute path to a new log file");
+    gtk_entry_set_max_length(GTK_ENTRY(runtime->build_log_path), (int)UMI_PATH_CAPACITY - 1);
+    (void)umi_gtk4_automation_tag_widget(runtime->build_log_path, "studio.build.log.path");
+    gtk_box_append(GTK_BOX(panel), runtime->build_log_path);
+    GtkWidget *log_controls = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget *select_log = gtk_button_new_with_label("Use log for next job");
+    GtkWidget *clear_log = gtk_button_new_with_label("Disable next log");
+    GtkWidget *copy_log = gtk_button_new_with_label("Copy log path");
+    (void)umi_gtk4_automation_tag_widget(select_log, "studio.build.log.select");
+    (void)umi_gtk4_automation_tag_widget(clear_log, "studio.build.log.clear");
+    (void)umi_gtk4_automation_tag_widget(copy_log, "studio.build.log.copy-path");
+    g_object_set_data(G_OBJECT(clear_log), "umicom-clear-build-log", GINT_TO_POINTER(1));
+    runtime_bind_editor_action(runtime, select_log, RuntimeBuildLogSelect);
+    runtime_bind_editor_action(runtime, clear_log, RuntimeBuildLogSelect);
+    runtime_bind_editor_action(runtime, copy_log, RuntimeBuildLogCopyPath);
+    gtk_box_append(GTK_BOX(log_controls), select_log);
+    gtk_box_append(GTK_BOX(log_controls), clear_log);
+    gtk_box_append(GTK_BOX(log_controls), copy_log);
+    gtk_box_append(GTK_BOX(panel), log_controls);
+    runtime->build_log_status = gtk_label_new(NULL);
+    gtk_label_set_wrap(GTK_LABEL(runtime->build_log_status), TRUE);
+    gtk_label_set_xalign(GTK_LABEL(runtime->build_log_status), 0.0F);
+    (void)umi_gtk4_automation_tag_widget(runtime->build_log_status, "studio.build.log.status");
+    gtk_box_append(GTK_BOX(panel), runtime->build_log_status);
+    RuntimeBuildHistoryControls(runtime, panel);
+    runtime->build_live_output = UmiBuildOutputGtk4Create();
+    gtk_box_append(GTK_BOX(panel), runtime->build_live_output);
+    GtkWidget *diagnostics = gtk_expander_new("Compiler messages for the current phase");
+    runtime->build_live_diagnostics = UmiBuildDiagnosticViewGtk4Create();
+    UmiStudioFileDialogRequest *sourceBinding = runtime_file_dialog_request_new(runtime, 0U);
+    if (sourceBinding != NULL &&
+        UmiBuildDiagnosticViewGtk4SetSourceOpener(runtime->build_live_diagnostics,
+            RuntimeBuildDiagnosticOpen, sourceBinding, RuntimeBuildSourceBindingFree) != UMI_STATUS_OK)
+        runtime_file_dialog_request_free(sourceBinding);
+
+    gtk_expander_set_child(GTK_EXPANDER(diagnostics), runtime->build_live_diagnostics);
+    gtk_expander_set_expanded(GTK_EXPANDER(diagnostics), TRUE);
+    gtk_box_append(GTK_BOX(panel), diagnostics);
     GtkWidget *completed = gtk_label_new("Latest completed phase");
     gtk_label_set_xalign(GTK_LABEL(completed), 0.0F);
     gtk_box_append(GTK_BOX(panel), completed);

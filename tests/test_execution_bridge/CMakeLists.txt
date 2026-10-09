@@ -13,6 +13,7 @@ get_filename_component(workspace_root "${CMAKE_CURRENT_LIST_DIR}/../../../.." AB
 set(UMICOM_FRAMEWORK_SOURCE_DIR "${workspace_root}/framework" CACHE PATH "Framework source checkout")
 add_subdirectory("${UMICOM_FRAMEWORK_SOURCE_DIR}/tests/ctest_jobs" framework-checks)
 add_library(umicom-studio-run-records STATIC
+    "${UMICOM_FRAMEWORK_SOURCE_DIR}/src/data/job_identity.c"
     "${UMICOM_FRAMEWORK_SOURCE_DIR}/src/test_platform/result.c"
     "${UMICOM_FRAMEWORK_SOURCE_DIR}/src/test_platform/output.c")
 target_include_directories(umicom-studio-run-records PUBLIC "${UMICOM_FRAMEWORK_SOURCE_DIR}/include")
@@ -35,7 +36,17 @@ foreach(target umicom-studio-test-run-checks umicom-studio-run-records)
     endif()
 endforeach()
 if(BUILD_TESTING)
+    # Include evidence fences while retaining the earlier case list for review.
+    #[[
     foreach(case archive-busy success repeat disabled skipped failure stop-failure partial-stop
+            output-empty output-finished output-copy output-wrong-thread output-next-run
+            queued-stop double-arm busy-operation invalid-context copied-context
+            wrong-root wrong-configuration missing-item history-full output-full
+            sequence-overflow existing-output generation source configuration trust
+            catalogue history output discovery late-stop retained-result dispose
+            publish-refused invalid-plan publication-budget invalid-kind stale-selection)
+    ]]
+    foreach(case tool-invalid tool-changed identity-invalid identity-settings identity-inputs identity-loss archive-busy success repeat disabled skipped failure stop-failure partial-stop
             output-empty output-finished output-copy output-wrong-thread output-next-run
             queued-stop double-arm busy-operation invalid-context copied-context
             wrong-root wrong-configuration missing-item history-full output-full

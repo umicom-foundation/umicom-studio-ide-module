@@ -19,6 +19,8 @@
 #include <string.h>
 /* Disabled catalogue entries exercise task ownership, result publication and
  * storage without starting CTest, compiling a project, or invoking a broker. */
+/* The shared fixture can now exercise copied job evidence without launching CTest. The previous implementation is retained for engineering review. */
+#if 0
 static inline UmiStatus ArchiveDisabledRun(UmiStudioTestService *service, UmiTaskQueue *queue)
 {
     UmiTestPlatformService *platform = umi_studio_test_service_platform(service);
@@ -70,6 +72,67 @@ static inline UmiStatus ArchiveDisabledRun(UmiStudioTestService *service, UmiTas
     free(plan);
     return status;
 }
+
+#endif
+static inline UmiStatus ArchiveDisabledRunWithIdentity(UmiStudioTestService *service, UmiTaskQueue *queue,
+    const UmiJobIdentity *identity)
+{
+    UmiTestPlatformService *platform = umi_studio_test_service_platform(service);
+    UmiTestPlatformCtestImportOptions options = {0};
+    strcpy(options.project_id, "archive");
+    strcpy(options.suite_id, "archive.ctest");
+    strcpy(options.build_directory, "/archive-fixture/build");
+    strcpy(options.configuration, "Debug");
+    UmiTestPlatformCtestImportSummary summary = {0};
+    UmiStatus status = umi_test_platform_ctest_parse_json(
+        "{\"tests\":[{\"name\":\"archive.disabled\",\"properties\":[{\"name\":\"DISABLED\",\"value\":true}]}]"
+        "}",
+        &options, umi_test_platform_service_item(platform), umi_test_platform_service_suite(platform),
+        umi_test_platform_service_discovery(platform), &summary);
+    UmiTestPlatformOperationPlan *plan = calloc(1, sizeof(*plan));
+    if (plan == NULL)
+        return UMI_STATUS_OUT_OF_MEMORY;
+    umi_test_platform_operation_plan_init(plan, UMI_TEST_PLATFORM_OPERATION_RUN_SELECTED);
+    UmiTestPlatformItemSnapshot item = {0};
+    if (status == UMI_STATUS_OK)
+        status = umi_test_platform_item_registry_at(umi_test_platform_service_item(platform), 0, &item);
+    if (status == UMI_STATUS_OK)
+    {
+        strcpy(plan->selection.item_ids[0], item.id);
+        plan->selection.count = 1;
+        UmiStudioTestRunContext context = {0};
+        if (identity != NULL)
+            context.identity = *identity;
+        context.trusted = 1;
+        context.workspace_generation = 17;
+        strcpy(context.source_root, "/archive-fixture/source");
+        strcpy(context.build_root, options.build_directory);
+        strcpy(context.configuration, options.configuration);
+        status = UmiStudioTestRunArm(service, queue, &context);
+        UmiTestPlatformExecutionSummary execution = {0};
+        if (status == UMI_STATUS_OK)
+            status = umi_studio_test_service_execute(service, plan, &execution);
+        UmiStudioTestRunDisarm(service);
+        if (status == UMI_STATUS_OK)
+        {
+            char message[512];
+            for (unsigned i = 0; i < 5000U; ++i)
+            {
+                status = UmiStudioTestRunPoll(service, &context, message, sizeof(message));
+                if (status != UMI_STATUS_BUSY)
+                    break;
+                umi_thread_sleep_ms(1);
+            }
+        }
+    }
+    free(plan);
+    return status;
+}
+/* Keep existing fixtures evidence-free unless a case supplies explicit context. */
+static inline UmiStatus ArchiveDisabledRun(UmiStudioTestService *service, UmiTaskQueue *queue)
+{
+    return ArchiveDisabledRunWithIdentity(service, queue, NULL);
+}
 static inline UmiStatus ArchiveAwaitSave(UmiStudioTestService *service, UmiStudioTestArchiveState *state)
 {
     for (unsigned i = 0; i < 5000U; ++i)
@@ -110,6 +173,40 @@ static inline UmiStatus ArchiveAwaitComparison(UmiStudioTestService *service,
         if (state->comparison.state == UMI_TASK_SUCCEEDED || state->comparison.state == UMI_TASK_FAILED ||
             state->comparison.state == UMI_TASK_CANCELLED)
             return state->comparison.status;
+        umi_thread_sleep_ms(1U);
+    }
+    return UMI_STATUS_TIMEOUT;
+}
+/* Completion polling reads memory only; service-level callers need not drive
+ * GTK to know whether the private database observation is ready. */
+static inline UmiStatus ArchiveAwaitRead(UmiStudioTestService *service,
+    UmiStudioTestArchiveState *state)
+{
+    for (unsigned i = 0; i < 5000U; ++i)
+    {
+        UmiStatus status = UmiStudioTestArchiveStateRead(service, state);
+        if (status != UMI_STATUS_OK)
+            return status;
+        if (state->reader.state == UMI_TASK_SUCCEEDED || state->reader.state == UMI_TASK_FAILED ||
+            state->reader.state == UMI_TASK_CANCELLED)
+            return state->reader.status;
+        umi_thread_sleep_ms(1U);
+    }
+    return UMI_STATUS_TIMEOUT;
+}
+
+/* Removal completion is a transaction outcome, not a new live test result. */
+static inline UmiStatus ArchiveAwaitRemoval(UmiStudioTestService *service,
+    UmiStudioTestArchiveState *state)
+{
+    for (unsigned i = 0; i < 5000U; ++i)
+    {
+        UmiStatus status = UmiStudioTestArchiveStateRead(service, state);
+        if (status != UMI_STATUS_OK) return status;
+        if (state->removal.state == UMI_TASK_SUCCEEDED ||
+            state->removal.state == UMI_TASK_FAILED ||
+            state->removal.state == UMI_TASK_CANCELLED)
+            return state->removal.status;
         umi_thread_sleep_ms(1U);
     }
     return UMI_STATUS_TIMEOUT;

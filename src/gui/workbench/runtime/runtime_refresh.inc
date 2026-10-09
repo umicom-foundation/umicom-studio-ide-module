@@ -20,8 +20,11 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/test_execution.h"
+#include "umicom/build/job_history.h"
 
 /* Read a copied trust/profile boundary, never borrow it in a worker. */
+/* Test Explorer captures the same per-project tool folder as the build service; the worker never reads GTK or a changing profile. The previous implementation is retained for engineering review. */
+#if 0
 static int RuntimeTestRunContext(UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioTestRunContext *context)
 {
@@ -64,6 +67,68 @@ static int RuntimeTestRunContext(UmiStudioGtkRuntimeChrome *runtime,
         buildLength >= sizeof(context->build_root) ||
         configurationLength >= sizeof(context->configuration)) return 0;
 
+    /* The shared profile fingerprint has the same meaning in build and test
+     * history. This reads settings only; source files and compiler binaries are
+     * deliberately not read on the GUI refresh path. */
+    if (UmiBuildProfileJobIdentity(profile, &context->identity) != UMI_STATUS_OK)
+        return 0;
+    context->trusted = 1;
+    context->workspace_generation = workspace.graph.revision;
+    (void)memcpy(context->source_root, profile->source_directory, sourceLength + 1U);
+    (void)memcpy(context->build_root, profile->build_directory, buildLength + 1U);
+    (void)memcpy(context->configuration, profile->configuration, configurationLength + 1U);
+    return 1;
+}
+#endif
+static int RuntimeTestRunContext(UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioTestRunContext *context)
+{
+    memset(context, 0, sizeof(*context));
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    const UmiBuildProfile *profile = services != NULL
+        ? umi_studio_build_service_profile(umi_studio_services_build(services)) : NULL;
+    UmiStudioWorkspaceSnapshot workspace;
+    size_t sourceLength;
+    size_t buildLength;
+    size_t configurationLength;
+
+    if (profile == NULL || umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+        !workspace.graph.open || !workspace.graph.trusted) return 0;
+
+    sourceLength = strlen(profile->source_directory);
+    buildLength = strlen(profile->build_directory);
+    configurationLength = strlen(profile->configuration);
+
+#if 0
+    /*
+     * The original validation and formatted copies are retained for review.
+     * They already reject values that do not fit, but GCC diagnoses the
+     * snprintf calls from the larger source-array capacities before considering
+     * those runtime length checks. The active implementation below keeps the
+     * same fit-or-reject behaviour and copies the already measured bytes.
+     */
+    if (strlen(profile->source_directory) >= sizeof(context->source_root) ||
+        strlen(profile->build_directory) >= sizeof(context->build_root) ||
+        strlen(profile->configuration) >= sizeof(context->configuration)) return 0;
+    context->trusted = 1;
+    context->workspace_generation = workspace.graph.revision;
+    (void)snprintf(context->source_root, sizeof(context->source_root), "%s", profile->source_directory);
+    (void)snprintf(context->build_root, sizeof(context->build_root), "%s", profile->build_directory);
+    (void)snprintf(context->configuration, sizeof(context->configuration), "%s", profile->configuration);
+#endif
+
+    if (sourceLength >= sizeof(context->source_root) ||
+        buildLength >= sizeof(context->build_root) ||
+        configurationLength >= sizeof(context->configuration)) return 0;
+
+    /* The shared profile fingerprint has the same meaning in build and test
+     * history. This reads settings only; source files and compiler binaries are
+     * deliberately not read on the GUI refresh path. */
+    if (UmiBuildProfileJobIdentity(profile, &context->identity) != UMI_STATUS_OK)
+        return 0;
+    if (strlen(profile->tool_directory) >= sizeof context->tool_directory) return 0;
+    memcpy(context->tool_directory,profile->tool_directory,strlen(profile->tool_directory)+1U);
     context->trusted = 1;
     context->workspace_generation = workspace.graph.revision;
     (void)memcpy(context->source_root, profile->source_directory, sourceLength + 1U);
@@ -99,7 +164,17 @@ static UmiStatus runtime_refresh_services(
                 workspace.graph.open && workspace.graph.trusted;
             int published = 0;
             char message[512];
+/* Discovery publication now checks the selected CTest folder as well as workspace paths and trust. The previous implementation is retained for engineering review. */
+#if 0
             UmiStatus discoveryStatus = UmiStudioTestDiscoveryPoll(tests,
+                profile != NULL ? profile->source_directory : NULL,
+                profile != NULL ? profile->build_directory : NULL,
+                profile != NULL ? profile->configuration : NULL,
+                allowed ? workspace.graph.revision : 0U, allowed,
+                &published, message, sizeof(message));
+#endif
+            UmiStatus discoveryStatus = UmiStudioTestDiscoveryPollWithToolDirectory(tests,
+                profile != NULL ? profile->tool_directory : NULL,
                 profile != NULL ? profile->source_directory : NULL,
                 profile != NULL ? profile->build_directory : NULL,
                 profile != NULL ? profile->configuration : NULL,
@@ -127,8 +202,14 @@ static UmiStatus runtime_refresh_services(
      * Preserve the established Studio refresh path first. The new runtime is a
      * presentation/composition layer around it, not a replacement service graph.
      */
+    RuntimeTerminalPoll(runtime);
     status = umi_studio_gtk_workbench_refresh(runtime->owner);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+
+    /* Synchronize project identity after all open/close routes, including menus
+     * and session restore; do not depend on which folder chooser was used. */
+    status = runtime_prepare_workspace_identity(runtime);
     if (status != UMI_STATUS_OK) return status;
 
     UmiStudioServices *developmentServices = umi_studio_ui_services(runtime->owner->ui);
@@ -197,6 +278,7 @@ static UmiStatus runtime_refresh_services(
     runtime_refresh_command_sensitivity(runtime, runtime->activity_bar);
 
     RuntimeTestLiveOutputRefresh(runtime);
+    runtime_terminal_refresh_transcript(runtime);
 
     if (runtime->test_summary_label != NULL && runtime->owner->ui != NULL) {
         UmiStudioTestService *tests = umi_studio_services_tests(umi_studio_ui_services(runtime->owner->ui));

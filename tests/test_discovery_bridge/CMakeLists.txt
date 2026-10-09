@@ -37,7 +37,7 @@ if(BUILD_TESTING)
     set(injected_root "${CMAKE_CURRENT_BINARY_DIR}/injected build")
     file(MAKE_DIRECTORY "${injected_root}")
     file(WRITE "${injected_root}/CTestTestfile.cmake" "# Injected CTest process for Studio bridge checks.\n")
-    foreach(scenario success stop generation source build configuration trust view-capacity
+    foreach(scenario tool-copy tool-changed success stop generation source build configuration trust view-capacity
             dispose double-arm operation-busy)
         add_test(NAME "studio.discovery_bridge.${scenario}"
             COMMAND umicom-studio-discovery-bridge-checks "${scenario}" "${injected_root}")

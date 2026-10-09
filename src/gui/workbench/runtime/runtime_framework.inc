@@ -78,6 +78,8 @@ static UmiStatus runtime_prepare_session_path(
  * Provide the runtime prepare workspace identity operation used by this module and its
  * client applications.
  */
+/* The current directory can be private application storage. The workspace service now supplies an explicit open or closed identity; the previous CWD-based implementation is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus runtime_prepare_workspace_identity(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -120,6 +122,36 @@ static UmiStatus runtime_prepare_workspace_identity(
     g_free(name);
     g_free(root);
     return UMI_STATUS_OK;
+}
+#endif
+static UmiStatus runtime_prepare_workspace_identity(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioWorkspaceSnapshot snapshot;
+    UmiStatus status = umi_studio_workspace_snapshot(
+        umi_studio_ui_services(runtime->owner->ui), &snapshot);
+    if (status != UMI_STATUS_OK) return status;
+    /* Application settings may use a private directory, but that directory is
+     * never the source root. Only the authoritative user-selected workspace is
+     * allowed to supply identity to documentation and IDE readiness surfaces. */
+    const char *root = snapshot.graph.open ? snapshot.graph.root : "";
+    char *name = snapshot.graph.open ? g_path_get_basename(root) : g_strdup("");
+    if (name == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    if (strlen(root) >= sizeof(runtime->workspace_root) ||
+        strlen(name) >= sizeof(runtime->workspace_name)) {
+        g_free(name);
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    }
+    status = runtime->ide_platform != NULL
+        ? umi_ide_integration_platform_set_workspace(runtime->ide_platform, root)
+        : UMI_STATUS_OK;
+    if (status == UMI_STATUS_OK) {
+        memcpy(runtime->workspace_root, root, strlen(root) + 1U);
+        memcpy(runtime->workspace_name, name, strlen(name) + 1U);
+    }
+    g_free(name);
+    return status;
 }
 
 /*
@@ -250,10 +282,19 @@ static UmiStatus runtime_create_framework(
         if (status != UMI_STATUS_OK) return status;
     }
 
+/* A closed workspace is represented explicitly. The earlier mandatory-path call remains for review. The previous implementation is retained for engineering review. */
+#if 0
     status = umi_ide_integration_platform_create(
         runtime->workspace_root,
         &ide_bindings,
         &runtime->ide_platform);
+#endif
+    /* Build the welcome screen without granting a private settings directory
+     * workspace identity. Existing documents remain bound in either state. */
+    status = runtime->workspace_root[0] != '\0'
+        ? umi_ide_integration_platform_create(
+            runtime->workspace_root, &ide_bindings, &runtime->ide_platform)
+        : umi_ide_integration_platform_create_closed(&ide_bindings, &runtime->ide_platform);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 

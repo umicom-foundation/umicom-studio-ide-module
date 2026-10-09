@@ -7,6 +7,8 @@
  *---------------------------------------------------------------------------*/
 
 /* Adopt generated metadata only after the existing workspace path succeeds. */
+/* The project model now supplies its entry point through a checked Framework path resolver. This supports exported lessons and templates outside src/main.c while retaining the previous convention for review. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
     const UmiBuildProfile *profile, void *context)
 {
@@ -28,6 +30,40 @@ static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
     }
     if (umi_fs_join(mainPath, sizeof(mainPath), model->root, "src/main.c") == UMI_STATUS_OK &&
         umi_fs_is_file(mainPath)) {
+        status = umi_document_coordinator_open(umi_studio_ui_documents(runtime->owner->ui),
+            mainPath, viewId, sizeof(viewId));
+        if (status == UMI_STATUS_OK)
+            status = umi_ui_workbench_activate_document(
+                umi_studio_ui_workbench(runtime->owner->ui), viewId);
+    }
+    runtime_show_notification(runtime,
+        "Project created. Edit and save your source, then review Build > Project Settings before building.");
+    (void)runtime_refresh_services(runtime);
+    return status;
+}
+#endif
+static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
+    const UmiBuildProfile *profile, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    char mainPath[UMI_PATH_CAPACITY];
+    char viewId[UMI_UI_ID_CAPACITY];
+    /* Generated files remain on disk when adoption is postponed. Never replace
+     * the workspace of a compiler job or an active debugger. */
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) return UMI_STATUS_BUSY;
+    UmiStatus status = UmiDeveloperProjectEntryPath(model, mainPath, sizeof mainPath);
+    if (status != UMI_STATUS_OK) return status;
+    status = runtime_open_workspace_path(runtime, model->root);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiStudioBuildProfileSave(services, profile);
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime,
+            "The project files were created, but its build settings could not be saved. Keep the project folder and check settings storage.");
+        return status;
+    }
+    if (umi_fs_is_file(mainPath)) {
         status = umi_document_coordinator_open(umi_studio_ui_documents(runtime->owner->ui),
             mainPath, viewId, sizeof(viewId));
         if (status == UMI_STATUS_OK)
@@ -101,7 +137,54 @@ static UmiStatus RuntimeNewProject(UmiStudioGtkRuntimeChrome *runtime)
         RuntimeProjectCreated, runtime, &runtime->project_dialog);
 }
 
+
+static UmiStatus RuntimeBuildConfigurationRename(const char *root, const char *name,
+    const char *replacement, uint64_t revision, uint64_t *out_revision, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (!umi_path_equal(root, runtime->build_configuration_context.root)) return UMI_STATUS_INVALID_STATE;
+    return UmiStudioBuildConfigurationRename(umi_studio_ui_services(runtime->owner->ui),
+        &runtime->build_configuration_context, name, replacement, revision, out_revision);
+}
+static UmiStatus RuntimeBuildConfigurationRemove(const char *root, const char *name,
+    uint64_t revision, uint64_t *out_revision, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (!umi_path_equal(root, runtime->build_configuration_context.root)) return UMI_STATUS_INVALID_STATE;
+    return UmiStudioBuildConfigurationRemove(umi_studio_ui_services(runtime->owner->ui),
+        &runtime->build_configuration_context, name, revision, out_revision);
+}
+
 /* Settings edit a copy. No compiler or child process starts when the form opens. */
+/* The form's context captures both project identity and storage binding.
+ * Every callback is rechecked by the Studio service before touching Framework's
+ * local catalogue, so another workspace cannot inherit an old form's edits. */
+static UmiStatus RuntimeBuildConfigurationsCapture(const char *root,
+    UmiBuildConfigurationCatalogue *out, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (!umi_path_equal(root, runtime->build_configuration_context.root)) return UMI_STATUS_INVALID_STATE;
+    return UmiStudioBuildConfigurationsCapture(umi_studio_ui_services(runtime->owner->ui),
+        &runtime->build_configuration_context, out);
+}
+static UmiStatus RuntimeBuildConfigurationLoad(const char *root, const char *name,
+    uint64_t revision, UmiBuildProfile *out, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (!umi_path_equal(root, runtime->build_configuration_context.root)) return UMI_STATUS_INVALID_STATE;
+    return UmiStudioBuildConfigurationLoad(umi_studio_ui_services(runtime->owner->ui),
+        &runtime->build_configuration_context, name, revision, out);
+}
+static UmiStatus RuntimeBuildConfigurationSave(const char *name, const UmiBuildProfile *profile,
+    uint64_t revision, uint64_t *out_revision, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    return UmiStudioBuildConfigurationSave(umi_studio_ui_services(runtime->owner->ui),
+        &runtime->build_configuration_context, name, profile, revision, out_revision);
+}
+
+/* Bind named configuration review to the already owned settings form. The captured workspace/storage identity protects late actions; the earlier single-profile opening path remains for review. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
@@ -122,14 +205,128 @@ static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
         workspace.graph.trusted, RuntimeBuildSettingsApplied, runtime,
         &runtime->build_settings_dialog);
 }
+#endif
+/* Studio now exposes saved-name management through the existing captured workspace and storage binding. The previous form binding is retained for review. The previous implementation is retained for engineering review. */
+#if 0
+static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.graph.open) return UMI_STATUS_INVALID_STATE;
+    /* A settings/dialog answer may arrive after Debug started. Recheck here,
+     * not only when its menu was enabled. The former compiler-only guard is
+     * retained; the same source profile also owns the active native session. */
+    // if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) return UMI_STATUS_BUSY;
+    status = UmiStudioBuildConfigurationContextRead(services, &runtime->build_configuration_context);
+    if (status != UMI_STATUS_OK) return status;
+    UmiGtk4DeveloperDialogDestroy(runtime->build_settings_dialog);
+    runtime->build_settings_dialog = NULL;
+    status = UmiGtk4BuildSettingsDialogCreate(runtime->owner->window,
+        umi_studio_build_service_profile(umi_studio_services_build(services)),
+        workspace.graph.trusted, RuntimeBuildSettingsApplied, runtime,
+        &runtime->build_settings_dialog);
+    if (status != UMI_STATUS_OK) return status;
+    UmiGtk4BuildConfigurationCallbacks callbacks = {
+        RuntimeBuildConfigurationsCapture, RuntimeBuildConfigurationLoad,
+        RuntimeBuildConfigurationSave, runtime
+    };
+    status = UmiGtk4BuildSettingsBindConfigurations(runtime->build_settings_dialog, &callbacks);
+    if (status != UMI_STATUS_OK) {
+        UmiGtk4DeveloperDialogDestroy(runtime->build_settings_dialog);
+        runtime->build_settings_dialog = NULL;
+    }
+    return status;
+}
+#endif
+static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.graph.open) return UMI_STATUS_INVALID_STATE;
+    /* A settings/dialog answer may arrive after Debug started. Recheck here,
+     * not only when its menu was enabled. The former compiler-only guard is
+     * retained; the same source profile also owns the active native session. */
+    // if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) return UMI_STATUS_BUSY;
+    status = UmiStudioBuildConfigurationContextRead(services, &runtime->build_configuration_context);
+    if (status != UMI_STATUS_OK) return status;
+    UmiGtk4DeveloperDialogDestroy(runtime->build_settings_dialog);
+    runtime->build_settings_dialog = NULL;
+    status = UmiGtk4BuildSettingsDialogCreate(runtime->owner->window,
+        umi_studio_build_service_profile(umi_studio_services_build(services)),
+        workspace.graph.trusted, RuntimeBuildSettingsApplied, runtime,
+        &runtime->build_settings_dialog);
+    if (status != UMI_STATUS_OK) return status;
+    UmiGtk4BuildConfigurationCallbacks callbacks = {
+        RuntimeBuildConfigurationsCapture, RuntimeBuildConfigurationLoad,
+        RuntimeBuildConfigurationSave, runtime
+    };
+    status = UmiGtk4BuildSettingsBindConfigurations(runtime->build_settings_dialog, &callbacks);
+    if (status == UMI_STATUS_OK) {
+        UmiGtk4BuildConfigurationLifecycleCallbacks lifecycle = {
+            RuntimeBuildConfigurationRename, RuntimeBuildConfigurationRemove, runtime
+        };
+        status = UmiGtk4BuildSettingsBindConfigurationLifecycle(runtime->build_settings_dialog, &lifecycle);
+    }
+    if (status != UMI_STATUS_OK) {
+        UmiGtk4DeveloperDialogDestroy(runtime->build_settings_dialog);
+        runtime->build_settings_dialog = NULL;
+    }
+    return status;
+}
 
 /* Save through the document coordinator before CMake reads source from disk.
  * Untitled documents require Save As first; do not pretend they reached disk. */
+/* Check program ownership before Save All so a blocked build preserves editor drafts. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
     const char *command)
 {
     if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
         return UMI_STATUS_INVALID_ARGUMENT;
+    /* A pending filename decision belongs to the existing Save All session.
+     * Do not start a second save path or a build over partially saved sources. */
+    /* Previous guard checked only UmiGtk4AdapterDocumentSaveAllBusy.
+     * Both operations can write a reviewed source and must finish first. */
+    if (UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
+        UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter)) {
+        runtime_show_notification(runtime,
+            "Build did not start. Finish or cancel Save All first.");
+        return UMI_STATUS_BUSY;
+    }
+    if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(
+            umi_studio_ui_services(runtime->owner->ui)))) {
+        runtime_show_notification(runtime, "Stop the debugger before rebuilding or deploying this project.");
+        return UMI_STATUS_BUSY;
+    }
+    UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
+    UmiStatus status = UmiDocumentCoordinatorSaveAll(documents, NULL);
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime,
+            "Build did not start. Save unnamed documents with Save As and resolve any file conflict first.");
+        return status;
+    }
+    return runtime_execute_registered_command(runtime, command, "background");
+}
+#endif
+static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
+    const char *command)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    /* Keep the save boundary behind execution ownership too: a denied build
+     * should not save editor drafts while its program is still running. */
+    if (RuntimeProgramConsoleBusy(runtime)) {
+        runtime_show_notification(runtime, "Stop the project program console before building or deploying.");
+        return UMI_STATUS_BUSY;
+    }
     /* A pending filename decision belongs to the existing Save All session.
      * Do not start a second save path or a build over partially saved sources. */
     /* Previous guard checked only UmiGtk4AdapterDocumentSaveAllBusy.

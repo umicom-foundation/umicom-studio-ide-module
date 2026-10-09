@@ -13,6 +13,8 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+/* The established Run action builds its target first. The explicit caption distinguishes it from Run current executable; the previous presentation is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 UMI_STUDIO_GTK_COMMAND_PROFILE(
     "run",
     "run.start",
@@ -20,3 +22,11 @@ UMI_STUDIO_GTK_COMMAND_PROFILE(
     "media-playback-start-symbolic",
     "Run",
     "Run the active target")
+#endif
+UMI_STUDIO_GTK_COMMAND_PROFILE(
+    "run",
+    "run.start",
+    "Build and Run",
+    "media-playback-start-symbolic",
+    "Run",
+    "Save, configure, build and run the active target")

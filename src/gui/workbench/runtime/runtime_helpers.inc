@@ -148,6 +148,8 @@ static GtkWidget *runtime_scroll(GtkWidget *child)
  * Provide the runtime mapped studio command operation used by this module and its client
  * applications.
  */
+/* The launch-only command now maps to Studio ownership alongside existing shell commands. The previous mapping is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 static const char *runtime_mapped_studio_command(const char *command_id)
 {
     /*
@@ -155,6 +157,92 @@ static const char *runtime_mapped_studio_command(const char *command_id)
      * used.
      */
     if (command_id == NULL) return NULL;
+    if (strcmp(command_id, "build.test") == 0) return UMI_STUDIO_COMMAND_BUILD_TEST;
+    if (strcmp(command_id, "build.cancel") == 0) return UMI_STUDIO_COMMAND_BUILD_CANCEL;
+
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "file.save-all") == 0) {
+        return UMI_STUDIO_COMMAND_DOCUMENTS_SAVE_ALL;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "build.configure") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_CONFIGURE;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "build.build") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_COMPILE;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "build.clean") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_CLEAN;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "build.package") == 0) return UMI_STUDIO_COMMAND_BUILD_PACKAGE;
+    if (strcmp(command_id, "build.rebuild") == 0) return UMI_STUDIO_COMMAND_BUILD_REBUILD;
+    if (strcmp(command_id, "build.deploy") == 0) return UMI_STUDIO_COMMAND_BUILD_DEPLOY;
+    if (strcmp(command_id, "build.install") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_INSTALL;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "run.start") == 0) {
+        return UMI_STUDIO_COMMAND_BUILD_RUN;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "test.run-all") == 0) {
+        return UMI_STUDIO_COMMAND_TESTS_RUN_ALL;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "test.rerun-failed") == 0) {
+        return UMI_STUDIO_COMMAND_TESTS_RERUN_FAILED;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "test.stop") == 0) {
+        return UMI_STUDIO_COMMAND_TESTS_STOP;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "debug.start") == 0) {
+        return UMI_STUDIO_COMMAND_DEBUG_START;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.refresh") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_REFRESH;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.stage-all") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_STAGE_ALL;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.commit") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_COMMIT;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.pull") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_PULL;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.push") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_PUSH;
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.diff") == 0) {
+        return UMI_STUDIO_COMMAND_VCS_DIFF;
+    }
+
+    return NULL;
+}
+#endif
+static const char *runtime_mapped_studio_command(const char *command_id)
+{
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (command_id == NULL) return NULL;
+    /* Launching an existing executable belongs to Studio's project session.
+     * Mapping the canonical identifier here keeps menus and the command palette
+     * on the same owner, without entering the save-and-build workflow. */
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT) == 0)
+        return UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT;
     if (strcmp(command_id, "build.test") == 0) return UMI_STUDIO_COMMAND_BUILD_TEST;
     if (strcmp(command_id, "build.cancel") == 0) return UMI_STUDIO_COMMAND_BUILD_CANCEL;
 
@@ -254,6 +342,8 @@ static int RuntimeBuildReadsSavedDocuments(const char *commandId)
  * Provide the runtime command enabled operation used by this module and its client
  * applications.
  */
+/* The launch-only action now checks project availability through its Studio command mapping. The earlier availability implementation is retained for review. The previous implementation is retained for engineering review. */
+#if 0
 static int runtime_command_enabled(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id)
@@ -308,6 +398,15 @@ static int runtime_command_enabled(
         (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "build.settings") == 0 ||
          strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
          strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0)) return 0;
+
+    /* Launch-only is independent of saved-document compilation, but it still
+     * shares the active debugger/build ownership boundary. Dispatch repeats
+     * these checks so a retained command cannot start a competing process. */
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT) == 0 &&
+        (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(
+            umi_studio_ui_services(runtime->owner->ui))) ||
+         UmiStudioBuildBusy(umi_studio_services_build(
+            umi_studio_ui_services(runtime->owner->ui))))) return 0;
 
     if (RuntimeBuildReadsSavedDocuments(command_id) &&
         UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter)) return 0;
@@ -418,6 +517,212 @@ static int runtime_command_enabled(
         UmiCommandRegistry *commands = umi_ui_workbench_commands(
             umi_studio_ui_workbench(runtime->owner->ui));
         if (!umi_command_registry_contains(commands, mapped)) return 0;
+        if (strcmp(command_id, "source-control.commit") == 0) return 1;
+        if (strcmp(command_id, "source-control.diff") == 0)
+            return runtime->selected_vcs_path[0] != '\0';
+        if (strncmp(command_id, "build.", 6U) == 0 || strcmp(command_id, "run.start") == 0) {
+            UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+            UmiStudioWorkspaceSnapshot workspace;
+            int busy = UmiStudioBuildBusy(umi_studio_services_build(services));
+            if (strcmp(command_id, "build.cancel") == 0) return busy;
+            /* Previous predicate retained: busy || snapshot failure || !open.
+             * The shared Save All owner is now also a prerequisite. Build
+             * cancellation is handled above and stays usable while building. */
+            // if (busy || umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+            //     !workspace.graph.open) return 0;
+            if (busy || UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
+                umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+                !workspace.graph.open) return 0;
+        }
+        return umi_command_registry_is_enabled(commands, mapped, NULL);
+    }
+    if (umi_command_registry_contains(bindings->commands, command_id))
+        return umi_command_registry_is_enabled(bindings->commands, command_id, NULL);
+
+    return 0;
+}
+#endif
+static int runtime_command_enabled(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *command_id)
+{
+    UmiStudioRuntimeBindings *bindings;
+    const char *mapped;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL ||
+        runtime->runtime_bootstrap == NULL ||
+        runtime->runtime_bootstrap->platform == NULL ||
+        command_id == NULL ||
+        command_id[0] == '\0') {
+        return 0;
+    }
+
+    bindings = umi_studio_runtime_platform_bindings(
+        runtime->runtime_bootstrap->platform);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (bindings == NULL || bindings->commands == NULL) return 0;
+
+    /* A replacement sequence must finish before another host-changing flow.
+     * Dispatch repeats this check so a retained action cannot bypass it. */
+    if (UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
+         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0 ||
+         strcmp(command_id, "file.close") == 0 || strcmp(command_id, "file.close-all") == 0 ||
+         strcmp(command_id, "file.close-others") == 0)) return 0;
+    if (strcmp(command_id, "editor.replace-open-documents") == 0)
+        return runtime->editor_find_entry != NULL && runtime->editor_replace_entry != NULL &&
+            gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry))[0] != '\0' &&
+            umi_document_coordinator_count(umi_studio_ui_documents(runtime->owner->ui)) != 0U &&
+            !UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
+
+    if (strcmp(command_id, "umicom.document.go-to-line") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_document_coordinator_active_snapshot(
+            umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+
+    if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(
+            umi_studio_ui_services(runtime->owner->ui))) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "build.settings") == 0 ||
+         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0)) return 0;
+
+    /* Launch-only is independent of saved-document compilation, but it still
+     * shares the active debugger/build ownership boundary. Dispatch repeats
+     * these checks so a retained command cannot start a competing process. */
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT) == 0 &&
+        (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(
+            umi_studio_ui_services(runtime->owner->ui))) ||
+         UmiStudioBuildBusy(umi_studio_services_build(
+            umi_studio_ui_services(runtime->owner->ui))))) return 0;
+
+    if (RuntimeBuildReadsSavedDocuments(command_id) &&
+        UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter)) return 0;
+
+    /* Group-close availability is queried from Framework, not inferred from
+     * the caption of a button. Dispatch repeats these checks. */
+    /* History availability belongs to the shared document binding. It remains
+     * useful when no source tabs are open, so it precedes active-tab checks. */
+    /* Native availability and execution ask the same owner, including busy
+     * decisions. A contribution alone is not proof of a reachable destination. */
+    if (strcmp(command_id, "navigate.back") == 0 || strcmp(command_id, "editor.navigate.back") == 0)
+        return UmiGtk4AdapterNavigationHistoryEnabled(runtime->owner->adapter, -1);
+    if (strcmp(command_id, "navigate.forward") == 0 || strcmp(command_id, "editor.navigate.forward") == 0)
+        return UmiGtk4AdapterNavigationHistoryEnabled(runtime->owner->adapter, 1);
+    /* Bookmark state and navigation remain owned by Framework. */
+    if (strcmp(command_id, "editor.bookmark.toggle") == 0) return UmiGtk4AdapterBookmarkEnabled(runtime->owner->adapter, 0);
+    if (strcmp(command_id, "editor.bookmark.next") == 0) return UmiGtk4AdapterBookmarkEnabled(runtime->owner->adapter, 1);
+    if (strcmp(command_id, "editor.bookmark.previous") == 0) return UmiGtk4AdapterBookmarkEnabled(runtime->owner->adapter, -1);
+    if (strcmp(command_id, "editor.bookmark.clear") == 0) return UmiGtk4AdapterBookmarkEnabled(runtime->owner->adapter, 2);
+    if (strcmp(command_id, "navigate.history.clear") == 0)
+        return UmiGtk4AdapterNavigationHistoryEnabled(runtime->owner->adapter, 0);
+    if (strcmp(command_id, "file.reopen-closed") == 0 || strcmp(command_id, "file.forget-closed") == 0)
+        return UmiGtk4AdapterReopenDocumentEnabled(runtime->owner->adapter);
+    if (strcmp(command_id, "file.close-all.cancel") == 0)
+        return UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter);
+    if (strcmp(command_id, "file.close-all") == 0 || strcmp(command_id, "file.close-others") == 0) {
+        UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
+        UmiDocumentWorkingCopySnapshot active;
+        int others = strcmp(command_id, "file.close-others") == 0;
+        return UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) &&
+            !UmiStudioBuildBusy(umi_studio_services_build(umi_studio_ui_services(runtime->owner->ui))) &&
+            umi_document_coordinator_count(documents) > (others ? 1U : 0U) &&
+            (!others || umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+    }
+    /* Close All is not application shutdown. Keep the current editing host
+     * alive until its sequence completes or the user cancels it. */
+    if (UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) ||
+         strcmp(command_id, "application.exit") == 0 ||
+         strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "file.close") == 0)) return 0;
+
+    if (strcmp(command_id, "file.save-all.cancel") == 0)
+        return UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
+
+    UmiDocumentEditCommand editCommand;
+    if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
+        return UmiGtk4AdapterDocumentCommandEnabled(runtime->owner->adapter, command_id);
+
+    if (strcmp(command_id, "navigate.document.next") == 0 ||
+        strcmp(command_id, "navigate.document.previous") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_document_coordinator_active_snapshot(
+            umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+
+    /* The same route must decide availability and execute the command. Native
+     * input collection comes before argument-dependent registry predicates. */
+    if (strcmp(command_id, "project.new") == 0 ||
+        strcmp(command_id, "workspace.open-folder") == 0) {
+        return runtime->owner != NULL && runtime->owner->ui != NULL &&
+            !UmiStudioBuildBusy(umi_studio_services_build(
+                umi_studio_ui_services(runtime->owner->ui)));
+    }
+    if (strcmp(command_id, "build.settings") == 0) {
+        UmiStudioWorkspaceSnapshot workspace;
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        return umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK &&
+            workspace.graph.open && !UmiStudioBuildBusy(umi_studio_services_build(services));
+    }
+    if (strcmp(command_id, "file.new") == 0 || strcmp(command_id, "file.open") == 0 ||
+        strcmp(command_id, "application.exit") == 0 ||
+        strcmp(command_id, "studio.command.search") == 0 ||
+        strcmp(command_id, "studio.layout.manager") == 0 ||
+        strcmp(command_id, "help.ai-teacher") == 0 ||
+        strcmp(command_id, "help.documentation") == 0 ||
+        strcmp(command_id, "designer.open") == 0 ||
+        strcmp(command_id, "view.live-preview") == 0) return 1;
+    if (strcmp(command_id, "file.save") == 0 ||
+        strcmp(command_id, "file.save-as") == 0 || strcmp(command_id, "file.close") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return runtime->owner != NULL && runtime->owner->ui != NULL &&
+            umi_document_coordinator_active_snapshot(
+                umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+    if (strcmp(command_id, "navigate.problem.next") == 0 ||
+        strcmp(command_id, "navigate.problem.previous") == 0)
+        return UmiStudioUiCanNavigateProblems(runtime->owner->ui);
+    /* Save All collects untitled names before calling the existing saver.
+     * It must not inherit the synchronous named-only command predicate. */
+    if (strcmp(command_id, "file.save-all") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_DOCUMENTS_SAVE_ALL) == 0) {
+        /* Save All is also unavailable while the build service is reading
+         * source files. Its execution entry point repeats this check. */
+        return UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter) &&
+            !UmiStudioBuildBusy(umi_studio_services_build(
+                umi_studio_ui_services(runtime->owner->ui))) &&
+            /* Previously only Save All's own busy state was checked here. */
+            !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) &&
+            !UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter) &&
+            umi_document_coordinator_count(umi_studio_ui_documents(runtime->owner->ui)) != 0U;
+    }
+    mapped = runtime_mapped_studio_command(command_id);
+    if (mapped != NULL) {
+        UmiCommandRegistry *commands = umi_ui_workbench_commands(
+            umi_studio_ui_workbench(runtime->owner->ui));
+        if (!umi_command_registry_contains(commands, mapped)) return 0;
+        /* Launch-only still requires an open project. The registered command
+         * repeats trust and busy checks when invoked, including by a shortcut. */
+        if (strcmp(mapped, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT) == 0) {
+            UmiStudioWorkspaceSnapshot workspace;
+            if (umi_studio_workspace_snapshot(
+                    umi_studio_ui_services(runtime->owner->ui), &workspace) != UMI_STATUS_OK ||
+                !workspace.graph.open) return 0;
+        }
         if (strcmp(command_id, "source-control.commit") == 0) return 1;
         if (strcmp(command_id, "source-control.diff") == 0)
             return runtime->selected_vcs_path[0] != '\0';

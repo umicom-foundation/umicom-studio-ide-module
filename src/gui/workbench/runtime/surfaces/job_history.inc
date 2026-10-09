@@ -23,6 +23,14 @@ static void RuntimeBuildHistoryCapture(GtkButton *button, gpointer data)
     }
     GString *text =
         g_string_new("Saved job outcomes. Unfinished entries are not proof of a running process.\n");
+    /* Framework computes the same identity used at submission. Comparing on
+     * explicit refresh keeps disk and profile work out of the output timer.
+     * A matching profile does not imply that saved source files are unchanged. */
+    UmiJobIdentity current = {0};
+    UmiStatus identityStatus = UmiBuildProfileJobIdentity(
+        umi_studio_build_service_profile(service), &current);
+    g_string_append(text, "Settings comparison uses the selected project. Source contents, "
+        "preset file contents and tool versions are not captured.\n");
     for (size_t i = 0; i < snapshot->count; ++i)
     {
         UmiJobHistoryEntry *entry = &snapshot->entries[i];
@@ -32,6 +40,10 @@ static void RuntimeBuildHistoryCapture(GtkButton *button, gpointer data)
                                entry->completed_steps, entry->total_steps,
                                UmiJobHistoryIsFinished(entry->state) ? umi_status_text(entry->result)
                                                                      : "outcome unknown; no automatic retry");
+        UmiJobIdentityComparison comparison = identityStatus == UMI_STATUS_OK
+            ? UmiJobIdentityCompare(&entry->identity, &current) : UMI_JOB_IDENTITY_UNKNOWN;
+        g_string_append_printf(text, "Context: %s\n",
+            UmiJobIdentityComparisonText(comparison));
         g_free(caption);
     }
     if (snapshot->count == 0)

@@ -13,6 +13,23 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/vcs/working_tree_gtk4.h"
+
+/* Framework owns the Git reader and worker lifetime. Studio supplies the observed
+ * repository root and embeds its reusable review alongside the existing VCS commands. */
+static void RuntimeSourceControlRepositoryReview(
+    UmiStudioGtkRuntimeChrome *runtime, GtkWidget *panel)
+{
+    void *review = NULL;
+    if (runtime->source_control_snapshot.root[0] == '\0') return;
+    UmiStatus status = UmiVcsWorkingTreeGtk4Create(
+        runtime->source_control_snapshot.root, &review);
+    if (status != UMI_STATUS_OK) return;
+    GtkWidget *expander = gtk_expander_new("Repository and submodule review");
+    gtk_expander_set_child(GTK_EXPANDER(expander), GTK_WIDGET(review));
+    gtk_box_append(GTK_BOX(panel), expander);
+}
+
 static void runtime_on_vcs_refresh_button(
     GtkButton *button,
     gpointer user_data)
@@ -191,6 +208,8 @@ static GtkWidget *runtime_build_surface_source_control(
             gtk_box_append(GTK_BOX(panel), notebook);
         }
     }
+
+    RuntimeSourceControlRepositoryReview(runtime, panel);
 
     runtime_append_context_actions(runtime, panel, "source_control");
 
