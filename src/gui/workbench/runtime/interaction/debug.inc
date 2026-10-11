@@ -279,3 +279,6 @@ static void runtime_debug_update_summary(
 #include "debug_sources.inc"
 
 #include "debug_exception_information.inc"
+
+/* Instruction browsing shares Framework stop ownership and keeps Studio project checks here. */
+#include "debug_instructions.inc"

@@ -3257,3 +3257,6 @@ include(cmake/UmicomStudioExceptionInformation.cmake)
 
 # Process selection fills the existing attach form through Framework discovery.
 include(cmake/UmicomStudioProcessPicker.cmake)
+
+# Present Framework instruction captures through the trusted debugger workspace.
+include(cmake/UmicomStudioDebugInstructions.cmake)

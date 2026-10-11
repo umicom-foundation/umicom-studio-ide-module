@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Machine instructions in Studio</title>
+<style>body{font:17px/1.6 system-ui,sans-serif;max-width:900px;margin:3rem auto;padding:0 1.5rem;color:#172638}h1,h2{line-height:1.25}code{background:#eef2f6}a{color:#165ca8}</style></head>
+<body><main><h1>Read machine instructions in Studio</h1>
+<p>Use the Debug workspace to inspect the instructions associated with a paused function call.
+This is useful when following assembly, checking compiler output or investigating code without source files.
+Instruction browsing requires a connected debug adapter that supports disassembly.</p>
+<h2>Open a page</h2><ol>
+<li>Open your project folder and trust it only if you intend to run its development tools.</li>
+<li>Configure the native debugger, launch or attach to your program, and pause at a breakpoint or with Pause.</li>
+<li>Open the Debug workspace. Select the stack frame you want to inspect and expand <strong>Machine instructions</strong>.</li>
+<li>Choose <strong>Refresh instructions</strong>. Studio captures that frame and asks for 32 instructions starting at its instruction reference.</li>
+<li>Read the address, instruction bytes, instruction text and any available symbol or source information. <strong>[unavailable]</strong> marks a position the adapter could not decode.</li></ol>
+<h2>Move through the instructions</h2>
+<ol><li>Choose <strong>Later instructions</strong> or <strong>Earlier instructions</strong> to move by the selected page size.</li>
+<li>For a precise request, enter a decimal byte offset and instruction offset, select 1 to 64 instructions per page, then choose <strong>Read page</strong>.
+A negative offset requests positions before the captured reference.</li>
+<li>Turn <strong>Resolve symbols</strong> on to ask the adapter for names it knows. Symbol availability depends on the program and debugger.</li>
+<li>After continuing, restarting, changing projects or selecting another frame, choose <strong>Refresh instructions</strong> again. Refresh resets both offsets to zero.</li></ol>
+<p>Changing a request field clears the old rows immediately. Earlier and Later move relative to the captured reference, without guessing instruction byte sizes.
+The view displays text; it does not execute instructions, write memory, follow source paths or create breakpoints.</p>
+<h2>If no instructions appear</h2>
+<ul><li><strong>Adapter does not advertise disassembly:</strong> source-level debugging can still work; use an adapter with disassembly support for this view.</li>
+<li><strong>No instruction reference:</strong> refresh the paused stack or choose another frame. Some frames have no machine-code location.</li>
+<li><strong>Busy or changed state:</strong> allow pending debugger events to update, then refresh explicitly.</li>
+<li><strong>Permission denied:</strong> check that the intended project is still open and trusted.</li>
+<li><strong>Timeout, rejected request or malformed response:</strong> inspect the adapter's diagnostic output. A failed request clears the displayed page; it does not resume the program.</li></ul>
+<p>Source-level launch and attach configuration are described in the existing debugger guides. Instruction pages share the same connection and project lifetime.</p>
+</main><h2>Continue, step and pause</h2>
+<p>Continuing or stepping retires the previous frame, scope and variable captures
+before the request is sent. A lost reply cannot make old instruction references
+current again. Wait for a fresh stop, select its frame and refresh the instruction
+view. If a control request fails and no new stop arrives, end the debugging
+session and reconnect before inspecting again.</p>
+<p>A Pause acknowledgement means the adapter accepted the request; Studio waits
+for the stop event before offering paused inspection. Retained text describes an
+earlier capture until you refresh it.</p>
+</body></html>
