@@ -15,6 +15,7 @@
 
 #include "umicom/build/live_output_gtk4.h"
 #include "umicom/build/live_diagnostics_gtk4.h"
+#include "umicom/ui/gtk4/path_picker.h"
 #include "job_history.inc"
 
 /* Resolve the current service only during a weakly bound owner action. The
@@ -292,6 +293,14 @@ static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtim
     gtk_entry_set_max_length(GTK_ENTRY(runtime->build_log_path), (int)UMI_PATH_CAPACITY - 1);
     (void)umi_gtk4_automation_tag_widget(runtime->build_log_path, "studio.build.log.path");
     gtk_box_append(GTK_BOX(panel), runtime->build_log_path);
+    /* A native chooser changes only the draft; arming the next job remains
+     * explicit so browsing cannot redirect an already running compiler log. */
+    GtkWidget *browse_log = UmiPathPickerGtk4Create(GTK_ENTRY(runtime->build_log_path),
+        UMI_PATH_PICKER_NEW_FILE, "Choose a new build log", "build-output.log");
+    if (browse_log != NULL) {
+        (void)umi_gtk4_automation_tag_widget(browse_log, "studio.build.log.browse");
+        gtk_box_append(GTK_BOX(panel), browse_log);
+    }
     GtkWidget *log_controls = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     GtkWidget *select_log = gtk_button_new_with_label("Use log for next job");
     GtkWidget *clear_log = gtk_button_new_with_label("Disable next log");

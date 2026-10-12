@@ -65,3 +65,22 @@ When a lesson supplies a resource path, **Open lesson resource** sends it to the
 - Layout persistence remembers visibility, placement, docking, and floating state independently from the services shown inside each panel.
 - The source-preview service selects providers, checks revisions and enforces the no-execution default independently from Studio's GTK widgets.
 - C completion and documentation are offline defaults, while richer providers remain replaceable and independently governed.
+
+## Inspect a teaching trace
+
+From Guided Learning, select **Open learning practicum and saved progress**,
+then expand **Inspect a teaching trace**. Choose the Scheduler, Timer, Interrupt
+or Driver evidence format and browse to the file produced by that lesson.
+Select **Inspect selected file** to read a bounded report without running the
+file or changing the active Studio project.
+
+The report keeps the full input path beside its counts. A missing or malformed
+file leaves the previous report visible with a separate error message. Changing
+the selection while a read is pending discards a result that no longer matches.
+**Discard pending result** also leaves the previous report intact; the file read
+may finish in the background. Closing the learning window retires its controls.
+
+These are classroom formats, not live Kernel telemetry. A consistent driver
+evidence hash chain does not authenticate its author or prove hardware recovery.
+Framework owns the native reader, teaching parsers and report widget so other
+educational applications can offer the same workflow.

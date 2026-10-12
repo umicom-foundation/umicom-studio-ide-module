@@ -33,4 +33,24 @@ text for readability; the file preserves the original bytes instead. A log may t
 disks can affect writing and job completion. Review logs before sharing them because programs may print private paths
 or other sensitive values. The selection is session state, not a saved project setting. It applies to background
 build workflows; older synchronous service calls and unrelated terminals keep their existing behaviour.</p>
-</main></body></html>
+<section>
+<h2>Choose a location using the file browser</h2>
+<ol>
+<li>In the Output panel, select <strong>Choose new location...</strong> below the log path.</li>
+<li>Choose a folder you can write to and enter a new filename, such as <code>build-output.log</code>.
+The selected path appears in the entry. No file has been written yet.</li>
+<li>Select <strong>Use log for next job</strong>, then start your normal build action.
+The status shows the accepted path and the bytes captured.</li>
+<li>For saved job history or test archives, use <strong>Browse existing...</strong> to choose an
+earlier database, or <strong>Choose new location...</strong> for a new database.
+Select <strong>Open history</strong> or <strong>Open archive</strong> to attach it.</li>
+</ol>
+<p>A chooser does not change a running job. Cancelling it leaves the path unchanged.
+If you edit the entry while a chooser is open, the later chooser result is ignored so your newer text survives.
+You may still type a full path directly.</p>
+<p>If the chooser fails, type the full path and use the same action button. If a log filename already exists,
+choose another name; the build log writer does not overwrite your earlier evidence.
+Keep history databases outside source repositories and close Studio before copying them as backups.</p>
+</section>
+</main>
+</body></html>

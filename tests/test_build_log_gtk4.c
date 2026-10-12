@@ -68,6 +68,11 @@ int main(int argc, char **argv)
     GtkWidget *select = Find(root, "studio.build.log.select");
     GtkWidget *entry = Find(root, "studio.build.log.path");
     GtkWidget *clear = Find(root, "studio.build.log.clear");
+    /* Merely constructing chooser controls must not arm a log, open a history
+     * database, or start a job. Dialog completion is covered by Framework. */
+    CHECK(Find(root, "studio.build.log.browse") != NULL);
+    CHECK(Find(root, "studio.build.history.browse") != NULL);
+    CHECK(Find(root, "studio.build.history.choose-new") != NULL);
     CHECK(GTK_IS_BUTTON(select) && GTK_IS_ENTRY(entry) && GTK_IS_BUTTON(clear));
     log = g_new0(UmiStudioBuildLogState, 1);
     char *path = g_build_filename(directory, "selected.log", NULL);

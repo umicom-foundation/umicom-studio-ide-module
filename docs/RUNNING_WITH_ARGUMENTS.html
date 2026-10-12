@@ -36,4 +36,42 @@ table{border-collapse:collapse;width:100%}td,th{padding:10px;border:1px solid #c
 <p>This workflow changes launch configuration and serialization. It does not install a compiler or debugger, and source review alone does not demonstrate that a particular installed toolchain can run the project.</p>
 <h2>Programs that use relative data files</h2>
 <p>Project Settings also has a <strong>Program working folder</strong> field. A blank field uses the project root; a relative folder is resolved from that root. Run and native Debug share the selected folder while keeping the executable path relative to the project. See <a href="../../../framework/docs/learning/project-stage-presets.html">project presets and working folders</a> for examples and recovery steps.</p>
+<section><h2>Review environment settings before a launch</h2>
+<p>A program can also read named environment values. In Project Settings, enter
+<code>COURSE=practice "DATA_FOLDER=C:/Work/Sample data"</code> in the Run / Debug environment field.
+These are literal values, not shell commands. Use settings for your own program; Studio does not
+add support for these names to an application.</p>
+<ol><li>Enter the tools folder if your program or debugger needs its programs and libraries.
+Use a full native directory path.</li>
+<li>Choose <strong>Review launch settings</strong>. The description lists the program, working folder,
+arguments, override names and tools-folder policy. Environment values remain hidden in this description.</li>
+<li>If you edit the environment or tools folder, review again. The old description is marked as changed.</li>
+<li>Choose <strong>Apply Settings</strong> to save the profile, then use Run or Debug.
+Reviewing alone neither saves the form nor starts a process.</li></ol>
+<p>The environment list accepts up to sixteen distinct portable names in 1,023 UTF-8 bytes.
+Names start with a letter or underscore, followed by letters, digits or underscores.
+Quote values containing spaces; duplicate names, including different capitalisation, are refused.
+An empty value overrides a variable with an empty string. Other host variables remain inherited.</p>
+<p>If review fails, check the environment syntax and tools path as well as the launch fields.
+The review does not check whether files, toolchains or debuggers are installed.
+Saved profiles contain these values as ordinary configuration; this field is not a password or API-key vault.</p>
+</section>
+<section><h2>Check the program and working folder</h2>
+<ol><li>In Project Settings, enter the program and working folder you intend to use.
+An explicit path such as <code>./build/my-program.exe</code> resolves from the project folder.</li>
+<li>Choose <strong>Check launch files</strong>. A background check reports each resolved path,
+its filesystem status and whether it has the expected type: a regular file for the program,
+or a directory for the working folder. Nothing is launched or saved.</li>
+<li>If a file is missing, check the build result and correct its location. If a directory was
+entered as the program, select the executable inside it. A symbolic link or reparse point is
+reported as such; this check does not follow it to approve a program.</li>
+<li>If you change launch inputs while checking, the result is marked out of date. Run the
+check again, review arguments and environment settings, then apply the settings separately.</li></ol>
+<p>A bare name such as <code>my-program</code> is not searched through PATH by this check.
+Run may resolve that name through operating-system lookup, while native Debug uses the
+project-relative file shown separately. Use an explicit file path for a consistent choice.</p>
+<p>A file having the expected type does not verify executable permissions, architecture,
+required libraries or debugger compatibility. Files can change after the check. Closing the form
+requests cancellation; an operating-system metadata call already in progress may finish later.</p>
+</section>
 </main><footer><p>Umicom Foundation · Sammy Hegab · MIT</p></footer></body></html>

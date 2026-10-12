@@ -131,6 +131,20 @@ static void RuntimeBuildHistoryControls(UmiStudioGtkRuntimeChrome *runtime, GtkW
     gtk_entry_set_max_length(GTK_ENTRY(runtime->build_history_path), (int)UMI_PATH_CAPACITY - 1);
     (void)umi_gtk4_automation_tag_widget(runtime->build_history_path, "studio.build.history.path");
     gtk_box_append(GTK_BOX(box), runtime->build_history_path);
+    /* Framework owns chooser cancellation and stale-entry checks. These
+     * controls only select a name; Open history still owns database access. */
+    GtkWidget *browse_history = UmiPathPickerGtk4Create(GTK_ENTRY(runtime->build_history_path),
+        UMI_PATH_PICKER_EXISTING_FILE, "Choose saved job history", NULL);
+    GtkWidget *choose_history = UmiPathPickerGtk4Create(GTK_ENTRY(runtime->build_history_path),
+        UMI_PATH_PICKER_NEW_FILE, "Choose a new job history location", "build-history.sqlite3");
+    if (browse_history != NULL) {
+        (void)umi_gtk4_automation_tag_widget(browse_history, "studio.build.history.browse");
+        gtk_box_append(GTK_BOX(box), browse_history);
+    }
+    if (choose_history != NULL) {
+        (void)umi_gtk4_automation_tag_widget(choose_history, "studio.build.history.choose-new");
+        gtk_box_append(GTK_BOX(box), choose_history);
+    }
     GtkWidget *controls = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     GtkWidget *open = gtk_button_new_with_label("Open history");
     GtkWidget *refresh = gtk_button_new_with_label("Refresh saved jobs");

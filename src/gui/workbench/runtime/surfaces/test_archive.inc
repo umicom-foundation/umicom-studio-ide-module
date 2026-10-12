@@ -6,6 +6,7 @@
  * LICENCE: MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/gtk4/path_picker.h"
 #include "umicom/studio/test_archive.h"
 #include "umicom/build/job_history.h"
 
@@ -697,6 +698,20 @@ static void RuntimeTestArchiveControls(UmiStudioGtkRuntimeChrome *runtime, GtkWi
     gtk_entry_set_max_length(GTK_ENTRY(runtime->test_archive_path), (int)UMI_PATH_CAPACITY - 1);
     (void)umi_gtk4_automation_tag_widget(runtime->test_archive_path, "studio.tests.archive.path");
     gtk_box_append(GTK_BOX(box), runtime->test_archive_path);
+    /* File selection stays separate from asynchronous archive acquisition.
+     * A cancelled chooser cannot detach the current test evidence database. */
+    GtkWidget *browse_archive = UmiPathPickerGtk4Create(GTK_ENTRY(runtime->test_archive_path),
+        UMI_PATH_PICKER_EXISTING_FILE, "Choose a saved test archive", NULL);
+    GtkWidget *choose_archive = UmiPathPickerGtk4Create(GTK_ENTRY(runtime->test_archive_path),
+        UMI_PATH_PICKER_NEW_FILE, "Choose a new test archive location", "test-results.sqlite3");
+    if (browse_archive != NULL) {
+        (void)umi_gtk4_automation_tag_widget(browse_archive, "studio.tests.archive.browse");
+        gtk_box_append(GTK_BOX(box), browse_archive);
+    }
+    if (choose_archive != NULL) {
+        (void)umi_gtk4_automation_tag_widget(choose_archive, "studio.tests.archive.choose-new");
+        gtk_box_append(GTK_BOX(box), choose_archive);
+    }
     GtkWidget *files = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     RuntimeTestArchiveButton(runtime, files, "Open archive", "studio.tests.archive.open",
                              RuntimeTestArchiveOpen);
