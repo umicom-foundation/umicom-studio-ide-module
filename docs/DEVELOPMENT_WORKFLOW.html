@@ -284,4 +284,30 @@ int main(int argc, char **argv)
 <tr><td>Project changed while Debug was waiting</td><td>Stop that request, review the new profile, save the intended sources and start again. Do not use an old build result as approval for a different executable.</td></tr>
 <tr><td>Interface appears delayed during debugging</td><td>Wait for the bounded adapter request to finish or time out. Record the operation and adapter output. The present debugger handshake is synchronous, unlike the compiler worker.</td></tr></table>
 <p>For a reproducible GUI problem, use <strong>Report problem</strong>, repeat the smallest sequence, add what you expected and what actually happened, and export the local report. Review screenshots and logs before sharing: they may contain source code and paths. A screenshot of a button is not enough to prove that its file, build or debugger operation succeeded.</p>
+<h2>Create an application module</h2>
+<p>The welcome page also offers <strong>New Umicom Application</strong>. Use this
+when the project needs a discoverable application manifest, a console frontend,
+optional GTK frontend, model tests and installer rules. Ordinary New Project
+recipes remain available for other starting points.</p>
+<ol>
+<li>Enter the application name, dotted identifier and a lower-case module slug.
+Choose an existing parent folder; the slug names the new child folder.</li>
+<li>Choose <strong>Preview Source</strong> and inspect the listed files. Changing
+an input invalidates the preview even when you change it back.</li>
+<li>Choose <strong>Create Source</strong> to write the displayed bytes into the
+new folder. Existing folders are refused. The form reports any partial write
+and keeps those files for inspection.</li>
+<li>Choose <strong>Open Project</strong>. Review Build Settings and workspace
+trust before configuring. An independent project needs an installed Framework
+SDK; provide its prefix through the CMake definitions. The generated README
+explains its standalone build and install options.</li>
+<li>Use the normal configure, build and test actions. Read the build target
+catalogue to choose the resulting executable for Run and Debug; creation does
+not guess a generator-specific executable path.</li>
+</ol>
+<p>The form uses Framework's native application scaffold service. It does not
+initialise Git, commit, create a remote or register a submodule. Source review
+and repository publication remain separate decisions. If templates cannot be
+found, enter the absolute <code>templates/application_module</code> directory
+of a trusted Framework checkout or reinstall the Framework resources.</p>
 <h2>10. Continue towards a daily-use IDE</h2><p>A dependable IDE also needs responsive language intelligence, fully qualified native debugging, interactive terminals, workspace recovery, reliable Git workflows and clean-machine installation. Keep testing the complete Notes journey rather than judging a feature by whether its menu item is present. Each confirmed problem should name the failing operation, the affected project and the observed result.</p></main></body></html>

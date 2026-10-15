@@ -51,8 +51,11 @@ static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
     char viewId[UMI_UI_ID_CAPACITY];
     /* Generated files remain on disk when adoption is postponed. Never replace
      * the workspace of a compiler job or an active debugger. */
+    /* A newly created project also waits for the current program console.
+     * Adopting its build profile must not replace a running program's workspace. */
     if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
-        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) return UMI_STATUS_BUSY;
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+        RuntimeProgramConsoleBusy(runtime)) return UMI_STATUS_BUSY;
     UmiStatus status = UmiDeveloperProjectEntryPath(model, mainPath, sizeof mainPath);
     if (status != UMI_STATUS_OK) return status;
     status = runtime_open_workspace_path(runtime, model->root);
@@ -137,6 +140,20 @@ static UmiStatus RuntimeNewProject(UmiStudioGtkRuntimeChrome *runtime)
         RuntimeProjectCreated, runtime, &runtime->project_dialog);
 }
 
+
+/* The Framework form owns source review and file creation. Studio only adopts
+ * the resulting project through its existing workspace and build-profile path. */
+static UmiStatus RuntimeNewApplication(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+        RuntimeProgramConsoleBusy(runtime)) return UMI_STATUS_BUSY;
+    UmiGtk4DeveloperDialogDestroy(runtime->project_dialog);
+    runtime->project_dialog = NULL;
+    return UmiGtk4ApplicationModuleDialogCreate(runtime->owner->window,
+        RuntimeProjectCreated, runtime, &runtime->project_dialog);
+}
 
 static UmiStatus RuntimeBuildConfigurationRename(const char *root, const char *name,
     const char *replacement, uint64_t revision, uint64_t *out_revision, void *context)

@@ -426,6 +426,7 @@ static const char *runtime_surface_component_id(UmiStudioRuntimeSurfaceKind kind
     {id_, command_, label_, icon_, category_, tooltip_},
 static const UmiStudioGtkCommandProfile RUNTIME_COMMAND_PROFILES[] = {
 #include "profiles/commands/new.inc"
+#include "profiles/commands/new_application.inc"
 #include "profiles/commands/open.inc"
 #include "profiles/commands/reopen_document.inc"
 #include "profiles/commands/navigation_history.inc"

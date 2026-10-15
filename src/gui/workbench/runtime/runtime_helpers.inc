@@ -573,7 +573,8 @@ static int runtime_command_enabled(
      * Dispatch repeats this check so a retained action cannot bypass it. */
     if (UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
         (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
-         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
          strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0 ||
          strcmp(command_id, "file.close") == 0 || strcmp(command_id, "file.close-all") == 0 ||
          strcmp(command_id, "file.close-others") == 0)) return 0;
@@ -594,7 +595,8 @@ static int runtime_command_enabled(
     if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(
             umi_studio_ui_services(runtime->owner->ui))) &&
         (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "build.settings") == 0 ||
-         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
          strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0)) return 0;
 
     /* Launch-only is independent of saved-document compilation, but it still
@@ -647,6 +649,7 @@ static int runtime_command_enabled(
         (RuntimeBuildReadsSavedDocuments(command_id) ||
          strcmp(command_id, "application.exit") == 0 ||
          strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 ||
          strcmp(command_id, "workspace.open-folder") == 0 ||
          strcmp(command_id, "file.close") == 0)) return 0;
 
@@ -667,6 +670,7 @@ static int runtime_command_enabled(
     /* The same route must decide availability and execute the command. Native
      * input collection comes before argument-dependent registry predicates. */
     if (strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 ||
         strcmp(command_id, "workspace.open-folder") == 0) {
         return runtime->owner != NULL && runtime->owner->ui != NULL &&
             !UmiStudioBuildBusy(umi_studio_services_build(

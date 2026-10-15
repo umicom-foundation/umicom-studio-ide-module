@@ -229,6 +229,11 @@ static GtkWidget *runtime_build_welcome_surface(
     runtime_welcome_add_action(
         runtime, create, "Create New Project", "project.new",
         "Open the Framework project wizard", 1);
+    /* Share Framework's source preview and creation workflow with the CLI;
+     * this entry point does not start a build or modify repository history. */
+    runtime_welcome_add_action(
+        runtime, create, "New Umicom Application", "project.new-application",
+        "Review and create an application module in a folder you choose", 0);
     runtime_welcome_add_action(
         runtime, create, "Open Project or File", "file.open",
         "Open a project or source file", 0);

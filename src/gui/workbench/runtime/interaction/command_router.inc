@@ -514,13 +514,15 @@ static UmiStatus runtime_route_command(
      * not replace the workspace of a pending or active debug process. */
     if (runtime->owner != NULL && UmiStudioDebuggerNativeBusy(
             umi_studio_services_debugger(umi_studio_ui_services(runtime->owner->ui))) &&
-        (strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+        (strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
          strcmp(command_id, "build.settings") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0))
         return UMI_STATUS_BUSY;
 
     if (runtime->owner != NULL && UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
         (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
-         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
          strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0)) return UMI_STATUS_BUSY;
     if (strcmp(command_id, "editor.replace-complete-set") == 0)
         return RuntimeReviewReplacementSet(runtime);
@@ -558,7 +560,8 @@ static UmiStatus runtime_route_command(
             ? UMI_DOCUMENT_CLOSE_OTHERS : UMI_DOCUMENT_CLOSE_ALL);
     if (runtime->owner != NULL && UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter) &&
         (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
-         strcmp(command_id, "project.new") == 0 || strcmp(command_id, "workspace.open-folder") == 0))
+         strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0))
         return UMI_STATUS_BUSY;
 
     if (strcmp(command_id, "file.save-all.cancel") == 0)
@@ -612,6 +615,7 @@ static UmiStatus runtime_route_command(
     }
 
     if (strcmp(command_id, "project.new") == 0) return RuntimeNewProject(runtime);
+    if (strcmp(command_id, "project.new-application") == 0) return RuntimeNewApplication(runtime);
     if (strcmp(command_id, "file.new") == 0) return runtime_document_new(runtime);
     if (strcmp(command_id, "build.settings") == 0) return RuntimeBuildSettings(runtime);
     if (strcmp(command_id, "build.test") == 0)
