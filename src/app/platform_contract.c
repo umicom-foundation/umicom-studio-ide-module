@@ -61,6 +61,12 @@ static const char *const CORE_COMMAND_IDS[] = {
     UMI_STUDIO_COMMAND_BUILD_TEST,
     UMI_STUDIO_COMMAND_BUILD_CLEAN,
     UMI_STUDIO_COMMAND_BUILD_RUN,
+    /* These operations are registered by the core service layer. Include them
+     * here so readiness reports check the same commands users can invoke. */
+    UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT,
+    UMI_STUDIO_COMMAND_BUILD_PACKAGE,
+    UMI_STUDIO_COMMAND_BUILD_REBUILD,
+    UMI_STUDIO_COMMAND_BUILD_DEPLOY,
     UMI_STUDIO_COMMAND_BUILD_INSTALL,
     UMI_STUDIO_COMMAND_BUILD_RETRY,
     UMI_STUDIO_COMMAND_BUILD_CANCEL,
@@ -87,6 +93,8 @@ static const char *const CORE_COMMAND_IDS[] = {
     UMI_STUDIO_COMMAND_TESTS_CLEAR_OUTPUT,
     UMI_STUDIO_COMMAND_TESTS_CLEAR_COVERAGE,
     UMI_STUDIO_COMMAND_TERMINAL_EXECUTE,
+    UMI_STUDIO_COMMAND_TERMINAL_DIRECTORY,
+    UMI_STUDIO_COMMAND_TERMINAL_STOP,
     UMI_STUDIO_COMMAND_TERMINAL_CLEAR,
     UMI_STUDIO_COMMAND_TERMINAL_NEW,
     UMI_STUDIO_COMMAND_TERMINAL_CLOSE,
@@ -246,6 +254,11 @@ static const char *const REQUIRED_SERVICE_IDS[] = {
 };
 
 #define ARRAY_COUNT(values) (sizeof(values) / sizeof((values)[0]))
+
+/* Command additions must update both the public count and this inventory.
+ * Catch drift during compilation before it reaches a readiness report. */
+_Static_assert(ARRAY_COUNT(CORE_COMMAND_IDS) == UMI_STUDIO_CORE_COMMAND_COUNT,
+               "Studio core command inventory must match its public contract");
 
 /* Keep the public workbench count and the semantic inventory in agreement.
  * A missing command is a composition defect, not a reason to lower the count. */

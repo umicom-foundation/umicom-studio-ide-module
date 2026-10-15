@@ -212,7 +212,12 @@ extern "C" {
 #if 0
 #define UMI_STUDIO_CORE_COMMAND_COUNT 145U
 #endif
+/* Package, rebuild and deploy are already registered core commands. Include
+ * them in the published count; retain the incomplete count for review. */
+#if 0
 #define UMI_STUDIO_CORE_COMMAND_COUNT 146U
+#endif
+#define UMI_STUDIO_CORE_COMMAND_COUNT 149U
 
 /**
  * Add studio commands only after its inputs and available capacity have been checked.

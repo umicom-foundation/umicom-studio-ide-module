@@ -6,6 +6,8 @@
  * LICENCE: MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
+#include "umicom/ui/gtk4/automation.h"
+#include "umicom/ui/gtk4/window_lifecycle.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
@@ -26,6 +28,9 @@
 
 /* Use the production completion window and document transaction. No provider,
  * credential store or user project is opened by this integration fixture. */
+/* Rendered children omit collapsed panels. Use Framework logical ownership
+ * to inspect their controls; retain the former traversal for review. */
+#if 0
 static GtkWidget *Find(GtkWidget *root, const char *id)
 {
     if (root == NULL)
@@ -41,6 +46,13 @@ static GtkWidget *Find(GtkWidget *root, const char *id)
             return found;
     }
     return NULL;
+}
+#endif
+/* Keep lookup independent of presentation state. Finding a control does not
+ * activate it or make a collapsed panel visible. */
+static GtkWidget *Find(GtkWidget *root, const char *id)
+{
+    return umi_gtk4_automation_find_tagged_widget(root, id);
 }
 int main(int argc, char **argv)
 {
@@ -164,7 +176,14 @@ inspect:
     CHECK(output_bytes == strlen(text) && strcmp(output, text) == 0);
 cleanup:
     UmiUiDocumentViewModelFreeText(output);
+    /* Cancel and parent-close can retire this retained dialog before cleanup.
+     * Keep the original close for review and avoid removing a closed toplevel
+     * from GTK's model again. The owned reference is still released below. */
+#if 0
     if (dialog != NULL)
+        gtk_window_destroy(dialog);
+#endif
+    if (dialog != NULL && UmiGtk4WindowIsOpen(dialog))
         gtk_window_destroy(dialog);
     g_clear_object(&dialog);
     if (workbench != NULL)

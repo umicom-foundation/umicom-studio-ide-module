@@ -140,7 +140,12 @@ int main(int argc, char **argv)
 #if 0
     CHECK(UmiGtk4ActionMenuVisibleCount(code) == 26U && UmiGtk4ActionMenuVisibleCount(navigation) == 8U);
 #endif
+/* Live diagnostics adds one code action. Retain the earlier catalogue count
+ * for review, and check the new action by its stable identifier below. */
+#if 0
     CHECK(UmiGtk4ActionMenuVisibleCount(code) == 32U && UmiGtk4ActionMenuVisibleCount(navigation) == 8U);
+#endif
+    CHECK(UmiGtk4ActionMenuVisibleCount(code) == 33U && UmiGtk4ActionMenuVisibleCount(navigation) == 8U);
     filter = g_object_ref(UmiGtk4ActionMenuFilterEntry(code));
     CHECK(GTK_IS_ENTRY(filter));
     const char *expected[] = {"completion",
@@ -151,6 +156,7 @@ int main(int argc, char **argv)
                               "rename",
                               "actions",
                               "diagnostics",
+                              "live-diagnostics",
                               "definition",
                               "references",
                               "type-definition",
@@ -230,7 +236,12 @@ int main(int argc, char **argv)
 #if 0
         CHECK(UmiGtk4ActionMenuVisibleCount(code) == 26U);
 #endif
+/* Live diagnostics adds one code action. Retain the earlier catalogue count
+ * for review, and check the new action by its stable identifier below. */
+#if 0
         CHECK(UmiGtk4ActionMenuVisibleCount(code) == 32U);
+#endif
+        CHECK(UmiGtk4ActionMenuVisibleCount(code) == 33U);
     }
     if (strcmp(name, "matching-action") == 0)
     {

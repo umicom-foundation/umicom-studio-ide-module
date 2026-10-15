@@ -7,6 +7,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "workbench_window.h"
+#include "umicom/ui/gtk4/automation.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/settings.h"
@@ -16,6 +17,9 @@
 #include <string.h>
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #x); failed = 1; goto cleanup; } } while (0)
 /* Keep the host test independent of translated labels and GTK child order. */
+/* Rendered children omit collapsed panels. Use Framework logical ownership
+ * to inspect their controls; retain the former traversal for review. */
+#if 0
 static GtkWidget *Find(GtkWidget *root, const char *tag)
 {
     if (root == NULL) return NULL;
@@ -25,6 +29,13 @@ static GtkWidget *Find(GtkWidget *root, const char *tag)
         GtkWidget *found = Find(child, tag); if (found != NULL) return found;
     }
     return NULL;
+}
+#endif
+/* Keep lookup independent of presentation state. Finding a control does not
+ * activate it or make a collapsed panel visible. */
+static GtkWidget *Find(GtkWidget *root, const char *id)
+{
+    return umi_gtk4_automation_find_tagged_widget(root, id);
 }
 /* Isolate settings and evidence before starting the native host. This fixture
  * never submits a build, launches a compiler or opens a user's project. */
