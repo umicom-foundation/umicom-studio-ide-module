@@ -48,6 +48,9 @@ typedef struct UmiStudioServices UmiStudioServices;
  * Storage still follows Studio's configured paths; isolated hosts must use an
  * owned working directory and must not pass private data-storage paths. */
 typedef struct UmiStudioServicesOptions {
+    /* Enable the usual startup project and repository discovery. A zero value
+     * leaves the workspace graph closed; callers can still open an explicitly
+     * chosen workspace later through the normal workspace API. */
     int discover_repository;
 } UmiStudioServicesOptions;
 

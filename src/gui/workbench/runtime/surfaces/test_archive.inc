@@ -683,6 +683,9 @@ static GtkWidget *RuntimeTestArchiveButton(UmiStudioGtkRuntimeChrome *runtime, G
 static void RuntimeTestArchiveControls(UmiStudioGtkRuntimeChrome *runtime, GtkWidget *panel)
 {
     GtkWidget *expander = gtk_expander_new("Private test history");
+    /* Name the container as well as its controls: native automation must open
+     * a collapsed panel before activating a child that belongs to its window. */
+    (void)umi_gtk4_automation_tag_widget(expander, "studio.tests.archive.panel");
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     gtk_expander_set_child(GTK_EXPANDER(expander), box);
     GtkWidget *help = gtk_label_new(

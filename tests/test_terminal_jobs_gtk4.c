@@ -177,6 +177,10 @@ int main(int argc, char **argv)
         CHECK(umi_path_equal(selected.working_directory, directory));
         CHECK(!UmiTerminalControllerJobPending(controller));
         CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
+        /* Explicit open/close must work after an isolated startup; disabling
+         * discovery must not permanently disable the workspace controller. */
+        CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
+        CHECK(!workspace.graph.open);
     }
     else if (strcmp(argv[1], "selection") == 0)
     {

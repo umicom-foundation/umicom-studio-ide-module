@@ -101,6 +101,12 @@ int main(int argc, char **argv)
           UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    /* Logical lookup can inspect collapsed content, but action dispatch still
+     * requires a child owned by the window. Exercise the user opening this
+     * panel rather than bypassing the detached-control lifetime protection. */
+    GtkWidget *historyPanel = Find(root, "studio.build.history.panel");
+    CHECK(GTK_IS_EXPANDER(historyPanel));
+    gtk_expander_set_expanded(GTK_EXPANDER(historyPanel), TRUE);
     GtkWidget *refresh = Find(root, "build.output.refresh");
     CHECK(GTK_IS_BUTTON(refresh) && GTK_IS_CHECK_BUTTON(Find(root, "build.output.follow")));
     CHECK(GTK_IS_TEXT_VIEW(Find(root, "build.output.text")));
@@ -134,6 +140,7 @@ int main(int argc, char **argv)
     }
     else
     {
+        CHECK(gtk_widget_get_root(select) == GTK_ROOT(root));
         g_signal_emit_by_name(select, "clicked");
         CHECK(UmiStudioBuildReadJobHistory(build, history) == UMI_STATUS_OK && history->current.enabled);
         CHECK(strcmp(history->path, databasePath) == 0 && !UmiStudioBuildBusy(build));

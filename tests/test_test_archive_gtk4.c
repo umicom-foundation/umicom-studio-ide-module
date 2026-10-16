@@ -166,6 +166,12 @@ int main(int argc, char **argv)
                                                           NULL) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    /* Logical lookup can inspect collapsed content, but action dispatch still
+     * requires a child owned by the window. Exercise the user opening this
+     * panel rather than bypassing the detached-control lifetime protection. */
+    GtkWidget *historyPanel = Find(root, "studio.tests.archive.panel");
+    CHECK(GTK_IS_EXPANDER(historyPanel));
+    gtk_expander_set_expanded(GTK_EXPANDER(historyPanel), TRUE);
 /* The archive exposes a separate cancellation control for read jobs. The previous implementation is retained for engineering review. */
 #if 0
     const char *actions[] = {"open", "refresh", "save", "stop", "read", "remove", "detach"};
@@ -218,6 +224,7 @@ int main(int argc, char **argv)
         UmiStudioTestService *tests = umi_studio_services_tests(services);
         databasePath = g_build_filename(directory, "test-history.sqlite", NULL);
         gtk_editable_set_text(GTK_EDITABLE(path), databasePath);
+        CHECK(gtk_widget_get_root(Find(root, "studio.tests.archive.open")) == GTK_ROOT(root));
         g_signal_emit_by_name(Find(root, "studio.tests.archive.open"), "clicked");
         UmiStudioTestArchiveState state = {0};
 /* Wait for worker completion and owner publication before requiring an attachment. The previous implementation is retained for engineering review. */

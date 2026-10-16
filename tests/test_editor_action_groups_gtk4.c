@@ -205,7 +205,12 @@ int main(int argc, char **argv)
 #if 0
         CHECK(gtk_widget_is_ancestor(control, i < 26U ? code : navigation));
 #endif
+        /* Live diagnostics occupies a code-menu slot before navigation starts.
+         * Use the current catalogue boundary while retaining the older fixture. */
+#if 0
         CHECK(gtk_widget_is_ancestor(control, i < 32U ? code : navigation));
+#endif
+        CHECK(gtk_widget_is_ancestor(control, i < 33U ? code : navigation));
     }
     if (strcmp(name, "code-filter") == 0)
     {

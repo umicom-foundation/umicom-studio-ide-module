@@ -94,8 +94,33 @@ static inline UmiStatus ArchiveDisabledRunWithIdentity(UmiStudioTestService *ser
         return UMI_STATUS_OUT_OF_MEMORY;
     umi_test_platform_operation_plan_init(plan, UMI_TEST_PLATFORM_OPERATION_RUN_SELECTED);
     UmiTestPlatformItemSnapshot item = {0};
+    /* Discovery publishes both the suite and its children. Select the named
+     * executable test by its kind instead of relying on registry insertion
+     * order; adding suite metadata must not change what this fixture runs.
+     * The original positional selection is retained for comparison. */
+#if 0
     if (status == UMI_STATUS_OK)
         status = umi_test_platform_item_registry_at(umi_test_platform_service_item(platform), 0, &item);
+#endif
+    if (status == UMI_STATUS_OK)
+    {
+        UmiTestPlatformItemRegistry *items = umi_test_platform_service_item(platform);
+        status = UMI_STATUS_NOT_FOUND;
+        for (size_t index = 0U; index < umi_test_platform_item_registry_count(items); ++index)
+        {
+            UmiStatus readStatus = umi_test_platform_item_registry_at(items, index, &item);
+            if (readStatus != UMI_STATUS_OK)
+            {
+                status = readStatus;
+                break;
+            }
+            if (strcmp(item.kind, "test") == 0 && strcmp(item.name, "archive.disabled") == 0)
+            {
+                status = UMI_STATUS_OK;
+                break;
+            }
+        }
+    }
     if (status == UMI_STATUS_OK)
     {
         strcpy(plan->selection.item_ids[0], item.id);

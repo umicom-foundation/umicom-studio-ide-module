@@ -603,9 +603,17 @@ UmiStatus umi_studio_services_create_with_options(
         destroy_partial(services);
         return status != UMI_STATUS_OK ? status : UMI_STATUS_IO_ERROR;
     }
+    /* Opening the process directory implicitly selected a project even when
+     * the host had declined startup discovery. Keep that earlier call for
+     * review; isolated hosts now leave the graph closed until Open Workspace. */
+#if 0
     status = umi_workspace_graph_open(services->workspace,
                                       current_directory,
                                       0);
+#endif
+    if (options == NULL || options->discover_repository) {
+        status = umi_workspace_graph_open(services->workspace, current_directory, 0);
+    }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         destroy_partial(services);

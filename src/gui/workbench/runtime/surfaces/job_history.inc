@@ -117,6 +117,9 @@ static void RuntimeBuildHistoryRefresh(UmiStudioGtkRuntimeChrome *runtime, UmiSt
 static void RuntimeBuildHistoryControls(UmiStudioGtkRuntimeChrome *runtime, GtkWidget *panel)
 {
     GtkWidget *expander = gtk_expander_new("Local job history");
+    /* Name the container as well as its controls: native automation must open
+     * a collapsed panel before activating a child that belongs to its window. */
+    (void)umi_gtk4_automation_tag_widget(expander, "studio.build.history.panel");
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     gtk_expander_set_child(GTK_EXPANDER(expander), box);
     GtkWidget *help =
