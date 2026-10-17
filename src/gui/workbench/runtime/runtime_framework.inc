@@ -171,6 +171,9 @@ static UmiStatus runtime_create_framework(
     UmiStudioRuntimeBootstrapOptions options;
     const UmiApplicationShellPersonaDefinition *persona;
     UmiStatus status;
+    /* Fixed stage identifiers make shared-service failures visible before GTK
+     * can construct a diagnostic panel. They contain no workspace identity. */
+    const char *startup_stage = "workspace.identity";
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -181,15 +184,21 @@ static UmiStatus runtime_create_framework(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    startup_stage = "workspace.identity";
     status = runtime_prepare_workspace_identity(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     if (status != UMI_STATUS_OK) return status;
 
     /* Isolated native tests and embedding callers may disable all session
      * storage; do not even create the user configuration directory then. */
+    startup_stage = "workspace.session-path";
     status = runtime->owner->options.persist_session
         ? runtime_prepare_session_path(runtime) : UMI_STATUS_OK;
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     if (status != UMI_STATUS_OK) return status;
 
     ui_workbench = umi_studio_ui_workbench(runtime->owner->ui);
@@ -206,21 +215,28 @@ static UmiStatus runtime_create_framework(
      */
     if (commands == NULL) return UMI_STATUS_INVALID_STATE;
 
+    startup_stage = "shell.registry";
     status = umi_application_shell_registry_create(
         &runtime->shell_registry);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     if (status != UMI_STATUS_OK) return status;
 
     /* The source-preview service is Framework-owned and provider-neutral. Its
      * safe built-ins are available before GTK creates the Live Preview panel. */
+    startup_stage = "preview.create";
     status = umi_browser_source_preview_service_create(
         &runtime->source_preview_service);
     /* Built-ins can only be installed into a successfully allocated service. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "preview.builtins";
         status = umi_browser_source_preview_service_install_builtins(
             runtime->source_preview_service);
     }
     /* Attachment stops cleanly when the preview catalogue cannot be prepared. */
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     if (status != UMI_STATUS_OK) return status;
 
     umi_application_shell_state_init(&runtime->shell_state);
@@ -237,18 +253,24 @@ static UmiStatus runtime_create_framework(
      */
     if (persona == NULL) return UMI_STATUS_NOT_FOUND;
 
+    startup_stage = "shell.persona";
     status = umi_application_shell_persona_install(
         runtime->shell_registry,
         persona);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     if (status != UMI_STATUS_OK) return status;
 
     umi_ide_integration_bindings_init(&ide_bindings);
 
+    startup_stage = "ide.bind-documents";
     status = umi_ide_integration_bind_documents(
         &ide_bindings,
         umi_studio_ui_documents(runtime->owner->ui));
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     if (status != UMI_STATUS_OK) return status;
 
     services = umi_studio_ui_services(runtime->owner->ui);
@@ -260,10 +282,13 @@ static UmiStatus runtime_create_framework(
      * used.
      */
     if (tests != NULL) {
+        startup_stage = "ide.bind-tests";
         status = umi_ide_integration_bind_tests(
             &ide_bindings,
             umi_studio_test_service_platform(tests));
         /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status != UMI_STATUS_OK)
+            workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
         if (status != UMI_STATUS_OK) return status;
     }
 
@@ -275,10 +300,13 @@ static UmiStatus runtime_create_framework(
      * used.
      */
     if (language != NULL) {
+        startup_stage = "ide.bind-language";
         status = umi_ide_integration_bind_language(
             &ide_bindings,
             umi_studio_language_service_model(language));
         /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status != UMI_STATUS_OK)
+            workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
         if (status != UMI_STATUS_OK) return status;
     }
 
@@ -291,11 +319,14 @@ static UmiStatus runtime_create_framework(
 #endif
     /* Build the welcome screen without granting a private settings directory
      * workspace identity. Existing documents remain bound in either state. */
+    startup_stage = "ide.create";
     status = runtime->workspace_root[0] != '\0'
         ? umi_ide_integration_platform_create(
             runtime->workspace_root, &ide_bindings, &runtime->ide_platform)
         : umi_ide_integration_platform_create_closed(&ide_bindings, &runtime->ide_platform);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     if (status != UMI_STATUS_OK) return status;
 
     /*
@@ -308,19 +339,24 @@ static UmiStatus runtime_create_framework(
      */
     {
         UmiIdeWorkflowPolicy policy;
+        startup_stage = "ide.workflow-profile";
         status = umi_ide_workflow_profile_development(&policy);
         /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
+            startup_stage = "ide.workflow-policy";
             status = umi_ide_integration_platform_set_workflow_policy(
                 runtime->ide_platform,
                 &policy);
         }
         /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status != UMI_STATUS_OK)
+            workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
         if (status != UMI_STATUS_OK) return status;
     }
 
     umi_studio_runtime_bindings_init(&runtime_bindings);
 
+    startup_stage = "bootstrap.bind-shell";
     status = umi_studio_runtime_bind_shell(
         &runtime_bindings,
         runtime->shell_registry,
@@ -328,23 +364,28 @@ static UmiStatus runtime_create_framework(
         &runtime->shell_layout);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "bootstrap.bind-commands";
         status = umi_studio_runtime_bind_commands(
             &runtime_bindings,
             commands);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "bootstrap.bind-ide";
         status = umi_studio_runtime_bind_ide(
             &runtime_bindings,
             runtime->ide_platform);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "bootstrap.bind-documents";
         status = umi_studio_runtime_bind_documents(
             &runtime_bindings,
             umi_studio_ui_documents(runtime->owner->ui));
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     if (status != UMI_STATUS_OK) return status;
 
     (void)memset(&options, 0, sizeof(options));
@@ -356,6 +397,7 @@ static UmiStatus runtime_create_framework(
     options.restore_session = runtime->owner->options.persist_session &&
         runtime->owner->options.restore_session;
 
+    startup_stage = "bootstrap.create";
     status = umi_studio_runtime_bootstrap_create(
         &runtime_bindings,
         &options,
@@ -366,6 +408,8 @@ static UmiStatus runtime_create_framework(
         runtime->runtime_ready = 1;
     }
 
+    if (status != UMI_STATUS_OK)
+        workbench_report_startup_failure(runtime->owner->ui, startup_stage, status);
     return status;
 }
 

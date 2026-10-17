@@ -42,6 +42,21 @@ static void Drain(void)
         g_usleep(1000U);
     }
 }
+/* Wait for the actual native mapping needed by process actions. A short fixed
+ * drain is not proof that GTK has presented an expanded panel under build load. */
+static bool WaitMapped(GtkWidget *widget)
+{
+    gint64 deadline = g_get_monotonic_time() + 5 * G_TIME_SPAN_SECOND;
+    while (!gtk_widget_get_mapped(widget) && g_get_monotonic_time() < deadline)
+    {
+        /* Bound dispatch even if a source continuously reschedules itself. */
+        for (unsigned i = 0U; i < 64U && g_main_context_pending(NULL); ++i)
+            (void)g_main_context_iteration(NULL, FALSE);
+        g_usleep(1000U);
+    }
+    return gtk_widget_get_mapped(widget);
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 3)
@@ -120,7 +135,10 @@ int main(int argc, char **argv)
         if (GTK_IS_EXPANDER(parent))
             gtk_expander_set_expanded(GTK_EXPANDER(parent), TRUE);
     Drain();
+    CHECK(WaitMapped(refresh));
     g_signal_emit_by_name(refresh, "clicked");
+    /* A mapped action must enter discovery before readiness can mean finished. */
+    CHECK(!gtk_widget_get_sensitive(refresh));
     gint64 until = g_get_monotonic_time() + 5000000;
     while (!gtk_widget_get_sensitive(refresh) && g_get_monotonic_time() < until)
         Drain();
@@ -136,7 +154,13 @@ int main(int argc, char **argv)
     gtk_editable_set_text(GTK_EDITABLE(search), filter);
     Drain();
     GtkWidget *choice = umi_gtk4_automation_find_tagged_widget(picker, "process.picker.choose.0");
+    if (choice == NULL || !gtk_widget_get_sensitive(choice)) {
+        GtkWidget *state = umi_gtk4_automation_find_tagged_widget(picker, "process.picker.status");
+        fprintf(stderr, "Process selection unavailable: %s\n",
+            GTK_IS_LABEL(state) ? gtk_label_get_text(GTK_LABEL(state)) : "missing status");
+    }
     CHECK(choice != NULL && gtk_widget_get_sensitive(choice));
+    CHECK(WaitMapped(choice));
     g_object_ref(choice);
     if (revoke)
         CHECK(umi_studio_workspace_set_trusted(services, 0) == UMI_STATUS_OK);

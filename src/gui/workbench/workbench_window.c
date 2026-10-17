@@ -15,6 +15,9 @@
 
 #include "workbench_window.h"
 
+#include "umicom/diagnostics/log.h"
+#include "umicom/studio/services.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,6 +30,29 @@
 #include "umicom/ui/gtk4/document_commands.h"
 #include "umicom/ui/gtk4/workstation/window_fit.h"
 #include "umicom/workbench_context_host/gtk4.h"
+
+
+/* Report fixed public stage names to both the process log and Studio's existing
+ * diagnostic store. Console evidence remains available when construction stops
+ * before a Problems panel exists; this never opens a workspace or records paths. */
+static void workbench_startup_diagnostic(const UmiDiagnostic *diagnostic, void *data)
+{
+    g_printerr("[Studio startup] %s\n", diagnostic->message);
+    UmiStudioServices *services = data;
+    if (services != NULL) {
+        UmiDiagnosticSink sink = umi_studio_services_diagnostic_sink();
+        if (sink != NULL)
+            sink(diagnostic, umi_studio_services_diagnostic_user_data(services));
+    }
+}
+
+static void workbench_report_startup_failure(UmiStudioUi *ui,
+    const char *operation, UmiStatus status)
+{
+    UmiLogger logger = {workbench_startup_diagnostic,
+        ui != NULL ? umi_studio_ui_services(ui) : NULL, "studio-startup"};
+    umi_log_status(&logger, operation, status, 0U);
+}
 
 typedef struct UmiStudioGtkRuntimeChrome UmiStudioGtkRuntimeChrome;
 
@@ -310,6 +336,7 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
 {
     UmiStudioGtkWorkbench *workbench;
     UmiStatus status;
+    const char *startup_stage = "adapter.create";
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -333,17 +360,20 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
     status = umi_gtk4_adapter_create(application, &workbench->adapter);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "adapter.bind-desktop-shell";
         status = umi_gtk4_adapter_bind_desktop_shell(
             workbench->adapter, desktop_shell);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "adapter.prepare";
         status = umi_gtk4_adapter_prepare(
             workbench->adapter,
             umi_studio_ui_shell(ui));
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "adapter.native-window";
         workbench->window = GTK_WINDOW(
             umi_gtk4_adapter_native_window(workbench->adapter));
         /*
@@ -360,6 +390,7 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
     if (status == UMI_STATUS_OK) {
         UmiGtk4WorkstationShellHeaderConfig titlebar_config =
             umi_gtk4_ws_shell_header_config_default("org.umicom.studio", "Umicom Studio IDE");
+        startup_stage = "window.titlebar";
         status = umi_gtk4_ws_window_titlebar_create(workbench->window,
             &titlebar_config, "Umicom Studio", &workbench->titlebar);
         if (status == UMI_STATUS_OK)
@@ -368,6 +399,7 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
 
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "context.create";
         status = umi_studio_context_link_centre_create(
             umi_studio_ui_workbench(ui),
             umi_studio_services_session(
@@ -376,20 +408,24 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "context.bind";
         status = bind_context_interactions(workbench);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "context.refresh";
         status = umi_studio_context_link_centre_refresh(
             workbench->context_links,
             (uint64_t)(g_get_monotonic_time() / 1000));
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "context.attach";
         status = attach_context_strip(workbench);
     }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        startup_stage = "runtime.attach";
         status = runtime_attach(workbench);
     }
     /* Create UAT only after all runtime chrome is attached to the window tree. */
@@ -397,6 +433,7 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
         (void)umi_gtk4_automation_tag_widget(
             workbench->window,
             "studio.workbench.window");
+        startup_stage = "automation.create";
         status = umi_gtk4_automation_driver_create(
             workbench->window,
             &workbench->automation);
@@ -405,6 +442,7 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         umi_studio_gtk_workbench_destroy(workbench);
+        workbench_report_startup_failure(ui, startup_stage, status);
         return status;
     }
 

@@ -3260,3 +3260,21 @@ include(cmake/UmicomStudioProcessPicker.cmake)
 
 # Present Framework instruction captures through the trusted debugger workspace.
 include(cmake/UmicomStudioDebugInstructions.cmake)
+
+# A failed native constructor must expose its precise stage and retire its window.
+if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    add_executable(umicom-studio-startup-failure-test
+        tests/test_startup_failure_gtk4.c src/gui/workbench/workbench_window.c)
+    target_include_directories(umicom-studio-startup-failure-test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+    target_link_libraries(umicom-studio-startup-failure-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    umicom_apply_warnings(umicom-studio-startup-failure-test)
+    umicom_apply_sanitizers(umicom-studio-startup-failure-test)
+    add_test(NAME studio.startup.failure.gtk4 COMMAND umicom-studio-startup-failure-test)
+    set_tests_properties(studio.startup.failure.gtk4 PROPERTIES
+        SKIP_RETURN_CODE 77 TIMEOUT 60 LABELS "studio;gtk4;startup;diagnostics;regression")
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-startup-failure-test)
+    endif()
+endif()

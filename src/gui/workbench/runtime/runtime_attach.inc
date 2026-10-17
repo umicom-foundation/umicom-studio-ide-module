@@ -165,6 +165,7 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
 {
     UmiStudioGtkRuntimeChrome *runtime;
     UmiStatus status;
+    const char *startup_stage = "runtime.create-framework";
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -201,43 +202,53 @@ static UmiStatus runtime_attach(UmiStudioGtkWorkbench *workbench)
      */
     (void)runtime_refresh_service_snapshots(runtime);
 
+    startup_stage = "document.bind";
     status = UmiGtk4AdapterBindDocumentEditing(workbench->adapter,
         umi_studio_ui_documents(workbench->ui), runtime_document_edit_completed, runtime);
     if (status != UMI_STATUS_OK) goto fail;
 
+    startup_stage = "document.observe-recovery";
     status = UmiGtk4AdapterObserveRecovery(workbench->adapter, RuntimeRecoveryStatus, runtime);
     if (status != UMI_STATUS_OK) goto fail;
 
+    startup_stage = "runtime.build-shell";
     status = runtime_build_shell(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
+    startup_stage = "runtime.apply-theme";
     status = runtime_apply_theme(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
+    startup_stage = "runtime.command-palette";
     status = runtime_build_command_palette(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
+    startup_stage = "runtime.layout-browser";
     status = runtime_build_layout_browser(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
+    startup_stage = "runtime.window-catalogue";
     status = runtime_build_window_catalogue(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
+    startup_stage = "runtime.keyboard";
     status = runtime_install_keyboard(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
+    startup_stage = "runtime.surface-panels";
     status = runtime_rebuild_surface_panels(runtime);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) goto fail;
 
     runtime_host_adapter_init(runtime);
 
+    startup_stage = "runtime.host-controller";
     status = umi_studio_host_controller_init(
         &runtime->host_controller,
         runtime->runtime_bootstrap,
@@ -279,6 +290,8 @@ fail:
     runtime_destroy_framework(runtime);
     free(runtime);
     workbench->runtime_chrome = NULL;
+    /* Preserve the failed stage after retiring partially constructed owners. */
+    workbench_report_startup_failure(workbench->ui, startup_stage, status);
     return status;
 }
 
