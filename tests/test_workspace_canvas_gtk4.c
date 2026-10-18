@@ -750,9 +750,26 @@ static int VerifySelectedCsvClipboard(GtkWidget *button, const char *expected, c
     g_value_unset(&value); return valid;
 }
 
+/* A retained row action must become inert after the row is rebuilt. Resolve
+ * each action explicitly so the regression also covers Run and Debug. */
+static GtkWidget *FindTestAction(GtkWidget *root, const char *item_id, const char *label)
+{
+    if (root == NULL) return NULL;
+    const char *id = g_object_get_data(G_OBJECT(root), "umicom-test-id");
+    if (GTK_IS_BUTTON(root) && g_strcmp0(id, item_id) == 0 &&
+        g_strcmp0(gtk_button_get_label(GTK_BUTTON(root)), label) == 0) return root;
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = FindTestAction(child, item_id, label);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+
 static int VerifySelectedTestEvidence(GtkApplication *application)
 {
     int failed = 0;
+    GtkWidget *retained_actions[3] = {NULL, NULL, NULL};
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL;
     UmiStudioServicesOptions services_options = {0};
@@ -798,7 +815,25 @@ static int VerifySelectedTestEvidence(GtkApplication *application)
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     for (size_t i = 0; i < 2U; ++i) {
         GtkWidget *select = FindTestSelect(root, ids[i]); REQUIRE(select != NULL);
+        if (i == 0U) {
+            const char *labels[] = {"Select", "Run", "Debug"};
+            for (size_t action = 0U; action < G_N_ELEMENTS(labels); ++action) {
+                GtkWidget *control = FindTestAction(root, ids[i], labels[action]);
+                REQUIRE(GTK_IS_BUTTON(control));
+                retained_actions[action] = g_object_ref(control);
+            }
+        }
         g_signal_emit_by_name(select, "clicked");
+        /* Record command acceptance separately from rendering. A failure now
+         * identifies whether selection or evidence projection lost the row. */
+        UmiTestWorkspaceSnapshot selection;
+        REQUIRE(umi_test_workspace_snapshot(umi_studio_test_service_workspace(
+            umi_studio_services_tests(umi_studio_bootstrap_services(bootstrap))),
+            &selection) == UMI_STATUS_OK);
+        if (strcmp(selection.selected_item_id, ids[i]) != 0)
+            fprintf(stderr, "Selected test mismatch: requested=%s actual=%s\n",
+                ids[i], selection.selected_item_id);
+        REQUIRE(strcmp(selection.selected_item_id, ids[i]) == 0);
         /* No refresh call here: selection must update the detail pane even
          * when automatic refresh is deliberately disabled in this fixture. */
         GtkWidget *view = find_tag(root, "studio.tests.selected-evidence");
@@ -819,6 +854,20 @@ static int VerifySelectedTestEvidence(GtkApplication *application)
         GtkWidget *copyCsv = find_tag(root, "studio.tests.copy-evidence-csv");
         REQUIRE(VerifySelectedCsvClipboard(copyCsv, messages[i], messages[1U - i]));
     }
+    /* Synchronisation replaces the row controls. Holding a button alive does
+     * not permit it to change selection or start a command for another row. */
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+    UmiTestWorkspace *test_workspace = umi_studio_test_service_workspace(
+        umi_studio_services_tests(umi_studio_bootstrap_services(bootstrap)));
+    UmiTestWorkspaceSnapshot before_retained, after_retained;
+    REQUIRE(umi_test_workspace_snapshot(test_workspace, &before_retained) == UMI_STATUS_OK);
+    for (size_t action = 0U; action < G_N_ELEMENTS(retained_actions); ++action) {
+        REQUIRE(gtk_widget_get_root(retained_actions[action]) == NULL);
+        g_signal_emit_by_name(retained_actions[action], "clicked");
+    }
+    REQUIRE(umi_test_workspace_snapshot(test_workspace, &after_retained) == UMI_STATUS_OK);
+    REQUIRE(strcmp(after_retained.selected_item_id, before_retained.selected_item_id) == 0);
+    REQUIRE(after_retained.revision == before_retained.revision);
     REQUIRE(umi_test_platform_result_registry_remove(results, ids[1]) == UMI_STATUS_OK);
     REQUIRE(umi_test_platform_output_registry_remove(outputs, ids[1]) == UMI_STATUS_OK);
     /* Refresh native service projections after changing the result registries.
@@ -830,9 +879,22 @@ static int VerifySelectedTestEvidence(GtkApplication *application)
     GtkWidget *view = find_tag(root, "studio.tests.selected-evidence");
     REQUIRE(GTK_IS_TEXT_VIEW(view));
     REQUIRE(buffer_contains(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)), "not a pass"));
+    /* Keep the source model alive first, then release it too: neither retained
+     * control lifetime grants access to the destroyed native workbench. */
+    umi_studio_gtk_workbench_destroy(workbench); workbench = NULL;
+    REQUIRE(umi_test_workspace_snapshot(test_workspace, &before_retained) == UMI_STATUS_OK);
+    for (size_t action = 0U; action < G_N_ELEMENTS(retained_actions); ++action)
+        g_signal_emit_by_name(retained_actions[action], "clicked");
+    REQUIRE(umi_test_workspace_snapshot(test_workspace, &after_retained) == UMI_STATUS_OK);
+    REQUIRE(after_retained.revision == before_retained.revision);
+    umi_studio_bootstrap_destroy(bootstrap); bootstrap = NULL;
+    for (size_t action = 0U; action < G_N_ELEMENTS(retained_actions); ++action)
+        g_signal_emit_by_name(retained_actions[action], "clicked");
 cleanup:
     umi_studio_gtk_workbench_destroy(workbench);
     umi_studio_bootstrap_destroy(bootstrap);
+    for (size_t action = 0U; action < G_N_ELEMENTS(retained_actions); ++action)
+        g_clear_object(&retained_actions[action]);
     return failed;
 }
 

@@ -69,6 +69,9 @@ static void runtime_test_select(
 /* Selection dispatch may refresh before the local ID has been published.
  * Refresh the focused evidence after acceptance, including manual-refresh mode. */
 static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime);
+/* Reacquiring the weak owner after command dispatch replaces the earlier
+ * direct runtime use. Keep that implementation for review of selection semantics. */
+#if 0
 static int runtime_test_select(UmiStudioGtkRuntimeChrome *runtime, const char *test_id)
 {
     if (runtime == NULL || test_id == NULL || test_id[0] == '\0') return 0;
@@ -85,6 +88,35 @@ static int runtime_test_select(UmiStudioGtkRuntimeChrome *runtime, const char *t
     runtime_copy_selection(runtime->selected_test_id, sizeof(runtime->selected_test_id), requested);
     RuntimeSelectedTestEvidenceRefresh(runtime);
     return 1;
+}
+#endif
+static int runtime_test_select(UmiStudioGtkRuntimeChrome *runtime, const char *test_id)
+{
+    if (runtime == NULL || test_id == NULL || test_id[0] == '\0') return 0;
+    /* A command can rebuild rows or detach the workbench. Own its identifier
+     * and reacquire the same runtime before publishing selected evidence. */
+    char requested[sizeof(runtime->selected_test_id)];
+    size_t length = strlen(test_id);
+    if (length >= sizeof(requested)) return 0;
+    memcpy(requested, test_id, length + 1U);
+    UmiStudioFileDialogRequest *binding = runtime_file_dialog_request_new(runtime, 0U);
+    if (binding == NULL) return 0;
+    UmiStatus status = runtime_execute_registered_command(runtime,
+        UMI_STUDIO_COMMAND_TESTS_SELECT, requested);
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *current = runtime_file_dialog_owner(binding, &window);
+    int accepted = status == UMI_STATUS_OK && current == runtime;
+    if (accepted) {
+        runtime_copy_selection(current->selected_test_id, sizeof(current->selected_test_id), requested);
+        RuntimeSelectedTestEvidenceRefresh(current);
+        /* Run and Debug must not follow selection into a closed workbench. */
+        GObject *remaining = NULL;
+        accepted = runtime_file_dialog_owner(binding, &remaining) == runtime;
+        g_clear_object(&remaining);
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(binding);
+    return accepted;
 }
 
 /*
@@ -744,33 +776,51 @@ static void runtime_tests_refresh_list(
             "umicom-test-id",
             g_strdup(item->id),
             g_free);
+        /* Retained rows resolve the live window and current parent chain.
+         * Removed rows cannot select or execute a different current test.
+         * The direct binding remains below for ownership review. */
+#if 0
         g_signal_connect(
             select,
             "clicked",
             G_CALLBACK(runtime_on_test_select),
             runtime);
+#endif
+        runtime_bind_editor_action(runtime, select, runtime_on_test_select);
 
         g_object_set_data_full(
             G_OBJECT(run),
             "umicom-test-id",
             g_strdup(item->id),
             g_free);
+        /* Retained rows resolve the live window and current parent chain.
+         * Removed rows cannot select or execute a different current test.
+         * The direct binding remains below for ownership review. */
+#if 0
         g_signal_connect(
             run,
             "clicked",
             G_CALLBACK(runtime_on_test_run),
             runtime);
+#endif
+        runtime_bind_editor_action(runtime, run, runtime_on_test_run);
 
         g_object_set_data_full(
             G_OBJECT(debug),
             "umicom-test-id",
             g_strdup(item->id),
             g_free);
+        /* Retained rows resolve the live window and current parent chain.
+         * Removed rows cannot select or execute a different current test.
+         * The direct binding remains below for ownership review. */
+#if 0
         g_signal_connect(
             debug,
             "clicked",
             G_CALLBACK(runtime_on_test_debug),
             runtime);
+#endif
+        runtime_bind_editor_action(runtime, debug, runtime_on_test_debug);
 
 /* Source actions now own a full discovery snapshot and use the existing weak-owner binding instead of borrowing the runtime for the lifetime of a retained control. The previous implementation remains for engineering review. */
 #if 0
