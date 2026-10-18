@@ -109,6 +109,12 @@ int main(int argc, char **argv)
         CHECK(GTK_IS_BUTTON(apply) && GTK_IS_ENTRY(entry) && GTK_IS_CHECK_BUTTON(confirm));
         CHECK(gtk_widget_get_sensitive(apply));
     }
+    /* Reveal the logical section before acting, just as the user must. A
+     * retained control from a later-removed row must still fail ownership checks. */
+    CHECK(umi_gtk4_automation_reveal_tagged_widget(root,
+        strcmp(name, "nested") == 0 ? "studio.debug.variable.set-value.0.0"
+                                     : "studio.debug.variable.set-value.0") == UMI_STATUS_OK);
+    CHECK((GtkWidget *)gtk_widget_get_root(apply) == root);
     retained = g_object_ref(apply); retainedChild = g_object_ref(entry);
     UmiDebugRuntimePlatformSnapshot before, after;
     CHECK(umi_debug_runtime_platform_snapshot(platform, &before) == UMI_STATUS_OK);

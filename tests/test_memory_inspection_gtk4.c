@@ -149,6 +149,11 @@ int main(int argc, char **argv)
     CHECK(GTK_IS_BUTTON(button) && GTK_IS_ENTRY(offset) && GTK_IS_SPIN_BUTTON(count) &&
           GTK_IS_TEXT_VIEW(output) && GTK_IS_LABEL(label));
     CHECK(gtk_widget_get_sensitive(button) == (strcmp(name, "unsupported") != 0));
+    /* Logical lookup is read-only. Explicitly open the memory section before
+     * simulating the user's action; never relax detached-control protection. */
+    CHECK(umi_gtk4_automation_reveal_tagged_widget(root,
+        "studio.debug.variable.memory-read.scope.0.0") == UMI_STATUS_OK);
+    CHECK((GtkWidget *)gtk_widget_get_root(button) == root);
     retained = g_object_ref(button);
     retainedChild = g_object_ref(offset);
     UmiDebugRuntimePlatformSnapshot before, after;

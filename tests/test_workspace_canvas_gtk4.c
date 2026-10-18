@@ -766,6 +766,21 @@ static GtkWidget *FindTestAction(GtkWidget *root, const char *item_id, const cha
     return NULL;
 }
 
+/* Evidence panels contain a heading and multiple records. Keep the strict
+ * buffer_contains equality helper for editor undo/redo assertions; these checks
+ * instead require the selected record and exclude the neighbouring record. */
+static int buffer_has_fragment(GtkTextBuffer *buffer, const char *expected)
+{
+    GtkTextIter begin, end;
+    gtk_text_buffer_get_bounds(buffer, &begin, &end);
+    char *text = gtk_text_buffer_get_text(buffer, &begin, &end, FALSE);
+    int matches = text != NULL && strstr(text, expected) != NULL;
+    g_free(text);
+    return matches;
+}
+
+/* Selected evidence needs fragment inclusion and exclusion, while editor draft checks still require exact equality. The former implementation is retained for review. */
+#if 0
 static int VerifySelectedTestEvidence(GtkApplication *application)
 {
     int failed = 0;
@@ -904,6 +919,146 @@ cleanup:
 /* Product import uses the existing native publisher. An earlier review is
  * refused after a rename, while a fresh review restores the exported list.
  * The enclosing test checks that the open editor draft remains unchanged. */
+#else
+static int VerifySelectedTestEvidence(GtkApplication *application)
+{
+    int failed = 0;
+    GtkWidget *retained_actions[3] = {NULL, NULL, NULL};
+    UmiStudioBootstrap *bootstrap = NULL;
+    UmiStudioGtkWorkbench *workbench = NULL;
+    UmiStudioServicesOptions services_options = {0};
+    UmiStudioGtkWorkbenchOptions options = {0};
+    REQUIRE(umi_studio_bootstrap_create_with_options(&services_options, &bootstrap) == UMI_STATUS_OK);
+    UmiTestPlatformService *platform = umi_studio_test_service_platform(
+        umi_studio_services_tests(umi_studio_bootstrap_services(bootstrap)));
+    REQUIRE(platform != NULL);
+    UmiTestPlatformItemRegistry *items = umi_test_platform_service_item(platform);
+    UmiTestPlatformResultRegistry *results = umi_test_platform_service_result(platform);
+    UmiTestPlatformOutputRegistry *outputs = umi_test_platform_service_output(platform);
+    const char *ids[] = {"native.selected.a", "native.selected.ab"};
+    const char *messages[] = {"ONLY_A_RESULT", "ONLY_AB_RESULT"};
+    const char *output_text[] = {"ONLY_A_OUTPUT", "ONLY_AB_OUTPUT"};
+    for (size_t i = 0; i < 2U; ++i) {
+        UmiTestPlatformItemSnapshot item = {0};
+        (void)g_strlcpy(item.id, ids[i], sizeof item.id);
+        (void)g_strlcpy(item.name, ids[i], sizeof item.name);
+        (void)g_strlcpy(item.framework, "ctest", sizeof item.framework);
+        (void)g_strlcpy(item.kind, "test", sizeof item.kind);
+        item.enabled = 1; item.discovered = 1;
+        REQUIRE(umi_test_platform_item_registry_upsert(items, &item) == UMI_STATUS_OK);
+        UmiTestPlatformResultSnapshot result = {0};
+        (void)g_strlcpy(result.id, ids[i], sizeof result.id);
+        (void)g_strlcpy(result.item_id, ids[i], sizeof result.item_id);
+        (void)g_strlcpy(result.session_id, "native-run", sizeof result.session_id);
+        (void)g_strlcpy(result.message, messages[i], sizeof result.message);
+        result.outcome = UMI_TEST_PLATFORM_OUTCOME_FAILED; result.sequence = i + 1U;
+        REQUIRE(umi_test_platform_result_registry_upsert(results, &result) == UMI_STATUS_OK);
+        UmiTestPlatformOutputSnapshot output = {0};
+        (void)g_strlcpy(output.id, ids[i], sizeof output.id);
+        (void)g_strlcpy(output.item_id, ids[i], sizeof output.item_id);
+        (void)g_strlcpy(output.session_id, "native-run", sizeof output.session_id);
+        (void)g_strlcpy(output.stream, "stderr", sizeof output.stream);
+        (void)g_strlcpy(output.text, output_text[i], sizeof output.text);
+        REQUIRE(umi_test_platform_output_registry_upsert(outputs, &output) == UMI_STATUS_OK);
+    }
+    REQUIRE(umi_studio_gtk_workbench_create_with_options(application,
+        umi_studio_bootstrap_ui(bootstrap), umi_studio_bootstrap_desktop_shell(bootstrap),
+        &options, &workbench) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_TEST_EXPLORER, NULL) == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+    GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    for (size_t i = 0; i < 2U; ++i) {
+        GtkWidget *select = FindTestSelect(root, ids[i]); REQUIRE(select != NULL);
+        if (i == 0U) {
+            const char *labels[] = {"Select", "Run", "Debug"};
+            for (size_t action = 0U; action < G_N_ELEMENTS(labels); ++action) {
+                GtkWidget *control = FindTestAction(root, ids[i], labels[action]);
+                REQUIRE(GTK_IS_BUTTON(control));
+                retained_actions[action] = g_object_ref(control);
+            }
+        }
+        g_signal_emit_by_name(select, "clicked");
+        /* Record command acceptance separately from rendering. A failure now
+         * identifies whether selection or evidence projection lost the row. */
+        UmiTestWorkspaceSnapshot selection;
+        REQUIRE(umi_test_workspace_snapshot(umi_studio_test_service_workspace(
+            umi_studio_services_tests(umi_studio_bootstrap_services(bootstrap))),
+            &selection) == UMI_STATUS_OK);
+        if (strcmp(selection.selected_item_id, ids[i]) != 0)
+            fprintf(stderr, "Selected test mismatch: requested=%s actual=%s\n",
+                ids[i], selection.selected_item_id);
+        REQUIRE(strcmp(selection.selected_item_id, ids[i]) == 0);
+        /* No refresh call here: selection must update the detail pane even
+         * when automatic refresh is deliberately disabled in this fixture. */
+        GtkWidget *view = find_tag(root, "studio.tests.selected-evidence");
+        REQUIRE(GTK_IS_TEXT_VIEW(view) && !gtk_text_view_get_editable(GTK_TEXT_VIEW(view)));
+        GtkTextBuffer *selected = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+        /* Keep failure evidence useful when selection or rendering rejects
+         * this synthetic fixture; never replace the content assertions with
+         * a successful command status alone. */
+        if (!buffer_has_fragment(selected, messages[i]) || !buffer_has_fragment(selected, output_text[i])) {
+            GtkTextIter begin, end;
+            gtk_text_buffer_get_bounds(selected, &begin, &end);
+            char *actual = gtk_text_buffer_get_text(selected, &begin, &end, TRUE);
+            fprintf(stderr, "Selected evidence for %s: %s\n", ids[i], actual != NULL ? actual : "(null)");
+            g_free(actual);
+        }
+        REQUIRE(buffer_has_fragment(selected, messages[i]) && buffer_has_fragment(selected, output_text[i]));
+        REQUIRE(!buffer_has_fragment(selected, messages[1U - i]) && !buffer_has_fragment(selected, output_text[1U - i]));
+        GtkWidget *copyCsv = find_tag(root, "studio.tests.copy-evidence-csv");
+        REQUIRE(VerifySelectedCsvClipboard(copyCsv, messages[i], messages[1U - i]));
+    }
+    /* Synchronisation replaces the row controls. Holding a button alive does
+     * not permit it to change selection or start a command for another row. */
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+    UmiTestWorkspace *test_workspace = umi_studio_test_service_workspace(
+        umi_studio_services_tests(umi_studio_bootstrap_services(bootstrap)));
+    UmiTestWorkspaceSnapshot before_retained, after_retained;
+    REQUIRE(umi_test_workspace_snapshot(test_workspace, &before_retained) == UMI_STATUS_OK);
+    for (size_t action = 0U; action < G_N_ELEMENTS(retained_actions); ++action) {
+        REQUIRE(gtk_widget_get_root(retained_actions[action]) == NULL);
+        g_signal_emit_by_name(retained_actions[action], "clicked");
+    }
+    REQUIRE(umi_test_workspace_snapshot(test_workspace, &after_retained) == UMI_STATUS_OK);
+    REQUIRE(strcmp(after_retained.selected_item_id, before_retained.selected_item_id) == 0);
+    REQUIRE(after_retained.revision == before_retained.revision);
+    REQUIRE(umi_test_platform_result_registry_remove(results, ids[1]) == UMI_STATUS_OK);
+    REQUIRE(umi_test_platform_output_registry_remove(outputs, ids[1]) == UMI_STATUS_OK);
+    /* Refresh native service projections after changing the result registries.
+     * The adapter-only refresh intentionally does not poll those services. */
+#if 0
+    REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+    GtkWidget *view = find_tag(root, "studio.tests.selected-evidence");
+    REQUIRE(GTK_IS_TEXT_VIEW(view));
+    REQUIRE(buffer_has_fragment(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)), "not a pass"));
+    /* Keep the source model alive first, then release it too: neither retained
+     * control lifetime grants access to the destroyed native workbench. */
+    umi_studio_gtk_workbench_destroy(workbench); workbench = NULL;
+    REQUIRE(umi_test_workspace_snapshot(test_workspace, &before_retained) == UMI_STATUS_OK);
+    for (size_t action = 0U; action < G_N_ELEMENTS(retained_actions); ++action)
+        g_signal_emit_by_name(retained_actions[action], "clicked");
+    REQUIRE(umi_test_workspace_snapshot(test_workspace, &after_retained) == UMI_STATUS_OK);
+    REQUIRE(after_retained.revision == before_retained.revision);
+    umi_studio_bootstrap_destroy(bootstrap); bootstrap = NULL;
+    for (size_t action = 0U; action < G_N_ELEMENTS(retained_actions); ++action)
+        g_signal_emit_by_name(retained_actions[action], "clicked");
+cleanup:
+    umi_studio_gtk_workbench_destroy(workbench);
+    umi_studio_bootstrap_destroy(bootstrap);
+    for (size_t action = 0U; action < G_N_ELEMENTS(retained_actions); ++action)
+        g_clear_object(&retained_actions[action]);
+    return failed;
+}
+
+#include "test_test_source_navigation_gtk4.inc"
+#include "test_debug_selection_gtk4.inc"
+
+/* Product import uses the existing native publisher. An earlier review is
+ * refused after a rename, while a fresh review restores the exported list.
+ * The enclosing test checks that the open editor draft remains unchanged. */
+#endif
 static int VerifyPortableLibrary(UmiStudioGtkWorkbench *workstation, GtkWidget *popover)
 {
     UmiUiWorkspaceLibrarySnapshot original, renamed, restored;

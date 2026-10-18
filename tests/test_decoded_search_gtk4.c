@@ -217,6 +217,11 @@ int main(int argc, char **argv)
     UmiDocumentCoordinator *documents = umi_studio_ui_documents(ui);
     UmiDocumentWorkingCopySnapshot active;
     CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+    /* Keep resource identity in failure evidence; a successful snapshot alone
+     * does not prove that opening the search result succeeded. */
+    if (!umi_path_equal(active.path, source))
+        fprintf(stderr, "Search navigation identity: expected=%s indexed=%s active=%s\n",
+            source, match.path, active.path);
     CHECK(umi_path_equal(active.path, source));
     UmiUiDocumentViewModel *views = umi_ui_workbench_documents(umi_studio_ui_workbench(ui));
     UmiUiDocumentViewSnapshot view;

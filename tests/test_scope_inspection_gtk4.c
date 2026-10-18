@@ -161,8 +161,14 @@ int main(int argc, char **argv)
             } else if (strcmp(name, "selection") == 0) {
                 UmiDebugScopeSnapshot scope; CHECK(umi_debug_workspace_scope_at(workspace, 2U, &scope) == UMI_STATUS_OK);
                 CHECK(umi_debug_workspace_select_scope(workspace, scope.id) == UMI_STATUS_OK);
+/* A changed scope must pass through the normal runtime projection; adapter refresh alone does not refresh debugger controls. The former implementation is retained for review. */
+#if 0
                 CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
                 CHECK(Find(root, "studio.debug.variable.value.scope.1.0") == NULL);
+#else
+                CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+                CHECK(Find(root, "studio.debug.variable.value.scope.1.0") == NULL);
+#endif
                 UmiDebugRuntimePlatformSnapshot start, finish;
                 CHECK(umi_debug_runtime_platform_snapshot(platform, &start) == UMI_STATUS_OK);
                 g_signal_emit_by_name(retainedChild, "clicked");
