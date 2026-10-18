@@ -804,6 +804,16 @@ static int VerifySelectedTestEvidence(GtkApplication *application)
         GtkWidget *view = find_tag(root, "studio.tests.selected-evidence");
         REQUIRE(GTK_IS_TEXT_VIEW(view) && !gtk_text_view_get_editable(GTK_TEXT_VIEW(view)));
         GtkTextBuffer *selected = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+        /* Keep failure evidence useful when selection or rendering rejects
+         * this synthetic fixture; never replace the content assertions with
+         * a successful command status alone. */
+        if (!buffer_contains(selected, messages[i]) || !buffer_contains(selected, output_text[i])) {
+            GtkTextIter begin, end;
+            gtk_text_buffer_get_bounds(selected, &begin, &end);
+            char *actual = gtk_text_buffer_get_text(selected, &begin, &end, TRUE);
+            fprintf(stderr, "Selected evidence for %s: %s\n", ids[i], actual != NULL ? actual : "(null)");
+            g_free(actual);
+        }
         REQUIRE(buffer_contains(selected, messages[i]) && buffer_contains(selected, output_text[i]));
         REQUIRE(!buffer_contains(selected, messages[1U - i]) && !buffer_contains(selected, output_text[1U - i]));
         GtkWidget *copyCsv = find_tag(root, "studio.tests.copy-evidence-csv");
@@ -811,7 +821,12 @@ static int VerifySelectedTestEvidence(GtkApplication *application)
     }
     REQUIRE(umi_test_platform_result_registry_remove(results, ids[1]) == UMI_STATUS_OK);
     REQUIRE(umi_test_platform_output_registry_remove(outputs, ids[1]) == UMI_STATUS_OK);
+    /* Refresh native service projections after changing the result registries.
+     * The adapter-only refresh intentionally does not poll those services. */
+#if 0
     REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
     GtkWidget *view = find_tag(root, "studio.tests.selected-evidence");
     REQUIRE(GTK_IS_TEXT_VIEW(view));
     REQUIRE(buffer_contains(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)), "not a pass"));

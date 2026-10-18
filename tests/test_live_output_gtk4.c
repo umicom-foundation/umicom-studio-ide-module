@@ -80,7 +80,12 @@ int main(int argc, char **argv)
         strcpy(result->command, "inert fixture"); strcpy(result->output, "completed evidence");
         umi_build_result_finish(result, UMI_STATUS_OK, 0, 1U);
         CHECK(umi_build_history_append(umi_studio_build_service_history(build), result) == UMI_STATUS_OK);
+        /* History projection belongs to the workspace service synchronisation
+         * path; the low-level adapter refresh alone does not render Output. */
+#if 0
         CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+        CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
         GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(Find(root, "studio.build.output")));
         GtkTextIter start, end; gtk_text_buffer_get_bounds(buffer, &start, &end);
         char *text = gtk_text_buffer_get_text(buffer, &start, &end, TRUE);

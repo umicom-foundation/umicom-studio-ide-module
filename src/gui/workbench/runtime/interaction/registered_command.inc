@@ -406,6 +406,10 @@ static UmiStatus runtime_execute_registered_command_capture(
 
     /* Arming changes execution mode only. The same authoritative registry still
      * checks workspace trust and process permissions before calling the handler. */
+    /* Enforcement clarification: raw registry dispatch retains descriptor
+     * metadata but does not enforce trust flags. terminal_execute_handler
+     * checks the shared workspace snapshot before either execution mode can
+     * create a process, and disarms a rejected background request. */
     UmiTerminalController *backgroundTerminal = NULL;
     if (strcmp(command_id, UMI_STUDIO_COMMAND_TERMINAL_EXECUTE) == 0) {
         UmiStudioServices *services = runtime->owner != NULL && runtime->owner->ui != NULL

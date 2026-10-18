@@ -211,13 +211,27 @@ static int ProgramMain(int argc, char **argv)
         GtkWidget *choice = Find(GTK_WIDGET(dialog), "document.completion.choice");
         GtkWidget *select = Find(GTK_WIDGET(dialog), "document.completion.preview");
         CHECK(arguments != NULL && choice != NULL && select != NULL);
+        /* This fixture deliberately has no open workspace. Choose its owned
+         * temporary folder explicitly, as a user must do before launching a
+         * language server; an empty default is correctly rejected by Framework. */
+        GtkWidget *folder = Find(GTK_WIDGET(dialog), "document.completion.folder");
+        CHECK(GTK_IS_EDITABLE(folder));
+        gtk_editable_set_text(GTK_EDITABLE(folder), directory);
         gtk_editable_set_text(GTK_EDITABLE(program), argv[2]);
         gtk_editable_set_text(GTK_EDITABLE(arguments), strcmp(name, "single-line") == 0 ? "foldings-single"
                                                        : strcmp(name, "invalid-response") == 0
                                                            ? "foldings-invalid"
                                                            : "foldings-valid");
         g_signal_emit_by_name(request, "clicked");
+        /* A rejected launch is not a completed server response. In particular,
+         * the malformed-response case must actually start its deterministic peer. */
+        CHECK(g_object_get_data(G_OBJECT(dialog), "umicom-completion-pending") != NULL);
         CHECK(Wait(GTK_WIDGET(dialog)));
+        if (!gtk_widget_get_sensitive(select)) {
+            GtkWidget *feedback = Find(GTK_WIDGET(dialog), "document.completion.message");
+            if (GTK_IS_LABEL(feedback))
+                fprintf(stderr, "Folding response: %s\n", gtk_label_get_text(GTK_LABEL(feedback)));
+        }
         if (strcmp(name, "invalid-response") == 0)
         {
             CHECK(!gtk_widget_get_sensitive(select));

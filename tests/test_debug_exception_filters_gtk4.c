@@ -102,10 +102,16 @@ int main(int argc, char **argv)
         umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window), "debug.exceptions.refresh");
     CHECK(attach != NULL && refresh != NULL);
     g_object_ref(attach);
-    for (GtkWidget *parent = gtk_widget_get_parent(attach); parent != NULL;
+    /* A collapsed section need not have a native parent chain. Use the
+     * Framework logical route, then retain the existing mapped-action assertion. */
+#if 0
+for (GtkWidget *parent = gtk_widget_get_parent(attach); parent != NULL;
          parent = gtk_widget_get_parent(parent))
         if (GTK_IS_EXPANDER(parent))
             gtk_expander_set_expanded(GTK_EXPANDER(parent), TRUE);
+#endif
+    CHECK(umi_gtk4_automation_reveal_tagged_widget(GTK_WIDGET(window),
+        g_object_get_data(G_OBJECT(attach), "umicom-automation-id")) == UMI_STATUS_OK);
     Drain();
     CHECK(gtk_widget_get_mapped(attach));
     CHECK(UmiStudioDebuggerAttachNative(debugger, build, 123456U, "", 1) == UMI_STATUS_OK);

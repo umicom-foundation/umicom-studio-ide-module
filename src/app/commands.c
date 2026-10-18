@@ -1654,6 +1654,22 @@ static UmiStatus terminal_execute_handler(void *user_data,
     if (argument == NULL || argument[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+    /* The registry stores trust metadata for presentation; executing a raw
+     * registered command does not evaluate it. Check the authoritative shared
+     * workspace snapshot here so CLI and GUI cannot start a process first and
+     * rely on a later GUI poll to revoke it. Keep the caller's draft on denial. */
+    UmiStudioWorkspaceSnapshot workspace;
+    status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status == UMI_STATUS_OK && (!workspace.graph.open || !workspace.graph.trusted))
+        status = UMI_STATUS_PERMISSION_DENIED;
+    if (status != UMI_STATUS_OK) {
+        UmiTerminalControllerDisarmBackground(
+            umi_studio_services_terminal_controller(services));
+        if (out_message != NULL && message_capacity > 0U)
+            (void)snprintf(out_message, message_capacity,
+                "Open and trust the workspace before executing a terminal command.");
+        return status;
+    }
     UmiTerminalController *controller = umi_studio_services_terminal_controller(services);
     int background = UmiTerminalControllerBackgroundArmed(controller);
     status = umi_terminal_controller_execute(

@@ -11,6 +11,7 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/debugger.h"
 #include "umicom/studio/settings.h"
+#include "umicom/studio/workspace.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
 #include <glib/gstdio.h>
 #include <stdio.h>
@@ -86,6 +87,10 @@ int main(int argc, char **argv)
     CHECK(umi_settings_set_boolean(settings, UMI_STUDIO_SETTING_AUTO_SAVE, 0) == UMI_STATUS_OK);
     CHECK(umi_studio_settings_save(settings, umi_studio_settings_default_path()) == UMI_STATUS_OK);
     CHECK(umi_studio_bootstrap_create_with_options(&serviceOptions, &bootstrap) == UMI_STATUS_OK);
+    /* The native session belongs to this explicitly trusted temporary workspace.
+     * Production refresh must continue disconnecting sessions after trust is lost. */
+    CHECK(umi_studio_workspace_open(umi_studio_bootstrap_services(bootstrap),
+        directory, 1, 0) == UMI_STATUS_OK);
     UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
     UmiStudioDebuggerService *debugger =
         umi_studio_services_debugger(umi_studio_bootstrap_services(bootstrap));
@@ -122,6 +127,7 @@ int main(int argc, char **argv)
           UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    CHECK(UmiStudioDebuggerNativeBusy(debugger));
 
     GtkWidget *restart = Find(root, "studio.debug.restart");
     CHECK(GTK_IS_BUTTON(restart));

@@ -151,6 +151,31 @@ int main(int argc, char **argv)
     }
     else if (strcmp(argv[1], "denied") == 0)
     {
+        /* Direct registry calls have no GUI polling safety net. Both modes
+         * must reject the same unopened, untrusted and revoked workspace
+         * before supervisor admission; metadata alone is not authorisation. */
+        char denied_message[256];
+        for (unsigned phase = 0U; phase < 3U; ++phase) {
+            if (phase == 1U)
+                CHECK(umi_studio_workspace_open(services, directory, 0, 0) == UMI_STATUS_OK);
+            if (phase == 2U) {
+                CHECK(umi_studio_workspace_set_trusted(services, 1) == UMI_STATUS_OK);
+                CHECK(umi_studio_workspace_set_trusted(services, 0) == UMI_STATUS_OK);
+            }
+            CHECK(UmiTerminalControllerArmBackground(controller) == UMI_STATUS_OK);
+            CHECK(umi_command_registry_execute(umi_studio_bootstrap_command_registry(bootstrap),
+                UMI_STUDIO_COMMAND_TERMINAL_EXECUTE, text, denied_message,
+                sizeof denied_message) == UMI_STATUS_PERMISSION_DENIED);
+            CHECK(!UmiTerminalControllerBackgroundArmed(controller));
+            CHECK(umi_command_registry_execute(umi_studio_bootstrap_command_registry(bootstrap),
+                UMI_STUDIO_COMMAND_TERMINAL_EXECUTE, text, denied_message,
+                sizeof denied_message) == UMI_STATUS_PERMISSION_DENIED);
+            CHECK(!UmiTerminalControllerJobPending(controller));
+            CHECK(umi_process_supervisor_stats(umi_terminal_controller_process_supervisor(controller)).jobs == 0U);
+            g_signal_emit_by_name(run, "clicked");
+            CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(entry)), text) == 0);
+        }
+        CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
         /* No trusted workspace exists, so GUI dispatch must not launch a child. */
         g_signal_emit_by_name(run, "clicked");
         CHECK(!UmiTerminalControllerJobPending(controller));

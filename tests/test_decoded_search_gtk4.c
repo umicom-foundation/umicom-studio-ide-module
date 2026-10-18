@@ -195,7 +195,12 @@ int main(int argc, char **argv)
         g_usleep(1000UL);
     }
     CHECK(state.ready && state.stats.matches == expected);
+    /* Search rows are projected by the normal workspace polling route, not
+     * by the adapter-only document refresh. Keep that earlier call for review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
     if (expected == 0U)
     {
         CHECK(state.stats.binary_files_skipped == 1U);

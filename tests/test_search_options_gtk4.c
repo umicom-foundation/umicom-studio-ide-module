@@ -100,6 +100,15 @@ int main(int argc, char **argv)
     UmiDocumentCoordinator *documents = umi_studio_ui_documents(ui);
     UmiUiDocumentViewModel *views = umi_ui_workbench_documents(umi_studio_ui_workbench(ui));
     char id[UMI_UI_ID_CAPACITY];
+    /* Bootstrap imports the Welcome document into the same coordinator as
+     * user drafts. This isolated fixture owns no restored user files: close
+     * only that known pristine virtual tab before testing an exact draft set. */
+    CHECK(umi_document_coordinator_count(documents) == 1U);
+    UmiDocumentWorkingCopySnapshot welcome;
+    CHECK(umi_document_coordinator_at(documents, 0U, &welcome) == UMI_STATUS_OK);
+    CHECK(strcmp(welcome.view_id, "studio.editor.welcome") == 0);
+    CHECK(UmiDocumentCoordinatorClose(documents, welcome.document_id, 1) == UMI_STATUS_OK);
+    CHECK(umi_document_coordinator_count(documents) == 0U);
     CHECK(umi_document_coordinator_new(documents, "Search policy.c", id, sizeof(id)) == UMI_STATUS_OK);
     const char *source = "foobar foo FOO foo_ foo2 foo", *expectedText = source;
     UmiUiDocumentViewSnapshot view;
