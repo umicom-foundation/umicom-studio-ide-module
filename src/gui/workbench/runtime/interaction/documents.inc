@@ -14,6 +14,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* New document must open its retained editor panel and focus it; the earlier model-only route remains for review. */
+#if 0
 static UmiStatus runtime_document_new(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -43,6 +45,26 @@ static UmiStatus runtime_document_new(
     }
 
     (void)runtime_refresh_services(runtime);
+    return status;
+}
+
+#endif
+static UmiStatus runtime_document_new(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    char viewId[UMI_UI_ID_CAPACITY];
+    /* The coordinator creates and activates the source atomically. Resolve the
+     * host again before revealing widgets because observers can close it. */
+    UmiStatus status = umi_document_coordinator_new(
+        umi_studio_ui_documents(runtime->owner->ui), "untitled.c", viewId, sizeof viewId);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status == UMI_STATUS_OK) status = RuntimePresentActiveSource(runtime);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
     return status;
 }
 

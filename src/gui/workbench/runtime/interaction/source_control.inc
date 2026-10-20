@@ -14,6 +14,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+static void RuntimeRefreshRepositoryReview(GtkWidget *expander, const char *root);
+
 static UmiStudioSourceControlService *runtime_source_control_service(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -586,6 +588,8 @@ static void runtime_source_control_refresh_list(
             row);
     }
 
+/* The branch-only summary did not explain an unopened or undiscovered repository. Retained for review; current project readiness now determines the guidance. */
+#if 0
     (void)snprintf(
         summary,
         sizeof(summary),
@@ -598,14 +602,41 @@ static void runtime_source_control_refresh_list(
         runtime->source_control_snapshot.staged,
         runtime->source_control_snapshot.ahead,
         runtime->source_control_snapshot.behind);
+#endif
+    if (runtime->source_control_snapshot.root[0] == '\0') {
+        (void)snprintf(summary, sizeof summary, "Open a project folder to use Source Control.");
+    } else if (!runtime->source_control_snapshot.available) {
+        (void)snprintf(summary, sizeof summary,
+            "Choose Refresh to discover Git for this project. Git must be installed and the folder must belong to a repository.");
+    } else {
+        (void)snprintf(summary, sizeof summary, "%.80s / %.80s — %zu changes, %zu staged, ahead %d / behind %d",
+            runtime->source_control_snapshot.provider_id,
+            runtime->source_control_snapshot.branch[0] != '\0' ? runtime->source_control_snapshot.branch : "Detached HEAD",
+            runtime->source_control_snapshot.changes, runtime->source_control_snapshot.staged,
+            runtime->source_control_snapshot.ahead, runtime->source_control_snapshot.behind);
+    }
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
+/* Retain panel widgets across GTK notifications; the previous label-only refresh remains for review. */
+#if 0
     if (runtime->source_control_summary_label != NULL) {
         gtk_label_set_text(
             GTK_LABEL(runtime->source_control_summary_label),
             summary);
+    }
+#endif
+    if (runtime->source_control_summary_label != NULL) {
+        GtkWidget *label = g_object_ref(runtime->source_control_summary_label);
+        GtkWidget *review = g_object_get_data(G_OBJECT(label), "studio.repository.review");
+        if (review != NULL) g_object_ref(review);
+        char *root = g_strdup(runtime->source_control_snapshot.root);
+        gtk_label_set_text(GTK_LABEL(label), summary);
+        if (review != NULL) RuntimeRefreshRepositoryReview(review, root);
+        g_free(root);
+        g_clear_object(&review);
+        g_object_unref(label);
     }
 }

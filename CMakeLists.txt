@@ -2414,6 +2414,8 @@ if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
         add_test(NAME studio.development_workflow.${case}
             COMMAND umicom-studio-development-workflow-test "$<TARGET_FILE:umicom-dap-protocol-fixture>" "${case}")
         set_tests_properties(studio.development_workflow.${case} PROPERTIES TIMEOUT 180 RUN_SERIAL TRUE
+            # Real compiler probes need the shared compact external workspace.
+            UMICOM_TEST_NESTED_BUILD TRUE
             LABELS "studio;build;debug;protocol-fixture;integration")
     endforeach()
 endif()
@@ -3278,3 +3280,16 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
         umicom_register_validation_target(umicom-studio-startup-failure-test)
     endif()
 endif()
+
+# Source-control fixtures start outside every repository so Git cannot discover
+# the checkout containing the build tree as their initial repository.
+if(BUILD_TESTING)
+    foreach(_test IN ITEMS studio.source_control_service studio.source_control_workspace)
+        if(TEST "${_test}")
+            set_tests_properties("${_test}" PROPERTIES UMICOM_TEST_OUTSIDE_REPOSITORY TRUE)
+        endif()
+    endforeach()
+endif()
+
+# Exercise the visible file workflow from a closed workspace.
+include(cmake/UmicomStudioFirstUse.cmake)

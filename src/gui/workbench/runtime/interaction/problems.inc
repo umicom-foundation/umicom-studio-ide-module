@@ -17,6 +17,8 @@
 #include "umicom/diagnostics/query.h"
 
 /* Rows carry a retained diagnostic ID, not a mutable chronological index. */
+/* Source navigation must reveal the selected editor, retaining the existing diagnostic-to-document resolver and its selection. Keep the earlier refresh-only callback for review. */
+#if 0
 static void RuntimeProblemsOpenSelected(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return;
@@ -24,6 +26,44 @@ static void RuntimeProblemsOpenSelected(UmiStudioGtkRuntimeChrome *runtime)
     if (status != UMI_STATUS_OK)
         runtime_show_notification(runtime, "This problem has no available source location. Read Output for the complete message.");
     (void)runtime_refresh_services(runtime);
+}
+
+
+#endif
+static UmiStatus RuntimeNavigateProblem(UmiStudioGtkRuntimeChrome *runtime, int previous)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiStatus status = UmiStudioUiNavigateProblem(runtime->owner->ui, previous);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status == UMI_STATUS_OK) status = RuntimePresentActiveSource(runtime);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status != UMI_STATUS_OK) runtime_show_notification(runtime,
+        "No available source location was opened. Read Problems and Output for details.");
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+static void RuntimeProblemsOpenSelected(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    UmiStatus status = UmiStudioUiOpenProblem(runtime->owner->ui, runtime->problemsSelectedId);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status == UMI_STATUS_OK) status = RuntimePresentActiveSource(runtime);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status != UMI_STATUS_OK)
+        runtime_show_notification(runtime, "This problem has no available source location. Read Output for the complete message.");
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
 }
 
 static void RuntimeProblemsSelected(GtkListBox *list, GtkListBoxRow *row, gpointer userData)

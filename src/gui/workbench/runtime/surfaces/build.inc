@@ -30,6 +30,8 @@ static void RuntimeOpenBuildHistoryReview(GtkButton *button, gpointer data)
     }
 }
 
+/* Build details are refreshed from current service state alongside progress. Retain the construction-time snapshot implementation for comparison. */
+#if 0
 static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *panel = runtime_panel_new("Build");
@@ -85,7 +87,13 @@ static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime
     runtime_bind_editor_action(runtime, review_button, RuntimeOpenBuildHistoryReview);
     gtk_box_append(GTK_BOX(panel), review_button);
 
+/* Build status now starts from current project context instead of a generic ready claim. */
+#if 0
     runtime->build_progress_label = runtime_label("Ready.", 0.0F);
+#endif
+    runtime->build_progress_label = runtime_label("Checking project context…", 0.0F);
+    gtk_label_set_wrap(GTK_LABEL(runtime->build_progress_label), TRUE);
+    (void)umi_gtk4_automation_tag_widget(runtime->build_progress_label, "studio.build.context");
     gtk_box_append(GTK_BOX(panel), runtime->build_progress_label);
     RuntimeRefreshBuildOutput(runtime);
 
@@ -93,4 +101,49 @@ static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime
 
     return runtime_scroll(panel);
 }
+#endif
+static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime)
+{
+    GtkWidget *panel = runtime_panel_new("Build");
 
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (panel == NULL || runtime == NULL || runtime->owner == NULL) return panel;
+
+    /* Profile, directory and outcome counts refresh with the current project
+     * in RuntimeRefreshBuildOutput; a panel constructed before Open Project
+     * must not keep displaying the previous build configuration. */
+
+    {
+        static const char *const labels[] = {
+            "Project Settings", "Configure", "Build", "Test", "Run", "Install", "Cancel", "Clean", "Package"
+        };
+        static const char *const commands[] = {
+            "build.settings", "build.configure", "build.build", "build.test", "run.start",
+            "build.install", "build.cancel", "build.clean", "build.package"
+        };
+        runtime_panel_add_commands(runtime, panel, labels, commands, 9U);
+    }
+    /* Keep every existing build action. Reviewing never submits another job. */
+    GtkWidget *review_button = gtk_button_new_with_label("Review build history");
+    gtk_widget_set_tooltip_text(review_button,
+        "Inspect copied outcomes and problems without starting an operation");
+    runtime_bind_editor_action(runtime, review_button, RuntimeOpenBuildHistoryReview);
+    gtk_box_append(GTK_BOX(panel), review_button);
+
+/* Build status now starts from current project context instead of a generic ready claim. */
+#if 0
+    runtime->build_progress_label = runtime_label("Ready.", 0.0F);
+#endif
+    runtime->build_progress_label = runtime_label("Checking project context…", 0.0F);
+    gtk_label_set_wrap(GTK_LABEL(runtime->build_progress_label), TRUE);
+    (void)umi_gtk4_automation_tag_widget(runtime->build_progress_label, "studio.build.context");
+    gtk_box_append(GTK_BOX(panel), runtime->build_progress_label);
+    RuntimeRefreshBuildOutput(runtime);
+
+    runtime_append_context_actions(runtime, panel, "build");
+
+    return runtime_scroll(panel);
+}

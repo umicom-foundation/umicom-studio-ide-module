@@ -133,6 +133,14 @@ UmiStatus umi_studio_gtk_workbench_workspace_request_canvas_geometry(
     UmiStudioGtkWorkbench *workbench, const char *window_id,
     const UmiApplicationSuiteLayoutRect *rect, uint64_t expected_layout_revision);
 
+/** Execute the same availability-checked command as Studio's visible controls.
+ * Call on the GTK owner thread. file.open accepts an explicit local file path;
+ * workspace.open-folder accepts a local project directory. NULL arguments keep
+ * the normal chooser behavior. A successful asynchronous command only means
+ * admitted; inspect its service result before reporting completion. */
+UmiStatus umi_studio_gtk_workbench_execute_command(UmiStudioGtkWorkbench *workbench,
+    const char *command_id, const char *argument);
+
 /** Run the same status synchronization as the native refresh timer without
  * enabling a recurring source. Normal document reconciliation still applies. */
 UmiStatus umi_studio_gtk_workbench_workspace_synchronise(UmiStudioGtkWorkbench *workbench);

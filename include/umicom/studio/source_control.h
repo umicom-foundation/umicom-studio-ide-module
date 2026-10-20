@@ -76,6 +76,15 @@ void umi_studio_source_control_service_destroy(
  * Provide the studio source control service refresh operation used by this module and its
  * client applications.
  */
+/** Bind a selected project without invoking Git. Successful selection clears
+ * previous repository records; the next explicit refresh performs discovery.
+ * Invalid arguments preserve the current binding; replacement allocation
+ * failure leaves the service closed. The caller supplies an absolute root. */
+UmiStatus UmiStudioSourceControlSelectWorkspace(
+    UmiStudioSourceControlService *service, const char *root);
+/** Close the binding without invoking Git; snapshots then report unavailable. */
+void UmiStudioSourceControlCloseWorkspace(UmiStudioSourceControlService *service);
+
 UmiStatus umi_studio_source_control_service_refresh(
     UmiStudioSourceControlService *service,
     size_t history_limit

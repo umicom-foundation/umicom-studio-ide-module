@@ -42,6 +42,8 @@ static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
     return status;
 }
 #endif
+/* Created projects now reveal their entry source through the same editor route as Open File. The earlier model-only adoption remains for review; generated files are retained when opening is postponed. */
+#if 0
 static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
     const UmiBuildProfile *profile, void *context)
 {
@@ -79,8 +81,52 @@ static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
     return status;
 }
 
+#endif
+static UmiStatus RuntimeProjectCreated(const UmiDeveloperProjectModel *model,
+    const UmiBuildProfile *profile, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (runtime == NULL || runtime->owner == NULL || model == NULL || profile == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+        RuntimeProgramConsoleBusy(runtime)) return UMI_STATUS_BUSY;
+    char mainPath[UMI_PATH_CAPACITY];
+    UmiStatus status = UmiDeveloperProjectEntryPath(model, mainPath, sizeof mainPath);
+    if (status != UMI_STATUS_OK) return status;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    /* The creation dialog and model remain owned by Framework. Copy the build
+     * profile before project adoption can notify and release native dialogs. */
+    UmiBuildProfile createdProfile = *profile;
+    status = runtime_open_workspace_path(runtime, model->root);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status == UMI_STATUS_OK)
+        status = UmiStudioBuildProfileSave(umi_studio_ui_services(runtime->owner->ui), &createdProfile);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status == UMI_STATUS_OK && umi_fs_is_file(mainPath))
+        status = RuntimeOpenSourcePath(runtime, mainPath);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL) {
+        runtime_show_notification(runtime, status == UMI_STATUS_OK
+            ? "Project created. Edit and save the source, then review Build > Project Settings before building."
+            : "The project files were created but could not be fully opened. Keep the folder and reopen it to review Project Settings.");
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
 /* The displayed source folder is immutable. Reject a stale dialog after any
  * workspace change instead of granting trust to a different folder. */
+/* Applying settings can notify observers that close the host. Retain this implementation for review; the replacement retains inputs and guards refresh and feedback through the window binding. */
+#if 0
 static UmiStatus RuntimeBuildSettingsApplied(const UmiBuildProfile *profile,
     int trusted, void *context)
 {
@@ -121,6 +167,64 @@ static UmiStatus RuntimeBuildSettingsApplied(const UmiBuildProfile *profile,
             ? "Project settings saved. Workspace trust must be reviewed again after reopening."
             : "Project settings applied in memory. Persistent user storage is not bound.");
     (void)runtime_refresh_services(runtime);
+    return status;
+}
+
+#endif
+static UmiStatus RuntimeBuildSettingsApplied(const UmiBuildProfile *profile,
+    int trusted, void *context)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL || profile == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.graph.open || !umi_path_equal(workspace.graph.root, profile->source_directory))
+        return UMI_STATUS_INVALID_STATE;
+    /* Profile changes must wait for the program that owns the current artifact,
+     * including a console which started after this form was opened. */
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+        RuntimeProgramConsoleBusy(runtime)) return UMI_STATUS_BUSY;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiBuildProfile reviewedProfile = *profile;
+    const char *message = NULL;
+    /* Persist before granting execution trust. A failed save must not authorise
+     * tools, and the copied profile survives release of the native form. */
+    status = UmiStudioBuildProfileSave(services, &reviewedProfile);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto settings_finished; }
+    if (status != UMI_STATUS_OK) {
+        message = status == UMI_STATUS_INVALID_STATE
+            ? "Project settings changed elsewhere. Reopen the workspace to read the latest settings before applying changes."
+            : "Project settings could not be saved. The previous profile and workspace trust were kept.";
+    } else {
+        status = umi_studio_security_set_workspace_trust(services, workspace.graph.root,
+            trusted ? UMI_WORKSPACE_TRUSTED : UMI_WORKSPACE_UNTRUSTED);
+        if (status == UMI_STATUS_OK) status = umi_studio_workspace_set_trusted(services, trusted);
+        g_clear_object(&window);
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto settings_finished; }
+        if (status != UMI_STATUS_OK) {
+            message = "Project settings were saved, but workspace trust could not be changed. No build has been started.";
+        } else {
+            message = runtime->workspace_storage != NULL &&
+                umi_data_server_backend(runtime->workspace_storage) == UMI_DATA_BACKEND_SQLITE
+                ? "Project settings saved. Workspace trust must be reviewed again after reopening."
+                : "Project settings applied in memory. Persistent user storage is not bound.";
+            (void)runtime_refresh_services(runtime);
+            g_clear_object(&window);
+            runtime = runtime_file_dialog_owner(request, &window);
+        }
+    }
+    if (runtime != NULL && message != NULL) runtime_show_notification(runtime, message);
+settings_finished:
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
     return status;
 }
 
@@ -333,6 +437,8 @@ static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
     return runtime_execute_registered_command(runtime, command, "background");
 }
 #endif
+/* Save-before-build now resolves the live host again after document notifications. The previous synchronous continuation is retained for comparison. */
+#if 0
 static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
     const char *command)
 {
@@ -367,4 +473,54 @@ static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
         return status;
     }
     return runtime_execute_registered_command(runtime, command, "background");
+}
+#endif
+static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
+    const char *command)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    /* Keep the save boundary behind execution ownership too: a denied build
+     * should not save editor drafts while its program is still running. */
+    if (RuntimeProgramConsoleBusy(runtime)) {
+        runtime_show_notification(runtime, "Stop the project program console before building or deploying.");
+        return UMI_STATUS_BUSY;
+    }
+    /* A pending filename decision belongs to the existing Save All session.
+     * Do not start a second save path or a build over partially saved sources. */
+    /* Previous guard checked only UmiGtk4AdapterDocumentSaveAllBusy.
+     * Both operations can write a reviewed source and must finish first. */
+    if (UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
+        UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter)) {
+        runtime_show_notification(runtime,
+            "Build did not start. Finish or cancel Save All first.");
+        return UMI_STATUS_BUSY;
+    }
+    if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(
+            umi_studio_ui_services(runtime->owner->ui)))) {
+        runtime_show_notification(runtime, "Stop the debugger before rebuilding or deploying this project.");
+        return UMI_STATUS_BUSY;
+    }
+    if (UmiStudioBuildBusy(umi_studio_services_build(umi_studio_ui_services(runtime->owner->ui))))
+        return UMI_STATUS_BUSY;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    char *selectedCommand = g_strdup(command);
+    UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
+    UmiStatus status = UmiDocumentCoordinatorSaveAll(documents, NULL);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    /* Saving publishes document changes. Start tools only if the same host
+     * still exists after those observers have finished. */
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime,
+            "Build did not start. Save unnamed documents with Save As and resolve any file conflict first.");
+    } else {
+        status = runtime_execute_registered_command(runtime, selectedCommand, "background");
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    g_free(selectedCommand);
+    return status;
 }

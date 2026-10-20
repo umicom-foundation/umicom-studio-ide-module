@@ -30,6 +30,8 @@ static void runtime_show_notification(
  * a canonical Studio service alias; everything else still follows this exact
  * established execution path.
  */
+/* Framework command completion may detach this host. The weak binding now guards refresh and feedback; the previous compatibility implementation remains for review. */
+#if 0
 static UmiStatus runtime_execute_phase1_host_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
@@ -69,10 +71,38 @@ static UmiStatus runtime_execute_phase1_host_command(
     return runtime_refresh_services(runtime);
 }
 
+#endif
+static UmiStatus runtime_execute_phase1_host_command(
+    UmiStudioGtkRuntimeChrome *runtime, const char *command_id, const char *argument)
+{
+    if (runtime == NULL || runtime->runtime_bootstrap == NULL || command_id == NULL || command_id[0] == '\0')
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    char *ownedCommand = g_strdup(command_id), *ownedArgument = g_strdup(argument);
+    UmiStatus status = umi_studio_host_controller_execute_command(
+        &runtime->host_controller, ownedCommand, ownedArgument);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status != UMI_STATUS_OK) {
+        char message[384];
+        (void)snprintf(message, sizeof message, "%s: %s", ownedCommand, umi_status_text(status));
+        runtime_show_notification(runtime, message);
+    } else status = runtime_refresh_services(runtime);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    g_free(ownedCommand);
+    g_free(ownedArgument);
+    return status;
+}
+
 /*
  * Provide the runtime execute command operation used by this module and its client
  * applications.
  */
+/* Commands may release their workbench through observers. The replacement resolves the existing lifetime token before feedback; the raw-pointer completion is retained for review. */
+#if 0
 static UmiStatus runtime_execute_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
@@ -136,6 +166,89 @@ static UmiStatus runtime_execute_command(
         (void)snprintf(message, sizeof(message), "%s: %s", command_id, umi_status_text(status));
         runtime_show_notification(runtime, message);
     }
+    return status;
+}
+#endif
+static UmiStatus runtime_execute_command(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *command_id,
+    const char *argument)
+{
+    if (runtime == NULL || runtime->owner == NULL || command_id == NULL || command_id[0] == '\0')
+        return UMI_STATUS_INVALID_ARGUMENT;
+    /* Framework reports bookmark results through editing completion, which
+     * may release this host. Never send a second notification afterwards. */
+    if (command_id != NULL && (strcmp(command_id, "editor.bookmark.toggle") == 0 ||
+        strcmp(command_id, "editor.bookmark.next") == 0 || strcmp(command_id, "editor.bookmark.previous") == 0 ||
+        strcmp(command_id, "editor.bookmark.clear") == 0)) return runtime_route_command(runtime, command_id, argument);
+
+    /* This modal route owns lifetime-checked immediate feedback itself. Return
+     * directly so generic error handling cannot revisit a destroyed host. */
+    if (command_id != NULL && strcmp(command_id, "editor.replace-complete-set") == 0)
+        return RuntimeReviewReplacementSet(runtime);
+    if (command_id != NULL && strcmp(command_id, "editor.replace-open-documents") == 0)
+        return RuntimeReviewOpenReplacements(runtime);
+
+/* REFACTOR NOTE: Editing and source navigation deliver their result through
+ * Framework completion and runtime_document_edit_completed. Preserve fallback
+ * feedback for unbound routes, but do not overwrite an already displayed error.
+ * The former code is retained below for reference; do not enable both paths.
+ */
+//     UmiStatus status = runtime_route_command(runtime, command_id, argument);
+//     if (status != UMI_STATUS_OK) {
+
+    UmiDocumentEditCommand editCommand;
+    /* Close now also completes through Framework's editing binding. Preserve
+     * the former classification below; do not repeat its error notification
+     * after the shared callback may already have refreshed or detached Studio. */
+    // int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
+    // (command_id != NULL && strcmp(command_id, "umicom.document.go-to-line") == 0);
+    /* Reopen and Forget now report through the same Framework completion.
+     * Keep the previous classification for review; the extended predicate
+     * prevents a second notification after completion has detached a host. */
+#if 0
+    int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
+        (command_id != NULL && (strcmp(command_id, "umicom.document.go-to-line") == 0 ||
+            strcmp(command_id, "file.close") == 0));
+#endif
+    /* Framework reports navigation through the editing completion too. Keep
+     * the earlier classification for review; avoid a second error notification. */
+#if 0
+    int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
+        (command_id != NULL && (strcmp(command_id, "umicom.document.go-to-line") == 0 ||
+            strcmp(command_id, "file.close") == 0 || strcmp(command_id, "file.reopen-closed") == 0 ||
+            strcmp(command_id, "file.forget-closed") == 0));
+#endif
+    int editing = UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK ||
+        (command_id != NULL && (strcmp(command_id, "umicom.document.go-to-line") == 0 ||
+            strcmp(command_id, "file.close") == 0 || strcmp(command_id, "file.reopen-closed") == 0 ||
+            strcmp(command_id, "file.forget-closed") == 0 ||
+            strcmp(command_id, "navigate.back") == 0 || strcmp(command_id, "navigate.forward") == 0 ||
+            strcmp(command_id, "editor.navigate.back") == 0 || strcmp(command_id, "editor.navigate.forward") == 0 ||
+            strcmp(command_id, "navigate.history.clear") == 0));
+    int completedByBinding = editing && runtime != NULL && runtime->owner != NULL &&
+        UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter);
+    /* A document-change or focus observer may close the workbench while an
+     * action is executing. Keep only copied inputs and the existing weak host
+     * token across dispatch; never issue feedback through the old raw pointer. */
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    char *command = g_strdup(command_id);
+    char *copiedArgument = g_strdup(argument);
+    uint64_t feedbackRevision = runtime->notification_revision;
+    UmiStatus status = runtime_route_command(runtime, command, copiedArgument);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status != UMI_STATUS_OK && !completedByBinding &&
+        runtime->notification_revision == feedbackRevision) {
+        char message[384];
+        (void)snprintf(message, sizeof(message), "%s: %s", command, umi_status_text(status));
+        runtime_show_notification(runtime, message);
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    g_free(copiedArgument);
+    g_free(command);
     return status;
 }
 

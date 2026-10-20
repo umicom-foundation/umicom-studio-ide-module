@@ -17,6 +17,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/source_control.h"
+#include "umicom/platform/path.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +25,8 @@
 
 struct UmiStudioSourceControlService {
     UmiSourceControlService *foundation;
+    /* Project selection binds identity first; explicit refresh discovers Git. */
+    int discovery_pending;
 };
 
 /* Provide the workspace of operation used by this module and its client applications. */
@@ -145,6 +148,8 @@ void umi_studio_source_control_service_destroy(
  * Provide the studio source control service refresh operation used by this module and its
  * client applications.
  */
+/* The startup-only refresh could keep operating on a previous project. Retained for review; explicit project binding now prepares Framework models before discovery. */
+#if 0
 UmiStatus umi_studio_source_control_service_refresh(
     UmiStudioSourceControlService *service,
     size_t history_limit)
@@ -153,6 +158,54 @@ UmiStatus umi_studio_source_control_service_refresh(
         ? umi_vcs_workspace_coordinator_refresh(
               coordinator_of(service), history_limit)
         : UMI_STATUS_INVALID_ARGUMENT;
+}
+
+#endif
+UmiStatus UmiStudioSourceControlSelectWorkspace(
+    UmiStudioSourceControlService *service, const char *root)
+{
+    if (service == NULL || root == NULL || root[0] == '\0' || !umi_path_is_absolute(root))
+        return UMI_STATUS_INVALID_ARGUMENT;
+    if (strlen(root) >= UMI_VCS_PATH_CAPACITY)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    /* The old project must stop accepting repository actions even if allocation
+     * for its replacement fails. Framework owns all models and their teardown;
+     * Studio only binds them to the project selected by its owner. */
+    UmiStudioSourceControlCloseWorkspace(service);
+    UmiStatus status = umi_source_control_service_open_workspace_unavailable(
+        service->foundation, root);
+    if (status == UMI_STATUS_OK) service->discovery_pending = 1;
+    return status;
+}
+
+void UmiStudioSourceControlCloseWorkspace(UmiStudioSourceControlService *service)
+{
+    if (service == NULL) return;
+    service->discovery_pending = 0;
+    umi_source_control_service_close_workspace(service->foundation);
+}
+
+UmiStatus umi_studio_source_control_service_refresh(
+    UmiStudioSourceControlService *service, size_t history_limit)
+{
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (workspace_of(service) == NULL) return UMI_STATUS_UNAVAILABLE;
+    if (service->discovery_pending) {
+        UmiVcsWorkspaceSnapshot selected;
+        UmiStatus status = umi_vcs_workspace_snapshot(workspace_of(service), &selected);
+        if (status != UMI_STATUS_OK) return status;
+        /* Keep the captured root outside the Framework model that discovery
+         * replaces. This is an explicit refresh, never a periodic UI read. */
+        status = umi_source_control_service_open_workspace(service->foundation, selected.root);
+        if (status != UMI_STATUS_OK) return status;
+        status = umi_vcs_workspace_snapshot(workspace_of(service), &selected);
+        if (status != UMI_STATUS_OK) return status;
+        /* A missing Git executable or a folder without a repository can be
+         * corrected while Studio stays open. Another explicit Refresh must
+         * retry discovery instead of freezing an unavailable provider. */
+        service->discovery_pending = !selected.available;
+    }
+    return umi_vcs_workspace_coordinator_refresh(coordinator_of(service), history_limit);
 }
 
 /*
@@ -357,6 +410,12 @@ UmiStatus umi_studio_source_control_service_snapshot(
      */
     if (service == NULL || out_snapshot == NULL) {
         return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    /* A closed project has an empty, unavailable presentation rather than a
+     * stale repository or an internal error during ordinary UI refresh. */
+    if (workspace_of_const(service) == NULL) {
+        (void)memset(out_snapshot, 0, sizeof(*out_snapshot));
+        return UMI_STATUS_OK;
     }
     /* Apply this branch only when its contract condition is satisfied. */
     if (umi_vcs_workspace_snapshot(workspace_of_const(service), &source) !=

@@ -65,6 +65,8 @@ static void runtime_prompt_cancelled(
  * Provide the runtime prompt accepted operation used by this module and its client
  * applications.
  */
+/* Prompt acceptance now owns the submitted text and resolves the host after operation callbacks. Retain the former borrowed continuation for engineering review. */
+#if 0
 static void runtime_prompt_accepted(
     GtkButton *button,
     gpointer user_data)
@@ -127,6 +129,83 @@ static void runtime_prompt_accepted(
     g_object_unref(dialog);
 }
 
+#endif
+static void runtime_prompt_accepted(
+    GtkButton *button,
+    gpointer user_data)
+{
+    UmiStudioGtkPromptContext *context =
+        (UmiStudioGtkPromptContext *)user_data;
+    const char *value;
+    UmiStatus status;
+    (void)button;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (context == NULL || context->runtime == NULL ||
+        context->entry == NULL || context->accepted == NULL) {
+        return;
+    }
+
+    GObject *ownerWindow = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context->ownerRequest, &ownerWindow);
+    if (runtime == NULL) {
+        gtk_window_destroy(GTK_WINDOW(context->window));
+        g_clear_object(&ownerWindow);
+        return;
+    }
+    if (context->guardWorkspace) {
+        UmiWorkspaceGraphSnapshot current;
+        UmiStatus workspaceStatus = umi_workspace_graph_snapshot(
+            umi_studio_services_workspace(umi_studio_ui_services(runtime->owner->ui)),
+            &current);
+        if (workspaceStatus != UMI_STATUS_OK || !current.open ||
+            current.revision != context->workspace.revision ||
+            !umi_path_equal(current.root, context->workspace.root)) {
+            runtime_show_notification(runtime,
+                "The workspace changed while this form was open. Cancel and open the form again.");
+            g_object_unref(ownerWindow);
+            return;
+        }
+    }
+    value = gtk_editable_get_text(GTK_EDITABLE(context->entry));
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (value == NULL || value[0] == '\0') {
+        runtime_show_notification(
+            runtime,
+            "A value is required.");
+        g_object_unref(ownerWindow);
+        return;
+    }
+
+    UmiStudioFileDialogRequest *continuation = runtime_file_dialog_request_new(runtime, 0U);
+    if (continuation == NULL) {
+        g_object_unref(ownerWindow);
+        return;
+    }
+    GtkWindow *dialog = g_object_ref(GTK_WINDOW(context->window));
+    char *acceptedValue = g_strdup(value);
+    UmiStudioGtkPromptAccepted accepted = context->accepted;
+    uint64_t notificationRevision = runtime->notification_revision;
+    status = accepted(runtime, acceptedValue);
+    g_free(acceptedValue);
+    g_clear_object(&ownerWindow);
+    runtime = runtime_file_dialog_owner(continuation, &ownerWindow);
+    /* Completion callbacks can close both windows. Never reuse their borrowed
+     * runtime or entry text, and preserve specific feedback from the operation. */
+    if (status == UMI_STATUS_OK || runtime == NULL) gtk_window_destroy(dialog);
+    else if (runtime->notification_revision == notificationRevision)
+        runtime_show_notification(runtime, umi_status_text(status));
+    runtime_file_dialog_request_free(continuation);
+    g_clear_object(&ownerWindow);
+    g_object_unref(dialog);
+}
+
 /*
  * Provide the runtime prompt text operation used by this module and its client
  * applications.
@@ -179,6 +258,7 @@ static UmiStatus runtime_prompt_text_internal(
     window = GTK_WIDGET(gtk_window_new());
     root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     context->entry = gtk_entry_new();
+    g_object_set_data(G_OBJECT(context->entry), "umicom-automation-id", "studio.prompt.value");
     buttons = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     cancel = gtk_button_new_with_label("Cancel");
     accept = gtk_button_new_with_label(
@@ -194,6 +274,7 @@ static UmiStatus runtime_prompt_text_internal(
         return UMI_STATUS_OUT_OF_MEMORY;
     }
 
+    g_object_set_data(G_OBJECT(accept), "umicom-automation-id", "studio.prompt.accept");
     context->runtime = runtime;
     context->window = window;
     context->accepted = accepted;

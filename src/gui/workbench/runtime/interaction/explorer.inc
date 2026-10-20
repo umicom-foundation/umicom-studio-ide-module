@@ -16,6 +16,8 @@
 
 #include "umicom/ui/explorer.h"
 
+/* Explorer uses the same source-opening route as the file chooser so hidden editors are revealed consistently; retain the old model-only sequence for review. */
+#if 0
 static void runtime_explorer_open_path(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *path)
@@ -53,6 +55,21 @@ static void runtime_explorer_open_path(
     }
 
     (void)runtime_refresh_services(runtime);
+}
+
+#endif
+static void runtime_explorer_open_path(UmiStudioGtkRuntimeChrome *runtime, const char *path)
+{
+    if (runtime == NULL || runtime->owner == NULL || path == NULL || path[0] == '\0') return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    UmiStatus status = RuntimeOpenSourcePath(runtime, path);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status != UMI_STATUS_OK)
+        runtime_show_notification(runtime, umi_status_text(status));
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
 }
 
 /* A retained old row cannot reopen a previous workspace after refresh or
@@ -434,6 +451,8 @@ static void RuntimeExplorerNext(GtkButton *button, gpointer data)
 
 /* Keep created files when a later editor/index operation is unavailable. The
  * developer can refresh or open that file without repeating its creation. */
+/* Creating a project file now presents its native editor and rechecks window lifetime after document and focus observers. The previous model-only presentation is retained for review. */
+#if 0
 static UmiStatus RuntimeCreateProjectEntry(UmiStudioGtkRuntimeChrome *runtime,
     const char *path, UmiWorkspaceEntryKind kind)
 {
@@ -452,6 +471,47 @@ static UmiStatus RuntimeCreateProjectEntry(UmiStudioGtkRuntimeChrome *runtime,
     else runtime_show_notification(runtime, "Project file created and opened. Edit it, then save before building.");
     (void)runtime_refresh_services(runtime);
     return UMI_STATUS_OK;
+}
+
+#endif
+static UmiStatus RuntimeCreateProjectEntry(UmiStudioGtkRuntimeChrome *runtime,
+    const char *path, UmiWorkspaceEntryKind kind)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioUi *ui = runtime->owner->ui;
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiStudioProjectEntryResult result;
+    UmiStatus status = umi_workspace_graph_snapshot(umi_studio_services_workspace(
+        umi_studio_ui_services(ui)), &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    /* The prompt may disappear from a document observer. Framework receives
+     * an owned path; later presentation only proceeds through the live host. */
+    char *selectedPath = g_strdup(path);
+    status = UmiStudioUiCreateProjectEntry(ui, workspace.revision, selectedPath, kind, &result);
+    g_free(selectedPath);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    if (status == UMI_STATUS_OK) {
+        UmiStatus presentation = kind == UMI_WORKSPACE_ENTRY_FILE && result.document_status == UMI_STATUS_OK
+            ? RuntimePresentActiveSource(runtime) : runtime_refresh_services(runtime);
+        g_clear_object(&window);
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+        else if (kind == UMI_WORKSPACE_ENTRY_DIRECTORY)
+            runtime_show_notification(runtime, "Folder created. Use its relative path when creating a project file; Explorer lists files, not empty folders.");
+        else if (result.document_status != UMI_STATUS_OK || result.index_status != UMI_STATUS_OK ||
+                 presentation != UMI_STATUS_OK)
+            runtime_show_notification(runtime, "File created on disk, but the index or editor could not adopt it. Refresh or use Open File; do not recreate it.");
+        else
+            runtime_show_notification(runtime, "Project file created and opened. Edit it, then save before building.");
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
 }
 
 static UmiStatus RuntimeCreateProjectFile(UmiStudioGtkRuntimeChrome *runtime, const char *path)

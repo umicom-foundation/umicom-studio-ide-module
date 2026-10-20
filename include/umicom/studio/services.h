@@ -382,6 +382,12 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
  */
 UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services);
 
+/** Prepare project identity, discovery and build settings without recursively
+ * indexing every file. Owner-thread callers subsequently start the shared
+ * background indexer. Existing Open remains synchronous. */
+UmiStatus UmiStudioServicesPrepareWorkspace(UmiStudioServices *services,
+    const char *root, int trusted);
+
 /**
  * Return the number of records represented by studio services diagnostic sink without
  * changing their state.

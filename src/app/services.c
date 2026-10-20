@@ -1597,6 +1597,18 @@ void UmiStudioBuildProfilesDetach(UmiStudioServices *services)
     services->build_profile_revision_known = 0;
 }
 
+/* Project identity and tool settings belong to the currently running operation.
+ * Keep this service check authoritative for CLI, Studio panels and future hosts;
+ * a disabled menu alone cannot protect a pending native debugger launch. */
+static int StudioProjectExecutionBusy(UmiStudioServices *services)
+{
+    return UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+        UmiTerminalControllerJobPending(services->terminal_controller);
+}
+
+/* Project profile changes now respect debugger and terminal ownership as well as the compiler. The prior build-only admission is retained for engineering review. */
+#if 0
 UmiStatus UmiStudioBuildProfileSave(UmiStudioServices *services,
     const UmiBuildProfile *profile)
 {
@@ -1608,6 +1620,37 @@ UmiStatus UmiStudioBuildProfileSave(UmiStudioServices *services,
     status = umi_build_profile_validate(profile, NULL, 0U);
     if (status != UMI_STATUS_OK) return status;
     if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    status = umi_workspace_graph_snapshot(services->workspace, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.open || !services->build_profile_revision_known)
+        return UMI_STATUS_INVALID_STATE;
+    status = UmiBuildProfileForWorkspace(workspace.root, &expected);
+    if (status != UMI_STATUS_OK) return status;
+    if (!umi_path_equal(expected.source_directory, profile->source_directory))
+        return UMI_STATUS_INVALID_ARGUMENT;
+    status = UmiBuildProfileStoreSave(BuildProfileServer(services), profile,
+        services->build_profile_revision, &revision);
+    if (status != UMI_STATUS_OK) return status;
+    /* Validation and the busy check above make this assignment non-fallible
+     * under the owning-thread contract. Storage errors never change the engine. */
+    status = umi_studio_build_service_set_profile(
+        umi_studio_services_build(services), profile);
+    if (status == UMI_STATUS_OK) services->build_profile_revision = revision;
+    return status;
+}
+
+#endif
+UmiStatus UmiStudioBuildProfileSave(UmiStudioServices *services,
+    const UmiBuildProfile *profile)
+{
+    UmiWorkspaceGraphSnapshot workspace;
+    UmiBuildProfile expected;
+    uint64_t revision;
+    UmiStatus status;
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_build_profile_validate(profile, NULL, 0U);
+    if (status != UMI_STATUS_OK) return status;
+    if (StudioProjectExecutionBusy(services)) return UMI_STATUS_BUSY;
     status = umi_workspace_graph_snapshot(services->workspace, &workspace);
     if (status != UMI_STATUS_OK) return status;
     if (!workspace.open || !services->build_profile_revision_known)
@@ -1727,6 +1770,8 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
     return status;
 }
 #endif
+/* Interactive opening now separates project adoption from recursive file indexing. Retain the former synchronous implementation for comparison; StudioOpenWorkspace preserves that behavior for existing callers. */
+#if 0
 UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
                                              const char *root,
                                              int trusted)
@@ -1821,6 +1866,234 @@ UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
     return status;
 }
 
+#endif
+/* The selected project is now canonicalized before service mutation and rejected while a native operation owns it. Retain the former transition for comparison; no source is discarded. */
+#if 0
+static UmiStatus StudioOpenWorkspace(UmiStudioServices *services,
+    const char *root, int trusted, int rebuildIndex)
+{
+    UmiStatus status;
+    UmiBuildProfile projectProfile;
+    uint64_t profileRevision = 0U;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL || root == NULL || root[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    /* Keep a running terminal attached to its reviewed workspace. Stop and Poll
+     * complete its captured command before another project can replace it. */
+    if (UmiTerminalControllerJobPending(services->terminal_controller)) return UMI_STATUS_BUSY;
+    status = UmiBuildProfileForWorkspace(root, &projectProfile);
+    if (status != UMI_STATUS_OK) return status;
+    /* Inspect saved settings before changing the current workspace. A corrupt
+     * record is reported and preserved, never treated as absent. Trust is not
+     * part of the stored profile; the caller supplies it for this open. */
+    status = UmiBuildProfileStoreLoad(BuildProfileServer(services), root,
+        &projectProfile, &profileRevision);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) return status;
+    status = umi_watcher_stop(services->watcher);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_file_index_set_root(services->file_index, root);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_watcher_set_root(services->watcher, root);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_workspace_graph_open(services->workspace, root, trusted);
+    }
+    if (status == UMI_STATUS_OK) {
+        /* A project transition invalidates the previous repository binding.
+         * Discovery remains an explicit Source Control refresh, so opening a
+         * folder neither runs Git nor leaves actions targeting the old root. */
+        status = UmiStudioSourceControlSelectWorkspace(
+            umi_studio_services_source_control(services), projectProfile.source_directory);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_workspace_graph_discover(services->workspace);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    /* Interactive clients start the same Framework indexer on its worker after
+     * project identity and build settings are ready. Synchronous clients keep
+     * their original completed-index contract. */
+    if (status == UMI_STATUS_OK && rebuildIndex) {
+        status = umi_file_index_rebuild(services->file_index);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        UmiWorkspaceGraphSnapshot workspace_snapshot;
+        UmiWorkspaceProjectSnapshot project_snapshot;
+        const char *project_id = "workspace";
+        /* Apply this branch only when its contract condition is satisfied. */
+        if (umi_workspace_graph_snapshot(services->workspace,
+                                         &workspace_snapshot) ==
+                UMI_STATUS_OK) {
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (workspace_snapshot.project_count > 0U &&
+                umi_workspace_graph_project_at(services->workspace, 0U,
+                                                &project_snapshot) ==
+                    UMI_STATUS_OK) {
+                project_id = project_snapshot.stable_id;
+            }
+            status = umi_studio_test_service_set_workspace(
+                umi_studio_services_tests(services), root, project_id,
+                workspace_snapshot.revision);
+        }
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_build_service_set_profile(
+            umi_studio_services_build(services), &projectProfile);
+    }
+    if (status == UMI_STATUS_OK) {
+        services->build_profile_revision = profileRevision;
+        services->build_profile_revision_known = 1;
+        UmiStatus recent_status;
+        /* Recent-work persistence is helpful but not required to open a
+         * workspace. A history-file error must not turn a successful open into
+         * a failed developer operation. */
+        recent_status = studio_remember_workspace(services, root);
+        if (recent_status == UMI_STATUS_OK) {
+            services->recent_items_dirty = 1;
+            if (services->recent_items_persistence_enabled != 0 &&
+                umi_platform_recent_items_registry_save(
+                    services->recent_items,
+                    STUDIO_RECENT_ITEMS_PATH) == UMI_STATUS_OK) {
+                services->recent_items_dirty = 0;
+            }
+        }
+    }
+    return status;
+}
+
+#endif
+static UmiStatus StudioOpenWorkspace(UmiStudioServices *services,
+    const char *root, int trusted, int rebuildIndex)
+{
+    UmiStatus status;
+    UmiBuildProfile projectProfile;
+    uint64_t profileRevision = 0U;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL || root == NULL || root[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    if (StudioProjectExecutionBusy(services)) return UMI_STATUS_BUSY;
+    /* Keep a running terminal attached to its reviewed workspace. Stop and Poll
+     * complete its captured command before another project can replace it. */
+    if (UmiTerminalControllerJobPending(services->terminal_controller)) return UMI_STATUS_BUSY;
+    status = UmiBuildProfileForWorkspace(root, &projectProfile);
+    if (status != UMI_STATUS_OK) return status;
+    /* Resolve once before mutating services. Index, watcher, tests and build
+     * must retain one absolute identity even if a later tool changes cwd. */
+    char selectedRoot[UMI_BUILD_PATH_CAPACITY];
+    memcpy(selectedRoot, projectProfile.source_directory, strlen(projectProfile.source_directory) + 1U);
+    if (!umi_fs_is_directory(selectedRoot)) return UMI_STATUS_NOT_FOUND;
+    root = selectedRoot;
+    /* Inspect saved settings before changing the current workspace. A corrupt
+     * record is reported and preserved, never treated as absent. Trust is not
+     * part of the stored profile; the caller supplies it for this open. */
+    status = UmiBuildProfileStoreLoad(BuildProfileServer(services), root,
+        &projectProfile, &profileRevision);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) return status;
+    status = umi_watcher_stop(services->watcher);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_file_index_set_root(services->file_index, root);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_watcher_set_root(services->watcher, root);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_workspace_graph_open(services->workspace, root, trusted);
+    }
+    if (status == UMI_STATUS_OK) {
+        /* A project transition invalidates the previous repository binding.
+         * Discovery remains an explicit Source Control refresh, so opening a
+         * folder neither runs Git nor leaves actions targeting the old root. */
+        status = UmiStudioSourceControlSelectWorkspace(
+            umi_studio_services_source_control(services), projectProfile.source_directory);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_workspace_graph_discover(services->workspace);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    /* Interactive clients start the same Framework indexer on its worker after
+     * project identity and build settings are ready. Synchronous clients keep
+     * their original completed-index contract. */
+    if (status == UMI_STATUS_OK && rebuildIndex) {
+        status = umi_file_index_rebuild(services->file_index);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        UmiWorkspaceGraphSnapshot workspace_snapshot;
+        UmiWorkspaceProjectSnapshot project_snapshot;
+        const char *project_id = "workspace";
+        /* Apply this branch only when its contract condition is satisfied. */
+        if (umi_workspace_graph_snapshot(services->workspace,
+                                         &workspace_snapshot) ==
+                UMI_STATUS_OK) {
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (workspace_snapshot.project_count > 0U &&
+                umi_workspace_graph_project_at(services->workspace, 0U,
+                                                &project_snapshot) ==
+                    UMI_STATUS_OK) {
+                project_id = project_snapshot.stable_id;
+            }
+            status = umi_studio_test_service_set_workspace(
+                umi_studio_services_tests(services), root, project_id,
+                workspace_snapshot.revision);
+        }
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_build_service_set_profile(
+            umi_studio_services_build(services), &projectProfile);
+    }
+    if (status == UMI_STATUS_OK) {
+        services->build_profile_revision = profileRevision;
+        services->build_profile_revision_known = 1;
+        UmiStatus recent_status;
+        /* Recent-work persistence is helpful but not required to open a
+         * workspace. A history-file error must not turn a successful open into
+         * a failed developer operation. */
+        recent_status = studio_remember_workspace(services, root);
+        if (recent_status == UMI_STATUS_OK) {
+            services->recent_items_dirty = 1;
+            if (services->recent_items_persistence_enabled != 0 &&
+                umi_platform_recent_items_registry_save(
+                    services->recent_items,
+                    STUDIO_RECENT_ITEMS_PATH) == UMI_STATUS_OK) {
+                services->recent_items_dirty = 0;
+            }
+        }
+    }
+    return status;
+}
+
+UmiStatus umi_studio_services_open_workspace(UmiStudioServices *services,
+    const char *root, int trusted)
+{
+    return StudioOpenWorkspace(services, root, trusted, 1);
+}
+
+UmiStatus UmiStudioServicesPrepareWorkspace(UmiStudioServices *services,
+    const char *root, int trusted)
+{
+    return StudioOpenWorkspace(services, root, trusted, 0);
+}
+
 /*
  * Provide the studio services close workspace operation used by this module and its client
  * applications.
@@ -1854,6 +2127,8 @@ UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
     return status;
 }
 #endif
+/* Closing a project must not detach a pending or active debugger from its captured source and run configuration. The earlier build-only close gate is retained for review. */
+#if 0
 UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
 {
     UmiStatus status;
@@ -1868,6 +2143,45 @@ UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
     if (UmiTerminalControllerJobPending(services->terminal_controller)) return UMI_STATUS_BUSY;
     (void)umi_watcher_stop(services->watcher);
     status = umi_workspace_graph_close(services->workspace);
+    if (status == UMI_STATUS_OK) {
+        /* Repository actions cannot outlive the project they were selected in. */
+        UmiStudioSourceControlCloseWorkspace(umi_studio_services_source_control(services));
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_file_index_clear(services->file_index);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_test_service_set_workspace(
+            umi_studio_services_tests(services), "", "", 0U);
+    }
+    if (status == UMI_STATUS_OK) {
+        services->build_profile_revision = 0U;
+        services->build_profile_revision_known = 0;
+    }
+    return status;
+}
+
+#endif
+UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (StudioProjectExecutionBusy(services)) return UMI_STATUS_BUSY;
+    /* Keep a running terminal attached to its reviewed workspace. Stop and Poll
+     * complete its captured command before another project can replace it. */
+    if (UmiTerminalControllerJobPending(services->terminal_controller)) return UMI_STATUS_BUSY;
+    (void)umi_watcher_stop(services->watcher);
+    status = umi_workspace_graph_close(services->workspace);
+    if (status == UMI_STATUS_OK) {
+        /* Repository actions cannot outlive the project they were selected in. */
+        UmiStudioSourceControlCloseWorkspace(umi_studio_services_source_control(services));
+    }
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
         status = umi_file_index_clear(services->file_index);

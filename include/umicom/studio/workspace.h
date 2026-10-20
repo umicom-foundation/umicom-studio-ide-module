@@ -45,11 +45,27 @@ UmiStatus umi_studio_workspace_open(UmiStudioServices *services,
  * applications.
  */
 UmiStatus umi_studio_workspace_close(UmiStudioServices *services);
+
+/** Open a project for interactive editing and start its file index in the
+ * Framework worker. An older active index is cancelled and BUSY is returned
+ * before changing project identity; retry after its completion. On OK the
+ * project is open, while outIndexStatus reports scan admission only. A scan
+ * failure does not close an otherwise usable project. Read subsequent progress
+ * with UmiFileIndexRefreshRead. The caller remains responsible for trust. */
+UmiStatus UmiStudioWorkspaceOpenForEditing(UmiStudioServices *services,
+    const char *root, int trusted, int startWatcher, UmiStatus *outIndexStatus);
+
 /**
  * Provide the studio workspace refresh operation used by this module and its client
  * applications.
  */
 UmiStatus umi_studio_workspace_refresh(UmiStudioServices *services);
+
+/** Refresh immediate project discovery and queue recursive file indexing.
+ * OK reports admission, not scan completion; observe UmiFileIndexRefreshRead.
+ * BUSY preserves the active scan. Closing/replacing the workspace invalidates
+ * late worker results. Call on the Studio service owner thread. */
+UmiStatus UmiStudioWorkspaceRefreshForEditing(UmiStudioServices *services);
 /**
  * Provide the studio workspace set trusted operation used by this module and its client
  * applications.

@@ -166,6 +166,8 @@ static UmiStatus prepare_user_startup(char *out_executable_path,
  * displays the normal welcome experience instead of treating application data
  * or System32 as a project.
  */
+/* Restoration now uses background indexing after the same saved-location selection. Retain the synchronous startup path for review. */
+#if 0
 static UmiStatus restore_saved_workspace(UmiStudioBootstrap *bootstrap)
 {
     UmiStudioServices *services;
@@ -220,6 +222,80 @@ static UmiStatus restore_saved_workspace(UmiStudioBootstrap *bootstrap)
     if (status != UMI_STATUS_OK) return status;
     if (recentCount == 1U && umi_fs_is_directory(recentItem.uri)) {
         status = umi_studio_workspace_open(services, recentItem.uri, 0, 1);
+        if (status == UMI_STATUS_OK) return UMI_STATUS_OK;
+        (void)umi_studio_workspace_close(services);
+        return status;
+    }
+
+    return umi_studio_workspace_close(services);
+}
+#endif
+/* Restoring a saved location uses the same non-recursive admission as Open
+ * Project Folder. The first window need not wait for an entire source tree. */
+static UmiStatus restore_workspace_for_editing(UmiStudioServices *services, const char *root)
+{
+    UmiStatus indexStatus = UMI_STATUS_UNAVAILABLE;
+    UmiStatus status = UmiStudioWorkspaceOpenForEditing(services, root, 0, 1, &indexStatus);
+    if (status == UMI_STATUS_OK && indexStatus != UMI_STATUS_OK)
+        (void)fprintf(stderr, "[USIDE] Project opened; file indexing was not started: %s. Use Refresh Files in Explorer.\n",
+            umi_status_text(indexStatus));
+    return status;
+}
+
+static UmiStatus restore_saved_workspace(UmiStudioBootstrap *bootstrap)
+{
+    UmiStudioServices *services;
+    UmiSettings *settings;
+    UmiSessionStore *session;
+    UmiRecentItemRegistry *recentItems;
+    UmiRecentItemSnapshot recentItem;
+    UmiRecentItemQuery recentQuery = {0};
+    char workspaceRoot[UMI_SESSION_VALUE_CAPACITY];
+    size_t recentCount = 0U;
+    int restoreSession = 0;
+    UmiStatus status;
+
+    if (bootstrap == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    services = umi_studio_bootstrap_services(bootstrap);
+    if (services == NULL) return UMI_STATUS_INVALID_STATE;
+    settings = umi_studio_services_settings(services);
+    session = umi_studio_services_session(services);
+    recentItems = umi_studio_services_recent_items(services);
+    if (settings == NULL || session == NULL || recentItems == NULL) {
+        return UMI_STATUS_INVALID_STATE;
+    }
+
+    status = umi_settings_get_boolean(
+        settings,
+        UMI_STUDIO_SETTING_WORKSPACE_RESTORE_SESSION,
+        &restoreSession);
+    if (status != UMI_STATUS_OK) return status;
+    if (!restoreSession) return umi_studio_workspace_close(services);
+
+    /* A session explicitly saved by the user has first priority. Older Studio
+     * versions did not always write this key, so recent-work history provides
+     * a compatible fallback without inventing another workspace store. */
+    status = umi_session_store_get(session,
+                                   "workspace.root",
+                                   workspaceRoot,
+                                   sizeof(workspaceRoot));
+    if (status == UMI_STATUS_OK && umi_fs_is_directory(workspaceRoot)) {
+        status = restore_workspace_for_editing(services, workspaceRoot);
+        if (status == UMI_STATUS_OK) return UMI_STATUS_OK;
+        (void)umi_studio_workspace_close(services);
+        return status;
+    }
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) {
+        return status;
+    }
+
+    recentQuery.kind = "workspace";
+    recentQuery.limit = 1U;
+    status = umi_platform_recent_items_registry_query(
+        recentItems, &recentQuery, &recentItem, 1U, &recentCount);
+    if (status != UMI_STATUS_OK) return status;
+    if (recentCount == 1U && umi_fs_is_directory(recentItem.uri)) {
+        status = restore_workspace_for_editing(services, recentItem.uri);
         if (status == UMI_STATUS_OK) return UMI_STATUS_OK;
         (void)umi_studio_workspace_close(services);
         return status;
@@ -604,7 +680,12 @@ int main(int argc, char **argv)
         splash, 0.20, "Creating Framework services…");
     flush_startup_presentation();
 
+/* The graphical host starts with no implicit project. Retain default construction for comparison; explicit saved-project restoration supplies the real source root. */
+#if 0
     status = umi_studio_bootstrap_create(&bootstrap);
+#endif
+    UmiStudioServicesOptions startupOptions = {0};
+    status = umi_studio_bootstrap_create_with_options(&startupOptions, &bootstrap);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) {
         (void)fprintf(stderr,
@@ -628,11 +709,16 @@ int main(int argc, char **argv)
         return 1;
     }
 
+/* The historical compatibility-root sequence below is superseded by explicit startup options. The application data directory is no longer opened as a project. */
+#if 0
     /* Service construction briefly uses the writable application directory as
      * a compatibility workspace because older Studio services are initialised
      * with a working directory. Once the lifecycle is running, replace that
      * temporary root with the saved project or close it so the welcome page
      * never presents application data or System32 as a user's workspace. */
+#endif
+    /* Restore only a saved user-selected project; otherwise keep the graph
+     * closed and show the normal welcome experience. */
     restoreStatus = restore_saved_workspace(bootstrap);
     if (restoreStatus != UMI_STATUS_OK) {
         (void)fprintf(stderr,

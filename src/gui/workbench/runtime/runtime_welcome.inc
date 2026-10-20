@@ -234,12 +234,24 @@ static GtkWidget *runtime_build_welcome_surface(
     runtime_welcome_add_action(
         runtime, create, "New Umicom Application", "project.new-application",
         "Review and create an application module in a folder you choose", 0);
+/* Separate source-file editing from project-folder opening; the previous combined caption advertised project adoption that file.open never performed. */
+#if 0
     runtime_welcome_add_action(
         runtime, create, "Open Project or File", "file.open",
         "Open a project or source file", 0);
     runtime_welcome_add_action(
         runtime, create, "Open Folder", "workspace.open-folder",
         "Open and index an existing workspace", 0);
+#endif
+    runtime_welcome_add_action(
+        runtime, create, "New File", "file.new",
+        "Start an editable source file and choose its location when saving", 0);
+    runtime_welcome_add_action(
+        runtime, create, "Open File", "file.open",
+        "Edit an existing source file without opening a project", 0);
+    runtime_welcome_add_action(
+        runtime, create, "Open Project Folder", "workspace.open-folder",
+        "Choose the project folder containing CMakeLists.txt; review Build settings to enable execution", 0);
 
     recent = runtime_welcome_card(
         "Recent Work",

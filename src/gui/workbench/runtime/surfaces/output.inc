@@ -78,6 +78,8 @@ static void RuntimeBuildSourceBindingFree(gpointer context)
 {
     runtime_file_dialog_request_free(context);
 }
+/* Compiler source navigation now reveals the editor after the existing identity check. Keep the earlier resolver-only callback for review. */
+#if 0
 static UmiStatus RuntimeBuildDiagnosticOpen(uint64_t operation, size_t phase,
     size_t index, void *context)
 {
@@ -88,6 +90,25 @@ static UmiStatus RuntimeBuildDiagnosticOpen(uint64_t operation, size_t phase,
         : UMI_STATUS_INVALID_STATE;
     /* Opening a document may detach the host. Its existing coordinator handles
      * editor selection; this callback does not touch a raw runtime afterwards. */
+    g_clear_object(&window);
+    return status;
+}
+
+#endif
+static UmiStatus RuntimeBuildDiagnosticOpen(uint64_t operation, size_t phase,
+    size_t index, void *context)
+{
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context, &window);
+    UmiStatus status = runtime != NULL && runtime->owner != NULL
+        ? UmiStudioUiOpenBuildDiagnostic(runtime->owner->ui, operation, phase, index)
+        : UMI_STATUS_INVALID_STATE;
+    /* Reacquire after source navigation, then reveal its editor without
+     * replacing the diagnostic selection made by Framework. */
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(context, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status == UMI_STATUS_OK) status = RuntimePresentActiveSource(runtime);
     g_clear_object(&window);
     return status;
 }
@@ -111,6 +132,42 @@ static void RuntimeBuildDiagnosticsRefresh(UmiStudioGtkRuntimeChrome *runtime,
     g_free(page);
 }
 
+/* A completed operation is history, not proof that the current project may
+ * execute. Explain the present workspace decision alongside that result. */
+static char *RuntimeBuildContext(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot workspace;
+    if (umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK)
+        return g_strdup("Project state is unavailable. Reopen the project folder before building.");
+    if (!workspace.graph.open)
+        return g_strdup("Open Project Folder to configure or build. Opening a source file alone does not select a project.");
+    char *root = g_utf8_make_valid(workspace.graph.root, -1);
+    const char *guidance = !workspace.graph.trusted
+        ? "Build commands are disabled. Open Project Settings and review permission to run this project's tools."
+        : "Use Configure for a new project, then Build. Compiler output appears in Output; errors appear in Problems.";
+    UmiStudioBuildService *service = umi_studio_services_build(services);
+    UmiStudioBuildSnapshot build;
+    char *text;
+    if (service != NULL && umi_studio_build_service_snapshot(service, &build) == UMI_STATUS_OK) {
+        /* Paths and profile names come from the active service, not from the
+         * widget's construction time. Counts describe retained results. */
+        char *profile = g_utf8_make_valid(build.profile_id, -1);
+        char *directory = g_utf8_make_valid(build.build_directory, -1);
+        text = g_strdup_printf("Project: %s\nProfile: %s\nBuild directory: %s\n"
+            "Recorded diagnostics: %zu; artifacts: %zu\n%s",
+            root, profile, directory, build.diagnostic_count, build.artifact_count, guidance);
+        g_free(profile);
+        g_free(directory);
+    } else {
+        text = g_strdup_printf("Project: %s\nBuild service is unavailable.\n%s", root, guidance);
+    }
+    g_free(root);
+    return text;
+}
+
+/* Current project guidance is now shown with historical build results; retain the previous presentation implementation for comparison. */
+#if 0
 static void RuntimeRefreshBuildOutput(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioBuildService *service;
@@ -166,6 +223,90 @@ static void RuntimeRefreshBuildOutput(UmiStudioGtkRuntimeChrome *runtime)
         } else {
             gtk_label_set_text(GTK_LABEL(runtime->build_progress_label), label);
         }
+    }
+    if (runtime->build_output_view == NULL ||
+        umi_studio_build_service_snapshot(service, &state) != UMI_STATUS_OK ||
+        state.history_count == 0U ||
+        umi_build_result_create(&result) != UMI_STATUS_OK) return;
+    if (umi_build_history_latest(umi_studio_build_service_history(service), result) == UMI_STATUS_OK &&
+        result->operation_id != runtime->build_output_operation) {
+        char summary[512];
+        char *validOutput = g_utf8_make_valid(result->output, -1);
+        char *validCommand = g_utf8_make_valid(result->command, -1);
+        (void)umi_build_result_summary(result, summary, sizeof(summary));
+        char *text = g_strdup_printf("%s\n%s\n\n%s", summary, validCommand, validOutput);
+        gtk_text_buffer_set_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(runtime->build_output_view)), text, -1);
+        runtime->build_output_operation = result->operation_id;
+        g_free(text);
+        g_free(validCommand);
+        g_free(validOutput);
+    }
+    umi_build_result_destroy(result);
+}
+#endif
+static void RuntimeRefreshBuildOutput(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiStudioBuildService *service;
+    UmiStudioBuildSnapshot state;
+    UmiBuildProjectSessionSnapshot progress;
+    UmiBuildResult *result = NULL;
+    char label[192];
+    if (runtime == NULL || runtime->owner == NULL) return;
+    service = umi_studio_services_build(umi_studio_ui_services(runtime->owner->ui));
+    if (service == NULL) return;
+    RuntimeBuildLogRefresh(runtime, service);
+    RuntimeBuildHistoryRefresh(runtime, service);
+    RuntimeBuildDiagnosticsRefresh(runtime, service);
+    if (runtime->build_live_output != NULL) {
+        UmiBuildOutputSnapshot *output = g_new0(UmiBuildOutputSnapshot, 1);
+        if (UmiStudioBuildReadOutput(service, output) == UMI_STATUS_OK)
+            (void)UmiBuildOutputGtk4Update(runtime->build_live_output, output);
+        g_free(output);
+    }
+    if (UmiStudioBuildProgress(service, &progress) == UMI_STATUS_OK &&
+        runtime->build_progress_label != NULL) {
+        if (progress.active) {
+            (void)snprintf(label, sizeof(label), "%s%s — %zu phase(s) completed",
+                umi_build_phase_text(progress.current_phase),
+                progress.cancellation_requested ? " (cancelling)" : " running",
+                progress.completed_phase_count);
+        } else if (progress.operation_id != 0U) {
+            (void)snprintf(label, sizeof(label), "%s finished: %s",
+                umi_build_phase_text(progress.requested_phase), umi_status_text(progress.status));
+        } else {
+/* The old idle text implied readiness even with no project or without execution permission. Current workspace guidance is added below. */
+#if 0
+            (void)snprintf(label, sizeof(label), "Ready. Review Project Settings, then configure or build.");
+#endif
+            (void)snprintf(label, sizeof(label), "No build operation has started.");
+        }
+/* The existing phase status is retained and augmented with Framework-owned streaming counts. Preserve the earlier single-line display for review. The previous implementation is retained for engineering review. */
+#if 0
+        gtk_label_set_text(GTK_LABEL(runtime->build_progress_label), label);
+#endif
+        /* Append live counts without turning zero recognised errors into a
+         * successful build. Scope the counts to the same accepted operation. */
+        char *projectContext = RuntimeBuildContext(runtime);
+        UmiBuildDiagnosticProgress diagnostics;
+        if (UmiStudioBuildReadDiagnostics(service, &diagnostics) == UMI_STATUS_OK &&
+            diagnostics.operation_id != 0U && diagnostics.operation_id == progress.operation_id) {
+            char *combined = g_strdup_printf(
+                "%s\n%s\n%s: %" G_GUINT64_FORMAT " errors, %" G_GUINT64_FORMAT
+                " warnings, %" G_GUINT64_FORMAT " notes; %" G_GUINT64_FORMAT
+                " unrepresented records%s%s",
+                projectContext, label, umi_build_phase_text(diagnostics.phase),
+                (guint64)diagnostics.errors, (guint64)diagnostics.warnings,
+                (guint64)diagnostics.notes, (guint64)diagnostics.unrepresented,
+                diagnostics.streamed ? "" : " (final preview only)",
+                diagnostics.counters_saturated ? " (counts saturated)" : "");
+            gtk_label_set_text(GTK_LABEL(runtime->build_progress_label), combined);
+            g_free(combined);
+        } else {
+            char *combined = g_strdup_printf("%s\n%s", projectContext, label);
+            gtk_label_set_text(GTK_LABEL(runtime->build_progress_label), combined);
+            g_free(combined);
+        }
+        g_free(projectContext);
     }
     if (runtime->build_output_view == NULL ||
         umi_studio_build_service_snapshot(service, &state) != UMI_STATUS_OK ||

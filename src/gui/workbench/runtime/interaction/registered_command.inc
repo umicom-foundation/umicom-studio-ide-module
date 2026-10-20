@@ -245,6 +245,8 @@ static UmiStatus runtime_execute_registered_command_capture(
     return status;
 }
 #endif
+/* Save and command observers can release the window during dispatch. Retain this route for review; the replacement copies arguments and reacquires its weak host before completion work. */
+#if 0
 static UmiStatus runtime_execute_registered_command_capture(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
@@ -454,6 +456,281 @@ static UmiStatus runtime_execute_registered_command_capture(
     }
 
     (void)runtime_refresh_services(runtime);
+    return status;
+}
+
+#endif
+static UmiStatus runtime_execute_registered_command_capture(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *command_id,
+    const char *argument,
+    char *out_message,
+    size_t message_capacity)
+{
+    UmiCommandRegistry *commands;
+    char local_message[512];
+    char *message = out_message;
+    size_t capacity = message_capacity;
+    UmiStatus status;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime == NULL || command_id == NULL ||
+        command_id[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    UmiStudioFileDialogRequest *ownerRequest = runtime_file_dialog_request_new(runtime, 0U);
+    if (ownerRequest == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *ownerWindow = NULL;
+    char *ownedCommand = g_strdup(command_id);
+    char *ownedArgument = g_strdup(argument);
+    command_id = ownedCommand;
+    argument = ownedArgument;
+
+    /* Rebuilding or starting a debugger against a running console program can
+     * replace its selected artifact. Require its native cleanup to finish first,
+     * including after its separate window has already closed. */
+    if (RuntimeProgramConsoleBusy(runtime) &&
+        (strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CONFIGURE) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_COMPILE) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_TEST) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CLEAN) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_INSTALL) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_PACKAGE) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_REBUILD) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_DEPLOY) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RETRY) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_NEXT) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_ALL) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_INITIALIZE) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_RESTART) == 0)) {
+        runtime_show_notification(runtime, "Stop the program console before building or debugging.");
+        { status = UMI_STATUS_BUSY; goto command_finished; }
+    }
+
+    /* Debug launches can originate in command search as well as the main menu.
+     * Save through Framework's coordinator once, then resolve the weak host again:
+     * a saved-document observer may have closed the window or changed projects. */
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0) {
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        UmiStudioWorkspaceSnapshot workspace;
+        status = umi_studio_workspace_snapshot(services, &workspace);
+        if (status != UMI_STATUS_OK) goto command_finished;
+        if (!workspace.graph.open || !workspace.graph.trusted) {
+            status = UMI_STATUS_PERMISSION_DENIED;
+            runtime_show_notification(runtime, "Open a project and enable its build tools in Project Settings before debugging.");
+            goto command_finished;
+        }
+        if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+            UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+            UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
+            UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter)) {
+            status = UMI_STATUS_BUSY;
+            runtime_show_notification(runtime, "Finish the active build, debugger or document save before starting Debug.");
+            goto command_finished;
+        }
+        status = UmiDocumentCoordinatorSaveAll(umi_studio_ui_documents(runtime->owner->ui), NULL);
+        runtime = runtime_file_dialog_owner(ownerRequest, &ownerWindow);
+        if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto command_finished; }
+        if (status != UMI_STATUS_OK) {
+            runtime_show_notification(runtime, "Debug did not start. Save unnamed documents with Save As and resolve file conflicts first.");
+            goto command_finished;
+        }
+        UmiStudioWorkspaceSnapshot current;
+        status = umi_studio_workspace_snapshot(umi_studio_ui_services(runtime->owner->ui), &current);
+        if (status == UMI_STATUS_OK && (!current.graph.open || !current.graph.trusted ||
+            current.graph.revision != workspace.graph.revision ||
+            !umi_path_equal(current.graph.root, workspace.graph.root))) status = UMI_STATUS_INVALID_STATE;
+        if (status != UMI_STATUS_OK) {
+            runtime_show_notification(runtime, "The project changed while saving. Review the active project before starting Debug again.");
+            goto command_finished;
+        }
+    }
+
+    /* Canonical Build commands also appear in Search Everywhere and context
+     * menus. They must use the same background workflow as the main menu,
+     * rather than running a blocking compiler through the raw registry. */
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CONFIGURE) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_COMPILE) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_TEST) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CLEAN) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_INSTALL) == 0) {
+        if (argument == NULL || strcmp(argument, "background") != 0) {
+            if (runtime->owner == NULL || runtime->owner->ui == NULL)
+                { status = UMI_STATUS_INVALID_STATE; goto command_finished; }
+            status = UmiDocumentCoordinatorSaveAll(
+                umi_studio_ui_documents(runtime->owner->ui), NULL);
+            runtime = runtime_file_dialog_owner(ownerRequest, &ownerWindow);
+            if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto command_finished; }
+            if (status != UMI_STATUS_OK) {
+                runtime_show_notification(runtime,
+                    "Save unnamed documents with Save As and resolve file conflicts before building.");
+                goto command_finished;
+            }
+        }
+        argument = "background";
+    }
+
+    if (strcmp(command_id, "navigate.problem.next") == 0 ||
+        strcmp(command_id, "navigate.problem.previous") == 0) {
+        status = RuntimeNavigateProblem(runtime, strcmp(command_id, "navigate.problem.previous") == 0);
+        if (message != NULL && capacity != 0U) snprintf(message, capacity, "%s", umi_status_text(status));
+        goto command_finished;
+    }
+
+    /* Every graphical route to Refresh keeps recursive enumeration off GTK.
+     * The registry retains its synchronous form for existing non-GUI clients. */
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_REFRESH) == 0)
+        argument = "background";
+
+    commands = runtime_registered_commands(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (commands == NULL ||
+        !umi_command_registry_contains(commands, command_id)) {
+        runtime_show_notification(runtime, "Command is not registered.");
+        { status = UMI_STATUS_NOT_FOUND; goto command_finished; }
+    }
+
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (!umi_command_registry_is_enabled(commands, command_id, argument)) {
+        runtime_show_notification(runtime, "Command is currently disabled.");
+        { status = UMI_STATUS_INVALID_STATE; goto command_finished; }
+    }
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (message == NULL || capacity == 0U) {
+        message = local_message;
+        capacity = sizeof(local_message);
+    }
+    (void)memset(message, 0, capacity);
+
+    UmiStudioTestService *backgroundDiscovery = NULL;
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_DISCOVER) == 0) {
+        UmiStudioServices *services = runtime->owner != NULL && runtime->owner->ui != NULL
+            ? umi_studio_ui_services(runtime->owner->ui) : NULL;
+        UmiStudioWorkspaceSnapshot workspace;
+        const UmiBuildProfile *profile = services != NULL
+            ? umi_studio_build_service_profile(umi_studio_services_build(services)) : NULL;
+        if (services == NULL || profile == NULL ||
+            umi_studio_workspace_snapshot(services, &workspace) != UMI_STATUS_OK ||
+            !workspace.graph.open || !workspace.graph.trusted) {
+            runtime_show_notification(runtime, "Open and trust the workspace before discovering executable CTest scripts.");
+            { status = UMI_STATUS_INVALID_STATE; goto command_finished; }
+        }
+        /* A toolbar may still carry a previous catalogue's path. Use the active
+         * profile for a GUI discovery request; the CLI retains explicit paths. */
+        argument = profile->build_directory;
+        backgroundDiscovery = umi_studio_services_tests(services);
+/* The Discover command now captures the same tool choice used by build and test phases. The previous implementation is retained for engineering review. */
+#if 0
+        status = UmiStudioTestDiscoveryArm(backgroundDiscovery,
+            umi_studio_services_task_queue(services), workspace.graph.revision);
+#endif
+        status = UmiStudioTestDiscoveryArmWithToolDirectory(backgroundDiscovery,
+            umi_studio_services_task_queue(services), workspace.graph.revision,
+            profile->tool_directory);
+        if (status != UMI_STATUS_OK) {
+            runtime_show_notification(runtime, "Discovery is already pending or its task queue is unavailable.");
+            goto command_finished;
+        }
+    }
+
+    UmiStudioTestService *backgroundRun = NULL;
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RUN_ALL) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RUN_SELECTED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RERUN_FAILED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_REPEAT_SELECTED) == 0) {
+        UmiStudioTestRunContext context;
+        if (!RuntimeTestRunContext(runtime, &context)) {
+            runtime_show_notification(runtime, "Open and trust the active workspace before running tests.");
+            { status = UMI_STATUS_PERMISSION_DENIED; goto command_finished; }
+        }
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        backgroundRun = umi_studio_services_tests(services);
+        status = UmiStudioTestRunArm(backgroundRun,
+            umi_studio_services_task_queue(services), &context);
+        if (status != UMI_STATUS_OK) {
+            runtime_show_notification(runtime, "Another test operation is pending or its task queue is unavailable.");
+            goto command_finished;
+        }
+    }
+
+    /* Arming changes execution mode only. The same authoritative registry still
+     * checks workspace trust and process permissions before calling the handler. */
+    /* Enforcement clarification: raw registry dispatch retains descriptor
+     * metadata but does not enforce trust flags. terminal_execute_handler
+     * checks the shared workspace snapshot before either execution mode can
+     * create a process, and disarms a rejected background request. */
+    UmiTerminalController *backgroundTerminal = NULL;
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_TERMINAL_EXECUTE) == 0) {
+        UmiStudioServices *services = runtime->owner != NULL && runtime->owner->ui != NULL
+            ? umi_studio_ui_services(runtime->owner->ui) : NULL;
+        backgroundTerminal = umi_studio_services_terminal_controller(services);
+        status = UmiTerminalControllerArmBackground(backgroundTerminal);
+        if (status != UMI_STATUS_OK) {
+            runtime_show_notification(runtime, "A terminal command is already pending. Stop it or wait.");
+            goto command_finished;
+        }
+    }
+    runtime->interaction_busy = 1;
+    status = umi_command_registry_execute(
+        commands,
+        command_id,
+        argument,
+        message,
+        capacity);
+    g_clear_object(&ownerWindow);
+    runtime = runtime_file_dialog_owner(ownerRequest, &ownerWindow);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto command_finished; }
+    runtime->interaction_busy = 0;
+    if (backgroundTerminal != NULL)
+        UmiTerminalControllerDisarmBackground(backgroundTerminal);
+    if (backgroundDiscovery != NULL) {
+        UmiStudioTestDiscoveryDisarm(backgroundDiscovery);
+        if (status == UMI_STATUS_OK && UmiStudioTestDiscoveryPending(backgroundDiscovery))
+            (void)snprintf(message, capacity, "Test discovery started in the background. Stop retains the previous catalogue.");
+        else if (status != UMI_STATUS_OK)
+            (void)snprintf(message, capacity, "Test discovery was not started: %s", umi_status_text(status));
+    }
+
+    if (backgroundRun != NULL) {
+        UmiStudioTestRunDisarm(backgroundRun);
+        if (status == UMI_STATUS_OK && UmiStudioTestRunPending(backgroundRun))
+            (void)snprintf(message, capacity,
+                "Test run started. Stop cancels the active CTest request and prevents later attempts.");
+    }
+
+    /* Refresh before feedback, then resolve the host again. Notifications may
+     * synchronously close the workbench; no runtime read may follow them. */
+    (void)runtime_refresh_services(runtime);
+    g_clear_object(&ownerWindow);
+    runtime = runtime_file_dialog_owner(ownerRequest, &ownerWindow);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto command_finished; }
+    /* Apply this branch only when its contract condition is satisfied. */
+    if (message[0] != '\0') {
+        runtime_show_notification(runtime, message);
+    } else /* Preserve the original failure result so the caller can respond to the correct cause. */ if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime, umi_status_text(status));
+    }
+
+command_finished:
+    g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(ownerRequest);
+    g_free(ownedCommand);
+    g_free(ownedArgument);
     return status;
 }
 

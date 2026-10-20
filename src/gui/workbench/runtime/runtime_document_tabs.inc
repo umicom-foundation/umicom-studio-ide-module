@@ -14,6 +14,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Selecting a source tab now returns typing focus to its retained editor and reveals a hidden panel. Preserve the prior activation-only route for review. */
+#if 0
 static void runtime_on_document_tab(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime =
@@ -38,6 +40,25 @@ static void runtime_on_document_tab(GtkButton *button, gpointer user_data)
             view_id) == UMI_STATUS_OK) {
         (void)runtime_refresh_services(runtime);
     }
+}
+
+#endif
+static void runtime_on_document_tab(GtkButton *button, gpointer userData)
+{
+    UmiStudioGtkRuntimeChrome *runtime = userData;
+    const char *viewId = g_object_get_data(G_OBJECT(button), "umicom-view-id");
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL || viewId == NULL) return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    char *selectedId = g_strdup(viewId);
+    UmiStatus status = umi_ui_workbench_activate_document(
+        umi_studio_ui_workbench(runtime->owner->ui), selectedId);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status == UMI_STATUS_OK) (void)RuntimePresentActiveSource(runtime);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    g_free(selectedId);
 }
 
 /*

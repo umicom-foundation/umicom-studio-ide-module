@@ -54,6 +54,21 @@ static void Pump(void)
         (void)g_main_context_iteration(NULL, FALSE);
 }
 
+static GtkWidget *FindEditor(GtkWidget *root, const char *viewId)
+{
+    const char *id = g_object_get_data(G_OBJECT(root), "umicom-view-id");
+    if (id != NULL && strcmp(id, viewId) == 0) {
+        GtkWidget *editor = g_object_get_data(G_OBJECT(root), "umicom-editor-view");
+        if (GTK_IS_TEXT_VIEW(editor)) return editor;
+    }
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = FindEditor(child, viewId);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -190,6 +205,11 @@ int main(int argc, char **argv)
     }
     if (strcmp(name, "open") == 0 || strcmp(name, "dirty-existing") == 0)
     {
+        /* An open picker must still reveal its source after a layout hides the
+         * editor. Model selection by itself is insufficient for typing. */
+        CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
+            "quick-open-hidden-editor", "Hidden editor") == UMI_STATUS_OK);
+        CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
         g_signal_emit_by_name(open, "clicked");
         CHECK(!UmiGtk4WindowIsOpen(dialog));
         UmiDocumentWorkingCopySnapshot active;
@@ -198,6 +218,12 @@ int main(int argc, char **argv)
             CHECK(strcmp(active.view_id, id) == 0 && active.dirty);
         else
             CHECK(strcmp(active.view_id, id) != 0);
+        GtkWidget *editor = FindEditor(root, active.view_id);
+        CHECK(GTK_IS_TEXT_VIEW(editor) && gtk_text_view_get_editable(GTK_TEXT_VIEW(editor)));
+        GtkWidget *focused = gtk_window_get_focus(GTK_WINDOW(root));
+        CHECK(focused == editor || (focused != NULL && gtk_widget_is_ancestor(focused, editor)));
+        for (GtkWidget *node = editor; node != root; node = gtk_widget_get_parent(node))
+            CHECK(node != NULL && gtk_widget_get_visible(node) && gtk_widget_get_child_visible(node));
     }
     if (strcmp(name, "stale-index") == 0 || strcmp(name, "refresh-index") == 0)
     {

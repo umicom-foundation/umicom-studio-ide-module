@@ -299,6 +299,8 @@ typedef struct UmiStudioGtkRuntimeChrome {
     guint refresh_source;
     guint designer_refresh_source;
     guint notification_source;
+    /* Distinguish a specific command explanation from generic fallback text. */
+    uint64_t notification_revision;
     /* Avoid rebuilding search presentation on unchanged timer ticks. */
     int application_bar_width;
     uint32_t panel_refresh_tick;
@@ -421,3 +423,13 @@ static UmiStatus runtime_execute_phase1_host_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
     const char *argument);
+
+/* Commands and native choosers share the same window binding. A callback may
+ * close or replace the host, so callers resolve this token before reusing it. */
+typedef struct UmiStudioFileDialogRequest UmiStudioFileDialogRequest;
+static UmiStudioFileDialogRequest *runtime_file_dialog_request_new(
+    UmiStudioGtkRuntimeChrome *runtime, UmiDocumentId documentId);
+static UmiStudioGtkRuntimeChrome *runtime_file_dialog_owner(
+    UmiStudioFileDialogRequest *request, GObject **outWindow);
+static void runtime_file_dialog_request_free(UmiStudioFileDialogRequest *request);
+static UmiStatus RuntimeNavigateProblem(UmiStudioGtkRuntimeChrome *runtime, int previous);

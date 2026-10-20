@@ -604,6 +604,8 @@ static UmiStatus runtime_route_command(
         }
     }
 
+/* Problem navigation now explicitly reveals the selected editor. Retain the old refresh-only route for review. */
+#if 0
     if (strcmp(command_id, "navigate.problem.next") == 0 ||
         strcmp(command_id, "navigate.problem.previous") == 0) {
         UmiStatus status = UmiStudioUiNavigateProblem(runtime->owner->ui,
@@ -613,6 +615,10 @@ static UmiStatus runtime_route_command(
         (void)runtime_refresh_services(runtime);
         return status;
     }
+#endif
+    if (strcmp(command_id, "navigate.problem.next") == 0 ||
+        strcmp(command_id, "navigate.problem.previous") == 0)
+        return RuntimeNavigateProblem(runtime, strcmp(command_id, "navigate.problem.previous") == 0);
 
     if (strcmp(command_id, "project.new") == 0) return RuntimeNewProject(runtime);
     if (strcmp(command_id, "project.new-application") == 0) return RuntimeNewApplication(runtime);
@@ -624,8 +630,16 @@ static UmiStatus runtime_route_command(
         return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_BUILD_CANCEL, NULL);
 
     /* File/workspace commands requiring native GTK path selection. */
+/* Explicit file paths from accessibility and command clients use the same open route as the chooser; keep the chooser-only route for review. */
+#if 0
     if (strcmp(command_id, "file.open") == 0) {
         return runtime_choose_file_to_open(runtime);
+    }
+#endif
+    if (strcmp(command_id, "file.open") == 0) {
+        return argument != NULL && argument[0] != '\0'
+            ? RuntimeOpenSourcePath(runtime, argument)
+            : runtime_choose_file_to_open(runtime);
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
     if (strcmp(command_id, "workspace.open-folder") == 0) {
@@ -669,6 +683,8 @@ static UmiStatus runtime_route_command(
     }
 
     /* Build/run commands reuse the canonical Studio service registrations. */
+/* The canonical dispatcher now owns save-before-debug for menus, buttons and command search. Retain the menu-only gate for review; its continuation could outlive document notifications. */
+#if 0
     if (strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0) {
         if (UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
             UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter)) return UMI_STATUS_BUSY;
@@ -676,6 +692,9 @@ static UmiStatus runtime_route_command(
         if (saved != UMI_STATUS_OK) return saved;
         return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_DEBUG_START, argument);
     }
+#endif
+    if (strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0)
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_DEBUG_START, argument);
 
     if (strcmp(command_id, "build.package") == 0 ||
         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_PACKAGE) == 0)

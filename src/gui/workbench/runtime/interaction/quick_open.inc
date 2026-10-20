@@ -53,6 +53,8 @@ static UmiStatus RuntimeQuickOpenRead(gpointer data, const char *query, size_t o
     g_clear_object(&window);
     return status;
 }
+/* Quick Open must reveal the selected source even when the editor is hidden. Retain the previous model-only callback; Framework still checks the indexed selection before opening. */
+#if 0
 static UmiStatus RuntimeQuickOpenSelected(gpointer data, const char *query, const UmiFileIndexPage *page,
                                           size_t position, const UmiFileIndexEntry *entry)
 {
@@ -82,6 +84,23 @@ static UmiStatus RuntimeQuickOpenSelected(gpointer data, const char *query, cons
         if (runtime != NULL)
             (void)runtime_refresh_services(runtime);
     }
+    g_clear_object(&window);
+    return status;
+}
+
+#endif
+static UmiStatus RuntimeQuickOpenSelected(gpointer data, const char *query, const UmiFileIndexPage *page,
+    size_t position, const UmiFileIndexEntry *entry)
+{
+    RuntimeQuickOpenRequest *request = data;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = RuntimeQuickOpenOwner(request, &window);
+    UmiStatus status = runtime == NULL ? UMI_STATUS_INVALID_STATE
+        : UmiQuickOpenCheckSelection(umi_studio_services_file_index(
+            umi_studio_ui_services(runtime->owner->ui)), query, page, position, entry);
+    /* Preserve the indexed selection check, then use the ordinary Open route.
+     * That route retains the path and reveals/focuses the coordinator's editor. */
+    if (status == UMI_STATUS_OK) status = RuntimeOpenSourcePath(runtime, entry->path);
     g_clear_object(&window);
     return status;
 }

@@ -668,7 +668,20 @@ UmiStatus umi_studio_gtk_workbench_workspace_synchronise(UmiStudioGtkWorkbench *
 {
     if (workbench == NULL || workbench->runtime_chrome == NULL)
         return UMI_STATUS_INVALID_ARGUMENT;
+/* The timer refresh is retained for review; explicit synchronization must also project changes on ticks between throttled redraws. */
+#if 0
     return runtime_refresh_services(workbench->runtime_chrome);
+#endif
+    UmiStudioGtkRuntimeChrome *runtime = workbench->runtime_chrome;
+    UmiStatus status = runtime_refresh_services(runtime);
+    if (status == UMI_STATUS_OK && runtime->panel_refresh_tick != 0U) {
+        /* The timer updates expensive lists every fourth tick. An explicit
+         * synchronization promises current selections and evidence immediately,
+         * while the panel refresh still preserves active edits and focus. */
+        runtime->panel_refresh_tick = 0U;
+        runtime_refresh_interactive_panels(runtime);
+    }
+    return status;
 }
 
 /* Use the production binding path with a caller-owned, isolated test backend. */
@@ -773,4 +786,17 @@ UmiStatus umi_studio_gtk_workbench_library_history_navigate(UmiStudioGtkWorkbenc
 {
     if (workstation == NULL || workstation->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
     return runtime_workspace_library_history_navigate(direction, expected_revision, workstation->runtime_chrome);
+}
+
+/* Native integrations share UI admission instead of bypassing the project,
+ * document and process ownership checks through lower-level services. */
+UmiStatus umi_studio_gtk_workbench_execute_command(UmiStudioGtkWorkbench *workbench,
+    const char *command_id, const char *argument)
+{
+    if (workbench == NULL || command_id == NULL || command_id[0] == '\0')
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioGtkRuntimeChrome *runtime = workbench->runtime_chrome;
+    if (runtime == NULL || !runtime->runtime_ready) return UMI_STATUS_UNAVAILABLE;
+    if (!runtime_command_enabled(runtime, command_id)) return UMI_STATUS_PERMISSION_DENIED;
+    return runtime_execute_command(runtime, command_id, argument);
 }

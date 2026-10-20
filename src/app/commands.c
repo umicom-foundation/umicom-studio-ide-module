@@ -187,6 +187,8 @@ static UmiStatus recovery_purge_handler(void *user_data,
  * Provide the workspace refresh handler operation used by this module and its client
  * applications.
  */
+/* Interactive hosts request background enumeration explicitly. Retain the synchronous handler for comparison; existing command callers without that argument keep synchronous completion. */
+#if 0
 static UmiStatus workspace_refresh_handler(void *user_data,
                                            const char *argument,
                                            char *out_message,
@@ -206,6 +208,25 @@ static UmiStatus workspace_refresh_handler(void *user_data,
                        status == UMI_STATUS_OK
                            ? "Studio workspace refreshed"
                            : umi_status_text(status));
+    }
+    return status;
+}
+
+#endif
+static UmiStatus workspace_refresh_handler(void *user_data,
+                                           const char *argument,
+                                           char *out_message,
+                                           size_t message_capacity)
+{
+    int background = argument != NULL && strcmp(argument, "background") == 0;
+    UmiStatus status = background
+        ? UmiStudioWorkspaceRefreshForEditing((UmiStudioServices *)user_data)
+        : umi_studio_workspace_refresh((UmiStudioServices *)user_data);
+    if (out_message != NULL && message_capacity > 0U) {
+        const char *message = status != UMI_STATUS_OK ? umi_status_text(status) :
+            background ? "Workspace file refresh started. Keep editing; Explorer reports progress and completion." :
+                         "Studio workspace refreshed";
+        (void)snprintf(out_message, message_capacity, "%s", message);
     }
     return status;
 }

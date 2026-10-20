@@ -17,6 +17,8 @@
 
 /* Framework owns the Git reader and worker lifetime. Studio supplies the observed
  * repository root and embeds its reusable review alongside the existing VCS commands. */
+/* The embedded review previously kept the root from panel creation. Retained for review; the replacement follows the selected project and discards stale observations. */
+#if 0
 static void RuntimeSourceControlRepositoryReview(
     UmiStudioGtkRuntimeChrome *runtime, GtkWidget *panel)
 {
@@ -28,6 +30,39 @@ static void RuntimeSourceControlRepositoryReview(
     GtkWidget *expander = gtk_expander_new("Repository and submodule review");
     gtk_expander_set_child(GTK_EXPANDER(expander), GTK_WIDGET(review));
     gtk_box_append(GTK_BOX(panel), expander);
+}
+
+#endif
+/* The embedded review owns a captured repository. Replace that child when
+ * project identity changes; Framework cancels its old observation on unmap. */
+static void RuntimeRefreshRepositoryReview(GtkWidget *expander, const char *root)
+{
+    const char *previous = g_object_get_data(G_OBJECT(expander), "studio.repository.root");
+    if (g_strcmp0(previous, root) == 0) return;
+    void *review = NULL;
+    GtkWidget *child;
+    if (root[0] == '\0') {
+        child = gtk_label_new("Open a project to inspect its repository.");
+    } else {
+        UmiStatus status = UmiVcsWorkingTreeGtk4Create(root, &review);
+        child = status == UMI_STATUS_OK ? GTK_WIDGET(review)
+            : gtk_label_new("Repository inspection is unavailable in this build.");
+    }
+    g_object_set_data_full(G_OBJECT(expander), "studio.repository.root", g_strdup(root), g_free);
+    gtk_expander_set_child(GTK_EXPANDER(expander), child);
+}
+
+static void RuntimeSourceControlRepositoryReview(
+    UmiStudioGtkRuntimeChrome *runtime, GtkWidget *panel)
+{
+    GtkWidget *expander = gtk_expander_new("Repository and submodule review");
+    (void)umi_gtk4_automation_tag_widget(expander, "studio.repository.review");
+    gtk_box_append(GTK_BOX(panel), expander);
+    /* Both widgets belong to this panel. Refresh retains them before emitting
+     * label or hierarchy notifications that may close the host window. */
+    g_object_set_data(G_OBJECT(runtime->source_control_summary_label),
+        "studio.repository.review", expander);
+    RuntimeRefreshRepositoryReview(expander, runtime->source_control_snapshot.root);
 }
 
 static void runtime_on_vcs_refresh_button(
@@ -110,12 +145,16 @@ static GtkWidget *runtime_build_surface_source_control(
     if (panel == NULL || runtime == NULL) return panel;
 
     runtime->source_control_summary_label = runtime_label("", 0.0F);
+/* Provider readiness changes after opening a project or refreshing Git. The live summary below replaces this creation-time label, retained for review. */
+#if 0
     runtime_panel_add_stat(
         panel,
         "Provider",
         runtime->source_control_snapshot.available
             ? runtime->source_control_snapshot.provider_id
             : "Unavailable");
+#endif
+
     runtime->source_control_list = gtk_list_box_new();
     runtime->source_control_commit_entry = gtk_entry_new();
 
@@ -134,6 +173,7 @@ static GtkWidget *runtime_build_surface_source_control(
 
     actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     refresh = gtk_button_new_with_label("Refresh");
+    (void)umi_gtk4_automation_tag_widget(refresh, "studio.source-control.refresh");
     stage_all = gtk_button_new_with_label("Stage All");
     pull = gtk_button_new_with_label("Pull");
     push = gtk_button_new_with_label("Push");
