@@ -249,6 +249,7 @@ static int ExerciseProjectEntry(UmiStudioGtkWorkbench **slot, UmiStudioServices 
 {
     int failed = 0;
     GtkWindow *prompt = NULL;
+    GtkWidget *retainedAccept = NULL;
     GtkWindow *window = g_object_ref(umi_studio_gtk_workbench_window(*slot));
     gulong closeHandler = 0U;
     char *source = g_build_filename(root, "created notes.c", NULL);
@@ -279,6 +280,16 @@ static int ExerciseProjectEntry(UmiStudioGtkWorkbench **slot, UmiStudioServices 
     GtkWidget *accept = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(prompt), "studio.prompt.accept");
     CHECK(GTK_IS_EDITABLE(value) && GTK_IS_BUTTON(accept));
     gtk_editable_set_text(GTK_EDITABLE(value), "created notes.c");
+    if (strcmp(name, "project-prompt-retired") == 0 || strcmp(name, "project-prompt-retained-window") == 0) {
+        retainedAccept = g_object_ref(accept);
+        gtk_window_destroy(prompt);
+        if (strcmp(name, "project-prompt-retired") == 0) g_clear_object(&prompt);
+        /* A late click must not dereference a released context or create a file,
+         * even if another client retains the dialog object after dismissal. */
+        g_signal_emit_by_name(retainedAccept, "clicked");
+        CHECK(!umi_fs_exists(source) && umi_document_coordinator_count(documents) == 0U);
+        goto cleanup;
+    }
     if (strcmp(name, "close-during-create") == 0)
         closeHandler = g_signal_connect(window, "notify::focus-widget", G_CALLBACK(CloseWhenEditorFocused), slot);
     g_signal_emit_by_name(accept, "clicked");
@@ -299,9 +310,119 @@ static int ExerciseProjectEntry(UmiStudioGtkWorkbench **slot, UmiStudioServices 
 cleanup:
     if (closeHandler != 0U) g_signal_handler_disconnect(window, closeHandler);
     if (prompt != NULL) { gtk_window_destroy(prompt); g_object_unref(prompt); }
+    g_clear_object(&retainedAccept);
     g_object_unref(window);
     g_free(source);
     g_free(contents);
+    return failed;
+}
+
+/* Native forms are located through stable control identifiers. The returned
+ * window reference survives acceptance so the test can inspect dismissal. */
+static GtkWindow *FindProjectForm(GtkWindow *parent, const char *control)
+{
+    GListModel *windows = gtk_window_get_toplevels();
+    for (guint index = 0U; index < g_list_model_get_n_items(windows); ++index) {
+        GtkWindow *candidate = g_list_model_get_item(windows, index);
+        if (gtk_window_get_transient_for(candidate) == parent &&
+            gtk_widget_get_visible(GTK_WIDGET(candidate)) &&
+            umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(candidate), control) != NULL)
+            return candidate;
+        g_object_unref(candidate);
+    }
+    return NULL;
+}
+
+/* Drive the same New Project and Project Settings forms a first-time user sees.
+ * The generated source is edited through its native text buffer and saved through
+ * the command route. This case grants trust only after an explicit form action;
+ * it does not invoke a compiler or debugger. */
+static int ExerciseProjectWizard(UmiStudioGtkWorkbench **slot, UmiStudioServices *services,
+    UmiDocumentCoordinator *documents, const char *root, const char *name)
+{
+    int failed = 0;
+    GtkWindow *window = g_object_ref(umi_studio_gtk_workbench_window(*slot));
+    GtkWindow *form = NULL;
+    gulong closeHandler = 0U;
+    char *project = g_build_filename(root, "My first project", NULL);
+    char *source = g_build_filename(project, "src", "main.c", NULL);
+    char *disk = NULL;
+    if (strcmp(name, "wizard-hidden-editor") == 0) {
+        CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "new-project-empty", "Empty") == UMI_STATUS_OK);
+        CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
+    }
+    CHECK(umi_studio_gtk_workbench_execute_command(*slot, "project.new", NULL) == UMI_STATUS_OK);
+    form = FindProjectForm(window, "developer.project.folder");
+    CHECK(form != NULL);
+    GtkWidget *folder = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(form), "developer.project.folder");
+    GtkWidget *target = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(form), "developer.project.target");
+    GtkWidget *accept = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(form), "developer.dialog.accept");
+    CHECK(GTK_IS_EDITABLE(folder) && GTK_IS_EDITABLE(target) && GTK_IS_BUTTON(accept));
+    CHECK(gtk_editable_get_text(GTK_EDITABLE(folder))[0] == '\0');
+    gtk_editable_set_text(GTK_EDITABLE(folder), project);
+    gtk_editable_set_text(GTK_EDITABLE(target), "first_project");
+    if (strcmp(name, "wizard-close-during-adoption") == 0)
+        closeHandler = g_signal_connect(window, "notify::focus-widget", G_CALLBACK(CloseWhenEditorFocused), slot);
+    g_signal_emit_by_name(accept, "clicked");
+    CHECK(umi_fs_is_file(source));
+    if (strcmp(name, "wizard-close-during-adoption") == 0) {
+        CHECK(*slot == NULL && umi_document_coordinator_count(documents) == 1U);
+        goto cleanup;
+    }
+    CHECK(!gtk_widget_get_visible(GTK_WIDGET(form)));
+    g_clear_object(&form);
+    UmiStudioWorkspaceSnapshot workspace;
+    CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
+    CHECK(workspace.graph.open && !workspace.graph.trusted && umi_path_equal(workspace.graph.root, project));
+    CHECK(UmiFileIndexRefreshWait(umi_studio_services_file_index(services), 10000U) == UMI_STATUS_OK);
+    UmiDocumentWorkingCopySnapshot active;
+    CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && active.has_path);
+    GtkWidget *editor = FindEditor(GTK_WIDGET(window), active.view_id);
+    CHECK(Reachable(editor, GTK_WIDGET(window)));
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor));
+    GtkTextIter end;
+    gtk_text_buffer_get_end_iter(buffer, &end);
+    gtk_text_buffer_insert(buffer, &end, "\n/* edited after native project creation */\n", -1);
+    CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && active.dirty);
+    CHECK(umi_studio_gtk_workbench_execute_command(*slot, "file.save", NULL) == UMI_STATUS_OK);
+    CHECK(g_file_get_contents(source, &disk, NULL, NULL));
+    CHECK(strstr(disk, "edited after native project creation") != NULL);
+    CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && !active.dirty);
+    UmiStudioBuildService *build = umi_studio_services_build(services);
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(build);
+    CHECK(profile != NULL && umi_path_equal(profile->source_directory, project));
+    CHECK(profile->build_target[0] == '\0' && strstr(profile->run_program, "first_project") != NULL);
+    CHECK(umi_studio_gtk_workbench_execute_command(*slot, "build.settings", NULL) == UMI_STATUS_OK);
+    form = FindProjectForm(window, "developer.build.trusted");
+    CHECK(form != NULL);
+    GtkWidget *trust = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(form), "developer.build.trusted");
+    GtkWidget *profileName = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(form), "developer.build.field.0");
+    accept = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(form), "developer.dialog.accept");
+    CHECK(GTK_IS_CHECK_BUTTON(trust) && GTK_IS_EDITABLE(profileName) && GTK_IS_BUTTON(accept));
+    CHECK(!gtk_check_button_get_active(GTK_CHECK_BUTTON(trust)));
+    gtk_editable_set_text(GTK_EDITABLE(profileName), "first-project-review");
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(trust), TRUE);
+    g_signal_emit_by_name(accept, "clicked");
+    CHECK(!gtk_widget_get_visible(GTK_WIDGET(form)));
+    CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK && workspace.graph.trusted);
+    profile = umi_studio_build_service_profile(build);
+    CHECK(strcmp(profile->profile_id, "first-project-review") == 0);
+    UmiBuildProfile reviewed = *profile;
+    CHECK(!UmiStudioBuildBusy(build) && !UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)));
+    /* Reopening loads settings but requires a fresh trust decision. The native
+     * editor remains attached to the same document, with its saved content. */
+    CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
+    CHECK(umi_studio_gtk_workbench_execute_command(*slot, "workspace.open-folder", project) == UMI_STATUS_OK);
+    CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK && !workspace.graph.trusted);
+    CHECK(umi_build_profile_equal(&reviewed, umi_studio_build_service_profile(build)));
+    CHECK(FindEditor(GTK_WIDGET(window), active.view_id) == editor);
+cleanup:
+    if (closeHandler != 0U) g_signal_handler_disconnect(window, closeHandler);
+    if (form != NULL) { gtk_window_destroy(form); g_object_unref(form); }
+    g_object_unref(window);
+    g_free(project);
+    g_free(source);
+    g_free(disk);
     return failed;
 }
 
@@ -310,7 +431,7 @@ int main(int argc, char **argv)
     if (argc != 3) return 2;
     const char *name = argv[1];
     const char *cases[] = {"new-file", "hidden-new", "open-edit-save", "hidden-open",
-        "unicode-path", "missing-file", "reopen-dirty", "project-folder", "tab-switch", "build-guidance", "close-during-open", "build-unsaved", "real-build-run", "real-build-repair", "repository-switch", "close-during-feedback", "debug-unsaved", "debug-canonical-unsaved", "project-create-hidden", "project-create-existing", "close-during-create", "workspace-refresh-edit"};
+        "unicode-path", "missing-file", "reopen-dirty", "project-folder", "tab-switch", "build-guidance", "close-during-open", "build-unsaved", "real-build-run", "real-build-repair", "repository-switch", "close-during-feedback", "debug-unsaved", "debug-canonical-unsaved", "project-create-hidden", "project-create-existing", "close-during-create", "workspace-refresh-edit", "project-prompt-retired", "project-prompt-retained-window", "wizard-edit-settings", "wizard-hidden-editor", "wizard-close-during-adoption", "project-open-failure-draft"};
     int known = 0;
     for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i)
         if (strcmp(name, cases[i]) == 0) known = 1;
@@ -356,13 +477,18 @@ int main(int argc, char **argv)
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     CHECK(umi_document_coordinator_count(documents) == 0U);
+    if (strncmp(name, "wizard-", 7U) == 0) {
+        failed = ExerciseProjectWizard(&workbench, services, documents, directory, name);
+        goto cleanup;
+    }
     if (strcmp(name, "real-build-run") == 0 || strcmp(name, "real-build-repair") == 0) {
         failed = ExerciseNativeBuild(workbench, services, documents, directory,
             strcmp(name, "real-build-repair") == 0);
         goto cleanup;
     }
     if (strcmp(name, "project-create-hidden") == 0 || strcmp(name, "project-create-existing") == 0 ||
-        strcmp(name, "close-during-create") == 0) {
+        strcmp(name, "close-during-create") == 0 || strcmp(name, "project-prompt-retired") == 0 ||
+        strcmp(name, "project-prompt-retained-window") == 0) {
         failed = ExerciseProjectEntry(&workbench, services, documents, directory, name);
         goto cleanup;
     }
@@ -448,6 +574,39 @@ int main(int argc, char **argv)
     CHECK(UmiUiDocumentViewModelCopyText(views, active.view_id, &draft, &draftLength) == UMI_STATUS_OK);
     CHECK(strstr(draft, addition) != NULL);
     CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && active.dirty);
+    if (strcmp(name, "project-open-failure-draft") == 0) {
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workspace.open-folder", directory) == UMI_STATUS_OK);
+        CHECK(UmiFileIndexRefreshWait(umi_studio_services_file_index(services), 10000U) == UMI_STATUS_OK);
+        CHECK(umi_studio_workspace_set_trusted(services, 1) == UMI_STATUS_OK);
+        char next[UMI_PATH_CAPACITY], child[UMI_PATH_CAPACITY], marker[UMI_PATH_CAPACITY];
+        CHECK(umi_fs_join(next, sizeof next, directory, "too-many-projects") == UMI_STATUS_OK);
+        CHECK(umi_fs_make_directories(next) == UMI_STATUS_OK);
+        for (size_t item = 0U; item <= UMI_WORKSPACE_PROJECT_MAX; ++item) {
+            char childName[40];
+            (void)snprintf(childName, sizeof childName, "project-%zu", item);
+            CHECK(umi_fs_join(child, sizeof child, next, childName) == UMI_STATUS_OK);
+            CHECK(umi_fs_make_directories(child) == UMI_STATUS_OK);
+            CHECK(umi_fs_join(marker, sizeof marker, child, "CMakeLists.txt") == UMI_STATUS_OK);
+            CHECK(umi_fs_write_text(marker, "# bounded discovery fixture\n") == UMI_STATUS_OK);
+        }
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workspace.open-folder", next) == UMI_STATUS_CAPACITY_EXCEEDED);
+        UmiStudioWorkspaceSnapshot rejected;
+        CHECK(umi_studio_workspace_snapshot(services, &rejected) == UMI_STATUS_OK && !rejected.graph.open);
+        CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && active.dirty);
+        CHECK(FindEditor(window, active.view_id) == editor && gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)) == buffer);
+        char *kept = NULL;
+        size_t keptSize = 0U;
+        CHECK(UmiUiDocumentViewModelCopyText(views, active.view_id, &kept, &keptSize) == UMI_STATUS_OK);
+        int unchanged = keptSize == draftLength && memcmp(kept, draft, draftLength) == 0;
+        UmiUiDocumentViewModelFreeText(kept);
+        CHECK(unchanged);
+        GtkWidget *notice = umi_gtk4_automation_find_tagged_widget(window, "studio.notification");
+        CHECK(GTK_IS_LABEL(notice) && strstr(gtk_label_get_text(GTK_LABEL(notice)), "open documents are retained") != NULL);
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "file.save", NULL) == UMI_STATUS_OK);
+        CHECK(g_file_get_contents(source, &disk, NULL, NULL) && strcmp(disk, draft) == 0);
+        CHECK(!UmiStudioBuildBusy(umi_studio_services_build(services)));
+        goto cleanup;
+    }
     if (strcmp(name, "workspace-refresh-edit") == 0) {
         CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workspace.open-folder", directory) == UMI_STATUS_OK);
         UmiFileIndex *index = umi_studio_services_file_index(services);

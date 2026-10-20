@@ -19,14 +19,14 @@ int main(int argc, char **argv)
 {
     if (argc != 2) return 2;
     const char *name = argv[1];
-    const char *cases[] = {"prepare", "scan", "saved-profile", "missing-folder", "close-scan", "sync-compatibility", "repository-binding", "repository-close", "debug-open", "debug-close", "debug-profile", "debug-sync-open", "relative-binding", "missing-preserves-watch", "refresh-closed", "refresh-new-files", "refresh-close"};
+    const char *cases[] = {"prepare", "scan", "saved-profile", "missing-folder", "close-scan", "sync-compatibility", "repository-binding", "repository-close", "debug-open", "debug-close", "debug-profile", "debug-rebind", "debug-sync-open", "relative-binding", "missing-preserves-watch", "refresh-closed", "refresh-new-files", "refresh-close", "prepare-discovery-failure", "sync-discovery-failure"};
     int known = 0;
     for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i)
         if (strcmp(name, cases[i]) == 0) known = 1;
     if (!known) return 2;
     int failed = 0, created = 0;
     UmiStudioServices *services = NULL;
-    UmiDataServer *storage = NULL;
+    UmiDataServer *storage = NULL, *otherStorage = NULL;
     UmiStudioServicesOptions options = {0};
     UmiClock clock = umi_clock_system();
     char cwd[UMI_PATH_CAPACITY], root[UMI_PATH_CAPACITY], source[UMI_PATH_CAPACITY];
@@ -47,7 +47,38 @@ int main(int argc, char **argv)
     UmiStudioWorkspaceSnapshot workspace;
     UmiFileIndexRefreshSnapshot refresh;
     UmiStatus indexStatus = UMI_STATUS_UNAVAILABLE;
-    if (strcmp(name, "refresh-closed") == 0) {
+    if (strcmp(name, "prepare-discovery-failure") == 0 || strcmp(name, "sync-discovery-failure") == 0) {
+        CHECK(umi_studio_workspace_open(services, root, 1, 1) == UMI_STATUS_OK);
+        UmiBuildProfile previous = *umi_studio_build_service_profile(umi_studio_services_build(services));
+        char next[UMI_PATH_CAPACITY], child[UMI_PATH_CAPACITY], marker[UMI_PATH_CAPACITY];
+        CHECK(umi_fs_join(next, sizeof next, root, "many-projects") == UMI_STATUS_OK);
+        CHECK(umi_fs_make_directories(next) == UMI_STATUS_OK);
+        /* The real bounded discovery service supplies a deterministic failure
+         * after project identity has been selected, without allocator hooks. */
+        for (size_t item = 0U; item <= UMI_WORKSPACE_PROJECT_MAX; ++item) {
+            char childName[40];
+            (void)snprintf(childName, sizeof childName, "project-%zu", item);
+            CHECK(umi_fs_join(child, sizeof child, next, childName) == UMI_STATUS_OK);
+            CHECK(umi_fs_make_directories(child) == UMI_STATUS_OK);
+            CHECK(umi_fs_join(marker, sizeof marker, child, "CMakeLists.txt") == UMI_STATUS_OK);
+            CHECK(umi_fs_write_text(marker, "# project discovery fixture\n") == UMI_STATUS_OK);
+        }
+        UmiStatus rejected = strcmp(name, "prepare-discovery-failure") == 0
+            ? UmiStudioServicesPrepareWorkspace(services, next, 1)
+            : umi_studio_services_open_workspace(services, next, 1);
+        CHECK(rejected == UMI_STATUS_CAPACITY_EXCEEDED);
+        CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
+        CHECK(!workspace.graph.open && !workspace.graph.trusted && workspace.files.files == 0U && !workspace.watcher.running);
+        CHECK(UmiStudioBuildProfileSave(services, &previous) == UMI_STATUS_INVALID_STATE);
+        UmiStudioSourceControlSnapshot repository;
+        CHECK(umi_studio_source_control_service_snapshot(
+            umi_studio_services_source_control(services), &repository) == UMI_STATUS_OK);
+        CHECK(!repository.available && repository.root[0] == '\0');
+        CHECK(!UmiStudioBuildBusy(umi_studio_services_build(services)));
+        CHECK(UmiStudioServicesPrepareWorkspace(services, root, 0) == UMI_STATUS_OK);
+        CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
+        CHECK(workspace.graph.open && !workspace.graph.trusted && umi_path_equal(workspace.graph.root, root));
+    } else if (strcmp(name, "refresh-closed") == 0) {
         CHECK(UmiStudioWorkspaceRefreshForEditing(services) == UMI_STATUS_INVALID_STATE);
         CHECK(UmiFileIndexRefreshRead(index, &refresh) == UMI_STATUS_OK && refresh.requestId == 0U);
     } else if (strcmp(name, "refresh-new-files") == 0 || strcmp(name, "refresh-close") == 0) {
@@ -82,7 +113,10 @@ int main(int argc, char **argv)
         CHECK(UmiStudioDebuggerNativeBusy(debugger) && !UmiStudioBuildBusy(build));
         CHECK(umi_fs_join(source, sizeof source, root, "Second project") == UMI_STATUS_OK);
         CHECK(umi_fs_make_directories(source) == UMI_STATUS_OK);
-        if (strcmp(name, "debug-close") == 0)
+        if (strcmp(name, "debug-rebind") == 0) {
+            CHECK(umi_data_server_create_memory(&otherStorage) == UMI_STATUS_OK);
+            CHECK(UmiStudioBuildProfilesBind(services, otherStorage) == UMI_STATUS_BUSY);
+        } else if (strcmp(name, "debug-close") == 0)
             CHECK(umi_studio_workspace_close(services) == UMI_STATUS_BUSY);
         else if (strcmp(name, "debug-profile") == 0) {
             UmiBuildProfile replacement = profile;
@@ -206,6 +240,7 @@ cleanup:
         UmiStudioBuildProfilesDetach(services);
         umi_studio_services_destroy(services); /* Cancels and joins its owned index before freeing it. */
     }
+    umi_data_server_destroy(otherStorage);
     umi_data_server_destroy(storage);
     if (!failed && created) (void)umi_fs_remove_tree(root);
     return failed;

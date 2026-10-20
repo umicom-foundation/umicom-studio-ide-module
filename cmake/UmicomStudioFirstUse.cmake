@@ -14,7 +14,9 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
         umicom_register_validation_target(umicom-studio-first-use-test)
     endif()
     foreach(case new-file hidden-new open-edit-save hidden-open unicode-path missing-file reopen-dirty project-folder tab-switch build-guidance close-during-open build-unsaved repository-switch close-during-feedback debug-unsaved debug-canonical-unsaved
-        project-create-hidden project-create-existing close-during-create workspace-refresh-edit)
+        project-create-hidden project-create-existing close-during-create workspace-refresh-edit
+        project-prompt-retired project-prompt-retained-window
+        wizard-edit-settings wizard-hidden-editor wizard-close-during-adoption project-open-failure-draft)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
         add_test(NAME studio.first_use.gtk4.${case} COMMAND umicom-studio-first-use-test ${case}
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
@@ -42,8 +44,8 @@ if(BUILD_TESTING)
         umicom_register_validation_target(umicom-studio-interactive-workspace-test)
     endif()
     foreach(case prepare scan saved-profile missing-folder close-scan sync-compatibility repository-binding repository-close
-        debug-open debug-close debug-profile debug-sync-open relative-binding missing-preserves-watch
-        refresh-closed refresh-new-files refresh-close)
+        debug-open debug-close debug-profile debug-rebind debug-sync-open relative-binding missing-preserves-watch
+        refresh-closed refresh-new-files refresh-close prepare-discovery-failure sync-discovery-failure)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/interactive-workspace-${case}")
         add_test(NAME studio.workspace.interactive.${case}
             COMMAND umicom-studio-interactive-workspace-test ${case})

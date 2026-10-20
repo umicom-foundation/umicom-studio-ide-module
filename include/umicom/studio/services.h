@@ -384,7 +384,12 @@ UmiStatus umi_studio_services_close_workspace(UmiStudioServices *services);
 
 /** Prepare project identity, discovery and build settings without recursively
  * indexing every file. Owner-thread callers subsequently start the shared
- * background indexer. Existing Open remains synchronous. */
+ * background indexer. Existing Open remains synchronous. Open, Prepare and
+ * Close return BUSY while a build, native debugger or terminal command owns
+ * the project. Stop that operation and collect completion before retrying.
+ * Preflight failures keep the current project. A later adoption failure closes
+ * project-scoped services so tools cannot use mixed identities; open documents
+ * and their drafts remain owned by the document coordinator. */
 UmiStatus UmiStudioServicesPrepareWorkspace(UmiStudioServices *services,
     const char *root, int trusted);
 
@@ -399,7 +404,8 @@ size_t umi_studio_services_diagnostic_sink_count(
 /** Borrow an existing Data Server for build profiles. The caller retains it
  * until Detach or a successful rebind. Binding restores the active workspace's
  * saved profile when present; failure preserves the old binding and profile.
- * Call only on the owning thread and while no build is active. */
+ * Call only on the owning thread. A build, native debugger or terminal command
+ * prevents rebinding because loading settings can replace its run profile. */
 UmiStatus UmiStudioBuildProfilesBind(UmiStudioServices *services,
     UmiDataServer *server);
 /** Detach before releasing a borrowed server. No storage is read or written.
@@ -407,7 +413,8 @@ UmiStatus UmiStudioBuildProfilesBind(UmiStudioServices *services,
 void UmiStudioBuildProfilesDetach(UmiStudioServices *services);
 /** Persist all settings through Framework's revision-checked profile store,
  * then apply them to the current workspace. Reject stale writers and wrong
- * workspaces. This never stores or grants workspace trust. */
+ * workspaces. This never stores or grants workspace trust. An active build,
+ * native debugger or terminal command returns BUSY before storage is changed. */
 UmiStatus UmiStudioBuildProfileSave(UmiStudioServices *services,
     const UmiBuildProfile *profile);
 

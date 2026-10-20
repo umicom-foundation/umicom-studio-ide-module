@@ -474,7 +474,15 @@ static UmiStatus runtime_open_workspace_path(UmiStudioGtkRuntimeChrome *runtime,
             (void)snprintf(message, sizeof message,
                 "The current workspace still has an active task. Wait for it to finish, then open the project again.");
         } else {
+/* Report whether a failed adoption left a project selected. The earlier status-only message is retained for review. */
+#if 0
             (void)snprintf(message, sizeof message, "Open project: %s", umi_status_text(status));
+#endif
+            UmiStudioWorkspaceSnapshot after;
+            int closed = umi_studio_workspace_snapshot(services, &after) == UMI_STATUS_OK && !after.graph.open;
+            (void)snprintf(message, sizeof message, closed
+                ? "Open project: %s. No project is active; your open documents are retained. Select a project folder to retry."
+                : "Open project: %s. The previous project is still selected.", umi_status_text(status));
         }
         runtime_show_notification(runtime, message);
     }
