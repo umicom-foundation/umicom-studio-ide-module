@@ -24,9 +24,20 @@ umicom_apply_sanitizers(umicom-studio-program-console-test)
 if(COMMAND umicom_register_validation_target)
     umicom_register_validation_target(umicom-studio-program-console-test)
 endif()
+# Fixtures now stay in the explicit build qualification directory; retain the previous registration for review.
+if(FALSE)
 foreach(case input retained revoke project-close parent-close denied)
     add_test(NAME studio.program_console.gtk4.${case}
         COMMAND umicom-studio-program-console-test "${case}" "$<TARGET_FILE:umicom-program-console-producer>")
+    set_tests_properties(studio.program_console.gtk4.${case} PROPERTIES
+        TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;console;gtk4;ownership;acceptance")
+endforeach()
+endif()
+foreach(case input retained revoke project-close parent-close denied profile-mismatch profile-changed profile-revoke constructor-close title-close present-close constructor-reenter present-reenter)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/program-console-${case}")
+    add_test(NAME studio.program_console.gtk4.${case}
+        COMMAND umicom-studio-program-console-test "${case}" "$<TARGET_FILE:umicom-program-console-producer>"
+            "${CMAKE_CURRENT_BINARY_DIR}/qualification/program-console-${case}")
     set_tests_properties(studio.program_console.gtk4.${case} PROPERTIES
         TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;console;gtk4;ownership;acceptance")
 endforeach()

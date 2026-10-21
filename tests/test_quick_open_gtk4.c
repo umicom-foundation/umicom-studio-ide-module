@@ -69,9 +69,58 @@ static GtkWidget *FindEditor(GtkWidget *root, const char *viewId)
     return NULL;
 }
 
+/* Observe native creation and publication through the production toolbar. */
+typedef struct StudioQuickOpening {
+    UmiStudioGtkWorkbench **slot;
+    UmiStudioServices *services;
+    GtkWidget *button;
+    const char *other, *mode;
+    GPtrArray *windows;
+    unsigned observed;
+    UmiStatus status;
+} StudioQuickOpening;
+static void StudioQuickOpeningAct(StudioQuickOpening *probe)
+{
+    if (probe->observed != 0U) return;
+    ++probe->observed;
+    if (strstr(probe->mode, "reenter") != NULL) g_signal_emit_by_name(probe->button, "clicked");
+    else if (strstr(probe->mode, "workspace") != NULL)
+        probe->status = umi_studio_workspace_open(probe->services, probe->other, 0, 0);
+    else {
+        UmiStudioGtkWorkbench *owner = *probe->slot; *probe->slot = NULL;
+        umi_studio_gtk_workbench_destroy(owner);
+    }
+}
+static void StudioQuickOpeningNotify(GObject *object, GParamSpec *property, gpointer data)
+{
+    if (strcmp(property->name, "visible") == 0 && !gtk_widget_get_visible(GTK_WIDGET(object))) return;
+    StudioQuickOpeningAct(data);
+}
+static void StudioQuickReplacingClosed(GtkWidget *window, gpointer data)
+{
+    (void)window; StudioQuickOpeningAct(data);
+}
+static void StudioQuickOpeningAdded(GListModel *model, guint position, guint removed, guint added, gpointer data)
+{
+    (void)removed;
+    StudioQuickOpening *probe = data;
+    for (guint i = 0U; i < added; ++i) {
+        GtkWindow *window = g_list_model_get_item(model, position + i);
+        if (window == NULL) continue;
+        g_ptr_array_add(probe->windows, window);
+        if (strncmp(probe->mode, "constructor-", 12U) == 0) StudioQuickOpeningAct(probe);
+        else if (strcmp(probe->mode, "title-close") == 0)
+            g_signal_connect(window, "notify::title", G_CALLBACK(StudioQuickOpeningNotify), probe);
+        else if (strcmp(probe->mode, "child-close") == 0)
+            g_signal_connect(window, "notify::child", G_CALLBACK(StudioQuickOpeningNotify), probe);
+        else if (strncmp(probe->mode, "present-", 8U) == 0)
+            g_signal_connect(window, "notify::visible", G_CALLBACK(StudioQuickOpeningNotify), probe);
+    }
+}
+
 int main(int argc, char **argv)
 {
-    if (argc != 2)
+    if (argc != 3)
         return 2;
     const char *name = argv[1], *cases[] = {"button",
                                             "keyboard",
@@ -86,7 +135,8 @@ int main(int argc, char **argv)
                                             "workspace-return",
                                             "retained-control",
                                             "repeated-open",
-                                            "no-workspace"};
+                                            "no-workspace",
+        "constructor-close", "constructor-reenter", "constructor-workspace", "title-close", "child-close", "present-close", "present-reenter", "replacement-close", "replacement-workspace"};
     int known = 0;
     for (size_t i = 0U; i < sizeof(cases) / sizeof(cases[0]); ++i)
         if (strcmp(name, cases[i]) == 0)
@@ -103,13 +153,27 @@ int main(int argc, char **argv)
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL;
     GtkApplication *application = NULL;
-    GtkWindow *dialog = NULL;
+    GtkWindow *dialog = NULL, *retainedOwner = NULL, *previousPicker = NULL;
+    GtkWidget *openingButton = NULL;
+    GListModel *openingWindows = NULL;
+    gulong openingHandler = 0U;
+    StudioQuickOpening opening = {0};
+    opening.slot = &workbench; opening.mode = name;
+    opening.windows = g_ptr_array_new_with_free_func(g_object_unref);
+    opening.status = UMI_STATUS_OK;
     GtkWidget *retained = NULL;
     GError *error = NULL;
     GListModel *controllers = NULL;
     char *output = NULL;
     size_t output_bytes = 0U;
+    /* Retain the former temporary location choice for review. Native fixtures
+     * now keep their files under the explicitly selected build directory. */
+#if 0
     directory = g_dir_make_tmp("umicom-studio-quick-open-XXXXXX", &error);
+#endif
+    CHECK(g_path_is_absolute(argv[2]));
+    directory = g_build_filename(argv[2], "quick-open-XXXXXX", NULL);
+    CHECK(g_mkdtemp(directory) != NULL);
     CHECK(directory != NULL && g_chdir(directory) == 0);
     changed_directory = true;
     g_unsetenv("UMICOM_STUDIO_DATA_PATH");
@@ -161,6 +225,21 @@ int main(int argc, char **argv)
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     GtkWidget *button = Find(root, "studio.editor.quick-open");
     CHECK(GTK_IS_BUTTON(button));
+    retainedOwner = g_object_ref(GTK_WINDOW(root));
+    openingButton = g_object_ref(button);
+    opening.services = services; opening.button = openingButton; opening.other = other;
+    const int boundary = strncmp(name, "constructor-", 12U) == 0 || strncmp(name, "present-", 8U) == 0 ||
+        strncmp(name, "replacement-", 12U) == 0 || strcmp(name, "title-close") == 0 || strcmp(name, "child-close") == 0;
+    if (strncmp(name, "replacement-", 12U) == 0) {
+        g_signal_emit_by_name(button, "clicked");
+        GtkWindow *oldPicker = g_object_get_data(G_OBJECT(root), "umicom-studio-quick-open-window");
+        CHECK(oldPicker != NULL); previousPicker = g_object_ref(oldPicker);
+        CHECK(UmiGtk4WatchWindowClosed(previousPicker, G_OBJECT(root), StudioQuickReplacingClosed, &opening) == UMI_STATUS_OK);
+    }
+    if (boundary) {
+        openingWindows = gtk_window_get_toplevels();
+        openingHandler = g_signal_connect(openingWindows, "items-changed", G_CALLBACK(StudioQuickOpeningAdded), &opening);
+    }
     if (strcmp(name, "keyboard") == 0 || strcmp(name, "capture-key") == 0)
     {
         controllers = gtk_widget_observe_controllers(root);
@@ -184,6 +263,20 @@ int main(int argc, char **argv)
     else
         g_signal_emit_by_name(button, "clicked");
     GtkWindow *candidate = g_object_get_data(G_OBJECT(root), "umicom-studio-quick-open-window");
+    if (boundary) {
+        CHECK(opening.observed == 1U && opening.status == UMI_STATUS_OK && opening.windows->len == 1U);
+        CHECK(g_object_get_data(G_OBJECT(root), "studio-quick-open-creating") == NULL);
+        if (strstr(name, "reenter") != NULL) {
+            CHECK(candidate != NULL && UmiGtk4WindowIsOpen(candidate) && workbench != NULL);
+            dialog = g_object_ref(candidate); Pump();
+            CHECK(Find(GTK_WIDGET(dialog), "umicom-quick-open-query") != NULL);
+        } else {
+            for (guint i = 0U; i < opening.windows->len; ++i)
+                CHECK(!UmiGtk4WindowIsOpen(g_ptr_array_index(opening.windows, i)));
+            if (strstr(name, "workspace") == NULL) CHECK(workbench == NULL);
+        }
+        goto preserved;
+    }
     if (strcmp(name, "no-workspace") == 0)
     {
         CHECK(candidate == NULL);
@@ -268,6 +361,10 @@ preserved:
     CHECK(output_bytes == strlen(text) && strcmp(output, text) == 0);
     CHECK(umi_ui_document_view_model_find(views, id, &view) == UMI_STATUS_OK && view.dirty);
 cleanup:
+    opening.observed = 1U; /* Teardown must not repeat the one-shot injected action. */
+    if (openingHandler != 0U) g_signal_handler_disconnect(openingWindows, openingHandler);
+    for (guint i = 0U; i < opening.windows->len; ++i)
+        g_signal_handlers_disconnect_by_data(g_ptr_array_index(opening.windows, i), &opening);
     UmiUiDocumentViewModelFreeText(output);
     g_clear_object(&controllers);
     g_clear_object(&retained);
@@ -278,6 +375,9 @@ cleanup:
     }
     if (workbench != NULL)
         umi_studio_gtk_workbench_destroy(workbench);
+    if (previousPicker != NULL) { gtk_window_destroy(previousPicker); g_object_unref(previousPicker); }
+    g_clear_object(&retainedOwner); g_clear_object(&openingButton);
+    g_ptr_array_unref(opening.windows);
     if (bootstrap != NULL)
         umi_studio_bootstrap_destroy(bootstrap);
     if (settings != NULL)

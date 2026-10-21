@@ -163,6 +163,8 @@ static void RuntimeDebugSelectionDestroy(gpointer data)
 {
     UmiDebugSelectionDestroy(data);
 }
+/* The former callback only refreshed the model and retained the host across observer callbacks. Resolve the host after each boundary and reveal the shared editor for a reached frame; keep the earlier callback for review. */
+#if 0
 static void RuntimeDebugRowClicked(GtkButton *button,gpointer data)
 {
     UmiStudioGtkRuntimeChrome *runtime=data;
@@ -185,6 +187,48 @@ static void RuntimeDebugRowClicked(GtkButton *button,gpointer data)
             "Debugger selection or source navigation did not complete: %s. No text was changed.",umi_status_text(status));
         runtime_show_notification(runtime,message);
     }
+}
+
+#endif
+static void RuntimeDebugRowClicked(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    if (runtime == NULL || runtime->owner == NULL) return;
+    const UmiDebugSelection *selection = g_object_get_data(G_OBJECT(button), "umicom-debug-selection");
+    UmiDebugSelectionSnapshot selected;
+    UmiStatus status = UmiDebugSelectionValidate(runtime_debug_workspace(runtime), selection, &selected);
+    if (status != UMI_STATUS_OK) {
+        runtime_show_notification(runtime, "Debugger state changed. Refresh and choose the current thread or frame again.");
+        return;
+    }
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    /* The copied selection survives row replacement. Command dispatch, document
+     * opening and presentation can each notify extensions or close the host. */
+    status = runtime_execute_registered_command(runtime,
+        selected.kind == UMI_DEBUG_SELECT_THREAD ? UMI_STUDIO_COMMAND_DEBUG_SELECT_THREAD : UMI_STUDIO_COMMAND_DEBUG_SELECT_FRAME,
+        selected.kind == UMI_DEBUG_SELECT_THREAD ? selected.thread.id : selected.frame.id);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status == UMI_STATUS_OK && selected.kind == UMI_DEBUG_SELECT_FRAME) {
+        status = UmiDebugFrameOpenSource(runtime_documents(runtime), &selected.frame, selected.sourceBase, NULL);
+        g_clear_object(&window);
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime != NULL && status == UMI_STATUS_OK) status = RuntimePresentActiveSource(runtime);
+        else if (runtime != NULL) (void)runtime_refresh_services(runtime);
+    } else if (runtime != NULL) {
+        (void)runtime_refresh_services(runtime);
+    }
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status != UMI_STATUS_OK) {
+        char message[240];
+        (void)snprintf(message, sizeof message,
+            "Debugger selection or source navigation did not complete: %s. No text was changed.", umi_status_text(status));
+        runtime_show_notification(runtime, message);
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
 }
 static void RuntimeDebugBindRow(UmiStudioGtkRuntimeChrome *runtime,GtkWidget *button,
     UmiDebugWorkspace *workspace,UmiDebugSelectionKind kind,size_t index)

@@ -17,6 +17,7 @@
 
 #include "umicom/studio/session.h"
 #include "umicom/ui/gtk4/path_picker.h"
+#include "umicom/ui/gtk4/window_lifecycle.h"
 
 /* Native requests can complete after a tab change or after Studio closes.
  * The window stores a non-owning runtime binding which teardown clears. */
@@ -63,6 +64,16 @@ static void runtime_file_dialog_request_free(UmiStudioFileDialogRequest *request
     g_weak_ref_clear(&request->window);
     g_clear_object(&request->binding);
     g_free(request);
+}
+
+/* Repeated native updates can retire or replace the application between calls.
+ * Reuse the existing generation token and release the previous retained window
+ * before resolving it again; callers must stop when no owner is returned. */
+static UmiStudioGtkRuntimeChrome *RuntimeResolveOwner(
+    UmiStudioFileDialogRequest *request, GObject **retainedWindow)
+{
+    g_clear_object(retainedWindow);
+    return runtime_file_dialog_owner(request, retainedWindow);
 }
 
 /* Dismissing a chooser is an ordinary user action, not an error notification. */
@@ -555,6 +566,8 @@ cleanup:
  */
 /* Choose an initial location from the active document or selected project.
  * Settings storage and the launch directory are never used as project paths. */
+/* Chooser hints now use a captured workspace snapshot, so a native construction observer cannot silently retarget the initial folder. Keep the runtime-reading implementation for review. */
+#if 0
 static void RuntimePrepareDocumentChooser(UmiStudioGtkRuntimeChrome *runtime,
     GtkFileDialog *dialog, UmiPathPickerMode mode,
     const UmiDocumentWorkingCopySnapshot *active)
@@ -578,6 +591,76 @@ static void RuntimePrepareDocumentChooser(UmiStudioGtkRuntimeChrome *runtime,
     }
 }
 
+#endif
+
+static void RuntimePrepareDocumentChooser(const UmiStudioWorkspaceSnapshot *workspace,
+    GtkFileDialog *dialog, UmiPathPickerMode mode,
+    const UmiDocumentWorkingCopySnapshot *active)
+{
+    char parent[UMI_PATH_CAPACITY] = {0};
+    const char *folder = NULL, *selected = NULL, *name = NULL;
+    if (workspace != NULL && workspace->graph.open) folder = workspace->graph.root;
+    if (active != NULL && active->has_path && umi_path_is_absolute(active->path)) {
+        if (mode == UMI_PATH_PICKER_NEW_FILE) selected = active->path;
+        else if (mode == UMI_PATH_PICKER_EXISTING_FILE &&
+            umi_path_parent(active->path, parent, sizeof parent) == UMI_STATUS_OK)
+            folder = parent;
+    }
+    if (mode == UMI_PATH_PICKER_NEW_FILE && active != NULL) name = active->display_name;
+    if (UmiPathPickerGtk4SetInitialLocation(dialog, mode, selected, folder, name) != UMI_STATUS_OK) {
+        /* A rejected hint must not prevent the user choosing a valid location.
+         * Clear it without guessing another path or creating any directory. */
+        (void)UmiPathPickerGtk4SetInitialLocation(dialog, mode, NULL, NULL, NULL);
+    }
+}
+
+/* Native construction and property changes can synchronously retire Studio.
+ * Capture the request first, resolve before reading project state, and resolve
+ * again before showing the chooser. The callback owns the request only after
+ * launch; it may even complete synchronously in an embedded native host. */
+static UmiStatus RuntimePresentDocumentChooser(UmiStudioGtkRuntimeChrome *runtime,
+    UmiPathPickerMode mode, const UmiDocumentWorkingCopySnapshot *active)
+{
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime,
+        mode == UMI_PATH_PICKER_NEW_FILE && active != NULL ? active->document_id : 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus workspaceStatus = umi_studio_workspace_snapshot(
+        umi_studio_ui_services(runtime->owner->ui), &workspace);
+    GtkFileDialog *dialog = gtk_file_dialog_new();
+    if (dialog == NULL) {
+        runtime_file_dialog_request_free(request);
+        return UMI_STATUS_OUT_OF_MEMORY;
+    }
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    UmiStatus status = UMI_STATUS_CANCELLED;
+    if (runtime != NULL && UmiGtk4WindowIsOpen(GTK_WINDOW(window))) {
+        RuntimePrepareDocumentChooser(workspaceStatus == UMI_STATUS_OK ? &workspace : NULL, dialog, mode, active);
+        gtk_file_dialog_set_title(dialog, mode == UMI_PATH_PICKER_NEW_FILE ? "Save As"
+            : mode == UMI_PATH_PICKER_DIRECTORY ? "Open Workspace Folder" : "Open File");
+        g_clear_object(&window);
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime != NULL && UmiGtk4WindowIsOpen(GTK_WINDOW(window))) {
+            /* Only retained native objects and the transferred request are used
+             * after launch. A synchronous completion may destroy the host. */
+            if (mode == UMI_PATH_PICKER_NEW_FILE)
+                gtk_file_dialog_save(dialog, GTK_WINDOW(window), NULL, runtime_save_as_complete, request);
+            else if (mode == UMI_PATH_PICKER_DIRECTORY)
+                gtk_file_dialog_select_folder(dialog, GTK_WINDOW(window), NULL, runtime_open_folder_complete, request);
+            else gtk_file_dialog_open(dialog, GTK_WINDOW(window), NULL, runtime_open_file_complete, request);
+            request = NULL;
+            status = UMI_STATUS_OK;
+        }
+    }
+    g_clear_object(&window);
+    g_object_unref(dialog);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+/* Open File now uses a captured native request across chooser construction and location notifications. The earlier implementation is retained for review. */
+#if 0
 static UmiStatus runtime_choose_file_to_open(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -621,10 +704,25 @@ static UmiStatus runtime_choose_file_to_open(
     return UMI_STATUS_OK;
 }
 
+#endif
+
+static UmiStatus runtime_choose_file_to_open(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->window == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiDocumentWorkingCopySnapshot active;
+    UmiStatus status = umi_document_coordinator_active_snapshot(
+        umi_studio_ui_documents(runtime->owner->ui), &active);
+    return RuntimePresentDocumentChooser(runtime, UMI_PATH_PICKER_EXISTING_FILE,
+        status == UMI_STATUS_OK ? &active : NULL);
+}
+
 /*
  * Provide the runtime choose save as operation used by this module and its client
  * applications.
  */
+/* Save As keeps its captured document identity while sharing the lifetime-checked chooser launcher. The previous launch sequence remains for review. */
+#if 0
 static UmiStatus runtime_choose_save_as(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -671,10 +769,25 @@ static UmiStatus runtime_choose_save_as(
     return UMI_STATUS_OK;
 }
 
+#endif
+
+static UmiStatus runtime_choose_save_as(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->window == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiDocumentWorkingCopySnapshot active;
+    UmiStatus status = umi_document_coordinator_active_snapshot(
+        umi_studio_ui_documents(runtime->owner->ui), &active);
+    if (status != UMI_STATUS_OK) return status;
+    return RuntimePresentDocumentChooser(runtime, UMI_PATH_PICKER_NEW_FILE, &active);
+}
+
 /*
  * Provide the runtime choose workspace folder operation used by this module and its client
  * applications.
  */
+/* Open Folder now shares the same request lifetime boundary as document choosers. Retain the earlier implementation for comparison. */
+#if 0
 static UmiStatus runtime_choose_workspace_folder(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -712,4 +825,13 @@ static UmiStatus runtime_choose_workspace_folder(
         request);
     g_object_unref(dialog);
     return UMI_STATUS_OK;
+}
+
+#endif
+
+static UmiStatus runtime_choose_workspace_folder(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->window == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return RuntimePresentDocumentChooser(runtime, UMI_PATH_PICKER_DIRECTORY, NULL);
 }

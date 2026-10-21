@@ -18,6 +18,26 @@ static GtkWidget *FindDiscoveredSource(GtkWidget *root, const char *itemId)
     }
     return NULL;
 }
+/* Model movement alone is insufficient: the selected source must be editable,
+ * visible in the current layout, focused, and positioned at the requested byte. */
+static int TestSourceEditorReachable(GtkWidget *root, size_t expectedOffset)
+{
+    GtkWidget *editor = find_editor(find_tag(root, "studio.workspace.editor-root"));
+    if (!GTK_IS_TEXT_VIEW(editor) || !gtk_text_view_get_editable(GTK_TEXT_VIEW(editor))) return 0;
+    for (GtkWidget *node = editor; node != root; node = gtk_widget_get_parent(node))
+        if (node == NULL || !gtk_widget_get_visible(node) || !gtk_widget_get_child_visible(node)) return 0;
+    GtkWidget *focus = gtk_window_get_focus(GTK_WINDOW(root));
+    if (focus != editor && (focus == NULL || !gtk_widget_is_ancestor(focus, editor))) return 0;
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor));
+    GtkTextIter start, cursor;
+    gtk_text_buffer_get_start_iter(buffer, &start);
+    gtk_text_buffer_get_iter_at_mark(buffer, &cursor, gtk_text_buffer_get_insert(buffer));
+    char *prefix = gtk_text_buffer_get_text(buffer, &start, &cursor, TRUE);
+    int matched = prefix != NULL && strlen(prefix) == expectedOffset;
+    g_free(prefix);
+    return matched;
+}
+
 static int VerifyTestSourceLocations(GtkApplication *application, const char *fixturePath)
 {
     int failed=0;
@@ -63,6 +83,10 @@ static int VerifyTestSourceLocations(GtkApplication *application, const char *fi
     }
     REQUIRE(umi_studio_gtk_workbench_create_with_options(application,ui,
         umi_studio_bootstrap_desktop_shell(bootstrap),&options,&workbench)==UMI_STATUS_OK);
+    /* A saved layout may contain Tests without an editor. Explicit source
+     * navigation must recover that usable surface without replacing its draft. */
+    REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench,"test-source-only","Test results")==UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_workspace_commit_edit(workbench)==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench,UMI_STUDIO_SURFACE_TEST_EXPLORER,NULL)==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_refresh(workbench)==UMI_STATUS_OK);
     GtkWidget *root=GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
@@ -74,6 +98,13 @@ static int VerifyTestSourceLocations(GtkApplication *application, const char *fi
     g_signal_emit_by_name(retained,"clicked");
     REQUIRE(umi_ui_document_view_model_find(views,viewId,&after)==UMI_STATUS_OK);
     REQUIRE(after.cursor_offset==9 && after.selection_length==0 && after.dirty);
+    REQUIRE(TestSourceEditorReachable(root,9U));
+    GtkWidget *discoverySource=FindDiscoveredSource(root,ids[0]); REQUIRE(GTK_IS_BUTTON(discoverySource));
+    g_signal_emit_by_name(discoverySource,"clicked");
+    REQUIRE(umi_ui_document_view_model_find(views,viewId,&after)==UMI_STATUS_OK && after.cursor_offset==6U && after.dirty);
+    REQUIRE(TestSourceEditorReachable(root,6U));
+    g_signal_emit_by_name(retained,"clicked");
+    REQUIRE(TestSourceEditorReachable(root,9U));
     select=FindTestSelect(root,ids[1]); REQUIRE(GTK_IS_BUTTON(select)); g_signal_emit_by_name(select,"clicked");
     /* Removed rows and failed opens must never move the prior draft's caret. */
     g_signal_emit_by_name(retained,"clicked");

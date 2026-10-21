@@ -10,8 +10,11 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-decoded-search-test)
     endif()
-    foreach(case utf16-le utf16-be utf8-bom bare-cr unicode-path unsupported draft-preserved stale-index retained-result)
-        add_test(NAME studio.search.decoded.gtk4.${case} COMMAND umicom-studio-decoded-search-test ${case})
+    foreach(case utf16-le utf16-be utf8-bom bare-cr unicode-path unsupported draft-preserved stale-index retained-result
+        focus-close error-feedback-close)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/decoded-search-${case}")
+        add_test(NAME studio.search.decoded.gtk4.${case} COMMAND umicom-studio-decoded-search-test ${case}
+            "${CMAKE_CURRENT_BINARY_DIR}/qualification/decoded-search-${case}")
         set_tests_properties(studio.search.decoded.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;editor;search;gtk4;ownership;regression")
     endforeach()
 endif()

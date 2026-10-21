@@ -37,28 +37,53 @@ static void Drain(void)
         g_usleep(1000U);
     }
 }
+typedef struct AttachFeedbackProbe {
+    UmiStudioGtkWorkbench **owner;
+    GtkWidget *button;
+    unsigned calls;
+    int close;
+} AttachFeedbackProbe;
+static void AttachFeedbackObserved(GObject *object, GParamSpec *spec, gpointer data)
+{
+    AttachFeedbackProbe *probe = data;
+    (void)object; (void)spec;
+    if (probe->calls++ != 0U) return;
+    if (probe->close && *probe->owner != NULL) {
+        UmiStudioGtkWorkbench *owner = *probe->owner; *probe->owner = NULL;
+        umi_studio_gtk_workbench_destroy(owner);
+    } else g_signal_emit_by_name(probe->button, "clicked");
+}
+
 int main(int argc, char **argv)
 {
-    if (argc != 3)
+    if (argc != 4)
         return 2;
     const char *mode = argv[1];
-    bool denied = strcmp(mode, "denied") == 0, invalid = strcmp(mode, "invalid") == 0;
+    bool feedbackClose = strcmp(mode, "feedback-close") == 0 || strcmp(mode, "denied-feedback-close") == 0;
+    bool feedbackReenter = strcmp(mode, "feedback-reenter") == 0;
+    bool denied = strcmp(mode, "denied") == 0 || strcmp(mode, "denied-feedback-close") == 0, invalid = strcmp(mode, "invalid") == 0;
     bool retained = strcmp(mode, "retained") == 0, hidden = strcmp(mode, "hidden") == 0;
     bool revoke = strcmp(mode, "revoke") == 0;
-    if (!denied && !invalid && !retained && !hidden && !revoke && strcmp(mode, "normal") != 0)
+    if (!denied && !invalid && !retained && !hidden && !revoke && !feedbackClose && !feedbackReenter && strcmp(mode, "normal") != 0)
         return 2;
     if (!gtk_init_check())
         return 77;
     int failed = 0;
     bool moved = false;
     char *original = g_get_current_dir(), *previous = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
+/* Qualification supplies a visible build-tree parent so retained logs are easy to find. Keep the previous system-temporary location for review. */
+#if 0
     char *directory = g_dir_make_tmp("umicom-studio-attach-XXXXXX", NULL), *log = NULL;
+#endif
+    char *directory = g_build_filename(argv[3], "attach-XXXXXX", NULL), *log = NULL;
     UmiSettings *settings = NULL;
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL;
     GtkApplication *application = NULL;
-    GtkWidget *attach = NULL;
-    CHECK(directory != NULL && original != NULL && g_chdir(directory) == 0);
+    GtkWidget *attach = NULL, *notice = NULL;
+    gulong feedbackHandler = 0U;
+    AttachFeedbackProbe feedback = {&workbench, NULL, 0U, feedbackClose};
+    CHECK(directory != NULL && g_mkdtemp(directory) != NULL && original != NULL && g_chdir(directory) == 0);
     moved = true;
     g_unsetenv("UMICOM_STUDIO_DATA_PATH");
     CHECK(g_mkdir_with_parents("config", 0700) == 0);
@@ -122,8 +147,15 @@ for (GtkWidget *parent = gtk_widget_get_parent(attach); parent != NULL;
         umi_studio_gtk_workbench_destroy(workbench);
         workbench = NULL;
     }
+    if (feedbackClose || feedbackReenter) {
+        notice = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window), "studio.notification");
+        CHECK(GTK_IS_LABEL(notice)); g_object_ref(notice); feedback.button = attach;
+        feedbackHandler = g_signal_connect(notice, "notify::label", G_CALLBACK(AttachFeedbackObserved), &feedback);
+    }
     /* Emitting a retained or hidden control must not bypass its workbench owner. */
     g_signal_emit_by_name(attach, "clicked");
+    if (feedbackClose || feedbackReenter) CHECK(feedback.calls == 1U);
+    if (feedbackClose) CHECK(workbench == NULL);
     bool allowed = !denied && !invalid && !retained && !hidden && !revoke;
     CHECK(UmiStudioDebuggerNativeBusy(debugger) == allowed);
     if (allowed)
@@ -137,6 +169,8 @@ for (GtkWidget *parent = gtk_widget_get_parent(attach); parent != NULL;
               strstr(log, "\"terminateDebuggee\":false") != NULL &&
               strstr(log, "\"terminateDebuggee\":true") == NULL);
 done:
+    if (feedbackHandler != 0U) g_signal_handler_disconnect(notice, feedbackHandler);
+    g_clear_object(&notice);
     umi_studio_gtk_workbench_destroy(workbench);
     g_clear_object(&attach);
     umi_studio_bootstrap_destroy(bootstrap);

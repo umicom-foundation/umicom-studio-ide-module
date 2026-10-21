@@ -77,6 +77,8 @@ static UmiStatus RuntimeLiveDiagnosticCapture(char *out, size_t capacity, size_t
     UmiDocumentSourceRequestDestroy(capture);
     return status;
 }
+/* Source navigation must reveal the native editor after Framework validates the captured range. The previous model-only route is retained for review. */
+#if 0
 static UmiStatus RuntimeLiveDiagnosticNavigate(const char *uri, const char *source, size_t bytes,
                                                UmiEditorTextPosition start,
                                                UmiEditorTextPosition end, void *data)
@@ -91,6 +93,42 @@ static UmiStatus RuntimeLiveDiagnosticNavigate(const char *uri, const char *sour
     return UmiDocumentCoordinatorSelectCapturedSourceRange(
         binding->documents, binding->document_id, uri, source, bytes, start, end, NULL, NULL);
 }
+
+#endif
+
+static UmiStatus RuntimeLiveDiagnosticNavigate(const char *uri, const char *source, size_t bytes,
+                                               UmiEditorTextPosition start,
+                                               UmiEditorTextPosition end, void *data)
+{
+    StudioDiagnosticBinding *binding = data;
+    if (!RuntimeLiveDiagnosticAuthorized(binding)) return UMI_STATUS_PERMISSION_DENIED;
+    if (uri == NULL || strcmp(uri, binding->uri) != 0) return UMI_STATUS_INVALID_STATE;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(binding->owner, &window);
+    if (runtime == NULL) { g_clear_object(&window); return UMI_STATUS_CANCELLED; }
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) { g_clear_object(&window); return UMI_STATUS_OUT_OF_MEMORY; }
+    UmiDocumentCoordinator *documents = binding->documents;
+    UmiDocumentId documentId = binding->document_id;
+    /* Framework checks the complete captured draft before selecting. Native
+     * presentation is a separate observable step and must resolve its live host. */
+    UmiStatus status = UmiDocumentCoordinatorSelectCapturedSourceRange(
+        documents, documentId, uri, source, bytes, start, end, NULL, NULL);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status == UMI_STATUS_OK) {
+        UmiDocumentWorkingCopySnapshot active;
+        status = umi_document_coordinator_active_snapshot(documents, &active);
+        if (status == UMI_STATUS_OK && active.document_id != documentId) status = UMI_STATUS_INVALID_STATE;
+        if (status == UMI_STATUS_OK) status = RuntimePresentActiveSource(runtime);
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+/* Window creation and property observers can close or reenter Studio. The replacement reserves creation and validates the captured owner before publishing the diagnostic panel; retain the old sequence for review. */
+#if 0
 static void RuntimeLiveDiagnostics(GtkButton *button, gpointer data)
 {
     (void)button;
@@ -207,6 +245,159 @@ static void RuntimeLiveDiagnostics(GtkButton *button, gpointer data)
                            RuntimeProgramConsoleWeakFree);
     gtk_window_present(window);
 done:
+    g_clear_object(&owner_window);
+    runtime_file_dialog_request_free(request);
+}
+
+#endif
+
+/* A temporary reference keeps native state alive, but does not grant access to
+ * a retired workbench. Recheck both host generation and workspace authority. */
+static int RuntimeLiveDiagnosticWindowCurrent(UmiStudioFileDialogRequest *request,
+    StudioDiagnosticBinding *binding, GtkWindow *dialog, GObject **window)
+{
+    UmiStudioGtkRuntimeChrome *runtime = RuntimeResolveOwner(request, window);
+    return runtime != NULL && UmiGtk4WindowIsOpen(GTK_WINDOW(*window)) &&
+        UmiGtk4WindowIsOpen(dialog) && RuntimeLiveDiagnosticAuthorized(binding);
+}
+
+static void RuntimeLiveDiagnostics(GtkButton *button, gpointer data)
+{
+    (void)button;
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL)
+        return;
+    GObject *owner_window = NULL, *checked_window = NULL;
+    GtkWidget *panel = NULL;
+    GtkWindow *window = NULL;
+    int reserved = 0, published = 0;
+    runtime = runtime_file_dialog_owner(request, &owner_window);
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(owner_window)))
+        goto done;
+    if (g_object_get_data(owner_window, "studio-live-diagnostics-creating") != NULL) goto done;
+    GWeakRef *existing = g_object_get_data(owner_window, "umicom-studio-live-diagnostics-window");
+    GtkWindow *old = existing != NULL ? g_weak_ref_get(existing) : NULL;
+    if (old != NULL && UmiGtk4WindowIsOpen(old))
+    {
+        gtk_window_present(old);
+        g_object_unref(old);
+        goto done;
+    }
+    g_clear_object(&old);
+    GtkWidget *old_panel = g_object_get_data(owner_window, "umicom-studio-live-diagnostics-panel");
+    if (old_panel != NULL && UmiGtk4LiveDiagnosticPanelPending(old_panel))
+    {
+        runtime_show_notification(runtime, "The previous language server is still stopping.");
+        goto done;
+    }
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiDocumentWorkingCopySnapshot active;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status == UMI_STATUS_OK && (!workspace.graph.open || !workspace.graph.trusted))
+        status = UMI_STATUS_PERMISSION_DENIED;
+    UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
+    if (status == UMI_STATUS_OK)
+        status = umi_document_coordinator_active_snapshot(documents, &active);
+    if (status == UMI_STATUS_OK && !active.has_path)
+        status = UMI_STATUS_INVALID_STATE;
+    if (status != UMI_STATUS_OK)
+    {
+        runtime_show_notification(runtime, "Open and trust the project, then open a named source "
+                                           "file. Use Save As first for an unnamed draft.");
+        goto done;
+    }
+    StudioDiagnosticBinding *binding = g_try_new0(StudioDiagnosticBinding, 1U);
+    char *source = g_try_malloc(UMI_LANGUAGE_RUNTIME_JSON_CAPACITY);
+    if (binding == NULL || source == NULL)
+    {
+        g_free(binding);
+        g_free(source);
+        goto done;
+    }
+    binding->owner = runtime_file_dialog_request_new(runtime, 0U);
+    if (binding->owner == NULL)
+    {
+        g_free(binding);
+        g_free(source);
+        goto done;
+    }
+    binding->documents = documents;
+    binding->document_id = active.document_id;
+    binding->workspace_revision = workspace.graph.revision;
+    strcpy(binding->root, workspace.graph.root);
+    strcpy(binding->uri, active.uri);
+    strcpy(binding->language, active.language_id);
+    size_t bytes = 0U;
+    status =
+        RuntimeLiveDiagnosticCapture(source, UMI_LANGUAGE_RUNTIME_JSON_CAPACITY, &bytes, binding);
+    char *root_uri = status == UMI_STATUS_OK ? g_filename_to_uri(binding->root, NULL, NULL) : NULL;
+    if (status == UMI_STATUS_OK && root_uri == NULL)
+        status = UMI_STATUS_INVALID_ARGUMENT;
+    UmiLanguageDiagnosticMonitorConfig config = {0};
+    const UmiLanguageServerProfile *builtin =
+        umi_language_runtime_builtin_profile_for_language(binding->language);
+    if (builtin != NULL)
+        config.profile = *builtin;
+    else
+    {
+        strcpy(config.profile.id, "selected-language-server");
+        strcpy(config.profile.display_name, "Selected language server");
+    }
+    config.profile.enabled = 1;
+    config.working_directory = binding->root;
+    config.tool_directory =
+        umi_studio_build_service_profile(umi_studio_services_build(services))->tool_directory;
+    config.document = (UmiLanguageDiagnosticRequest){root_uri, binding->uri, binding->language,
+                                                     source,   bytes,        10000U};
+    UmiGtk4LiveDiagnosticCallbacks callbacks = {RuntimeLiveDiagnosticCapture,
+                                                RuntimeLiveDiagnosticAuthorized, binding,
+                                                RuntimeLiveDiagnosticBindingFree};
+    g_object_set_data(owner_window, "studio-live-diagnostics-creating", GINT_TO_POINTER(1));
+    reserved = 1;
+    if (status == UMI_STATUS_OK)
+        status = UmiGtk4LiveDiagnosticPanelCreate(&config, &callbacks, &panel);
+    g_free(root_uri);
+    g_free(source);
+    if (status != UMI_STATUS_OK)
+    {
+        RuntimeLiveDiagnosticBindingFree(binding);
+        runtime = RuntimeResolveOwner(request, &checked_window);
+        if (runtime != NULL) runtime_show_notification(
+            runtime, "The source or workspace exceeds the live language-session limits.");
+        goto done;
+    }
+    g_object_ref_sink(panel);
+    (void)UmiGtk4LiveDiagnosticPanelSetNavigator(panel, RuntimeLiveDiagnosticNavigate);
+    window = GTK_WINDOW(gtk_window_new());
+    g_object_ref(window);
+    if (!RuntimeLiveDiagnosticWindowCurrent(request, binding, window, &checked_window)) goto done;
+    gtk_window_set_title(window, "Studio — Live Source Diagnostics");
+    if (!RuntimeLiveDiagnosticWindowCurrent(request, binding, window, &checked_window)) goto done;
+    gtk_window_set_default_size(window, 920, 650);
+    if (!RuntimeLiveDiagnosticWindowCurrent(request, binding, window, &checked_window)) goto done;
+    gtk_window_set_transient_for(window, GTK_WINDOW(owner_window));
+    if (!RuntimeLiveDiagnosticWindowCurrent(request, binding, window, &checked_window)) goto done;
+    gtk_window_set_destroy_with_parent(window, TRUE);
+    if (!RuntimeLiveDiagnosticWindowCurrent(request, binding, window, &checked_window)) goto done;
+    gtk_window_set_child(window, panel);
+    if (!RuntimeLiveDiagnosticWindowCurrent(request, binding, window, &checked_window)) goto done;
+    g_object_set_data_full(owner_window, "umicom-studio-live-diagnostics-panel",
+                           g_object_ref(panel), g_object_unref);
+    if (!RuntimeLiveDiagnosticWindowCurrent(request, binding, window, &checked_window)) goto done;
+    GWeakRef *weak = g_new0(GWeakRef, 1U);
+    g_weak_ref_init(weak, window);
+    g_object_set_data_full(owner_window, "umicom-studio-live-diagnostics-window", weak,
+                           RuntimeProgramConsoleWeakFree);
+    gtk_window_present(window);
+    published = RuntimeLiveDiagnosticWindowCurrent(request, binding, window, &checked_window);
+done:
+    if (!published && window != NULL) gtk_window_destroy(window);
+    if (reserved) g_object_set_data(owner_window, "studio-live-diagnostics-creating", NULL);
+    g_clear_object(&window);
+    g_clear_object(&panel);
+    g_clear_object(&checked_window);
     g_clear_object(&owner_window);
     runtime_file_dialog_request_free(request);
 }

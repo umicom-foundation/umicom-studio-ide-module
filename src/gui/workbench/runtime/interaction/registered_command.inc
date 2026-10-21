@@ -460,6 +460,58 @@ static UmiStatus runtime_execute_registered_command_capture(
 }
 
 #endif
+/* Saving may invoke a document provider. Capture project and profile identity,
+ * then recheck both before the caller dispatches its tool. Framework continues
+ * to own draft saving and profile equality; Studio supplies workspace authority. */
+static UmiStatus RuntimeSaveProjectSources(UmiStudioGtkRuntimeChrome *runtime,
+    char *message, size_t capacity)
+{
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStatus status = UmiStudioBuildCheckAdmission(services, message, capacity);
+    if (status != UMI_STATUS_OK) return status;
+    if (UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
+        UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter)) {
+        (void)snprintf(message, capacity, "Finish or cancel the active document save before starting tools.");
+        return UMI_STATUS_BUSY;
+    }
+    UmiStudioWorkspaceSnapshot workspace;
+    status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    UmiBuildProfile profile = *umi_studio_build_service_profile(umi_studio_services_build(services));
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    status = UmiDocumentCoordinatorSaveAll(umi_studio_ui_documents(runtime->owner->ui), NULL);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status != UMI_STATUS_OK) {
+        (void)snprintf(message, capacity,
+            "Tools did not start. Save unnamed documents with Save As and resolve file conflicts first.");
+    } else {
+        services = umi_studio_ui_services(runtime->owner->ui);
+        UmiStudioWorkspaceSnapshot current;
+        status = umi_studio_workspace_snapshot(services, &current);
+        if (status == UMI_STATUS_OK && (!current.graph.open || !current.graph.trusted ||
+            current.graph.revision != workspace.graph.revision ||
+            !umi_path_equal(current.graph.root, workspace.graph.root) ||
+            !umi_build_profile_equal(&profile,
+                umi_studio_build_service_profile(umi_studio_services_build(services))))) {
+            status = UMI_STATUS_INVALID_STATE;
+            (void)snprintf(message, capacity,
+                "The project or its settings changed while saving. Review the active project before starting tools again.");
+        }
+        if (status == UMI_STATUS_OK)
+            status = UmiStudioBuildCheckAdmission(services, message, capacity);
+        if (status == UMI_STATUS_OK && RuntimeProgramConsoleBusy(runtime)) {
+            status = UMI_STATUS_BUSY;
+            (void)snprintf(message, capacity, "Stop the program console before building or debugging.");
+        }
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
 static UmiStatus runtime_execute_registered_command_capture(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
@@ -514,6 +566,8 @@ static UmiStatus runtime_execute_registered_command_capture(
         { status = UMI_STATUS_BUSY; goto command_finished; }
     }
 
+/* A single checked save boundary now covers menu, toolbar and canonical command execution. Preserve the earlier branches for review; the background argument previously skipped saving and admission followed disk writes. */
+#if 0
     /* Debug launches can originate in command search as well as the main menu.
      * Save through Framework's coordinator once, then resolve the weak host again:
      * a saved-document observer may have closed the window or changed projects. */
@@ -576,6 +630,36 @@ static UmiStatus runtime_execute_registered_command_capture(
             }
         }
         argument = "background";
+    }
+
+
+#endif
+    /* Admission must precede source writes for every graphical entry route.
+     * The background argument chooses scheduling only; it cannot bypass saving
+     * or carry authority from a previous project. Run Current intentionally
+     * launches existing output without saving or building. */
+    int buildSources = strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CONFIGURE) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_COMPILE) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_TEST) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CLEAN) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_INSTALL) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_PACKAGE) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_REBUILD) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_DEPLOY) == 0;
+    if (buildSources || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0) {
+        char saveMessage[512] = {0};
+        status = RuntimeSaveProjectSources(runtime, saveMessage, sizeof saveMessage);
+        runtime = runtime_file_dialog_owner(ownerRequest, &ownerWindow);
+        if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto command_finished; }
+        if (status != UMI_STATUS_OK) {
+            if (message != NULL && capacity > 0U)
+                (void)snprintf(message, capacity, "%s", saveMessage);
+            runtime_show_notification(runtime, saveMessage[0] != '\0'
+                ? saveMessage : umi_status_text(status));
+            goto command_finished;
+        }
+        if (buildSources) argument = "background";
     }
 
     if (strcmp(command_id, "navigate.problem.next") == 0 ||
@@ -698,11 +782,21 @@ static UmiStatus runtime_execute_registered_command_capture(
     runtime->interaction_busy = 0;
     if (backgroundTerminal != NULL)
         UmiTerminalControllerDisarmBackground(backgroundTerminal);
+/* Keep the canonical discovery handler's actionable explanation. The previous generic replacement is retained for review. */
+#if 0
     if (backgroundDiscovery != NULL) {
         UmiStudioTestDiscoveryDisarm(backgroundDiscovery);
         if (status == UMI_STATUS_OK && UmiStudioTestDiscoveryPending(backgroundDiscovery))
             (void)snprintf(message, capacity, "Test discovery started in the background. Stop retains the previous catalogue.");
         else if (status != UMI_STATUS_OK)
+            (void)snprintf(message, capacity, "Test discovery was not started: %s", umi_status_text(status));
+    }
+#endif
+    if (backgroundDiscovery != NULL) {
+        UmiStudioTestDiscoveryDisarm(backgroundDiscovery);
+        if (status == UMI_STATUS_OK && UmiStudioTestDiscoveryPending(backgroundDiscovery))
+            (void)snprintf(message, capacity, "Test discovery started in the background. Stop retains the previous catalogue.");
+        else if (status != UMI_STATUS_OK && message[0] == '\0')
             (void)snprintf(message, capacity, "Test discovery was not started: %s", umi_status_text(status));
     }
 

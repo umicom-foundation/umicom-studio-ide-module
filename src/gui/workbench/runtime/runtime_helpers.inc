@@ -13,6 +13,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/document/commands.h"
+
 /* Studio collects the two fields; Framework owns capture, decisions and undo.
  * Keeping this route shared gives toolbar and command search the same limits. */
 /* Native construction can reenter Studio teardown. The implementation below
@@ -586,6 +588,16 @@ static int runtime_command_enabled(
             !UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter) &&
             !UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
 
+    if (strcmp(command_id, "file.reload") == 0 || strcmp(command_id, "umicom.document.revert") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        UmiGtk4Adapter *adapter = runtime->owner->adapter;
+        return umi_document_coordinator_active_snapshot(
+            umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK && active.has_path &&
+            !UmiGtk4AdapterReplacementReviewBusy(adapter) && !UmiGtk4AdapterDocumentProposalBusy(adapter) &&
+            !UmiGtk4AdapterCompletionReviewBusy(adapter) && !UmiGtk4AdapterDocumentCloseBusy(adapter) &&
+            !UmiGtk4AdapterDocumentSaveAllBusy(adapter);
+    }
+
     if (strcmp(command_id, "umicom.document.go-to-line") == 0) {
         UmiDocumentWorkingCopySnapshot active;
         return umi_document_coordinator_active_snapshot(
@@ -656,6 +668,9 @@ static int runtime_command_enabled(
     if (strcmp(command_id, "file.save-all.cancel") == 0)
         return UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
 
+    UmiEditorEditCommandKind lineKind;
+    if (UmiDocumentLineEditCommandFromId(command_id, &lineKind) == UMI_STATUS_OK)
+        return UmiGtk4AdapterDocumentCommandEnabled(runtime->owner->adapter, command_id);
     UmiDocumentEditCommand editCommand;
     if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
         return UmiGtk4AdapterDocumentCommandEnabled(runtime->owner->adapter, command_id);

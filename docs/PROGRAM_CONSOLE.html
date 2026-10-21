@@ -11,6 +11,9 @@
 <li>Choose <strong>End input</strong> when the program needs to read until end-of-file. Previously accepted input is sent first. You cannot send more input to that run after ending it.</li>
 <li>Read Output and Errors separately. A finished run shows its process exit code; zero is the usual success convention. Use <strong>Stop</strong> for a program that will not finish.</li></ol>
 <p>Closing or hiding the console stops its program. Changing or closing the project, or revoking project trust, also requests Stop. Keep the window open while working with the program. Stop the program before rebuilding or starting the debugger; Studio blocks competing build and debug commands while console cleanup is pending.</p>
+<h2>If Run is unavailable</h2>
+<ol><li>Make sure the open project is the one you intend to run. Open its Build Settings and check the project folder and executable.</li><li>If the build profile belongs to a different folder, reopen the intended project and select its saved settings. Trust for one project does not authorize a different project profile.</li><li>Finish any save, close, reload, replacement or completion review. Stop other build or debug work before starting the console.</li><li>Save and build changed source, then open the console again and choose <strong>Run existing program</strong>. A second click while its window is being created does not open another console.</li></ol>
+<p>Changing the build profile to a different project while a program is running requests Stop at the next authority check. Reopening a window or retaining one of its controls does not restore a closed Studio session.</p>
 <h2>Write an input prompt</h2><pre><code>#include &lt;stdio.h&gt;
 int main(void)
 {

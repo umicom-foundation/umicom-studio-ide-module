@@ -325,6 +325,8 @@ static void runtime_on_editor_find(
     (void)runtime_refresh_services(runtime);
 }
 #endif
+/* The shared search entry below replaces borrowed widget text and host continuation. The previous button implementation is retained for review; matching remains owned by Framework. */
+#if 0
 static void runtime_on_editor_find(
     GtkButton *button,
     gpointer user_data)
@@ -367,6 +369,50 @@ static void runtime_on_editor_find(
         runtime_show_notification(runtime, umi_status_text(status));
     }
     (void)runtime_refresh_services(runtime);
+}
+
+#endif
+/* Toolbar buttons and keyboard navigation share the complete-draft search
+ * service. Copy entry text and re-resolve the host around notifications, since
+ * an accessibility or document observer may rebuild or close the workbench. */
+static UmiStatus RuntimeFindActiveDocument(UmiStudioGtkRuntimeChrome *runtime, int previous)
+{
+    if (runtime == NULL || runtime->editor_find_entry == NULL) return UMI_STATUS_INVALID_STATE;
+    const char *text = gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry));
+    if (text == NULL || text[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    char *needle = g_strdup(text);
+    UmiEditorSearchOptions options = RuntimeEditorSearchOptions(runtime);
+    size_t offset = 0U;
+    UmiStatus status = UmiDocumentCoordinatorFindWithOptions(runtime_documents(runtime),
+        needle, &options, previous, &offset, NULL);
+    g_free(needle);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else {
+        char message[192];
+        if (status == UMI_STATUS_OK)
+            (void)snprintf(message, sizeof message, "Match selected at byte %zu.", offset);
+        else if (status == UMI_STATUS_NOT_FOUND)
+            (void)snprintf(message, sizeof message, "No match in the active document with these search options.");
+        else (void)snprintf(message, sizeof message, "%s", umi_status_text(status));
+        runtime_show_notification(runtime, message);
+        g_clear_object(&window);
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime != NULL) (void)runtime_refresh_services(runtime);
+        else status = UMI_STATUS_CANCELLED;
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+static void runtime_on_editor_find(GtkButton *button, gpointer user_data)
+{
+    (void)button;
+    (void)RuntimeFindActiveDocument(user_data, 0);
 }
 
 /*
@@ -434,6 +480,8 @@ static void runtime_on_editor_replace(
     (void)runtime_refresh_services(runtime);
 }
 #endif
+/* Single replacement now copies field input and resolves the weak host after document and feedback observers. Retain the former callback for review; Framework continues to own search policy, editing and undo. */
+#if 0
 static void runtime_on_editor_replace(
     GtkButton *button,
     gpointer user_data)
@@ -494,6 +542,52 @@ static void runtime_on_editor_replace(
     (void)runtime_refresh_services(runtime);
 }
 
+#endif
+/* Capture native field text before Framework publishes document changes. An
+ * observer may close the host or rebuild its toolbar during that publication. */
+static UmiStatus RuntimeReplaceActiveMatch(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->editor_find_entry == NULL || runtime->editor_replace_entry == NULL)
+        return UMI_STATUS_INVALID_STATE;
+    const char *text = gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry));
+    if (text == NULL || text[0] == '\0') return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    char *needle = g_strdup(text);
+    char *replacement = g_strdup(gtk_editable_get_text(GTK_EDITABLE(runtime->editor_replace_entry)));
+    UmiEditorSearchOptions options = RuntimeEditorSearchOptions(runtime);
+    size_t offset = 0U;
+    UmiStatus status = UmiDocumentCoordinatorReplaceNextWithOptions(runtime_documents(runtime),
+        needle, replacement, &options, &offset);
+    g_free(needle);
+    g_free(replacement);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else {
+        char message[192];
+        if (status == UMI_STATUS_OK)
+            (void)snprintf(message, sizeof message, "Replaced occurrence at byte %zu. Undo restores the previous text.", offset);
+        else if (status == UMI_STATUS_NOT_FOUND)
+            (void)snprintf(message, sizeof message, "No match in the active document with these search options.");
+        else (void)snprintf(message, sizeof message, "%s", umi_status_text(status));
+        runtime_show_notification(runtime, message);
+        g_clear_object(&window);
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime != NULL) (void)runtime_refresh_services(runtime);
+        else status = UMI_STATUS_CANCELLED;
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+static void runtime_on_editor_replace(GtkButton *button, gpointer user_data)
+{
+    (void)button;
+    (void)RuntimeReplaceActiveMatch(user_data);
+}
+
 /* Search backwards using the same Framework case and wrapping rules. */
 /* Previous match uses the same captured toolbar search policy as forward navigation.
  * The former implementation is retained for engineering review. */
@@ -510,6 +604,8 @@ static void runtime_on_editor_find_previous(GtkButton *button, gpointer user_dat
     (void)runtime_refresh_services(runtime);
 }
 #endif
+/* Previous-match navigation now shares the same host-safe search adapter as Next. Retain the old callback for review of behavior and ownership. */
+#if 0
 static void runtime_on_editor_find_previous(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime = user_data;
@@ -521,6 +617,13 @@ static void runtime_on_editor_find_previous(GtkButton *button, gpointer user_dat
     UmiStatus status = UmiDocumentCoordinatorFindWithOptions(runtime_documents(runtime), needle, &searchOptions, 1, NULL, NULL);
     if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
     (void)runtime_refresh_services(runtime);
+}
+
+#endif
+static void runtime_on_editor_find_previous(GtkButton *button, gpointer user_data)
+{
+    (void)button;
+    (void)RuntimeFindActiveDocument(user_data, 1);
 }
 
 /* Replace All now presents an immutable Framework review before editing the draft, keeping stale-document checks and undo ownership in Framework. The previous implementation remains for engineering review. */
@@ -617,6 +720,8 @@ static void runtime_on_editor_replace_all(GtkButton *button, gpointer user_data)
 //     }
 // }
 
+/* Line navigation now supports field activation and returns to the source editor after success. The earlier callback is retained for review; the replacement also guards completion after native observers. */
+#if 0
 static void runtime_on_editor_goto(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime = user_data;
@@ -631,10 +736,36 @@ static void runtime_on_editor_goto(GtkButton *button, gpointer user_data)
         runtime_show_notification(runtime, umi_status_text(status));
 }
 
+#endif
+static void runtime_on_editor_goto(GtkButton *button, gpointer user_data)
+{
+    (void)button;
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    if (runtime == NULL || runtime->owner == NULL || runtime->editor_goto_entry == NULL) return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    char *location = g_strdup(gtk_editable_get_text(GTK_EDITABLE(runtime->editor_goto_entry)));
+    int reports = UmiGtk4AdapterDocumentHasCompletion(runtime->owner->adapter);
+    /* Framework parses line:column and reports through the shared completion.
+     * Native refresh may close Studio, so focus only a re-resolved live host. */
+    UmiStatus status = UmiGtk4AdapterDocumentNavigate(runtime->owner->adapter, location);
+    g_free(location);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL) {
+        if (status == UMI_STATUS_OK) (void)RuntimePresentActiveSource(runtime);
+        else if (!reports) runtime_show_notification(runtime, umi_status_text(status));
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+}
+
 /*
  * Provide the runtime on editor external check operation used by this module and its
  * client applications.
  */
+/* External-change feedback now resolves the original workbench after each observable UI update. The earlier callback is retained to document why notification must not precede an unchecked host dereference. */
+#if 0
 static void runtime_on_editor_external_check(
     GtkButton *button,
     gpointer user_data)
@@ -656,6 +787,40 @@ static void runtime_on_editor_external_check(
     runtime_editor_update_info(runtime);
 }
 
+#endif
+
+static void runtime_on_editor_external_check(GtkButton *button, gpointer user_data)
+{
+    (void)button;
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    if (runtime == NULL || runtime->owner == NULL) return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    UmiDocumentWorkingCopySnapshot active;
+    int changed = 0;
+    UmiStatus status = umi_document_coordinator_active_snapshot(runtime_documents(runtime), &active);
+    if (status == UMI_STATUS_OK)
+        status = UmiDocumentCoordinatorCheckExternalChange(runtime_documents(runtime), active.document_id, &changed);
+    const char *message = status == UMI_STATUS_NOT_FOUND && changed
+        ? "The saved file is missing. Your draft is kept; use Save As to preserve another copy."
+        : status == UMI_STATUS_OK
+            ? (changed ? "The saved file changed. Review it with Reload from disk, or keep your draft using Save As."
+                       : "No external file change detected.")
+            : umi_status_text(status);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL) runtime_editor_update_info(runtime);
+    g_clear_object(&window);
+    /* Both labels notify observers. Resolve again after the first notification
+     * and leave user feedback last so a closing host is never dereferenced. */
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL) runtime_show_notification(runtime, message);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+}
+
+/* Reusable saved-file review now belongs to Framework and is shared by menu, toolbar and canonical command routes. The previous application-owned comparison and confirmation are retained for review. */
+#if 0
 static void runtime_reload_plan_destroy(gpointer data)
 {
     UmiDocumentReloadPlanDestroy(data);
@@ -715,6 +880,15 @@ static void runtime_on_editor_reload(GtkButton *button, gpointer user_data)
     g_clear_object(&review);
     UmiDocumentReloadPlanDestroy(plan);
     if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
+}
+
+#endif
+
+static void runtime_on_editor_reload(GtkButton *button, gpointer user_data)
+{
+    (void)button;
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    if (runtime != NULL) (void)runtime_execute_command(runtime, "file.reload", NULL);
 }
 
 /*
@@ -778,6 +952,7 @@ static void RuntimeSourceCallees(GtkButton *button,gpointer data);
 #include "editor_document_format.inc"
 #include "editor_recovery.inc"
 #include "live_diagnostics.inc"
+#include "editor_search_keyboard.inc"
 
 /* Expose the shared persistent diagnostic session beside the existing captured-source review while preserving every editor action. The previous implementation is retained for engineering review. */
 #if 0
@@ -1177,6 +1352,7 @@ static GtkWidget *runtime_build_editor_command_bar(
     /* Stable control names let native acceptance exercise the same fields. */
     (void)umi_gtk4_automation_tag_widget(runtime->editor_find_entry, "studio.editor.find-text");
     (void)umi_gtk4_automation_tag_widget(runtime->editor_replace_entry, "studio.editor.replace-text");
+    (void)umi_gtk4_automation_tag_widget(runtime->editor_goto_entry, "studio.editor.location-text");
     gtk_widget_set_size_request(runtime->editor_find_entry, 150, -1);
     gtk_widget_set_size_request(runtime->editor_replace_entry, 150, -1);
     gtk_widget_set_size_request(runtime->editor_goto_entry, 70, -1);
@@ -1410,6 +1586,7 @@ static GtkWidget *runtime_build_editor_command_bar(
     gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scroller), TRUE);
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), bar);
     runtime->editor_command_bar = scroller;
+    RuntimeBindSearchKeyboard(runtime);
     return scroller;
 }
 

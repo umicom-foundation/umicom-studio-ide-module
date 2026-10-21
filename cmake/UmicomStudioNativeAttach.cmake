@@ -37,8 +37,19 @@ add_dependencies(umicom-studio-native-attach-gtk4-test umicom-native-attach-adap
 if(COMMAND umicom_register_validation_target)
     umicom_register_validation_target(umicom-studio-native-attach-gtk4-test)
 endif()
+# Native attach qualification now retains evidence under the build tree and covers feedback ownership.
+# The previous registration remains available for engineering review.
+if(FALSE)
 foreach(case normal denied invalid retained hidden revoke)
     add_test(NAME studio.debug.attach.gtk4.${case} COMMAND umicom-studio-native-attach-gtk4-test "${case}"
         "$<TARGET_FILE:umicom-native-attach-adapter-fixture>")
+    set_tests_properties(studio.debug.attach.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;debug;attach;fixture;gtk4;ownership")
+endforeach()
+endif()
+foreach(case normal denied invalid retained hidden revoke feedback-close denied-feedback-close feedback-reenter)
+    set(directory "${CMAKE_CURRENT_BINARY_DIR}/qualification/native-attach-${case}")
+    file(MAKE_DIRECTORY "${directory}")
+    add_test(NAME studio.debug.attach.gtk4.${case} COMMAND umicom-studio-native-attach-gtk4-test "${case}"
+        "$<TARGET_FILE:umicom-native-attach-adapter-fixture>" "${directory}")
     set_tests_properties(studio.debug.attach.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;debug;attach;fixture;gtk4;ownership")
 endforeach()

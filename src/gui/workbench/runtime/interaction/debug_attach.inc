@@ -8,6 +8,8 @@
 
 #include "umicom/debug_runtime/native_attach.h"
 #include "debug_process_picker.inc"
+/* Attachment reserves its native action through feedback and rechecks the owner before summary updates. Process-field publication must finish before an attach can start; retain the prior callback for review. */
+#if 0
 static void RuntimeDebugAttach(GtkButton *button, gpointer data)
 {
     UmiStudioGtkRuntimeChrome *runtime = data;
@@ -64,6 +66,72 @@ done:
     g_clear_object(&window);
     runtime_file_dialog_request_free(request);
 }
+
+#endif
+static void RuntimeDebugAttach(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    if (!gtk_widget_get_mapped(GTK_WIDGET(button)) ||
+        g_object_get_data(G_OBJECT(button), "umicom-attach-pending") != NULL)
+        return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL)
+        return;
+    GObject *window = NULL;
+    char *programText = NULL;
+    g_object_ref(button);
+    g_object_set_data(G_OBJECT(button), "umicom-attach-pending", GINT_TO_POINTER(1));
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(window)))
+        goto done;
+    GtkWidget *pid = g_object_get_data(G_OBJECT(button), "umicom-attach-pid");
+    GtkWidget *program = g_object_get_data(G_OBJECT(button), "umicom-attach-program");
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status == UMI_STATUS_OK && (!workspace.graph.open || !workspace.graph.trusted))
+        status = UMI_STATUS_PERMISSION_DENIED;
+    UmiStudioBuildService *build = umi_studio_services_build(services);
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(build);
+    if (status == UMI_STATUS_OK) status = UmiBuildProfileCheckProject(profile, workspace.graph.root);
+    if (status == UMI_STATUS_OK && (!GTK_IS_EDITABLE(pid) || !GTK_IS_EDITABLE(program)))
+        status = UMI_STATUS_INVALID_STATE;
+    if (status == UMI_STATUS_OK && g_object_get_data(G_OBJECT(pid), "umicom-process-selection-pending") != NULL)
+        status = UMI_STATUS_BUSY;
+    if (status == UMI_STATUS_OK && RuntimeProgramConsoleBusy(runtime))
+        status = UMI_STATUS_BUSY;
+    uint64_t process_id = 0U;
+    if (status == UMI_STATUS_OK)
+        status = UmiDebugNativeProcessIdRead(gtk_editable_get_text(GTK_EDITABLE(pid)), &process_id);
+    if(status==UMI_STATUS_OK)
+        status=RuntimeProcessSelectionValidate(pid,&workspace,process_id);
+    /* The explicit button authorizes this PID once. No remembered process ID
+     * auto-attaches when a workspace, panel or application is reopened. */
+    if (status == UMI_STATUS_OK)
+    {
+        programText = g_strdup(gtk_editable_get_text(GTK_EDITABLE(program)));
+        status =
+            UmiStudioDebuggerAttachNative(umi_studio_services_debugger(services), build, process_id,
+                                          programText, 1);
+    }
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL)
+    {
+        runtime_show_notification(
+            runtime, status == UMI_STATUS_OK ? "Attached to the selected process. Stop requests "
+                                               "detachment; no build or source save was performed."
+                                             : umi_status_text(status));
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime != NULL) runtime_debug_update_summary(runtime);
+    }
+done:
+    g_object_set_data(G_OBJECT(button), "umicom-attach-pending", NULL);
+    g_object_unref(button); g_free(programText);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+}
+
 static GtkWidget *RuntimeDebugAttachCreate(UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *expander = gtk_expander_new("Attach to a running application");

@@ -286,6 +286,8 @@ static void runtime_on_test_source(
 
 #endif
 #include "umicom/test_ui/source_navigation.h"
+/* Explicit test-source navigation now reveals the native editor and checks host lifetime after document notifications. The former refresh-only action remains for review. */
+#if 0
 static void runtime_on_test_source(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime = user_data;
@@ -307,6 +309,40 @@ static void runtime_on_test_source(GtkButton *button, gpointer user_data)
         (void)snprintf(message, sizeof(message), "Test source location was not reached: %s. No text was changed.", umi_status_text(status));
         runtime_show_notification(runtime, message);
     }
+}
+
+#endif
+static void runtime_on_test_source(GtkButton *button, gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    const UmiTestPlatformItemSnapshot *borrowed = g_object_get_data(G_OBJECT(button), "umicom-test-source-item");
+    if (runtime == NULL || runtime->owner == NULL || borrowed == NULL) return;
+    UmiTestPlatformItemSnapshot captured = *borrowed;
+    UmiTestPlatformItemSnapshot current;
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (platform == NULL ||
+        umi_test_platform_item_registry_find(umi_test_platform_service_item(platform), captured.id, &current) != UMI_STATUS_OK ||
+        current.revision != captured.revision) {
+        runtime_show_notification(runtime, "Test discovery changed. Select its current Source button again."); return;
+    }
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    /* Framework retains the existing draft and exact source position. Studio
+     * only reveals that editor, using the same owner guard as Open File. */
+    UmiStatus status = UmiTestItemOpenSource(umi_studio_ui_documents(runtime->owner->ui),
+        &captured, captured.working_directory, NULL);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status == UMI_STATUS_OK) status = RuntimePresentActiveSource(runtime);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status != UMI_STATUS_OK) {
+        char message[192];
+        (void)snprintf(message, sizeof message, "Test source location was not reached: %s. No text was changed.", umi_status_text(status));
+        runtime_show_notification(runtime, message);
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
 }
 
 /*

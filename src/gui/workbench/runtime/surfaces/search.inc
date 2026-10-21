@@ -55,6 +55,8 @@ static UmiStudioGtkRuntimeChrome *RuntimeFileSearchOwner(RuntimeFileSearchPanel 
     return runtime != NULL && runtime->file_search_panel == panel->panel ? runtime : NULL;
 }
 
+/* The old result callback refreshed a possibly hidden editor and reused a borrowed runtime after observable work. The replacement reveals successful navigation and checks the owner before failure feedback; retain this route for review. */
+#if 0
 static void RuntimeFileSearchOpen(GtkButton *button, gpointer data)
 {
     RuntimeFileSearchPanel *panel = g_object_get_data(G_OBJECT(data), "umicom-file-search");
@@ -72,6 +74,90 @@ static void RuntimeFileSearchOpen(GtkButton *button, gpointer data)
     g_clear_object(&window);
 }
 
+#endif
+
+
+/* Opening a result is explicit source navigation. Retain the panel object
+ * and a separate weak runtime identity across document/focus notifications;
+ * model success alone does not make a hidden editor usable. */
+/* Retain the initial owner-aware route for review; the replacement also explains an unavailable editor or allocation failure without claiming successful focus. */
+#if 0
+static void RuntimeFileSearchOpen(GtkButton *button, gpointer data)
+{
+    g_object_ref(data);
+    RuntimeFileSearchPanel *panel = g_object_get_data(G_OBJECT(data), "umicom-file-search");
+    RuntimeFileSearchRow *row = g_object_get_data(G_OBJECT(button), "umicom-search-row");
+    GObject *window = NULL;
+    UmiStudioFileDialogRequest *request = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = panel != NULL
+        ? RuntimeFileSearchOwner(panel, &window) : NULL;
+    if (runtime != NULL && row != NULL) {
+        request = runtime_file_dialog_request_new(runtime, 0U);
+        if (request != NULL) {
+            UmiStatus status = UmiStudioUiSearchOpen(runtime->owner->ui,
+                row->requestId, row->position);
+            g_clear_object(&window);
+            runtime = runtime_file_dialog_owner(request, &window);
+            if (runtime != NULL && status == UMI_STATUS_OK)
+                (void)RuntimePresentActiveSource(runtime);
+            else if (runtime != NULL) {
+                (void)runtime_refresh_services(runtime);
+                g_clear_object(&window);
+                runtime = runtime_file_dialog_owner(request, &window);
+                if (runtime != NULL) runtime_show_notification(runtime,
+                    status == UMI_STATUS_NOT_FOUND
+                        ? "The saved match has moved or the file is unavailable. Any open draft is preserved; save and search again to update locations."
+                        : "This search result is no longer available. Search the current workspace again.");
+            }
+        }
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    g_object_unref(data);
+}
+
+#endif
+
+
+static void RuntimeFileSearchOpen(GtkButton *button, gpointer data)
+{
+    g_object_ref(data);
+    RuntimeFileSearchPanel *panel = g_object_get_data(G_OBJECT(data), "umicom-file-search");
+    RuntimeFileSearchRow *row = g_object_get_data(G_OBJECT(button), "umicom-search-row");
+    GObject *window = NULL;
+    UmiStudioFileDialogRequest *request = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = panel != NULL
+        ? RuntimeFileSearchOwner(panel, &window) : NULL;
+    if (runtime != NULL && row != NULL) {
+        request = runtime_file_dialog_request_new(runtime, 0U);
+        if (request != NULL) {
+            UmiStatus status = UmiStudioUiSearchOpen(runtime->owner->ui,
+                row->requestId, row->position);
+            g_clear_object(&window);
+            runtime = runtime_file_dialog_owner(request, &window);
+            if (runtime != NULL && status == UMI_STATUS_OK) {
+                status = RuntimePresentActiveSource(runtime);
+                g_clear_object(&window);
+                runtime = runtime_file_dialog_owner(request, &window);
+                if (runtime != NULL && status != UMI_STATUS_OK && status != UMI_STATUS_CANCELLED)
+                    runtime_show_notification(runtime,
+                        "The source is open, but its editor could not be focused. Open the Code Editor panel and select the source tab.");
+            } else if (runtime != NULL) {
+                (void)runtime_refresh_services(runtime);
+                g_clear_object(&window);
+                runtime = runtime_file_dialog_owner(request, &window);
+                if (runtime != NULL) runtime_show_notification(runtime,
+                    status == UMI_STATUS_NOT_FOUND
+                        ? "The saved match has moved or the file is unavailable. Any open draft is preserved; save and search again to update locations."
+                        : "This search result is no longer available. Search the current workspace again.");
+            }
+        } else runtime_show_notification(runtime,
+            "Unable to prepare source navigation. Your open drafts are unchanged; try the result again.");
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    g_object_unref(data);
+}
 /* Describe decoder skips alongside binary files so the visible summary explains why malformed or unsupported text was not searched.
  * The former implementation is retained for engineering review. */
 #if 0

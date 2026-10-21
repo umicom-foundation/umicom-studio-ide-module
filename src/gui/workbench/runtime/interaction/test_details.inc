@@ -14,6 +14,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Unchanged evidence should retain user selection, and native text must be valid UTF-8. The replacement owns its buffer through notification; the earlier unconditional setter remains for review. */
+#if 0
 static void runtime_text_view_set(
     GtkWidget *view,
     const char *text)
@@ -33,11 +35,29 @@ static void runtime_text_view_set(
         -1);
 }
 
+#endif
+static void runtime_text_view_set(GtkWidget *view, const char *text)
+{
+    if (!GTK_IS_TEXT_VIEW(view)) return;
+    /* Process evidence may contain non-UTF-8 bytes. Preserve the evidence and
+     * repair only this display copy; keep selection and scroll on unchanged ticks. */
+    GtkTextBuffer *buffer = g_object_ref(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)));
+    char *display = g_utf8_make_valid(text != NULL ? text : "", -1);
+    GtkTextIter begin, end;
+    gtk_text_buffer_get_bounds(buffer, &begin, &end);
+    char *previous = gtk_text_buffer_get_text(buffer, &begin, &end, TRUE);
+    if (strcmp(previous, display) != 0) gtk_text_buffer_set_text(buffer, display, -1);
+    g_free(previous); g_free(display); g_object_unref(buffer);
+}
+
 
 #include "umicom/test_platform/evidence.h"
+#include "umicom/test_platform/evidence_text.h"
 
 /* Framework selects and owns the captured evidence. Studio supplies only
  * text presentation, keeping the existing aggregate history panes available. */
+/* Selected-test formatting now belongs to Framework and native publication rechecks the captured selection and owner. The previous application renderer is retained for review. */
+#if 0
 static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->test_selected_view == NULL) return;
@@ -94,10 +114,54 @@ static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtim
     UmiTestEvidenceDestroy(capture);
 }
 
+#endif
+static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->test_selected_view == NULL) return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    GObject *window = NULL;
+    GtkWidget *view = g_object_ref(runtime->test_selected_view);
+    char itemId[sizeof runtime->selected_test_id];
+    g_strlcpy(itemId, runtime->selected_test_id, sizeof itemId);
+    UmiTestEvidence *capture = NULL;
+    UmiTestEvidenceSummary summary = {0};
+    char *report = NULL;
+    const char *message = "Select a test to inspect its retained results and output.";
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (itemId[0] != '\0') {
+        message = "Test evidence is unavailable.";
+        if (platform != NULL) {
+            UmiStatus status = UmiTestEvidenceCreate(umi_test_platform_service_result(platform),
+                umi_test_platform_service_output(platform), itemId, NULL, &capture);
+            if (status == UMI_STATUS_OK) status = UmiTestEvidenceGetSummary(capture, &summary);
+            if (status == UMI_STATUS_OK) status = UmiTestEvidenceFormatText(capture, &report, NULL);
+            message = status == UMI_STATUS_OK ? report : "Unable to capture selected-test evidence.";
+        }
+    }
+    RuntimeFailureLocationsRefresh(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL || runtime->test_selected_view != view || strcmp(runtime->selected_test_id, itemId) != 0) goto cleanup;
+    if (report != NULL) {
+        platform = runtime_test_platform(runtime);
+        if (platform == NULL ||
+            umi_test_platform_result_registry_revision(umi_test_platform_service_result(platform)) != summary.result_revision ||
+            umi_test_platform_output_registry_revision(umi_test_platform_service_output(platform)) != summary.output_revision) goto cleanup;
+    }
+    /* A native changed callback can destroy Studio. The shared text allocation
+     * and captured objects survive independently; no runtime is used afterwards. */
+    runtime_text_view_set(view, message);
+cleanup:
+    UmiTestEvidenceTextFree(report); UmiTestEvidenceDestroy(capture);
+    g_object_unref(view); g_clear_object(&window); runtime_file_dialog_request_free(request);
+}
+
 /*
  * Provide the runtime test details refresh operation used by this module and its client
  * applications.
  */
+/* A selected-test or aggregate-buffer notification may retire the host. Reacquire its captured identity between panes and release only owned snapshots after retirement; retain the former refresh for review. */
+#if 0
 static void runtime_test_details_refresh(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -300,6 +364,201 @@ static void runtime_test_details_refresh(
     g_string_free(output_text, TRUE);
 }
 
+#endif
+static void runtime_test_details_refresh(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiTestPlatformService *platform;
+    UmiTestPlatformResultRegistry *results;
+    UmiTestPlatformCoverageRegistry *coverage;
+    UmiTestPlatformOutputRegistry *output;
+    GString *result_text = NULL;
+    GString *coverage_text = NULL;
+    GString *output_text = NULL;
+    size_t index;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime == NULL) return;
+
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    GObject *window = NULL;
+    RuntimeSelectedTestEvidenceRefresh(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) goto cleanup;
+    platform = runtime_test_platform(runtime);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (platform == NULL) goto cleanup;
+
+    results = umi_test_platform_service_result(platform);
+    coverage = umi_test_platform_service_coverage(platform);
+    output = umi_test_platform_service_output(platform);
+
+    result_text = g_string_sized_new(4096U);
+    coverage_text = g_string_sized_new(2048U);
+    output_text = g_string_sized_new(4096U);
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (result_text == NULL || coverage_text == NULL || output_text == NULL) goto cleanup;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (results != NULL) {
+        const size_t count =
+            umi_test_platform_result_registry_count(results);
+        const size_t start = count > 100U ? count - 100U : 0U;
+
+        /* Visit each bounded item once so every record receives the same rule. */
+        for (index = start; index < count; ++index) {
+            UmiTestPlatformResultSnapshot item;
+
+            (void)memset(&item, 0, sizeof(item));
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
+            if (umi_test_platform_result_registry_at(
+                    results,
+                    index,
+                    &item) != UMI_STATUS_OK) {
+                continue;
+            }
+
+            g_string_append_printf(
+                result_text,
+                "%s | %s | %.2f ms | exit %d%s%s\n",
+                item.item_id,
+                umi_test_platform_outcome_text(
+                    (UmiTestPlatformOutcome)item.outcome),
+                item.duration_ms,
+                item.exit_code,
+                item.flaky ? " | flaky" : "",
+                item.message[0] != '\0' ? " | " : "");
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (item.message[0] != '\0') {
+                g_string_append_printf(
+                    result_text,
+                    "  %s\n",
+                    item.message);
+            }
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (item.failure_details[0] != '\0') {
+                g_string_append_printf(
+                    result_text,
+                    "  %s\n",
+                    item.failure_details);
+            }
+        }
+    }
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (coverage != NULL) {
+        const size_t count =
+            umi_test_platform_coverage_registry_count(coverage);
+
+        /* Visit each bounded item once so every record receives the same rule. */
+        for (index = 0U; index < count && index < 100U; ++index) {
+            UmiTestPlatformCoverageSnapshot item;
+            double line_percent = 0.0;
+            double branch_percent = 0.0;
+
+            (void)memset(&item, 0, sizeof(item));
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (umi_test_platform_coverage_registry_at(
+                    coverage,
+                    index,
+                    &item) != UMI_STATUS_OK) {
+                continue;
+            }
+
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (item.lines_total > 0U) {
+                line_percent =
+                    ((double)item.lines_covered /
+                     (double)item.lines_total) * 100.0;
+            }
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (item.branches_total > 0U) {
+                branch_percent =
+                    ((double)item.branches_covered /
+                     (double)item.branches_total) * 100.0;
+            }
+
+            g_string_append_printf(
+                coverage_text,
+                "%s | lines %llu/%llu (%.1f%%) | branches %llu/%llu (%.1f%%)\n",
+                item.uri,
+                (unsigned long long)item.lines_covered,
+                (unsigned long long)item.lines_total,
+                line_percent,
+                (unsigned long long)item.branches_covered,
+                (unsigned long long)item.branches_total,
+                branch_percent);
+        }
+    }
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (output != NULL) {
+        const size_t count =
+            umi_test_platform_output_registry_count(output);
+        const size_t start = count > 150U ? count - 150U : 0U;
+
+        /* Visit each bounded item once so every record receives the same rule. */
+        for (index = start; index < count; ++index) {
+            UmiTestPlatformOutputSnapshot item;
+
+            (void)memset(&item, 0, sizeof(item));
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (umi_test_platform_output_registry_at(
+                    output,
+                    index,
+                    &item) != UMI_STATUS_OK) {
+                continue;
+            }
+
+            g_string_append_printf(
+                output_text,
+                "[%s] %s: %s",
+                item.stream,
+                item.item_id,
+                item.text);
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (output_text->len == 0U ||
+                output_text->str[output_text->len - 1U] != '\n') {
+                g_string_append_c(output_text, '\n');
+            }
+        }
+    }
+
+    runtime_text_view_set(runtime->test_results_view, result_text->str);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) goto cleanup;
+    runtime_text_view_set(runtime->test_coverage_view, coverage_text->str);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) goto cleanup;
+    runtime_text_view_set(runtime->test_output_view, output_text->str);
+cleanup:
+    if (result_text != NULL) g_string_free(result_text, TRUE);
+    if (coverage_text != NULL) g_string_free(coverage_text, TRUE);
+    if (output_text != NULL) g_string_free(output_text, TRUE);
+    g_clear_object(&window); runtime_file_dialog_request_free(request);
+}
+
+
 /*
  * Provide the runtime test details notebook operation used by this module and its client
  * applications.
@@ -308,6 +567,8 @@ static void runtime_test_details_refresh(
  * requested test and presents copied bytes through its existing weak-owner
  * action binding, so retained controls cannot access a destroyed workbench. */
 #include "umicom/test_platform/evidence_csv.h"
+/* Clipboard ownership notifications can close Studio. The new path reacquires the owner before feedback while keeping the CSV allocation independent; retain the earlier callback for review. */
+#if 0
 static void RuntimeCopyTestEvidenceCsv(GtkButton *button, gpointer data)
 {
     UmiStudioGtkRuntimeChrome *runtime = data;
@@ -334,6 +595,40 @@ static void RuntimeCopyTestEvidenceCsv(GtkButton *button, gpointer data)
     }
     UmiCsvDocumentDestroy(document);
 }
+
+#endif
+static void RuntimeCopyTestEvidenceCsv(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    if (runtime->selected_test_id[0] == '\0') {
+        runtime_show_notification(runtime, "Select a test before copying evidence."); return;
+    }
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (platform == NULL) {
+        runtime_show_notification(runtime, "Test evidence is unavailable."); return;
+    }
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    GObject *window = NULL;
+    UmiTestEvidence *capture = NULL;
+    UmiCsvDocument *document = NULL;
+    UmiStatus status = UmiTestEvidenceCreate(umi_test_platform_service_result(platform),
+        umi_test_platform_service_output(platform), runtime->selected_test_id, NULL, &capture);
+    if (status == UMI_STATUS_OK) status = UmiTestEvidenceExportCsv(capture, &document);
+    UmiTestEvidenceDestroy(capture);
+    if (status == UMI_STATUS_OK) {
+        gdk_clipboard_set_text(gtk_widget_get_clipboard(GTK_WIDGET(button)), UmiCsvDocumentData(document));
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime != NULL) runtime_show_notification(runtime, "Copied selected-test evidence CSV with retained/matching counts. No test was launched.");
+    } else {
+        char message[160];
+        (void)snprintf(message, sizeof(message), "Test evidence was not copied: %s. The clipboard is unchanged.", umi_status_text(status));
+        runtime_show_notification(runtime, message);
+    }
+    UmiCsvDocumentDestroy(document);
+    g_clear_object(&window); runtime_file_dialog_request_free(request);
+}
+
 
 static GtkWidget *runtime_test_details_notebook(
     UmiStudioGtkRuntimeChrome *runtime)
@@ -397,6 +692,9 @@ static GtkWidget *runtime_test_details_notebook(
     gtk_text_view_set_editable(GTK_TEXT_VIEW(runtime->test_selected_view), FALSE);
     gtk_text_view_set_monospace(GTK_TEXT_VIEW(runtime->test_selected_view), TRUE);
     (void)umi_gtk4_automation_tag_widget(runtime->test_selected_view, "studio.tests.selected-evidence");
+    (void)umi_gtk4_automation_tag_widget(runtime->test_results_view, "studio.tests.results-evidence");
+    (void)umi_gtk4_automation_tag_widget(runtime->test_coverage_view, "studio.tests.coverage-evidence");
+    (void)umi_gtk4_automation_tag_widget(runtime->test_output_view, "studio.tests.output-evidence");
 /* The selected-test page now adds a CSV action above the existing evidence view; the report remains Framework-owned. The previous implementation remains for engineering review. */
 #if 0
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), runtime_scroll(runtime->test_selected_view),

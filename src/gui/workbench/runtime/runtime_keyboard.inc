@@ -76,6 +76,8 @@ static gboolean runtime_on_key_pressed(
     return FALSE;
 }
 #endif
+/* A shared exact modifier match now serves capture and bubble routes. Preserve the previous dispatcher for review; command execution still uses the registered Studio route. */
+#if 0
 static gboolean runtime_on_key_pressed(
     GtkEventControllerKey *controller,
     guint keyval,
@@ -140,6 +142,55 @@ static gboolean runtime_on_key_pressed(
     return FALSE;
 }
 
+#endif
+/* Lock and mouse-button state do not change a shortcut. Additional desktop
+ * modifiers do: Ctrl+Super+S must not be treated as the project's Save action. */
+static const UmiStudioGtkKeyProfile *RuntimeMatchingKey(guint keyval, GdkModifierType state)
+{
+    GdkModifierType modifiers = state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK |
+        GDK_ALT_MASK | GDK_SUPER_MASK | GDK_META_MASK);
+    for (size_t index = 0U; index < sizeof RUNTIME_KEY_PROFILES / sizeof RUNTIME_KEY_PROFILES[0]; ++index) {
+        const UmiStudioGtkKeyProfile *profile = &RUNTIME_KEY_PROFILES[index];
+        if ((keyval == profile->key_lower || keyval == profile->key_upper) && modifiers == profile->modifiers)
+            return profile;
+    }
+    return NULL;
+}
+
+static gboolean runtime_on_key_pressed(GtkEventControllerKey *controller,
+    guint keyval, guint keycode, GdkModifierType state, gpointer user_data)
+{
+    (void)controller;
+    (void)keycode;
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    const UmiStudioGtkKeyProfile *profile = RuntimeMatchingKey(keyval, state);
+    if (runtime == NULL || profile == NULL) return FALSE;
+    if (strcmp(profile->command_id, "studio.editor.replace") == 0) {
+        (void)RuntimeFocusEditorReplace(runtime);
+        return TRUE;
+    }
+    if (strcmp(profile->command_id, "studio.editor.find") == 0) {
+        (void)RuntimeFocusEditorFind(runtime);
+        return TRUE;
+    }
+    if (strcmp(profile->command_id, "studio.file.quick-open") == 0) {
+        RuntimeShowQuickOpen(runtime);
+        return TRUE;
+    }
+    if (strcmp(profile->command_id, "studio.command.search") == 0) {
+        runtime_show_command_palette(runtime);
+        return TRUE;
+    }
+    if (strcmp(profile->command_id, "studio.layout.manager") == 0) {
+        runtime_show_layout_browser(runtime);
+        return TRUE;
+    }
+    if (!runtime_command_enabled(runtime, profile->command_id)) return FALSE;
+    /* Use the same source owner, chooser, trust and save checks as menu actions. */
+    (void)runtime_execute_command(runtime, profile->command_id, NULL);
+    return TRUE;
+}
+
 /*
  * Provide the runtime install keyboard operation used by this module and its client
  * applications.
@@ -168,6 +219,8 @@ static gboolean RuntimeDocumentCycleKey(GtkEventControllerKey *controller,
     return TRUE;
 }
 #endif
+/* The catalogue now includes basic file shortcuts, which must reach Studio before native text-widget navigation. The prior capture route remains for review. */
+#if 0
 static gboolean RuntimeDocumentCycleKey(GtkEventControllerKey *controller,
     guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
@@ -191,6 +244,24 @@ static gboolean RuntimeDocumentCycleKey(GtkEventControllerKey *controller,
     if (command == NULL || !runtime_command_enabled(runtime, command)) return FALSE;
     (void)runtime_execute_command(runtime, command, NULL);
     return TRUE;
+}
+
+#endif
+static gboolean RuntimeDocumentCycleKey(GtkEventControllerKey *controller,
+    guint keyval, guint keycode, GdkModifierType state, gpointer data)
+{
+    const UmiStudioGtkKeyProfile *profile = RuntimeMatchingKey(keyval, state);
+    if (profile == NULL) return FALSE;
+    const char *command = profile->command_id;
+    /* File operations belong to the IDE even when a native text widget has
+     * focus. Leave ordinary typing, selection and field-local editing to GTK. */
+    if (strcmp(command, "studio.editor.find") != 0 && strcmp(command, "studio.editor.replace") != 0 &&
+        strcmp(command, "file.new") != 0 && strcmp(command, "file.open") != 0 &&
+        strcmp(command, "file.save") != 0 && strcmp(command, "file.save-as") != 0 &&
+        strcmp(command, "studio.file.quick-open") != 0 &&
+        strcmp(command, "navigate.document.next") != 0 &&
+        strcmp(command, "navigate.document.previous") != 0) return FALSE;
+    return runtime_on_key_pressed(controller, keyval, keycode, state, data);
 }
 
 static UmiStatus runtime_install_keyboard(

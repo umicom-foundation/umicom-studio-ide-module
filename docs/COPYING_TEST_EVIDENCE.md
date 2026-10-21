@@ -33,3 +33,24 @@ invalid UTF-8 or terminal control bytes, the export is rejected instead of
 silently changing diagnostics. The notification explains the failure and the
 clipboard remains unchanged; use the original Output view to review that data.
 Import IDs as text so a spreadsheet does not reinterpret them.
+
+## Read the displayed evidence
+
+1. Use **Select** beside the test whose results you want. **Selected test** shows
+   that exact ID, each retained run and its outcome. The Results, Coverage and
+   Output tabs remain aggregate views and can include other tests.
+2. Select text in a result to copy a useful diagnostic. Refreshing unchanged
+   evidence preserves this selection. New evidence can replace the displayed
+   text, so copy the diagnostic before starting another run if you need it.
+3. If output contains invalid UTF-8, the display substitutes replacement
+   characters. The stored evidence is unchanged, and CSV export still applies
+   its stricter validation described above.
+4. If a test or its evidence changes while source-location controls are being
+   refreshed, let the refresh finish and select the current location. A retained
+   control from a closed or replaced view cannot open a different test.
+
+The shared Framework text formatter takes an immutable evidence capture. It
+includes retained and matching counts, keeps skipped and not-run outcomes
+separate from passes, and performs no build, test or file operation. Applications
+can use the same report through `umicom/test_platform/evidence_text.h`. The caller
+owns the returned text and releases it with `UmiTestEvidenceTextFree`.

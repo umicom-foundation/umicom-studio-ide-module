@@ -9,6 +9,7 @@
 #include "umicom/studio/build.h"
 #include "umicom/studio/source_control.h"
 #include "umicom/studio/debugger.h"
+#include "umicom/studio/tests.h"
 #include "umicom/platform/clock.h"
 #include <inttypes.h>
 #include <stdio.h>
@@ -19,7 +20,7 @@ int main(int argc, char **argv)
 {
     if (argc != 2) return 2;
     const char *name = argv[1];
-    const char *cases[] = {"prepare", "scan", "saved-profile", "missing-folder", "close-scan", "sync-compatibility", "repository-binding", "repository-close", "debug-open", "debug-close", "debug-profile", "debug-rebind", "debug-sync-open", "relative-binding", "missing-preserves-watch", "refresh-closed", "refresh-new-files", "refresh-close", "prepare-discovery-failure", "sync-discovery-failure"};
+    const char *cases[] = {"prepare", "scan", "saved-profile", "missing-folder", "close-scan", "sync-compatibility", "repository-binding", "repository-close", "debug-open", "debug-close", "debug-profile", "debug-rebind", "debug-sync-open", "relative-binding", "missing-preserves-watch", "refresh-closed", "refresh-new-files", "refresh-close", "prepare-discovery-failure", "sync-discovery-failure", "test-root-owner", "test-child-open"};
     int known = 0;
     for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i)
         if (strcmp(name, cases[i]) == 0) known = 1;
@@ -47,7 +48,35 @@ int main(int argc, char **argv)
     UmiStudioWorkspaceSnapshot workspace;
     UmiFileIndexRefreshSnapshot refresh;
     UmiStatus indexStatus = UMI_STATUS_UNAVAILABLE;
-    if (strcmp(name, "prepare-discovery-failure") == 0 || strcmp(name, "sync-discovery-failure") == 0) {
+    if (strcmp(name, "test-root-owner") == 0 || strcmp(name, "test-child-open") == 0) {
+        char child[UMI_PATH_CAPACITY], marker[UMI_PATH_CAPACITY];
+        for (unsigned item = 0U; item < 2U; ++item) {
+            CHECK(umi_fs_join(child, sizeof child, root, item == 0U ? "Library" : "Application") == UMI_STATUS_OK);
+            CHECK(umi_fs_make_directories(child) == UMI_STATUS_OK);
+            CHECK(umi_fs_join(marker, sizeof marker, child, "CMakeLists.txt") == UMI_STATUS_OK);
+            CHECK(umi_fs_write_text(marker, "# separate project\n") == UMI_STATUS_OK);
+        }
+        CHECK(UmiStudioServicesPrepareWorkspace(services, root, 0) == UMI_STATUS_OK);
+        CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK && workspace.graph.project_count == 2U);
+        UmiStudioTestExplorerState explorer;
+        CHECK(umi_studio_test_service_explorer_state(umi_studio_services_tests(services), &explorer) == UMI_STATUS_OK);
+        CHECK(umi_path_equal(explorer.workspace_root, root) && strcmp(explorer.active_project_id, "workspace") == 0);
+        CHECK(explorer.workspace_revision == workspace.graph.revision);
+        for (size_t item = 0U; item < workspace.graph.project_count; ++item) {
+            UmiWorkspaceProjectSnapshot project;
+            CHECK(umi_studio_workspace_project_at(services, item, &project) == UMI_STATUS_OK);
+            CHECK(strcmp(explorer.active_project_id, project.stable_id) != 0);
+        }
+        if (strcmp(name, "test-child-open") == 0) {
+            CHECK(UmiStudioServicesPrepareWorkspace(services, child, 0) == UMI_STATUS_OK);
+            CHECK(umi_studio_test_service_explorer_state(umi_studio_services_tests(services), &explorer) == UMI_STATUS_OK);
+            CHECK(umi_path_equal(explorer.workspace_root, child));
+            CHECK(umi_path_equal(umi_studio_build_service_profile(umi_studio_services_build(services))->source_directory, child));
+            CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
+            CHECK(umi_studio_test_service_explorer_state(umi_studio_services_tests(services), &explorer) == UMI_STATUS_OK);
+            CHECK(explorer.workspace_root[0] == '\0' && explorer.active_project_id[0] == '\0');
+        }
+    } else if (strcmp(name, "prepare-discovery-failure") == 0 || strcmp(name, "sync-discovery-failure") == 0) {
         CHECK(umi_studio_workspace_open(services, root, 1, 1) == UMI_STATUS_OK);
         UmiBuildProfile previous = *umi_studio_build_service_profile(umi_studio_services_build(services));
         char next[UMI_PATH_CAPACITY], child[UMI_PATH_CAPACITY], marker[UMI_PATH_CAPACITY];

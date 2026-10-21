@@ -110,6 +110,8 @@ static void RuntimeQuickOpenWindowFree(gpointer data)
     gtk_window_destroy(window);
     g_object_unref(window);
 }
+/* Quick Open creation now reserves one native construction and rechecks the captured workspace after construction and previous-picker removal. Retain the earlier publication path for review. */
+#if 0
 static void RuntimeShowQuickOpen(UmiStudioGtkRuntimeChrome *runtime)
 {
     RuntimeQuickOpenRequest *request = g_new0(RuntimeQuickOpenRequest, 1);
@@ -147,6 +149,60 @@ static void RuntimeShowQuickOpen(UmiStudioGtkRuntimeChrome *runtime)
             gtk_window_present(dialog);
         g_object_unref(dialog);
     }
+    g_object_unref(window);
+}
+
+#endif
+static void RuntimeShowQuickOpen(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->window == NULL) return;
+    GObject *window = G_OBJECT(g_object_ref(runtime->owner->window));
+    if (g_object_get_data(window, "studio-quick-open-creating") != NULL) { g_object_unref(window); return; }
+    g_object_set_data(window, "studio-quick-open-creating", GINT_TO_POINTER(1));
+    RuntimeQuickOpenRequest *request = g_new0(RuntimeQuickOpenRequest, 1);
+    GtkWindow *dialog = NULL;
+    GObject *resolvedWindow = NULL;
+    int transferred = 0;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    if (umi_workspace_graph_snapshot(umi_studio_services_workspace(services), &request->workspace) != UMI_STATUS_OK ||
+        !request->workspace.open || !umi_path_is_absolute(request->workspace.root)) {
+        runtime_show_notification(runtime, "Open a workspace before using Quick Open. Explorer Refresh discovers its files.");
+        goto done;
+    }
+    request->owner = runtime_file_dialog_request_new(runtime, 0U);
+    request->index = umi_studio_services_file_index(services);
+    if (request->owner == NULL) goto done;
+    UmiStatus status = UmiGtk4QuickOpenCreate(GTK_WINDOW(window), RuntimeQuickOpenRead,
+        RuntimeQuickOpenSelected, request, RuntimeQuickOpenFree, &dialog);
+    if (status != UMI_STATUS_OK) {
+        runtime = RuntimeQuickOpenOwner(request, &resolvedWindow);
+        if (runtime != NULL) {
+            char message[256];
+            snprintf(message, sizeof message, "Quick Open could not open: %s. Reopen it for the current workspace.", umi_status_text(status));
+            runtime_show_notification(runtime, message);
+        }
+        goto done;
+    }
+    transferred = 1;
+    /* The previous picker is destroyed when replaced. Its callbacks can close
+     * Studio or select another workspace, so recheck before and after replacing
+     * the owner's reference and before presenting the new picker. */
+    runtime = RuntimeQuickOpenOwner(request, &resolvedWindow);
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(dialog)) goto cancelled;
+    g_object_set_data_full(window, "umicom-studio-quick-open-window", g_object_ref(dialog), RuntimeQuickOpenWindowFree);
+    g_clear_object(&resolvedWindow);
+    runtime = RuntimeQuickOpenOwner(request, &resolvedWindow);
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(dialog) ||
+        g_object_get_data(window, "umicom-studio-quick-open-window") != dialog) goto cancelled;
+    gtk_window_present(dialog);
+    goto done;
+cancelled:
+    gtk_window_destroy(dialog);
+done:
+    g_object_set_data(window, "studio-quick-open-creating", NULL);
+    g_clear_object(&resolvedWindow);
+    if (dialog != NULL) g_object_unref(dialog);
+    if (!transferred) RuntimeQuickOpenFree(request);
     g_object_unref(window);
 }
 static void RuntimeQuickOpenClicked(GtkButton *button, gpointer data)

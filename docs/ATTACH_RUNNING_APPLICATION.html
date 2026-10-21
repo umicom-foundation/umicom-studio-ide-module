@@ -16,6 +16,8 @@
 <h2>Use the shared Framework operation</h2>
 <p><code>UmiDebugNativeAttachPlanCreate</code> validates and copies the options before any process starts. <code>UmiDebugRuntimePlatformAttachNative</code> performs the native connection. Keep the platform on its owning thread and authorise both the adapter executable and target before calling it. For an attached session, pass <code>0</code> as <code>terminate_debuggee</code> to the explicit stop operation. Destroying the platform selects detachment for an attached session.</p>
 <p>The options borrow their strings for the duration of the call. The prepared plan owns its copies. A failed plan leaves the caller's output unchanged. The selected working directory must exist and be absolute; optional executable and symbols paths must also be absolute existing files. No working-directory search is used for an explicitly supplied adapter.</p>
+<h2>Review before connecting again</h2>
+<p>Keep the build profile tied to the open project folder. Changing the project, its trust setting or the selected process can invalidate the pending selection. Wait for process selection to finish, review the PID, then choose Attach. Repeated activation while the attachment result is being reported does not start a second connection.</p>
 <h2>If attachment fails</h2><ol>
 <li>Check that the process is still running and that its ID has not changed.</li>
 <li>Check the selected adapter path and support for DAP. GDB and LLDB are separate tools; choosing one does not install it.</li>

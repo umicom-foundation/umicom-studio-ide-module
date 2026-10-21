@@ -531,9 +531,19 @@ static UmiStatus runtime_route_command(
 
     /* Both shell and editor aliases use the same Framework-owned timeline. */
     if (strcmp(command_id, "navigate.back") == 0 || strcmp(command_id, "editor.navigate.back") == 0)
+        /* Framework retains history ownership. Studio now reveals the editor
+         * for this explicit navigation; the previous direct return is retained. */
+#if 0
         return UmiGtk4AdapterTravelDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL, -1);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_BACK);
     if (strcmp(command_id, "navigate.forward") == 0 || strcmp(command_id, "editor.navigate.forward") == 0)
+        /* Framework retains history ownership. Studio now reveals the editor
+         * for this explicit navigation; the previous direct return is retained. */
+#if 0
         return UmiGtk4AdapterTravelDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL, 1);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_FORWARD);
     if (strcmp(command_id, "navigate.history.clear") == 0)
         return UmiGtk4AdapterClearNavigationHistory(runtime->owner != NULL ? runtime->owner->adapter : NULL);
 
@@ -541,14 +551,27 @@ static UmiStatus runtime_route_command(
     if (strcmp(command_id, "editor.bookmark.toggle") == 0)
         return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 0);
     if (strcmp(command_id, "editor.bookmark.next") == 0)
+/* Explicit bookmark navigation now reveals the destination in the native layout. Preserve the model-only route for review. */
+#if 0
         return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 1);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_NEXT_BOOKMARK);
     if (strcmp(command_id, "editor.bookmark.previous") == 0)
+/* Explicit bookmark navigation now reveals the destination in the native layout. Preserve the model-only route for review. */
+#if 0
         return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, -1);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_PREVIOUS_BOOKMARK);
     if (strcmp(command_id, "editor.bookmark.clear") == 0)
         return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 2);
     /* The shared coordinator owns closed paths; Studio supplies user intent. */
     if (strcmp(command_id, "file.reopen-closed") == 0)
+        /* Framework retains history ownership. Studio now reveals the editor
+         * for this explicit navigation; the previous direct return is retained. */
+#if 0
         return UmiGtk4AdapterReopenDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_REOPEN);
     if (strcmp(command_id, "file.forget-closed") == 0)
         return UmiGtk4AdapterForgetClosedDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL);
     if (strcmp(command_id, "file.close-all.cancel") == 0)
@@ -572,20 +595,42 @@ static UmiStatus runtime_route_command(
         UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter))
         return UMI_STATUS_BUSY;
 
+    UmiEditorEditCommandKind lineKind;
+    if (UmiDocumentLineEditCommandFromId(command_id, &lineKind) == UMI_STATUS_OK) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeSourceLineCommand(runtime, command_id);
+    }
+
     UmiDocumentEditCommand editCommand;
     if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
         return UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, command_id);
 
+/* Source-location commands now reveal the selected editor through the existing Studio presentation boundary; retain the model-only dispatch for review. */
+#if 0
     if (strcmp(command_id, "umicom.document.go-to-line") == 0) {
         return argument != NULL && argument[0] != '\0'
             ? UmiGtk4AdapterDocumentNavigate(runtime->owner->adapter, argument)
             : UmiGtk4AdapterPromptDocumentLocation(runtime->owner->adapter);
     }
+#endif
+    if (strcmp(command_id, "umicom.document.go-to-line") == 0)
+        return RuntimeSourceLocation(runtime, argument);
+    if (strcmp(command_id, "file.reload") == 0 || strcmp(command_id, "umicom.document.revert") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeReviewSourceReload(runtime);
+    }
+
 
     if (strcmp(command_id, "navigate.document.next") == 0 ||
         strcmp(command_id, "navigate.document.previous") == 0)
+/* Open-document cycling now reveals and focuses the selected editor while retaining the shared Framework ordering. */
+#if 0
         return UmiGtk4AdapterCycleDocument(runtime->owner->adapter,
             strcmp(command_id, "navigate.document.next") == 0 ? 1 : -1);
+#endif
+        return RuntimeNavigateExistingSource(runtime,
+            strcmp(command_id, "navigate.document.next") == 0
+                ? UMI_STUDIO_SOURCE_NEXT_DOCUMENT : UMI_STUDIO_SOURCE_PREVIOUS_DOCUMENT);
 
     /* Layout commands use the Data Server checkpoint, not the older shell
      * session file, and never replace source-document saving. */

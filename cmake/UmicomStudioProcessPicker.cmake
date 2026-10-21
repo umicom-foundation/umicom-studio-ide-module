@@ -18,9 +18,21 @@ add_dependencies(umicom-studio-process-picker-test umicom-native-attach-adapter-
 if(COMMAND umicom_register_validation_target)
     umicom_register_validation_target(umicom-studio-process-picker-test)
 endif()
+# Retain the earlier registration for review; qualification now supplies a visible
+# evidence directory and checks changes delivered during native PID publication.
+if(FALSE)
 foreach(case choose revoke retained manual)
     add_test(NAME studio.debug.process_picker.gtk4.${case} COMMAND umicom-studio-process-picker-test "${case}"
         "$<TARGET_FILE:umicom-native-attach-adapter-fixture>")
+    set_tests_properties(studio.debug.process_picker.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77
+        LABELS "studio;debug;process-picker;gtk4;ownership;fixture")
+endforeach()
+endif()
+foreach(case choose revoke retained manual choose-close choose-revoke choose-edit choose-attach)
+    set(directory "${CMAKE_CURRENT_BINARY_DIR}/qualification/process-picker-${case}")
+    file(MAKE_DIRECTORY "${directory}")
+    add_test(NAME studio.debug.process_picker.gtk4.${case} COMMAND umicom-studio-process-picker-test "${case}"
+        "$<TARGET_FILE:umicom-native-attach-adapter-fixture>" "${directory}")
     set_tests_properties(studio.debug.process_picker.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77
         LABELS "studio;debug;process-picker;gtk4;ownership;fixture")
 endforeach()

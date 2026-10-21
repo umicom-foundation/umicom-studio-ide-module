@@ -19,6 +19,8 @@
  * presents Studio's notifications and refreshes its application chrome. */
 /* The shared adapter owns clipboard completion; Studio supplies only visible
  * feedback and refreshes its existing chrome after an editing operation. */
+/* Editing completion now shares the checked notification continuation used by background tasks. The original callback is retained for review. */
+#if 0
 static void runtime_document_edit_completed(void *context, UmiStatus status)
 {
     UmiStudioGtkRuntimeChrome *runtime = context;
@@ -29,6 +31,19 @@ static void runtime_document_edit_completed(void *context, UmiStatus status)
     (void)runtime_refresh_services(runtime);
 }
 
+#endif
+
+static void runtime_document_edit_completed(void *context, UmiStatus status)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_CANCELLED) {
+        UmiStatus feedback = RuntimeNotifyAndContinue(runtime, status == UMI_STATUS_INVALID_STATE
+            ? "The document or selection changed. Select the intended text and repeat the editing action."
+            : umi_status_text(status));
+        if (feedback != UMI_STATUS_OK) return;
+    }
+    (void)runtime_refresh_services(runtime);
+}
 #include "umicom/ui/gtk4/document_recovery.h"
 /* A background storage failure needs visible product feedback even when its
  * form is closed. Framework owns scheduling; Studio explains how to resume. */

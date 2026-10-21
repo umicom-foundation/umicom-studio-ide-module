@@ -186,6 +186,8 @@ typedef struct UmiStudioGtkRuntimeChrome {
     size_t explorer_offset;
     size_t explorer_rendered_offset;
     uint64_t explorer_revision;
+    /* A reopened workspace invalidates row actions even when its index is unchanged. */
+    uint64_t explorer_workspace_revision;
     char explorer_rendered_query[256];
     int explorer_rendered;
 

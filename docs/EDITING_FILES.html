@@ -97,7 +97,78 @@ cmake --build build/linux-debug --parallel 2
 <h2>Organise a project across several files</h2><p><a href="PROJECT_FILES.html">Create a Notes header and use Explorer</a> to add project files, browse filtered pages and distinguish disk creation from an untitled document.</p><section id="chooser-locations"><h2>Choose where your files live</h2>
 <p><strong>Open File</strong> starts in the active source file's folder, or in your selected project when there is no named source file. <strong>Save As</strong> starts with the current file's location; an untitled file uses your selected project. <strong>Open Project Folder</strong> starts from the currently selected project. You can navigate to a different location in every chooser.</p>
 <p>When no file or project supplies a location, the operating-system chooser uses its own default. Studio does not turn its private settings directory into a project or create a source folder automatically. Check the displayed destination before saving your first untitled document.</p></section>
+<section id="file-shortcuts"><h2>Use the file keyboard shortcuts</h2>
+<table><thead><tr><th>Shortcut</th><th>Action</th></tr></thead><tbody>
+<tr><td>Ctrl+N</td><td>Create an untitled source document and focus its editor.</td></tr>
+<tr><td>Ctrl+O</td><td>Choose an existing file with the native file chooser.</td></tr>
+<tr><td>Ctrl+S</td><td>Save the active document. An untitled document needs a destination.</td></tr>
+<tr><td>Ctrl+Shift+S</td><td>Choose a destination with Save As.</td></tr>
+</tbody></table>
+<ol><li>Press <strong>Ctrl+N</strong> and type a short note. The new document has no disk path yet.</li>
+<li>Press <strong>Ctrl+Shift+S</strong>, choose your project folder, and enter a filename. Check the destination before confirming.</li>
+<li>Make another edit and press <strong>Ctrl+S</strong>. Check that the unsaved marker clears. Reopen the file to confirm the saved text.</li>
+<li>Press <strong>Ctrl+O</strong> to select another file. Cancelling a chooser leaves your drafts unchanged.</li></ol>
+<p>These shortcuts use the same document and file-conflict checks as the menu. They do not build a project or grant trust. If saving fails, read the notification and keep the document open while resolving its destination or file conflict. The file shortcuts take precedence inside the Studio window; ordinary text selection and editing remain native editor operations.</p>
+</section>
 </main></div><footer>Umicom Foundation · Learning through practical applications</footer><section><h2>Return to a visited location</h2>
 <p>Studio's Navigate Back and Forward commands use Framework location history. Use Alt+Left or Alt+Right after Go to Line, opening a source or following a Find in Files result. These actions leave source text and text undo unchanged. Clear Navigation History is available in command search.</p>
 <p>History is limited to live documents in the current session. Closed tabs and removed lines can make a destination unavailable. Read the <a href="../../../framework/docs/guides/NAVIGATING_SOURCE_HISTORY.html">source navigation guide</a> for the workflow, failure recovery and host APIs.</p></section>
+<section id="keyboard-search">
+<h2>Find text without leaving the keyboard</h2>
+<ol>
+<li>Open a source file or create a new file, then press <kbd>Ctrl+F</kbd>. Studio reveals the editor when necessary and focuses its Find field.</li>
+<li>Type the text to locate. Press <kbd>Enter</kbd> for the next match or <kbd>Shift+Enter</kbd> for the previous match. Search wraps around the active document.</li>
+<li>Choose Match case or Whole word when needed. These controls apply to both the keyboard and the Find and Previous buttons. Smart case ignores ASCII case unless your query contains an uppercase ASCII letter.</li>
+<li>Press <kbd>Escape</kbd> in Find to return to the source editor. Searching preserves your unsaved text and does not write the file.</li>
+</ol>
+<p>This searches the complete active draft, including unsaved changes. An empty query does nothing; a query with no match leaves the selection unchanged and displays a message. Use the separate workspace Search panel to find text across project files. If no source is open, open or create a file before using Ctrl+F.</p>
+</section>
+<section id="keyboard-location"><h2>Go to a line</h2><p>Enter a line number, such as <code>12</code>, or a line and column, such as <code>12:5</code>, in the editor’s Line:column field. Press Enter or click Go. A valid location selects the source editor so you can continue typing. Columns count UTF-8 bytes; an invalid or missing line leaves your current position unchanged. Navigation does not save or alter your source text.</p></section>
+<section id="keyboard-replace"><h2>Replace one match from the keyboard</h2>
+<ol><li>Find the text you want to change with <kbd>Ctrl+F</kbd>. Check Match case and Whole word before replacing it.</li>
+<li>Press <kbd>Ctrl+H</kbd> to focus <strong>Replace with</strong>, then enter the replacement. Press <kbd>Enter</kbd> or click <strong>Replace</strong>.</li>
+<li>The selected match changes; when no matching text is selected, the next match changes. A second Enter continues after the first replacement. Leaving the replacement empty deletes the match.</li>
+<li>Use <strong>Undo</strong> to restore the previous draft. Review the result before saving; this is literal text replacement, not a programming-language rename.</li></ol>
+<p>Find options are shared by keyboard and button actions. A missing match leaves the draft unchanged. Enter in Replace changes one occurrence only; Replace All still requires its separate review. These actions edit the unsaved working copy and do not write the source file.</p></section>
+<section id="document-sequences"><h2>Save or close several documents</h2>
+<ol><li>Choose <strong>File &gt; Save All</strong> to save the open documents. Each named file keeps its existing destination.</li>
+<li>For each untitled document, choose a filename in the native chooser. Its starting folder is the project selected when you began Save All. You can choose another folder. With no project open, the operating system chooses the initial folder.</li>
+<li>Wait for the completion message and check the saved count. “Save All started” means work has been queued; it does not mean every file has been written.</li>
+<li>To stop the remaining saves, choose <strong>File &gt; Cancel Save All</strong>. Files already saved remain saved; unsaved drafts remain open.</li>
+<li>Use <strong>Close All</strong> or <strong>Close Others</strong> to review document closure. Answer each unsaved-document question. Cancelling keeps the remaining documents open.</li></ol>
+<p>A destination is chosen by you; Save All does not create a project folder or infer one from Studio's settings storage. If a save stops, read the summary, keep the remaining drafts open, and resolve the reported destination or file conflict before retrying.</p>
+</section>
+<section id="window-close"><h2>Cancel a window close</h2>
+<p>When the window asks about unsaved work, choose <strong>Cancel</strong> to return to the same drafts. Choose <strong>Close Anyway</strong> only after deciding to discard unsaved edits. A dismissed confirmation no longer has authority to close Studio. Pending test discovery or execution may first need to stop; read the notification and close again after that operation ends.</p>
+</section>
+<section id="visible-history"><h2>Return to a source tab</h2>
+<p><strong>Reopen Closed Document</strong> reloads the newest saved file in closed-document history. It does not restore discarded unsaved text. Reopen, Navigate Back and Navigate Forward reveal and focus the destination editor even when the current layout had hidden it.</p>
+<ol><li>Open two files and edit the second without saving.</li><li>Use Navigate Back to return to the previous source location, then Navigate Forward to return to the second draft. Its unsaved text remains in place.</li><li>Close a saved source tab and choose Reopen Closed Document to return to that file.</li></ol>
+<p>A file removed from disk cannot be reopened; the failure leaves the other documents intact. History commands do not build, execute or save your source.</p></section>
+<section id="build-save-boundary"><h2>Understand what Build saves</h2>
+<ol><li>Open the intended project and review <strong>Build &gt; Project Settings</strong>. Check its source and build folders, then enable its build tools only when you intend to run that project's code.</li>
+<li>Start Configure, Build, Test, Clean, Install, Package, Rebuild, Deploy, Run, or Debug. Studio checks the project and active operations before saving the open drafts. A rejected project check leaves your drafts and saved files unchanged.</li>
+<li>If a document has no filename, use <strong>Save As</strong> first. Resolve external file conflicts before retrying. A failed Save All may already have saved earlier documents; inspect the remaining dirty tabs.</li>
+<li>If the project or settings change while a save is completing, review the active project and start the command again. Studio does not continue that request against the changed settings.</li></ol>
+<p><strong>Run Current</strong> uses the selected existing executable. It does not save drafts or compile them, so its output can differ from your latest edits. Use Build and Run when you want the saved changes compiled.</p>
+</section>
+<section id="bookmarks-and-tabs"><h2>Move between open documents and bookmarks</h2>
+<ol><li>Open several files. Use <strong>Next Document</strong> or <strong>Previous Document</strong> to select another open tab.</li>
+<li>Place the caret on a useful line and choose <strong>Toggle Bookmark</strong>. Repeat in another file, then choose <strong>Next Bookmark</strong> or <strong>Previous Bookmark</strong>.</li>
+<li>The selected source editor is revealed and focused even when you had hidden its pane. Continue typing in the same working copy; navigation does not save or reload the draft.</li></ol>
+<p>Bookmarks are kept for the current document session. Navigation skips bookmarks that cannot resolve to an open source location. When no bookmark is available, the active document stays selected. Use source control for durable progress records.</p>
+</section>
+<section id="review-disk-changes">
+<h2>Review a file changed outside Studio</h2>
+<p>The editor keeps your unsaved draft when another program changes the saved file. Opening the same path again selects the existing tab; it does not silently replace that draft.</p>
+<ol>
+<li>Select the source tab. Use <strong>Check external changes</strong> on the editor toolbar to inspect its saved file. A missing file is reported separately from a changed file.</li>
+<li>Choose <strong>File &gt; Reload from Disk...</strong>, or the editor toolbar's <strong>Reload from disk</strong> or <strong>Compare with saved</strong> action. Studio reveals the source editor and opens the shared comparison.</li>
+<li>Read both complete texts: the current editor draft and the captured saved file. The message also shows the saved encoding and line endings. Both panes display decoded text with normalised line endings.</li>
+<li>Choose <strong>Keep Current Draft</strong> to cancel. To adopt the disk version, select the approval checkbox and choose <strong>Reload Reviewed File</strong>. Reload changes only the captured document and does not write to disk.</li>
+<li>Use <strong>Edit &gt; Undo</strong> to restore replaced text while the document remains open. Use <strong>Save As</strong> before reload when you want to preserve a separate file containing your draft.</li>
+</ol>
+<p>If either the draft or the disk file changes after the comparison opens, Apply refuses that outdated comparison. Keep the draft and open a fresh comparison. If the saved file is missing or unreadable, fix access to that file or use Save As; Studio does not treat a read error as empty source text. Untitled documents have no saved file to reload.</p>
+<p>Save All, Close and other document review operations wait until this comparison closes. Reload does not merge two versions automatically, and it cannot prevent another program from changing the file again afterward.</p>
+</section>
 </body></html>

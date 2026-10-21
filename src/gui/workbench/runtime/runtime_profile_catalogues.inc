@@ -504,6 +504,7 @@ static const UmiStudioGtkKeyProfile RUNTIME_KEY_PROFILES[] = {
 #include "profiles/keybindings/quick_open.inc"
 #include "profiles/keybindings/layout_browser.inc"
 #include "profiles/keybindings/save.inc"
+#include "profiles/keybindings/files.inc"
 #include "profiles/keybindings/document_tabs.inc"
 #include "profiles/keybindings/go_to_line.inc"
 #include "profiles/keybindings/build.inc"

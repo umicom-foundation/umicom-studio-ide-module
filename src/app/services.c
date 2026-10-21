@@ -2120,6 +2120,8 @@ static UmiStatus StudioOpenWorkspace(UmiStudioServices *services,
 }
 
 #endif
+/* The root test binding now follows the opened workspace rather than an unrelated discovered child. The previous adoption implementation remains for engineering review. */
+#if 0
 static UmiStatus StudioOpenWorkspace(UmiStudioServices *services,
     const char *root, int trusted, int rebuildIndex)
 {
@@ -2201,6 +2203,115 @@ static UmiStatus StudioOpenWorkspace(UmiStudioServices *services,
             }
             status = umi_studio_test_service_set_workspace(
                 umi_studio_services_tests(services), root, project_id,
+                workspace_snapshot.revision);
+        }
+    }
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_build_service_set_profile(
+            umi_studio_services_build(services), &projectProfile);
+    }
+    if (status == UMI_STATUS_OK) {
+        services->build_profile_revision = profileRevision;
+        services->build_profile_revision_known = 1;
+        UmiStatus recent_status;
+        /* Recent-work persistence is helpful but not required to open a
+         * workspace. A history-file error must not turn a successful open into
+         * a failed developer operation. */
+        recent_status = studio_remember_workspace(services, root);
+        if (recent_status == UMI_STATUS_OK) {
+            services->recent_items_dirty = 1;
+            if (services->recent_items_persistence_enabled != 0 &&
+                umi_platform_recent_items_registry_save(
+                    services->recent_items,
+                    STUDIO_RECENT_ITEMS_PATH) == UMI_STATUS_OK) {
+                services->recent_items_dirty = 0;
+            }
+        }
+    }
+    if (status != UMI_STATUS_OK) {
+        /* A filesystem or discovery failure after adoption began must not leave
+         * the new graph paired with an older build profile. Close project-scoped
+         * services; the independent document coordinator keeps every open draft.
+         * Preflight refusals above still preserve the previous project unchanged. */
+        (void)umi_studio_services_close_workspace(services);
+    }
+    return status;
+}
+
+#endif
+static UmiStatus StudioOpenWorkspace(UmiStudioServices *services,
+    const char *root, int trusted, int rebuildIndex)
+{
+    UmiStatus status;
+    UmiBuildProfile projectProfile;
+    uint64_t profileRevision = 0U;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL || root == NULL || root[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    if (StudioProjectExecutionBusy(services)) return UMI_STATUS_BUSY;
+    /* Keep a running terminal attached to its reviewed workspace. Stop and Poll
+     * complete its captured command before another project can replace it. */
+    if (UmiTerminalControllerJobPending(services->terminal_controller)) return UMI_STATUS_BUSY;
+    status = UmiBuildProfileForWorkspace(root, &projectProfile);
+    if (status != UMI_STATUS_OK) return status;
+    /* Resolve once before mutating services. Index, watcher, tests and build
+     * must retain one absolute identity even if a later tool changes cwd. */
+    char selectedRoot[UMI_BUILD_PATH_CAPACITY];
+    memcpy(selectedRoot, projectProfile.source_directory, strlen(projectProfile.source_directory) + 1U);
+    if (!umi_fs_is_directory(selectedRoot)) return UMI_STATUS_NOT_FOUND;
+    root = selectedRoot;
+    /* Inspect saved settings before changing the current workspace. A corrupt
+     * record is reported and preserved, never treated as absent. Trust is not
+     * part of the stored profile; the caller supplies it for this open. */
+    status = UmiBuildProfileStoreLoad(BuildProfileServer(services), root,
+        &projectProfile, &profileRevision);
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_NOT_FOUND) return status;
+    status = umi_watcher_stop(services->watcher);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_file_index_set_root(services->file_index, root);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_watcher_set_root(services->watcher, root);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_workspace_graph_open(services->workspace, root, trusted);
+    }
+    if (status == UMI_STATUS_OK) {
+        /* A project transition invalidates the previous repository binding.
+         * Discovery remains an explicit Source Control refresh, so opening a
+         * folder neither runs Git nor leaves actions targeting the old root. */
+        status = UmiStudioSourceControlSelectWorkspace(
+            umi_studio_services_source_control(services), projectProfile.source_directory);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_workspace_graph_discover(services->workspace);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    /* Interactive clients start the same Framework indexer on its worker after
+     * project identity and build settings are ready. Synchronous clients keep
+     * their original completed-index contract. */
+    if (status == UMI_STATUS_OK && rebuildIndex) {
+        status = umi_file_index_rebuild(services->file_index);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        UmiWorkspaceGraphSnapshot workspace_snapshot;
+        status = umi_workspace_graph_snapshot(services->workspace, &workspace_snapshot);
+        if (status == UMI_STATUS_OK) {
+            /* Discovery describes the opened root. Immediate child projects are
+             * separate choices and must not silently become the test owner.
+             * The key is scoped by the absolute root and workspace generation. */
+            status = umi_studio_test_service_set_workspace(
+                umi_studio_services_tests(services), root, "workspace",
                 workspace_snapshot.revision);
         }
     }

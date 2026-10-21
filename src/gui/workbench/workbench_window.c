@@ -664,6 +664,8 @@ UmiStatus umi_studio_gtk_workbench_workspace_request_canvas_geometry(
 }
 
 /* Drive the ordinary status/timer path without creating a recurring source. */
+/* Explicit synchronization must obey the same native-owner lifetime as timer refresh. The replacement reacquires the owner before inspecting its throttle state; retain the previous implementation for review. */
+#if 0
 UmiStatus umi_studio_gtk_workbench_workspace_synchronise(UmiStudioGtkWorkbench *workbench)
 {
     if (workbench == NULL || workbench->runtime_chrome == NULL)
@@ -681,6 +683,28 @@ UmiStatus umi_studio_gtk_workbench_workspace_synchronise(UmiStudioGtkWorkbench *
         runtime->panel_refresh_tick = 0U;
         runtime_refresh_interactive_panels(runtime);
     }
+    return status;
+}
+
+#endif
+UmiStatus umi_studio_gtk_workbench_workspace_synchronise(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL || workbench->runtime_chrome == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioGtkRuntimeChrome *runtime = workbench->runtime_chrome;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL;
+    UmiStatus status = runtime_refresh_services(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status == UMI_STATUS_OK && runtime->panel_refresh_tick != 0U) {
+        /* Explicit synchronization includes the panes between throttled ticks.
+         * Their notifications may destroy workbench; only the token is reused. */
+        runtime->panel_refresh_tick = 0U;
+        runtime_refresh_interactive_panels(runtime);
+        if (RuntimeResolveOwner(request, &window) == NULL) status = UMI_STATUS_CANCELLED;
+    }
+    g_clear_object(&window); runtime_file_dialog_request_free(request);
     return status;
 }
 

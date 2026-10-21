@@ -229,6 +229,8 @@ settings_finished:
 }
 
 /* Reuse one Framework form per owner and dispose its previous callbacks first. */
+/* The prepared shared form and captured host below replace writing a native constructor result directly into disposable Studio memory. The earlier path remains for review. */
+#if 0
 static UmiStatus RuntimeNewProject(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
@@ -244,9 +246,81 @@ static UmiStatus RuntimeNewProject(UmiStudioGtkRuntimeChrome *runtime)
         RuntimeProjectCreated, runtime, &runtime->project_dialog);
 }
 
+#endif
+
+/* The shared Framework constructs a hidden form. Studio keeps its callback
+ * context alive only after reacquiring the original host and adopting that
+ * handle. A reservation also rejects reentrant launches during native teardown. */
+static UmiStatus RuntimeNewProjectForm(UmiStudioGtkRuntimeChrome *runtime, int applicationMode)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+        RuntimeProgramConsoleBusy(runtime)) return UMI_STATUS_BUSY;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    UmiStatus status = UMI_STATUS_CANCELLED;
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(window))) goto done;
+    if (g_object_get_data(window, "studio-project-form-creating") != NULL) {
+        status = UMI_STATUS_BUSY; goto done;
+    }
+    /* The retained native window owns only the reservation, never the runtime. */
+    GObject *reservation = g_object_ref(window);
+    g_object_set_data(reservation, "studio-project-form-creating", GINT_TO_POINTER(1));
+    UmiGtk4DeveloperDialog *previous = runtime->project_dialog;
+    runtime->project_dialog = NULL;
+    UmiGtk4DeveloperDialogDestroy(previous);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(window))) goto reserved_done;
+    UmiGtk4DeveloperDialog *created = NULL;
+    status = applicationMode
+        ? UmiGtk4ApplicationModuleDialogPrepare(GTK_WINDOW(window), RuntimeProjectCreated, runtime, &created)
+        : UmiGtk4NewProjectDialogPrepare(GTK_WINDOW(window), RuntimeProjectCreated, runtime, &created);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(window))) {
+        UmiGtk4DeveloperDialogDestroy(created);
+        status = UMI_STATUS_CANCELLED; goto reserved_done;
+    }
+    if (status != UMI_STATUS_OK) goto reserved_done;
+    services = umi_studio_ui_services(runtime->owner->ui);
+    if (runtime->project_dialog != NULL || UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) || RuntimeProgramConsoleBusy(runtime)) {
+        UmiGtk4DeveloperDialogDestroy(created);
+        status = UMI_STATUS_BUSY; goto reserved_done;
+    }
+    runtime->project_dialog = created;
+    status = UmiGtk4DeveloperDialogPresent(created);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || runtime->project_dialog != created) status = UMI_STATUS_CANCELLED;
+    else if (status != UMI_STATUS_OK) {
+        runtime->project_dialog = NULL;
+        UmiGtk4DeveloperDialogDestroy(created);
+    }
+reserved_done:
+    g_object_set_data(reservation, "studio-project-form-creating", NULL);
+    g_object_unref(reservation);
+done:
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+static UmiStatus RuntimeNewProject(UmiStudioGtkRuntimeChrome *runtime)
+{
+    return RuntimeNewProjectForm(runtime, 0);
+}
 
 /* The Framework form owns source review and file creation. Studio only adopts
  * the resulting project through its existing workspace and build-profile path. */
+/* Application and ordinary project launch now share the same captured host and reentrancy guard. Retain the original launch path for comparison. */
+#if 0
 static UmiStatus RuntimeNewApplication(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
@@ -259,6 +333,12 @@ static UmiStatus RuntimeNewApplication(UmiStudioGtkRuntimeChrome *runtime)
         RuntimeProjectCreated, runtime, &runtime->project_dialog);
 }
 
+#endif
+
+static UmiStatus RuntimeNewApplication(UmiStudioGtkRuntimeChrome *runtime)
+{
+    return RuntimeNewProjectForm(runtime, 1);
+}
 static UmiStatus RuntimeBuildConfigurationRename(const char *root, const char *name,
     const char *replacement, uint64_t revision, uint64_t *out_revision, void *context)
 {
@@ -363,6 +443,8 @@ static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
     return status;
 }
 #endif
+/* Settings are now fully bound before presentation, with host ownership checked after each native notification boundary. The former post-presentation binding remains for engineering review. */
+#if 0
 static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
@@ -400,6 +482,92 @@ static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
         UmiGtk4DeveloperDialogDestroy(runtime->build_settings_dialog);
         runtime->build_settings_dialog = NULL;
     }
+    return status;
+}
+
+#endif
+static UmiStatus RuntimeBuildSettings(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.graph.open) return UMI_STATUS_INVALID_STATE;
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+        RuntimeProgramConsoleBusy(runtime)) return UMI_STATUS_BUSY;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL;
+    UmiGtk4DeveloperDialog *created = NULL;
+    /* Clear the owner slot first: destroying a focused form can synchronously
+     * close Studio or open another form. Neither callback may see a stale handle. */
+    UmiGtk4DeveloperDialog *previous = runtime->build_settings_dialog;
+    runtime->build_settings_dialog = NULL;
+    UmiGtk4DeveloperDialogDestroy(previous);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto done; }
+    if (runtime->build_settings_dialog != NULL) { status = UMI_STATUS_BUSY; goto done; }
+    services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot current;
+    status = umi_studio_workspace_snapshot(services, &current);
+    if (status != UMI_STATUS_OK) goto done;
+    if (!current.graph.open || current.graph.revision != workspace.graph.revision ||
+        !umi_path_equal(current.graph.root, workspace.graph.root)) {
+        status = UMI_STATUS_CANCELLED; goto done;
+    }
+    status = UmiStudioBuildConfigurationContextRead(services, &runtime->build_configuration_context);
+    if (status != UMI_STATUS_OK) goto done;
+    UmiBuildProfile profile = *umi_studio_build_service_profile(umi_studio_services_build(services));
+    /* Framework owns form construction. Studio adopts the hidden handle only
+     * after resolving its host, then attaches all optional controls before show. */
+    status = UmiGtk4BuildSettingsDialogPrepare(runtime->owner->window, &profile,
+        current.graph.trusted, RuntimeBuildSettingsApplied, runtime, &created);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || runtime->build_settings_dialog != NULL) {
+        UmiGtk4DeveloperDialogDestroy(created);
+        status = runtime == NULL ? UMI_STATUS_CANCELLED : UMI_STATUS_BUSY;
+        goto done;
+    }
+    if (status != UMI_STATUS_OK) goto done;
+    runtime->build_settings_dialog = created;
+    UmiGtk4BuildConfigurationCallbacks callbacks = {
+        RuntimeBuildConfigurationsCapture, RuntimeBuildConfigurationLoad,
+        RuntimeBuildConfigurationSave, runtime
+    };
+    status = UmiGtk4BuildSettingsBindConfigurations(created, &callbacks);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || runtime->build_settings_dialog != created) {
+        status = UMI_STATUS_CANCELLED; goto done;
+    }
+    if (status == UMI_STATUS_OK) {
+        UmiGtk4BuildConfigurationLifecycleCallbacks lifecycle = {
+            RuntimeBuildConfigurationRename, RuntimeBuildConfigurationRemove, runtime
+        };
+        status = UmiGtk4BuildSettingsBindConfigurationLifecycle(created, &lifecycle);
+    }
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || runtime->build_settings_dialog != created) {
+        status = UMI_STATUS_CANCELLED; goto done;
+    }
+    if (status == UMI_STATUS_OK) status = UmiGtk4DeveloperDialogPresent(created);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || runtime->build_settings_dialog != created) {
+        status = UMI_STATUS_CANCELLED; goto done;
+    }
+    if (status != UMI_STATUS_OK) {
+        runtime->build_settings_dialog = NULL;
+        UmiGtk4DeveloperDialogDestroy(created);
+    }
+done:
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
     return status;
 }
 
@@ -475,6 +643,8 @@ static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
     return runtime_execute_registered_command(runtime, command, "background");
 }
 #endif
+/* Canonical native command dispatch now owns the checked save boundary for all entry routes. Keep this prior menu-only save sequence for review; it saved before project admission and could continue against changed settings. */
+#if 0
 static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
     const char *command)
 {
@@ -523,4 +693,13 @@ static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
     runtime_file_dialog_request_free(request);
     g_free(selectedCommand);
     return status;
+}
+
+#endif
+static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
+    const char *command)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL || command == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return runtime_execute_registered_command(runtime, command, "background");
 }

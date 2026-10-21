@@ -12,6 +12,7 @@
 <li>Edit the document. The panel samples the draft approximately every 350 milliseconds while mapped. A changed draft clears the previous display; a report appears when the server publishes diagnostics for the new source version.</li>
 <li>Use <strong>Previous diagnostics</strong> and <strong>Next diagnostics</strong> for further pages. Each page shows up to 32 entries; very long messages are visibly shortened.</li>
 <li>To visit a reported location, choose its <strong>Diagnostic number</strong> and select <strong>Open source</strong>. The complete current draft must still match the report. Moving the caret or switching tabs is allowed; changed text is refused without moving to a different location.</li>
+<li>After a successful <strong>Open source</strong>, Studio reveals the source editor even if the current layout hid it, selects the reported range and focuses that document. An unavailable or stale report leaves the current draft unchanged; wait for a fresh report before retrying.</li>
 <li>Choose <strong>Stop</strong> before changing the server settings. Closing or hiding the panel requests cancellation. Reopening a panel requires a fresh Start.</li>
 </ol>
 <h2>How Studio connects the shared service</h2><ol>
@@ -33,6 +34,7 @@
 <li>If changed drafts produce no output, check the status for unversioned reports and inspect the server's synchronization support. Stop, correct the settings and start a new session.</li>
 <li>If a draft exceeds capacity, stop this panel and use the project's compiler diagnostics. Source text is never truncated for analysis.</li>
 <li>If the document is renamed, closed or the project changes, reopen Live diagnostics from the intended document. A panel never silently follows a different tab.</li>
+<li>If the workspace closes or loses trust while the diagnostics window opens, that window is discarded. Return to the intended project before opening it again. Repeated activation during opening does not create a second panel.</li>
 </ol>
 <p>Protocol reference: <a href="https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/">Language Server Protocol</a>. Server-specific details: <a href="https://clangd.llvm.org/extensions">clangd extensions and diagnostic behaviour</a>.</p>
 </body></html>

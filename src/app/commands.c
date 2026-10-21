@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "umicom/studio/build.h"
+#include "umicom/build/run_current.h"
 #include "umicom/studio/coding_assistant.h"
 #include "umicom/studio/data.h"
 #include "umicom/studio/debugger.h"
@@ -44,6 +45,8 @@
 #include "umicom/terminal_ui/execution.h"
 #include "umicom/terminal/location.h"
 #include "umicom/studio/tests.h"
+#include "umicom/studio/test_discovery.h"
+#include "umicom/test_platform/ctest.h"
 #include "umicom/studio/trading.h"
 #include "umicom/studio/replay.h"
 #include "umicom/studio/session.h"
@@ -578,6 +581,52 @@ static UmiStatus resilience_report_handler(void *user_data,
  * Provide the build phase handler operation used by this module and its client
  * applications.
  */
+/* Trust applies to the open project's captured root. Check this in the
+ * canonical command layer as well as the GUI, before queueing work or mutating
+ * the graph. Framework owns profile identity; Studio owns workspace authority. */
+static UmiStatus StudioBuildCommandAdmission(UmiStudioServices *services,
+    char *message, size_t capacity)
+{
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    UmiStudioBuildService *build = umi_studio_services_build(services);
+    const char *reason = NULL;
+    if (!workspace.graph.open) {
+        status = UMI_STATUS_INVALID_STATE;
+        reason = "Open a project before starting its build tools.";
+    } else if (!workspace.graph.trusted) {
+        status = UMI_STATUS_PERMISSION_DENIED;
+        reason = "Review this project's Build Settings and enable its build tools before running code.";
+    } else if ((status = UmiBuildProfileCheckProject(
+                   umi_studio_build_service_profile(build), workspace.graph.root)) != UMI_STATUS_OK) {
+        reason = "The build profile no longer matches the open project. Reopen the intended project and review Build Settings.";
+    } else if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) {
+        status = UMI_STATUS_BUSY;
+        reason = "Stop the debugger before starting another build operation.";
+    } else if (UmiStudioBuildBusy(build)) {
+        status = UMI_STATUS_BUSY;
+        reason = "Wait for the active build or program to finish, or stop it, before starting another operation.";
+    }
+    if (reason != NULL && message != NULL && capacity > 0U)
+        (void)snprintf(message, capacity, "%s", reason);
+    return status;
+}
+
+
+/* Share workspace admission with native hosts before they save source. Keeping
+ * the final check in each command handler prevents this preview becoming a
+ * transferable permission after the workspace or running operation changes. */
+UmiStatus UmiStudioBuildCheckAdmission(UmiStudioServices *services,
+    char *message, size_t capacity)
+{
+    if (message != NULL && capacity > 0U) message[0] = '\0';
+    return StudioBuildCommandAdmission(services, message, capacity);
+}
+
+/* Canonical execution now checks that workspace authority belongs to the current build profile before any operation. The prior handler is retained for review. */
+#if 0
 static UmiStatus build_phase_handler(UmiStudioServices *services,
                                      UmiBuildPhase phase,
                                      const char *argument,
@@ -599,6 +648,54 @@ static UmiStatus build_phase_handler(UmiStudioServices *services,
                 "This workspace is not trusted. Review Build Settings before running its code.");
         return UMI_STATUS_PERMISSION_DENIED;
     }
+    if (argument != NULL && strcmp(argument, "background") == 0) {
+        status = UmiStudioBuildSubmit(umi_studio_services_build(services), phase, 1);
+        if (out_message != NULL && message_capacity > 0U)
+            (void)snprintf(out_message, message_capacity, "%s: %s. See Output for completed phases.",
+                umi_build_phase_text(phase), status == UMI_STATUS_OK ? "started" : umi_status_text(status));
+        return status;
+    }
+    if (UmiStudioBuildBusy(umi_studio_services_build(services))) return UMI_STATUS_BUSY;
+    status = umi_build_result_create(&result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_studio_build_service_run(
+        umi_studio_services_build(services), phase, result);
+    diagnostic_status =
+        umi_studio_diagnostics_ingest_build_result(services, result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK && diagnostic_status != UMI_STATUS_OK) {
+        status = diagnostic_status;
+    }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_message != NULL && message_capacity > 0U) {
+        (void)snprintf(out_message,
+                       message_capacity,
+                       "%s: %s (exit %d, %zu diagnostic(s))",
+                       umi_build_phase_text(phase),
+                       umi_status_text(status),
+                       result->exit_code,
+                       result->diagnostics.count);
+    }
+    umi_build_result_destroy(result);
+    return status;
+}
+
+#endif
+
+static UmiStatus build_phase_handler(UmiStudioServices *services,
+                                     UmiBuildPhase phase,
+                                     const char *argument,
+                                     char *out_message,
+                                     size_t message_capacity)
+{
+    UmiBuildResult *result = NULL;
+    UmiStatus status = StudioBuildCommandAdmission(services, out_message, message_capacity);
+    UmiStatus diagnostic_status;
+    if (status != UMI_STATUS_OK) return status;
     if (argument != NULL && strcmp(argument, "background") == 0) {
         status = UmiStudioBuildSubmit(umi_studio_services_build(services), phase, 1);
         if (out_message != NULL && message_capacity > 0U)
@@ -720,6 +817,8 @@ static UmiStatus build_run_handler(void *user_data,
 /* A launch-only command deliberately bypasses document saving and build-phase
  * expansion. This lets a user compare an existing binary with an unsaved draft
  * while the shared worker still owns stop, output and result collection. */
+/* Launch-only admission now reports the blocked field through Framework review. Preserve the earlier generic-message handler for comparison; trust, execution ownership, source-saving and queueing boundaries remain enforced. */
+#if 0
 static UmiStatus build_run_current_handler(void *user_data, const char *argument,
     char *out_message, size_t message_capacity)
 {
@@ -742,6 +841,112 @@ static UmiStatus build_run_current_handler(void *user_data, const char *argument
             (void)snprintf(out_message, message_capacity,
                 "Run current executable: %s. Select an existing program path and working folder in Project Build Settings; workspace trust is required.",
                 umi_status_text(status));
+    }
+    return status;
+}
+
+#endif
+/* Canonical execution now checks that workspace authority belongs to the current build profile before any operation. The prior handler is retained for review. */
+#if 0
+static UmiStatus build_run_current_handler(void *user_data, const char *argument,
+    char *out_message, size_t message_capacity)
+{
+    (void)argument;
+    UmiStudioServices *services = user_data;
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioBuildService *build = umi_studio_services_build(services);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    const char *blocked = NULL;
+    if (!workspace.graph.open) {
+        status = UMI_STATUS_INVALID_STATE;
+        blocked = "Open a project before running its current executable.";
+    } else if (!workspace.graph.trusted) {
+        status = UMI_STATUS_PERMISSION_DENIED;
+        blocked = "Review this project's Build Settings and enable its build tools before running a program.";
+    } else if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) {
+        status = UMI_STATUS_BUSY;
+        blocked = "Stop the debugger before running the current executable.";
+    } else if (UmiStudioBuildBusy(build)) {
+        status = UMI_STATUS_BUSY;
+        blocked = "Wait for the active build or program to finish, or stop it, before starting another run.";
+    }
+    if (blocked != NULL) {
+        if (out_message != NULL && message_capacity > 0U)
+            (void)snprintf(out_message, message_capacity, "%s", blocked);
+        return status;
+    }
+    /* Framework owns explicit-path and directory requirements. This inspection
+     * explains admission; the worker's preparation still rechecks before queueing. */
+    status = UmiBuildRunCurrentReview(umi_studio_build_service_profile(build),
+        out_message != NULL && message_capacity > 0U ? out_message : NULL,
+        out_message != NULL && message_capacity > 0U ? message_capacity : 0U);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiStudioBuildRunCurrent(build, 1);
+    if (out_message != NULL && message_capacity > 0U) {
+        if (status == UMI_STATUS_OK)
+            (void)snprintf(out_message, message_capacity,
+                "Run current executable queued. Sources were not saved or rebuilt; see Output.");
+        else (void)snprintf(out_message, message_capacity,
+            "Run current executable could not be queued: %s. Review the current project settings and Output before trying again.",
+            umi_status_text(status));
+    }
+    return status;
+}
+
+#endif
+
+static UmiStatus build_run_current_handler(void *user_data, const char *argument,
+    char *out_message, size_t message_capacity)
+{
+    (void)argument;
+    UmiStudioServices *services = user_data;
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioBuildService *build = umi_studio_services_build(services);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    const char *blocked = NULL;
+    if (!workspace.graph.open) {
+        status = UMI_STATUS_INVALID_STATE;
+        blocked = "Open a project before running its current executable.";
+    } else if (!workspace.graph.trusted) {
+        status = UMI_STATUS_PERMISSION_DENIED;
+        blocked = "Review this project's Build Settings and enable its build tools before running a program.";
+    } else if (UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services))) {
+        status = UMI_STATUS_BUSY;
+        blocked = "Stop the debugger before running the current executable.";
+    } else if (UmiStudioBuildBusy(build)) {
+        status = UMI_STATUS_BUSY;
+        blocked = "Wait for the active build or program to finish, or stop it, before starting another run.";
+    }
+    if (blocked != NULL) {
+        if (out_message != NULL && message_capacity > 0U)
+            (void)snprintf(out_message, message_capacity, "%s", blocked);
+        return status;
+    }
+    status = UmiBuildProfileCheckProject(umi_studio_build_service_profile(build), workspace.graph.root);
+    if (status != UMI_STATUS_OK) {
+        if (out_message != NULL && message_capacity > 0U)
+            (void)snprintf(out_message, message_capacity,
+                "The build profile no longer matches the open project. Reopen the intended project and review Build Settings.");
+        return status;
+    }
+    /* Framework owns explicit-path and directory requirements. This inspection
+     * explains admission; the worker's preparation still rechecks before queueing. */
+    status = UmiBuildRunCurrentReview(umi_studio_build_service_profile(build),
+        out_message != NULL && message_capacity > 0U ? out_message : NULL,
+        out_message != NULL && message_capacity > 0U ? message_capacity : 0U);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiStudioBuildRunCurrent(build, 1);
+    if (out_message != NULL && message_capacity > 0U) {
+        if (status == UMI_STATUS_OK)
+            (void)snprintf(out_message, message_capacity,
+                "Run current executable queued. Sources were not saved or rebuilt; see Output.");
+        else (void)snprintf(out_message, message_capacity,
+            "Run current executable could not be queued: %s. Review the current project settings and Output before trying again.",
+            umi_status_text(status));
     }
     return status;
 }
@@ -795,6 +1000,8 @@ static UmiStatus build_install_handler(void *user_data,
  * Provide the build retry handler operation used by this module and its client
  * applications.
  */
+/* Canonical execution now checks that workspace authority belongs to the current build profile before any operation. The prior handler is retained for review. */
+#if 0
 static UmiStatus build_retry_handler(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -805,6 +1012,51 @@ static UmiStatus build_retry_handler(void *user_data,
     UmiBuildWorkspaceSnapshot snapshot;
     const char *node_id = argument;
     UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (node_id == NULL || node_id[0] == '\0') {
+        status = umi_build_workspace_snapshot(
+            umi_studio_build_service_workspace(service), &snapshot);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status != UMI_STATUS_OK || !snapshot.has_selected_node)
+            return status != UMI_STATUS_OK
+                ? status : UMI_STATUS_INVALID_ARGUMENT;
+        node_id = snapshot.selected_node_id;
+    }
+    status = umi_studio_build_service_retry(service, node_id);
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status == UMI_STATUS_OK) {
+            (void)snprintf(out_message, message_capacity,
+                           "Operation '%s' scheduled for retry", node_id);
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
+            (void)snprintf(out_message, message_capacity,
+                           "Retry '%s': %s", node_id,
+                           umi_status_text(status));
+        }
+    }
+    return status;
+}
+
+#endif
+
+static UmiStatus build_retry_handler(void *user_data,
+                                     const char *argument,
+                                     char *out_message,
+                                     size_t message_capacity)
+{
+    UmiStudioBuildService *service = umi_studio_services_build(
+        (UmiStudioServices *)user_data);
+    UmiBuildWorkspaceSnapshot snapshot;
+    const char *node_id = argument;
+    UmiStatus status = StudioBuildCommandAdmission((UmiStudioServices *)user_data, out_message, message_capacity);
+    if (status != UMI_STATUS_OK) return status;
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -1049,6 +1301,8 @@ static UmiStatus build_select_artifact_handler(void *user_data,
  * Provide the build run next handler operation used by this module and its client
  * applications.
  */
+/* Canonical execution now checks that workspace authority belongs to the current build profile before any operation. The prior handler is retained for review. */
+#if 0
 static UmiStatus build_run_next_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -1091,10 +1345,57 @@ static UmiStatus build_run_next_handler(void *user_data,
     return status;
 }
 
+#endif
+
+static UmiStatus build_run_next_handler(void *user_data,
+                                        const char *argument,
+                                        char *out_message,
+                                        size_t message_capacity)
+{
+    UmiStudioServices *services = (UmiStudioServices *)user_data;
+    UmiBuildResult *result = NULL;
+    UmiStatus status = StudioBuildCommandAdmission(services, out_message, message_capacity);
+    if (status != UMI_STATUS_OK) return status;
+    (void)argument;
+
+    status = umi_build_result_create(&result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+    status = umi_studio_build_service_execute_next(
+        umi_studio_services_build(services), result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_NOT_FOUND) {
+        UmiStatus diagnostic_status =
+            umi_studio_diagnostics_ingest_build_result(services, result);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status == UMI_STATUS_OK && diagnostic_status != UMI_STATUS_OK)
+            status = diagnostic_status;
+    }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status == UMI_STATUS_NOT_FOUND) {
+            (void)snprintf(out_message, message_capacity,
+                           "No build graph node is ready");
+        } /* Use this fallback path when the earlier condition does not apply. */ else {
+            (void)snprintf(out_message, message_capacity,
+                           "Build operation #%" PRIu64 ": %s",
+                           result->operation_id, umi_status_text(status));
+        }
+    }
+    umi_build_result_destroy(result);
+    return status;
+}
+
 /*
  * Provide the build run all handler operation used by this module and its client
  * applications.
  */
+/* Canonical execution now checks that workspace authority belongs to the current build profile before any operation. The prior handler is retained for review. */
+#if 0
 static UmiStatus build_run_all_handler(void *user_data,
                                        const char *argument,
                                        char *out_message,
@@ -1106,6 +1407,63 @@ static UmiStatus build_run_all_handler(void *user_data,
     char *end = NULL;
     size_t executed = 0U;
     UmiStatus status;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (argument != NULL && argument[0] != '\0') {
+        errno = 0;
+        maximum_nodes = strtoul(argument, &end, 10);
+        /* Apply this branch only when its contract condition is satisfied. */
+        if (errno != 0 || end == argument || *end != '\0' ||
+            maximum_nodes == 0UL || maximum_nodes > UMI_BUILD_GRAPH_MAX_NODES)
+            return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    status = umi_studio_build_service_execute_all(
+        service, (size_t)maximum_nodes, &executed);
+    /* Apply this branch only when its contract condition is satisfied. */
+    if (executed > 0U) {
+        UmiBuildResult *latest = NULL;
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (umi_build_result_create(&latest) == UMI_STATUS_OK &&
+            umi_build_history_latest(
+                umi_studio_build_service_history(service), latest) ==
+                UMI_STATUS_OK) {
+            UmiStatus diagnostic_status =
+                umi_studio_diagnostics_ingest_build_result(
+                    (UmiStudioServices *)user_data, latest);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
+            if (status == UMI_STATUS_OK && diagnostic_status != UMI_STATUS_OK)
+                status = diagnostic_status;
+        }
+        umi_build_result_destroy(latest);
+    }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_message != NULL && message_capacity > 0U)
+        (void)snprintf(out_message, message_capacity,
+                       "Build plan executed %zu node(s): %s", executed,
+                       umi_status_text(status));
+    return status;
+}
+
+#endif
+
+static UmiStatus build_run_all_handler(void *user_data,
+                                       const char *argument,
+                                       char *out_message,
+                                       size_t message_capacity)
+{
+    UmiStudioBuildService *service = umi_studio_services_build(
+        (UmiStudioServices *)user_data);
+    unsigned long maximum_nodes = UMI_BUILD_GRAPH_MAX_NODES;
+    char *end = NULL;
+    size_t executed = 0U;
+    UmiStatus status = StudioBuildCommandAdmission((UmiStudioServices *)user_data, out_message, message_capacity);
+    if (status != UMI_STATUS_OK) return status;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -1275,6 +1633,8 @@ static UmiStatus build_clear_history_handler(void *user_data,
  * Provide the tests discover handler operation used by this module and its client
  * applications.
  */
+/* Discovery now checks the active project and trust at the shared command boundary and retains its test owner. The earlier hard-coded owner remains for engineering review. */
+#if 0
 static UmiStatus tests_discover_handler(void *user_data,
                                         const char *argument,
                                         char *out_message,
@@ -1302,6 +1662,90 @@ static UmiStatus tests_discover_handler(void *user_data,
                        "Discovered %zu test(s): %s",
                        status == UMI_STATUS_OK ? summary.discovered_count : 0U,
                        umi_status_text(status));
+    }
+    return status;
+}
+
+#endif
+static UmiStatus tests_discover_handler(void *user_data,
+                                        const char *argument,
+                                        char *out_message,
+                                        size_t message_capacity)
+{
+    UmiStudioServices *services = (UmiStudioServices *)user_data;
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStudioTestExplorerState explorer;
+    UmiTestPlatformCtestImportSummary summary = {0};
+    UmiStudioTestService *tests = umi_studio_services_tests(services);
+    UmiStudioBuildService *build = umi_studio_services_build(services);
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(build);
+    const char *explanation = NULL;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) goto discovery_finished;
+    if (!workspace.graph.open) {
+        status = UMI_STATUS_INVALID_STATE;
+        explanation = "Open a project folder before discovering tests.";
+        goto discovery_finished;
+    }
+    /* CTest discovery evaluates project scripts. Enforce permission here so
+     * command-palette, GUI and non-graphical dispatch share the same admission. */
+    if (!workspace.graph.trusted) {
+        status = UMI_STATUS_PERMISSION_DENIED;
+        explanation = "Trust the open project before discovering its CTest scripts.";
+        goto discovery_finished;
+    }
+    if (UmiStudioBuildBusy(build)) {
+        status = UMI_STATUS_BUSY;
+        explanation = "Wait for the active build before discovering tests.";
+        goto discovery_finished;
+    }
+    status = umi_studio_test_service_explorer_state(tests, &explorer);
+    if (status != UMI_STATUS_OK) goto discovery_finished;
+    if (profile == NULL || !umi_path_equal(profile->source_directory, workspace.graph.root) ||
+        !umi_path_equal(explorer.workspace_root, workspace.graph.root) ||
+        explorer.active_project_id[0] == '\0') {
+        status = UMI_STATUS_INVALID_STATE;
+        explanation = "Reopen the project: its build and test roots no longer match.";
+        goto discovery_finished;
+    }
+/* CTest receives an absolute build root resolved by Framework. The previous relative-path forwarding is retained for review. */
+#if 0
+    status = umi_studio_test_service_discover_metadata(tests,
+        profile->source_directory, explorer.active_project_id,
+        argument != NULL && argument[0] != '\0' ? argument : profile->build_directory,
+        profile->configuration, &summary);
+#endif
+    UmiBuildProfile discoveryProfile = *profile;
+    if (argument != NULL && argument[0] != '\0') {
+        size_t length = strlen(argument);
+        if (length >= sizeof discoveryProfile.build_directory) {
+            status = UMI_STATUS_CAPACITY_EXCEEDED;
+            explanation = "The selected test build folder is too long.";
+            goto discovery_finished;
+        }
+        memcpy(discoveryProfile.build_directory, argument, length + 1U);
+    }
+    char buildRoot[UMI_BUILD_PATH_CAPACITY];
+    status = UmiBuildProfileBuildDirectory(&discoveryProfile, workspace.graph.root,
+        buildRoot, sizeof buildRoot);
+    if (status != UMI_STATUS_OK) {
+        explanation = "Review the test build folder in project build settings.";
+        goto discovery_finished;
+    }
+    status = umi_studio_test_service_discover_metadata(tests,
+        profile->source_directory, explorer.active_project_id, buildRoot,
+        profile->configuration, &summary);
+    if (status == UMI_STATUS_OK && UmiStudioTestDiscoveryPending(tests))
+        explanation = "Test discovery queued. Results appear after CTest completes.";
+
+discovery_finished:
+    if (out_message != NULL && message_capacity > 0U) {
+        if (explanation != NULL)
+            (void)snprintf(out_message, message_capacity, "%s", explanation);
+        else if (status == UMI_STATUS_OK)
+            (void)snprintf(out_message, message_capacity, "Discovered %zu test(s).", summary.discovered_count);
+        else
+            (void)snprintf(out_message, message_capacity, "Test discovery was not completed: %s", umi_status_text(status));
     }
     return status;
 }
@@ -1421,6 +1865,8 @@ typedef enum StudioTestWorkspaceOperation {
  * Provide the tests execute operation operation used by this module and its client
  * applications.
  */
+/* Test execution now checks workspace authority and every selected discovery origin before running any test. The previous handler remains for review. */
+#if 0
 static UmiStatus tests_execute_operation(
     void *user_data, const char *argument, char *out_message,
     size_t message_capacity, StudioTestWorkspaceOperation operation)
@@ -1505,6 +1951,135 @@ static UmiStatus tests_execute_operation(
     (void)memset(&summary, 0, sizeof(summary));
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
+        status = umi_studio_test_service_execute(service, &plan, &summary);
+    }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_message != NULL && message_capacity > 0U) {
+        (void)snprintf(out_message, message_capacity,
+                       "Tests: %zu planned, %zu executed, %zu passed, "
+                       "%zu failed (%s)",
+                       summary.planned, summary.executed, summary.passed,
+                       summary.failed, umi_status_text(status));
+    }
+    return status;
+}
+
+#endif
+
+static UmiStatus tests_execute_operation(
+    void *user_data, const char *argument, char *out_message,
+    size_t message_capacity, StudioTestWorkspaceOperation operation)
+{
+    UmiStudioTestService *service = umi_studio_services_tests(
+        (UmiStudioServices *)user_data);
+    UmiTestWorkspace *workspace = service != NULL
+        ? umi_studio_test_service_workspace(service) : NULL;
+    UmiTestPlatformOperationPlan plan;
+    UmiTestPlatformExecutionSummary summary;
+    UmiStudioServices *services = user_data;
+    UmiStatus status = StudioBuildCommandAdmission(services, out_message, message_capacity);
+    if (status != UMI_STATUS_OK) return status;
+    UmiStudioWorkspaceSnapshot project;
+    UmiStudioTestExplorerState explorer;
+    status = umi_studio_workspace_snapshot(services, &project);
+    if (status == UMI_STATUS_OK) status = umi_studio_test_service_explorer_state(service, &explorer);
+    if (status != UMI_STATUS_OK) return status;
+    if (!umi_path_equal(explorer.workspace_root, project.graph.root) || explorer.active_project_id[0] == '\0') {
+        if (out_message != NULL && message_capacity > 0U)
+            (void)snprintf(out_message, message_capacity,
+                "The test catalogue no longer matches the open project. Discover its tests again before running them.");
+        return UMI_STATUS_INVALID_STATE;
+    }
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(umi_studio_services_build(services));
+    char buildRoot[UMI_BUILD_PATH_CAPACITY];
+    status = UmiBuildProfileBuildDirectory(profile, project.graph.root, buildRoot, sizeof buildRoot);
+    if (status != UMI_STATUS_OK) return status;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (workspace == NULL) return UMI_STATUS_UNAVAILABLE;
+    /* Select the behaviour associated with the requested command or state value. */
+    switch (operation) {
+        case STUDIO_TEST_RUN_ALL:
+            status = umi_test_workspace_set_run_mode(
+                workspace, UMI_TEST_WORKSPACE_RUN);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
+            if (status == UMI_STATUS_OK) {
+                status = umi_test_workspace_plan_all(workspace, &plan);
+            }
+            break;
+        case STUDIO_TEST_RUN_SELECTED:
+            status = umi_test_workspace_set_run_mode(
+                workspace, UMI_TEST_WORKSPACE_RUN);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
+            if (status == UMI_STATUS_OK) {
+                status = umi_test_workspace_plan_selected(workspace, &plan);
+            }
+            break;
+        case STUDIO_TEST_DEBUG_SELECTED:
+            status = umi_test_workspace_set_run_mode(
+                workspace, UMI_TEST_WORKSPACE_DEBUG);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
+            if (status == UMI_STATUS_OK) {
+                status = umi_test_workspace_plan_selected(workspace, &plan);
+            }
+            break;
+        case STUDIO_TEST_RUN_COVERAGE:
+            status = umi_test_workspace_set_run_mode(
+                workspace, UMI_TEST_WORKSPACE_COVERAGE);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
+            if (status == UMI_STATUS_OK) {
+                status = umi_test_workspace_plan_all(workspace, &plan);
+            }
+            break;
+        case STUDIO_TEST_RERUN_FAILED:
+            status = umi_test_workspace_set_run_mode(
+                workspace, UMI_TEST_WORKSPACE_RUN);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
+            if (status == UMI_STATUS_OK) {
+                status = umi_test_workspace_plan_failed(workspace, &plan);
+            }
+            break;
+        case STUDIO_TEST_REPEAT_SELECTED: {
+            char *end = NULL;
+            unsigned long repeat = argument != NULL && argument[0] != '\0'
+                ? strtoul(argument, &end, 10) : 10UL;
+            /* Apply this branch only when its contract condition is satisfied. */
+            if (repeat == 0UL || repeat > UINT32_MAX ||
+                (end != NULL && *end != '\0')) {
+                return UMI_STATUS_INVALID_ARGUMENT;
+            }
+            status = umi_test_workspace_set_run_mode(
+                workspace, UMI_TEST_WORKSPACE_RUN);
+            /* Preserve the original failure result so the caller can respond to the correct cause. */
+            if (status == UMI_STATUS_OK) {
+                status = umi_test_workspace_plan_repeat_selected(
+                    workspace, (uint32_t)repeat, 0, &plan);
+            }
+            break;
+        }
+        default:
+            status = UMI_STATUS_INVALID_ARGUMENT;
+            break;
+    }
+    (void)memset(&summary, 0, sizeof(summary));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        UmiTestPlatformService *platform = umi_studio_test_service_platform(service);
+        status = UmiTestPlatformCtestCheckSelection(umi_test_platform_service_item(platform),
+            umi_test_platform_service_discovery(platform), &plan.selection,
+            explorer.active_project_id, buildRoot, profile->configuration);
+        if (status != UMI_STATUS_OK) {
+            if (out_message != NULL && message_capacity > 0U)
+                (void)snprintf(out_message, message_capacity,
+                    "The selected tests do not match this project's build folder and configuration. Discover tests for the current settings; no tests were started.");
+            return status;
+        }
         status = umi_studio_test_service_execute(service, &plan, &summary);
     }
     /*
@@ -2390,6 +2965,8 @@ static UmiStatus debug_thread_argument(const char *argument, int *out_thread)
 //     }
 //     return status;
 // }
+/* Canonical execution now checks that workspace authority belongs to the current build profile before any operation. The prior handler is retained for review. */
+#if 0
 static UmiStatus debug_start_handler(void *user_data, const char *argument,
     char *out_message, size_t capacity)
 {
@@ -2402,6 +2979,37 @@ static UmiStatus debug_start_handler(void *user_data, const char *argument,
     UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
     if (status == UMI_STATUS_OK && (!workspace.graph.open || !workspace.graph.trusted))
         status = UMI_STATUS_PERMISSION_DENIED;
+    if (status == UMI_STATUS_OK && (profile == NULL || profile->run_program[0] == '\0'))
+        status = UMI_STATUS_INVALID_STATE;
+    if (status == UMI_STATUS_OK && (UmiStudioBuildBusy(build) || UmiStudioDebuggerNativeBusy(debugger)))
+        status = UMI_STATUS_BUSY;
+    if (status == UMI_STATUS_OK && argument != NULL && argument[0] != '\0')
+        status = UmiStudioDebuggerConfigureNative(debugger, argument, "");
+    if (status == UMI_STATUS_OK)
+        status = UmiStudioDebuggerQueueNative(debugger, build, profile);
+    if (status == UMI_STATUS_OK) {
+        status = UmiStudioBuildSubmit(build, UMI_BUILD_PHASE_BUILD, true);
+        if (status != UMI_STATUS_OK) (void)umi_studio_debugger_service_stop(debugger, 0);
+    }
+    if (out_message != NULL && capacity != 0U)
+        (void)snprintf(out_message, capacity, "%s",
+            status == UMI_STATUS_OK ? "Building the selected project before starting its native debugger."
+            : "Debug did not start. Check workspace trust, Build Settings, the run target and adapter configuration.");
+    return status;
+}
+
+#endif
+
+static UmiStatus debug_start_handler(void *user_data, const char *argument,
+    char *out_message, size_t capacity)
+{
+    UmiStudioServices *services = user_data;
+    if (services == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioBuildService *build = umi_studio_services_build(services);
+    UmiStudioDebuggerService *debugger = umi_studio_services_debugger(services);
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(build);
+    UmiStatus status = StudioBuildCommandAdmission(services, out_message, capacity);
+    if (status != UMI_STATUS_OK) return status;
     if (status == UMI_STATUS_OK && (profile == NULL || profile->run_program[0] == '\0'))
         status = UMI_STATUS_INVALID_STATE;
     if (status == UMI_STATUS_OK && (UmiStudioBuildBusy(build) || UmiStudioDebuggerNativeBusy(debugger)))
@@ -4386,46 +4994,111 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
 
-    status = register_command(registry, services,
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_CONFIGURE,
                               "Configure", "Build",
                               "Configure the active Studio build profile.",
                               "studio.build.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_configure_handler);
+#endif
+
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_BUILD_CONFIGURE,
+                              "Configure", "Build",
+                              "Configure the active Studio build profile.",
+                              "studio.build.execute",
+                              UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
+                              build_configure_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
-    status = register_command(registry, services,
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_COMPILE,
                               "Build", "Build",
                               "Compile the active Studio build profile.",
                               "studio.build.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_compile_handler);
+#endif
+
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_BUILD_COMPILE,
+                              "Build", "Build",
+                              "Compile the active Studio build profile.",
+                              "studio.build.execute",
+                              UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
+                              build_compile_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
-    status = register_command(registry, services,
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_TEST,
                               "Test", "Build",
                               "Run CTest for the active build profile.",
                               "studio.tests.execute",
                               UMI_COMMAND_AUDITED,
                               build_test_handler);
+#endif
+
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_BUILD_TEST,
+                              "Test", "Build",
+                              "Run CTest for the active build profile.",
+                              "studio.tests.execute",
+                              UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
+                              build_test_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
-    status = register_command(registry, services,
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_CLEAN,
                               "Clean", "Build",
                               "Clean the active build profile.",
                               "studio.build.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_clean_handler);
+#endif
+
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_BUILD_CLEAN,
+                              "Clean", "Build",
+                              "Clean the active build profile.",
+                              "studio.build.execute",
+                              UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
+                              build_clean_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+/* Run uses the active project profile. The earlier self-hosting caption is retained for review; the current label explains the same handler without suggesting it always starts Studio. */
+#if 0
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_BUILD_RUN,
+                              "Start Studio", "Run",
+                              "Start the configured Umicom Studio executable.",
+                              "process.execute",
+                              UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
+                              build_run_handler);
+#endif
+
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_RUN,
                               "Start Studio", "Run",
                               "Start the configured Umicom Studio executable.",
+                              "process.execute",
+                              UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
+                              build_run_handler);
+#endif
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_BUILD_RUN,
+                              "Build and run project", "Run",
+                              "Configure and build the active project, then launch its selected program.",
                               "process.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
                               build_run_handler);
@@ -4437,30 +5110,68 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
         "process.execute", UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
         build_run_current_handler);
     if (status != UMI_STATUS_OK) return status;
-    status = register_command(registry, services,
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
         UMI_STUDIO_COMMAND_BUILD_PACKAGE, "Package project", "Build",
         "Run the reviewed project package sequence through Framework.",
         "studio.delivery.execute",
         UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, build_package_handler);
-    if (status != UMI_STATUS_OK) return status;
+#endif
+
     status = register_command(registry, services,
+        UMI_STUDIO_COMMAND_BUILD_PACKAGE, "Package project", "Build",
+        "Run the reviewed project package sequence through Framework.",
+        "studio.delivery.execute",
+        UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST, build_package_handler);
+    if (status != UMI_STATUS_OK) return status;
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
         UMI_STUDIO_COMMAND_BUILD_REBUILD, "Rebuild project", "Build",
         "Run the reviewed project rebuild sequence through Framework.",
         "studio.build.execute",
         UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, build_rebuild_handler);
-    if (status != UMI_STATUS_OK) return status;
+#endif
+
     status = register_command(registry, services,
+        UMI_STUDIO_COMMAND_BUILD_REBUILD, "Rebuild project", "Build",
+        "Run the reviewed project rebuild sequence through Framework.",
+        "studio.build.execute",
+        UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST, build_rebuild_handler);
+    if (status != UMI_STATUS_OK) return status;
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
         UMI_STUDIO_COMMAND_BUILD_DEPLOY, "Deploy project", "Build",
         "Run the reviewed project deploy sequence through Framework.",
         "studio.delivery.execute",
         UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED, build_deploy_handler);
-    if (status != UMI_STATUS_OK) return status;
+#endif
+
     status = register_command(registry, services,
+        UMI_STUDIO_COMMAND_BUILD_DEPLOY, "Deploy project", "Build",
+        "Run the reviewed project deploy sequence through Framework.",
+        "studio.delivery.execute",
+        UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST, build_deploy_handler);
+    if (status != UMI_STATUS_OK) return status;
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_INSTALL,
                               "Deploy Local", "Deploy",
                               "Install the active profile into its local staging prefix.",
                               "studio.delivery.execute",
                               UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED,
+                              build_install_handler);
+#endif
+
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_BUILD_INSTALL,
+                              "Deploy Local", "Deploy",
+                              "Install the active profile into its local staging prefix.",
+                              "studio.delivery.execute",
+                              UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
                               build_install_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
@@ -4568,11 +5279,20 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               build_clear_history_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
+/* Discovery evaluates executable project scripts. Descriptor metadata now states the trust requirement; the handler enforces it. The previous registration is retained for review. */
+#if 0
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_TESTS_DISCOVER,
                               "Discover Tests", "Testing",
                               "Discover CTest tests from a build directory.",
                               "studio.tests.read", UMI_COMMAND_NONE,
+                              tests_discover_handler);
+#endif
+    status = register_command(registry, services,
+                              UMI_STUDIO_COMMAND_TESTS_DISCOVER,
+                              "Discover Tests", "Testing",
+                              "Discover CTest tests from a build directory.",
+                              "studio.tests.read", UMI_COMMAND_REQUIRES_TRUST,
                               tests_discover_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
@@ -4842,10 +5562,19 @@ UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                               debug_initialize_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;
-    status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_START,
+    /* Execution trust is enforced by the handler and advertised to command frontends. The prior descriptor is retained for review. */
+#if 0
+status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_START,
                               "Start Debugging", "Debug",
                               "Initialise the adapter and launch the active program.",
                               "studio.debug.use", UMI_COMMAND_AUDITED,
+                              debug_start_handler);
+#endif
+
+    status = register_command(registry, services, UMI_STUDIO_COMMAND_DEBUG_START,
+                              "Start Debugging", "Debug",
+                              "Initialise the adapter and launch the active program.",
+                              "studio.debug.use", UMI_COMMAND_AUDITED | UMI_COMMAND_REQUIRES_TRUST,
                               debug_start_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;

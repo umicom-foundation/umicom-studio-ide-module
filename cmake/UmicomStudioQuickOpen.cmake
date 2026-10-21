@@ -10,8 +10,18 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-quick-open-test)
     endif()
+    # Keep the original registration for review after fixtures gained an explicit location.
+    if(FALSE)
     foreach(case button keyboard capture-key filter empty open dirty-existing stale-index refresh-index workspace-switch workspace-return retained-control repeated-open no-workspace)
         add_test(NAME studio.editor.quick_open.gtk4.${case} COMMAND umicom-studio-quick-open-test ${case})
+        set_tests_properties(studio.editor.quick_open.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;editor;quick-open;gtk4;ownership;regression")
+    endforeach()
+    endif()
+    foreach(case button keyboard capture-key filter empty open dirty-existing stale-index refresh-index workspace-switch workspace-return retained-control repeated-open no-workspace
+        constructor-close constructor-reenter constructor-workspace title-close child-close present-close present-reenter replacement-close replacement-workspace)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/quick-open-${case}")
+        add_test(NAME studio.editor.quick_open.gtk4.${case} COMMAND umicom-studio-quick-open-test ${case}
+            "${CMAKE_CURRENT_BINARY_DIR}/qualification/quick-open-${case}")
         set_tests_properties(studio.editor.quick_open.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;editor;quick-open;gtk4;ownership;regression")
     endforeach()
 endif()

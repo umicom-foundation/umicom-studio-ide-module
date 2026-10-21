@@ -57,28 +57,65 @@ static bool WaitMapped(GtkWidget *widget)
     return gtk_widget_get_mapped(widget);
 }
 
+/* Observe the native field boundary: selection is not permission to attach, and
+ * a callback may replace the requested PID or retire its workspace. */
+typedef struct ProcessChoiceProbe {
+    UmiStudioGtkWorkbench **owner;
+    UmiStudioServices *services;
+    GtkWidget *attach;
+    const char *mode;
+    unsigned calls;
+    UmiStatus status;
+} ProcessChoiceProbe;
+static void ProcessChoiceChanged(GtkEditable *editable, gpointer data)
+{
+    ProcessChoiceProbe *probe = data;
+    if (probe->calls++ != 0U) return;
+    if (strcmp(probe->mode, "choose-close") == 0) {
+        UmiStudioGtkWorkbench *owner = *probe->owner;
+        *probe->owner = NULL;
+        umi_studio_gtk_workbench_destroy(owner);
+    } else if (strcmp(probe->mode, "choose-revoke") == 0) {
+        probe->status = umi_studio_workspace_set_trusted(probe->services, 0);
+    } else if (strcmp(probe->mode, "choose-edit") == 0) {
+        gtk_editable_set_text(editable, "765432");
+    } else if (strcmp(probe->mode, "choose-attach") == 0) {
+        g_signal_emit_by_name(probe->attach, "clicked");
+    }
+}
+
 int main(int argc, char **argv)
 {
-    if (argc != 3)
+    if (argc != 4)
         return 2;
     const char *mode = argv[1];
     bool denied = false, revoke = strcmp(mode, "revoke") == 0,
          retained_mode = strcmp(mode, "retained") == 0;
     bool manual = strcmp(mode, "manual") == 0;
-    if (strcmp(mode, "choose") != 0 && !revoke && !retained_mode && !manual)
+    bool chooseClose = strcmp(mode, "choose-close") == 0, chooseRevoke = strcmp(mode, "choose-revoke") == 0;
+    bool chooseEdit = strcmp(mode, "choose-edit") == 0, chooseAttach = strcmp(mode, "choose-attach") == 0;
+    bool observeChoice = chooseClose || chooseRevoke || chooseEdit || chooseAttach;
+    if (strcmp(mode, "choose") != 0 && !revoke && !retained_mode && !manual && !observeChoice)
         return 2;
     if (!gtk_init_check())
         return 77;
     int failed = 0;
     bool moved = false;
     char *original = g_get_current_dir(), *previous = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
+/* Qualification retains process-discovery evidence in its supplied build-tree directory; keep the earlier temporary-directory choice for review. */
+#if 0
     char *directory = g_dir_make_tmp("umicom-studio-attach-XXXXXX", NULL), *log = NULL;
+#endif
+
+    char *directory = g_build_filename(argv[3], "process-picker-XXXXXX", NULL), *log = NULL;
     UmiSettings *settings = NULL;
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL;
     GtkApplication *application = NULL;
-    GtkWidget *attach = NULL;
-    CHECK(directory != NULL && original != NULL && g_chdir(directory) == 0);
+    GtkWidget *attach = NULL, *pid = NULL;
+    gulong choiceHandler = 0U;
+    ProcessChoiceProbe probe = {&workbench, NULL, NULL, mode, 0U, UMI_STATUS_OK};
+    CHECK(directory != NULL && g_mkdtemp(directory) != NULL && original != NULL && g_chdir(directory) == 0);
     moved = true;
     g_unsetenv("UMICOM_STUDIO_DATA_PATH");
     CHECK(g_mkdir_with_parents("config", 0700) == 0);
@@ -116,10 +153,11 @@ int main(int argc, char **argv)
     gtk_window_present(window);
     Drain();
     attach = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window), "studio.debug.attach");
-    GtkWidget *pid =
+    pid =
         umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window), "studio.debug.attach.pid");
     CHECK(attach != NULL && pid != NULL);
     g_object_ref(attach);
+    g_object_ref(pid);
     /* A collapsed section need not have a native parent chain. Use the
      * Framework logical route, then retain the existing mapped-action assertion. */
 #if 0
@@ -181,10 +219,21 @@ for (GtkWidget *parent = gtk_widget_get_parent(refresh); parent != NULL;
         umi_studio_gtk_workbench_destroy(workbench);
         workbench = NULL;
     }
+    if (observeChoice) {
+        probe.services = services; probe.attach = attach;
+        choiceHandler = g_signal_connect(pid, "changed", G_CALLBACK(ProcessChoiceChanged), &probe);
+    }
     g_signal_emit_by_name(choice, "clicked");
     g_object_unref(choice);
-    if (!retained_mode)
-        CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(pid)), revoke ? "" : expected) == 0);
+    if (observeChoice) CHECK(probe.calls >= 1U && probe.status == UMI_STATUS_OK);
+    if (chooseClose) CHECK(workbench == NULL);
+    if (!retained_mode && !chooseClose)
+        CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(pid)), revoke ? "" : chooseEdit ? "765432" : expected) == 0);
+    CHECK(g_object_get_data(G_OBJECT(pid), "umicom-process-selection-pending") == NULL);
+    if (chooseClose || chooseRevoke || chooseEdit)
+        CHECK(g_object_get_data(G_OBJECT(pid), "umicom-selected-process") == NULL);
+    if (chooseAttach)
+        CHECK(g_object_get_data(G_OBJECT(pid), "umicom-selected-process") != NULL);
     CHECK(!UmiStudioDebuggerNativeBusy(debugger));
     if (manual)
     {
@@ -199,6 +248,8 @@ for (GtkWidget *parent = gtk_widget_get_parent(refresh); parent != NULL;
     CHECK(g_file_get_contents("attach-fixture-requests.jsonl", &log, &bytes, NULL));
     CHECK(manual ? strstr(log, "\"command\":\"attach\"") != NULL : bytes == 0U);
 done:
+    if (choiceHandler != 0U) g_signal_handler_disconnect(pid, choiceHandler);
+    g_clear_object(&pid);
     umi_studio_gtk_workbench_destroy(workbench);
     g_clear_object(&attach);
     umi_studio_bootstrap_destroy(bootstrap);

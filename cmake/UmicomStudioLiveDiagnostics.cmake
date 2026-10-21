@@ -24,9 +24,21 @@ umicom_apply_sanitizers(umicom-studio-live-diagnostics-test)
 if(COMMAND umicom_register_validation_target)
     umicom_register_validation_target(umicom-studio-live-diagnostics-test)
 endif()
+# The new registration keeps evidence under the build tree and exercises native
+# source presentation and window ownership. Preserve the earlier list for review.
+if(FALSE)
 foreach(case update retained revoke project-close parent-close denied navigate navigate-stale)
     add_test(NAME studio.live_diagnostics.gtk4.${case}
         COMMAND umicom-studio-live-diagnostics-test "${case}" "$<TARGET_FILE:umicom-live-diagnostic-server-fixture>")
+    set_tests_properties(studio.live_diagnostics.gtk4.${case} PROPERTIES
+        TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;diagnostics;gtk4;ownership;acceptance")
+endforeach()
+endif()
+foreach(case update retained revoke project-close parent-close denied navigate navigate-stale navigate-hidden navigate-focus-close navigate-revoke constructor-close constructor-reenter constructor-revoke title-close child-close present-close present-reenter)
+    set(directory "${CMAKE_CURRENT_BINARY_DIR}/qualification/live-diagnostics-${case}")
+    file(MAKE_DIRECTORY "${directory}")
+    add_test(NAME studio.live_diagnostics.gtk4.${case}
+        COMMAND umicom-studio-live-diagnostics-test "${case}" "$<TARGET_FILE:umicom-live-diagnostic-server-fixture>" "${directory}")
     set_tests_properties(studio.live_diagnostics.gtk4.${case} PROPERTIES
         TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;language;diagnostics;gtk4;ownership;acceptance")
 endforeach()

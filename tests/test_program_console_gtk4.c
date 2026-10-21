@@ -13,6 +13,7 @@
 #include "umicom/studio_runtime/workspace_canvas.h"
 #include "umicom/ui/gtk4/automation.h"
 #include "umicom/ui/gtk4/program_console.h"
+#include "umicom/ui/gtk4/window_lifecycle.h"
 #include "workbench_window.h"
 #include <glib/gstdio.h>
 #include <stdio.h>
@@ -50,13 +51,56 @@ static bool Wait(GtkWidget *panel)
     }
     return false;
 }
+/* Retain native objects while construction observers close or reenter Studio.
+ * The fake action is only a button click: normal Framework ownership remains. */
+typedef struct ConsoleOpeningProbe {
+    UmiStudioGtkWorkbench **slot;
+    GtkWidget *open;
+    GPtrArray *windows;
+    const char *mode;
+    unsigned observed;
+} ConsoleOpeningProbe;
+static void ConsoleHostClose(ConsoleOpeningProbe *probe)
+{
+    UmiStudioGtkWorkbench *closing = *probe->slot;
+    *probe->slot = NULL;
+    umi_studio_gtk_workbench_destroy(closing);
+}
+static void ConsoleOpeningObserved(GObject *object, GParamSpec *property, gpointer data)
+{
+    ConsoleOpeningProbe *probe = data;
+    if (probe->observed != 0U) return;
+    if (strcmp(property->name, "visible") == 0 && !gtk_widget_get_visible(GTK_WIDGET(object))) return;
+    ++probe->observed;
+    if (strstr(probe->mode, "reenter") != NULL) g_signal_emit_by_name(probe->open, "clicked");
+    else ConsoleHostClose(probe);
+}
+static void ConsoleOpeningAdded(GListModel *model, guint position, guint removed, guint added, gpointer data)
+{
+    (void)removed;
+    ConsoleOpeningProbe *probe = data;
+    for (guint i = 0U; i < added; ++i) {
+        GtkWindow *window = g_list_model_get_item(model, position + i);
+        if (window == NULL) continue;
+        g_ptr_array_add(probe->windows, window);
+        if (probe->observed == 0U && strncmp(probe->mode, "constructor-", 12U) == 0) {
+            ++probe->observed;
+            if (strstr(probe->mode, "reenter") != NULL) g_signal_emit_by_name(probe->open, "clicked");
+            else ConsoleHostClose(probe);
+        } else if (strcmp(probe->mode, "title-close") == 0)
+            g_signal_connect(window, "notify::title", G_CALLBACK(ConsoleOpeningObserved), probe);
+        else if (strncmp(probe->mode, "present-", 8U) == 0)
+            g_signal_connect(window, "notify::visible", G_CALLBACK(ConsoleOpeningObserved), probe);
+    }
+}
 int main(int argc, char **argv)
 {
-    if (argc != 3)
+    if (argc != 4)
         return 2;
     const char *mode = argv[1];
     const char *cases[] = {"input",         "retained",     "revoke",
-                           "project-close", "parent-close", "denied"};
+                           "project-close", "parent-close", "denied", "profile-mismatch", "profile-changed", "profile-revoke",
+        "constructor-close", "title-close", "present-close", "constructor-reenter", "present-reenter"};
     bool known = false;
     for (size_t i = 0U; i < sizeof cases / sizeof cases[0]; ++i)
         if (strcmp(mode, cases[i]) == 0)
@@ -69,15 +113,26 @@ int main(int argc, char **argv)
     bool moved = false;
     char *original = g_get_current_dir(),
          *previous_data = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
+/* CTest now supplies an accessible build qualification folder. Retain the former system-temp fixture location for review. */
+#if 0
     char *directory = g_dir_make_tmp("umicom-studio-console-XXXXXX", NULL);
+#endif
+
+    char *directory = g_build_filename(argv[3], "console-XXXXXX", NULL);
+    char *otherProject = NULL;
     UmiSettings *settings = NULL;
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL;
     GtkApplication *application = NULL;
     GtkWidget *open = NULL, *panel = NULL;
-    GtkWindow *dialog = NULL;
+    GtkWindow *dialog = NULL, *owner = NULL;
+    GListModel *windows = gtk_window_get_toplevels();
+    gulong openingHandler = 0U;
+    ConsoleOpeningProbe probe = {&workbench, NULL, g_ptr_array_new_with_free_func(g_object_unref), mode, 0U};
     UmiBuildProfile *profile = g_new0(UmiBuildProfile, 1U);
-    CHECK(directory != NULL && original != NULL && g_chdir(directory) == 0);
+    CHECK(directory != NULL && original != NULL && g_mkdtemp(directory) != NULL && g_chdir(directory) == 0);
+    otherProject = g_build_filename(directory, "different project", NULL);
+    CHECK(g_mkdir_with_parents(otherProject, 0700) == 0);
     moved = true;
     g_unsetenv("UMICOM_STUDIO_DATA_PATH");
     CHECK(g_mkdir_with_parents("config", 0700) == 0);
@@ -113,7 +168,7 @@ int main(int argc, char **argv)
               &workbench) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_TERMINAL,
                                                           NULL) == UMI_STATUS_OK);
-    GtkWindow *owner = umi_studio_gtk_workbench_window(workbench);
+    owner = g_object_ref(umi_studio_gtk_workbench_window(workbench));
     gtk_window_present(owner);
     Drain();
     open = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(owner),
@@ -125,14 +180,24 @@ int main(int argc, char **argv)
         umi_studio_gtk_workbench_destroy(workbench);
         workbench = NULL;
     }
+    if (strcmp(mode, "profile-mismatch") == 0) {
+        g_strlcpy(profile->source_directory, otherProject, sizeof profile->source_directory);
+        CHECK(umi_studio_build_service_set_profile(umi_studio_services_build(services), profile) == UMI_STATUS_OK);
+    }
+    probe.open = open;
+    openingHandler = g_signal_connect(windows, "items-changed", G_CALLBACK(ConsoleOpeningAdded), &probe);
     guint before = g_list_model_get_n_items(gtk_window_get_toplevels());
     g_signal_emit_by_name(open, "clicked");
-    if (strcmp(mode, "denied") == 0 || strcmp(mode, "retained") == 0)
+    if (strcmp(mode, "constructor-close") == 0 || strcmp(mode, "title-close") == 0 || strcmp(mode, "present-close") == 0) {
+        CHECK(workbench == NULL && probe.observed == 1U);
+        for (guint i = 0U; i < probe.windows->len; ++i) CHECK(!UmiGtk4WindowIsOpen(g_ptr_array_index(probe.windows, i)));
+        goto cleanup;
+    }
+    if (strcmp(mode, "denied") == 0 || strcmp(mode, "retained") == 0 || strcmp(mode, "profile-mismatch") == 0)
     {
         CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == before);
         goto cleanup;
     }
-    GListModel *windows = gtk_window_get_toplevels();
     for (guint i = 0U; i < g_list_model_get_n_items(windows); ++i)
     {
         GtkWindow *candidate = g_list_model_get_item(windows, i);
@@ -148,15 +213,31 @@ int main(int argc, char **argv)
     }
     CHECK(dialog != NULL && panel != NULL);
     Drain();
+    if (strstr(mode, "reenter") != NULL) {
+        CHECK(probe.observed == 1U && probe.windows->len == 1U && !UmiGtk4ProgramConsolePanelPending(panel));
+        goto cleanup;
+    }
     GtkWidget *run = umi_gtk4_automation_find_tagged_widget(panel, "program.console.run");
     GtkWidget *input = umi_gtk4_automation_find_tagged_widget(panel, "program.console.input");
     GtkWidget *send = umi_gtk4_automation_find_tagged_widget(panel, "program.console.send");
     GtkWidget *end = umi_gtk4_automation_find_tagged_widget(panel, "program.console.end");
     CHECK(run != NULL && input != NULL && send != NULL && end != NULL);
     CHECK(!UmiGtk4ProgramConsolePanelPending(panel));
+    if (strcmp(mode, "profile-changed") == 0) {
+        g_strlcpy(profile->source_directory, otherProject, sizeof profile->source_directory);
+        CHECK(umi_studio_build_service_set_profile(umi_studio_services_build(services), profile) == UMI_STATUS_OK);
+        g_signal_emit_by_name(run, "clicked");
+        CHECK(!UmiGtk4ProgramConsolePanelPending(panel));
+        GtkWidget *status = umi_gtk4_automation_find_tagged_widget(panel, "program.console.status");
+        CHECK(GTK_IS_LABEL(status) && strstr(gtk_label_get_text(GTK_LABEL(status)), "Cannot start") != NULL);
+        goto cleanup;
+    }
     g_signal_emit_by_name(run, "clicked");
     CHECK(UmiGtk4ProgramConsolePanelPending(panel));
-    if (strcmp(mode, "revoke") == 0)
+    if (strcmp(mode, "profile-revoke") == 0) {
+        g_strlcpy(profile->source_directory, otherProject, sizeof profile->source_directory);
+        CHECK(umi_studio_build_service_set_profile(umi_studio_services_build(services), profile) == UMI_STATUS_OK);
+    } else if (strcmp(mode, "revoke") == 0)
         CHECK(umi_studio_workspace_set_trusted(services, 0) == UMI_STATUS_OK);
     else if (strcmp(mode, "project-close") == 0)
         CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
@@ -184,6 +265,8 @@ int main(int argc, char **argv)
         CHECK(echoed);
     }
 cleanup:
+    if (openingHandler != 0U) g_signal_handler_disconnect(windows, openingHandler);
+    for (guint i = 0U; i < probe.windows->len; ++i) g_signal_handlers_disconnect_by_data(g_ptr_array_index(probe.windows, i), &probe);
     if (dialog != NULL)
         gtk_window_destroy(dialog);
     umi_studio_gtk_workbench_destroy(workbench);
@@ -192,6 +275,9 @@ cleanup:
     g_clear_object(&dialog);
     g_clear_object(&panel);
     g_clear_object(&open);
+    g_clear_object(&owner);
+    g_ptr_array_unref(probe.windows);
+    g_free(otherProject);
     umi_studio_bootstrap_destroy(bootstrap);
     umi_settings_destroy(settings);
     g_clear_object(&application);

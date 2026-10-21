@@ -128,6 +128,8 @@ static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
     return 1;
 }
 
+/* The previous signal borrowed dialog-owned request memory. The dialog-bound callback below rejects retired controls and holds its request owner through synchronous close notifications; the previous implementation is retained for review. */
+#if 0
 static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
 {
     UmiStudioFileDialogRequest *request = user_data;
@@ -163,10 +165,51 @@ static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
     g_clear_object(&ownerWindow);
 }
 
+#endif
+
+
+/* The dialog owns its request. Bind the signal to that dialog rather than to
+ * the request allocation, so retained controls cannot outlive their authority.
+ * A visible, still-parented button is required before resolving the weak host. */
+static void runtime_close_confirmed(GtkButton *button, gpointer user_data)
+{
+    GtkWindow *dialog = GTK_WINDOW(user_data);
+    GObject *ownerWindow = NULL;
+    UmiStudioFileDialogRequest *request;
+    UmiStudioGtkRuntimeChrome *runtime;
+
+    if (!gtk_widget_get_visible(GTK_WIDGET(dialog)) ||
+        gtk_widget_get_root(GTK_WIDGET(button)) != GTK_ROOT(dialog)) return;
+    g_object_ref(dialog);
+    request = g_object_get_data(G_OBJECT(dialog), "umicom-close-owner");
+    runtime = runtime_file_dialog_owner(request, &ownerWindow);
+    if (runtime == NULL || runtime->owner == NULL ||
+        runtime->owner->window == NULL) {
+        gtk_window_destroy(dialog);
+        g_clear_object(&ownerWindow);
+        g_object_unref(dialog);
+        return;
+    }
+
+    if (RuntimeStopDiscoveryBeforeClose(runtime)) {
+        /* Feedback can retire the host. Only retained GObjects are used below. */
+        gtk_window_destroy(dialog);
+        g_clear_object(&ownerWindow);
+        g_object_unref(dialog);
+        return;
+    }
+    runtime->force_close = 1;
+    gtk_window_destroy(dialog);
+    gtk_window_destroy(GTK_WINDOW(ownerWindow));
+    g_clear_object(&ownerWindow);
+    g_object_unref(dialog);
+}
 /*
  * Provide the runtime close cancelled operation used by this module and its client
  * applications.
  */
+/* Root-based cancellation could act on a reparented control. The replacement binds cancellation to its original dialog and is retained alongside this implementation for ownership review. */
+#if 0
 static void runtime_close_cancelled(GtkButton *button, gpointer user_data)
 {
     GtkWidget *dialog =
@@ -179,6 +222,19 @@ static void runtime_close_cancelled(GtkButton *button, gpointer user_data)
     }
 }
 
+#endif
+
+
+/* Cancellation has authority only over the dialog that installed this signal.
+ * Reparenting or retaining a button must never close an unrelated window. */
+static void runtime_close_cancelled(GtkButton *button, gpointer user_data)
+{
+    GtkWindow *dialog = GTK_WINDOW(user_data);
+    if (gtk_widget_get_visible(GTK_WIDGET(dialog)) &&
+        gtk_widget_get_root(GTK_WIDGET(button)) == GTK_ROOT(dialog)) {
+        gtk_window_destroy(dialog);
+    }
+}
 /*
  * Provide the runtime show close confirmation operation used by this module and its client
  * applications.
@@ -259,6 +315,8 @@ static void runtime_show_close_confirmation(
     gtk_box_append(GTK_BOX(root), buttons);
     gtk_window_set_child(GTK_WINDOW(dialog), root);
 
+/* The dialog is now the signal lifetime owner; its request is looked up only while that owner remains active. Retain the former raw-data bindings for review. */
+#if 0
     g_signal_connect(
         cancel,
         "clicked",
@@ -269,6 +327,14 @@ static void runtime_show_close_confirmation(
         "clicked",
         G_CALLBACK(runtime_close_confirmed),
         request);
+#endif
+
+    (void)umi_gtk4_automation_tag_widget(cancel, "studio.close.cancel");
+    (void)umi_gtk4_automation_tag_widget(close_anyway, "studio.close.discard");
+    g_signal_connect_object(cancel, "clicked",
+        G_CALLBACK(runtime_close_cancelled), dialog, 0);
+    g_signal_connect_object(close_anyway, "clicked",
+        G_CALLBACK(runtime_close_confirmed), dialog, 0);
 
     gtk_window_present(GTK_WINDOW(dialog));
 }

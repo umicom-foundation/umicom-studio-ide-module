@@ -225,6 +225,13 @@ extern "C" {
 UmiStatus umi_studio_commands_register(UmiCommandRegistry *registry,
                                        UmiStudioServices *services);
 
+/** Check the active project's authority and execution ownership without saving,
+ * queueing work, or starting a tool. Native hosts call this before saving source;
+ * canonical handlers repeat admission immediately before execution. The optional
+ * message describes a refusal and is cleared when no reason is available. */
+UmiStatus UmiStudioBuildCheckAdmission(UmiStudioServices *services,
+    char *message, size_t capacity);
+
 #ifdef __cplusplus
 }
 #endif

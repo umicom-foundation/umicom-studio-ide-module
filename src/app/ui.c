@@ -472,6 +472,8 @@ UmiStatus UmiStudioUiOpenProblem(UmiStudioUi *ui, const char *problemId)
     return status;
 }
 
+/* A missing source previously left the navigation cursor unchanged and trapped repeated commands on that entry. Shared bounded source navigation replaces the one-candidate attempt; retain it for review. */
+#if 0
 UmiStatus UmiStudioUiNavigateProblem(UmiStudioUi *ui, int backwards)
 {
     UmiDiagnosticFilter filter;
@@ -485,6 +487,26 @@ UmiStatus UmiStudioUiNavigateProblem(UmiStudioUi *ui, int backwards)
     umi_diagnostic_filter_init(&filter);
     status = UmiDiagnosticNavigationSource(&navigation, model, &filter, backwards, &problem);
     if (status == UMI_STATUS_OK) status = OpenProblemSource(ui, &problem);
+    if (status == UMI_STATUS_OK) ui->problemNavigation = navigation;
+    return status;
+}
+
+#endif
+UmiStatus UmiStudioUiNavigateProblem(UmiStudioUi *ui, int backwards)
+{
+    if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiDiagnosticModel *model = umi_diagnostic_pipeline_model(umi_studio_services_diagnostic_pipeline(ui->services));
+    if (model == NULL) return UMI_STATUS_INVALID_STATE;
+    UmiDiagnosticNavigation navigation = ui->problemNavigation;
+    navigation.wrap = 1;
+    UmiDiagnosticFilter filter;
+    umi_diagnostic_filter_init(&filter);
+    const UmiBuildProfile *profile = umi_studio_build_service_profile(umi_studio_services_build(ui->services));
+    /* Framework handles stale locations and exact caret movement consistently
+     * for every frontend; Studio provides only its selected project context. */
+    UmiStatus status = UmiDiagnosticNavigateOpenSource(&navigation, model, &filter,
+        backwards, ui->document_coordinator,
+        profile != NULL ? profile->source_directory : NULL, NULL, NULL);
     if (status == UMI_STATUS_OK) ui->problemNavigation = navigation;
     return status;
 }

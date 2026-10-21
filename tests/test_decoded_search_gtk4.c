@@ -75,13 +75,49 @@ static UmiStatus Collect(const UmiSearchMatch *match, void *context)
     *(UmiSearchMatch *)context = *match;
     return UMI_STATUS_OK;
 }
+/* A model cursor alone does not prove the user can type into the result. */
+static GtkWidget *DecodedSearchEditor(GtkWidget *root, const char *viewId)
+{
+    const char *id = g_object_get_data(G_OBJECT(root), "umicom-view-id");
+    if (id != NULL && strcmp(id, viewId) == 0) {
+        GtkWidget *editor = g_object_get_data(G_OBJECT(root), "umicom-editor-view");
+        if (GTK_IS_TEXT_VIEW(editor)) return editor;
+    }
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = DecodedSearchEditor(child, viewId);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+static void DecodedSearchCloseOnFocus(GObject *object, GParamSpec *spec, gpointer data)
+{
+    (void)spec;
+    UmiStudioGtkWorkbench **slot = data;
+    if (*slot != NULL && GTK_IS_TEXT_VIEW(gtk_window_get_focus(GTK_WINDOW(object)))) {
+        UmiStudioGtkWorkbench *closing = *slot;
+        *slot = NULL;
+        umi_studio_gtk_workbench_destroy(closing);
+    }
+}
+static void DecodedSearchCloseOnNotice(GObject *object, GParamSpec *spec, gpointer data)
+{
+    (void)spec;
+    UmiStudioGtkWorkbench **slot = data;
+    if (*slot != NULL && gtk_label_get_text(GTK_LABEL(object))[0] != '\0') {
+        UmiStudioGtkWorkbench *closing = *slot;
+        *slot = NULL;
+        umi_studio_gtk_workbench_destroy(closing);
+    }
+}
+
 int main(int argc, char **argv)
 {
-    if (argc != 2)
+    if (argc != 2 && argc != 3)
         return 1;
     const char *mode = argv[1],
                *cases[] = {"utf16-le",    "utf16-be",        "utf8-bom",    "bare-cr",        "unicode-path",
-                           "unsupported", "draft-preserved", "stale-index", "retained-result"};
+                           "unsupported", "draft-preserved", "stale-index", "retained-result", "focus-close", "error-feedback-close"};
     int known = 0;
     for (size_t i = 0U; i < sizeof(cases) / sizeof(cases[0]); ++i)
         if (strcmp(mode, cases[i]) == 0)
@@ -95,7 +131,9 @@ int main(int argc, char **argv)
     UmiSettings *settings = NULL;
     UmiStudioServicesOptions services_options = {0};
     UmiStudioGtkWorkbenchOptions options = {0};
-    GtkWidget *retained = NULL;
+    GtkWidget *retained = NULL, *notice = NULL;
+    GtkWindow *observedWindow = NULL;
+    gulong focusHandler = 0U, noticeHandler = 0U;
     char *directory = NULL, *original_directory = NULL, *original_data = NULL;
     GError *error = NULL;
     char workspace[UMI_PATH_CAPACITY], source[UMI_PATH_CAPACITY];
@@ -104,7 +142,12 @@ int main(int argc, char **argv)
         return 77;
     original_directory = g_get_current_dir();
     original_data = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
-    directory = g_dir_make_tmp("umicom-search-scope-XXXXXX", &error);
+    /* Registered tests use an accessible build-local fixture root. Retain the
+     * original direct-invocation fallback for compatibility with earlier callers. */
+    if (argc == 3) {
+        directory = g_build_filename(argv[2], "umicom-search-scope-XXXXXX", NULL);
+        CHECK(g_mkdtemp(directory) != NULL);
+    } else directory = g_dir_make_tmp("umicom-search-scope-XXXXXX", &error);
     CHECK(original_directory != NULL && directory != NULL && g_chdir(directory) == 0);
     changed_directory = 1;
     g_unsetenv("UMICOM_STUDIO_DATA_PATH");
@@ -164,10 +207,15 @@ int main(int argc, char **argv)
     CHECK(umi_studio_gtk_workbench_create_with_options(application, ui,
                                                        umi_studio_bootstrap_desktop_shell(bootstrap),
                                                        &options, &workbench) == UMI_STATUS_OK);
+    /* Start with Search alone so a successful model jump cannot hide a missing
+     * native editor. Result activation must add the editor without losing Search. */
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench, "search-only", "Search") == UMI_STATUS_OK);
+    CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_SEARCH, NULL) ==
           UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    observedWindow = g_object_ref(GTK_WINDOW(root));
     GtkWidget *query = Find(root, "umicom-file-search-query");
     GtkWidget *include = Find(root, "umicom-file-search-include");
     GtkWidget *exclude = Find(root, "umicom-file-search-exclude");
@@ -213,6 +261,9 @@ int main(int argc, char **argv)
     GtkWidget *result = FindResult(root);
     CHECK(GTK_IS_BUTTON(result));
     retained = g_object_ref(result);
+    if (strcmp(mode, "focus-close") == 0)
+        focusHandler = g_signal_connect(root, "notify::focus-widget",
+            G_CALLBACK(DecodedSearchCloseOnFocus), &workbench);
     g_signal_emit_by_name(result, "clicked");
     UmiDocumentCoordinator *documents = umi_studio_ui_documents(ui);
     UmiDocumentWorkingCopySnapshot active;
@@ -223,6 +274,21 @@ int main(int argc, char **argv)
         fprintf(stderr, "Search navigation identity: expected=%s indexed=%s active=%s\n",
             source, match.path, active.path);
     CHECK(umi_path_equal(active.path, source));
+    if (strcmp(mode, "focus-close") == 0) {
+        CHECK(workbench == NULL);
+        goto cleanup;
+    }
+    CHECK(workbench != NULL);
+    GtkWidget *editor = DecodedSearchEditor(root, active.view_id);
+    CHECK(GTK_IS_TEXT_VIEW(editor) && gtk_text_view_get_editable(GTK_TEXT_VIEW(editor)));
+    for (GtkWidget *parent = editor; parent != root; parent = gtk_widget_get_parent(parent))
+        CHECK(parent != NULL && gtk_widget_get_visible(parent) && gtk_widget_get_child_visible(parent));
+    GtkWidget *focus = gtk_window_get_focus(GTK_WINDOW(root));
+    CHECK(focus == editor || (focus != NULL && gtk_widget_is_ancestor(focus, editor)));
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor));
+    GtkTextIter caret;
+    gtk_text_buffer_get_iter_at_mark(buffer, &caret, gtk_text_buffer_get_insert(buffer));
+    CHECK(gtk_text_iter_get_line(&caret) == 1 && gtk_text_iter_get_line_index(&caret) == 2);
     UmiUiDocumentViewModel *views = umi_ui_workbench_documents(umi_studio_ui_workbench(ui));
     UmiUiDocumentViewSnapshot view;
     CHECK(umi_ui_document_view_model_find(views, active.view_id, &view) == UMI_STATUS_OK);
@@ -232,7 +298,7 @@ int main(int argc, char **argv)
     CHECK(UmiUiDocumentViewModelCopyText(views, active.view_id, &draft, &bytes) == UMI_STATUS_OK);
     CHECK(strcmp(draft, "top\n  needle\n") == 0);
     UmiUiDocumentViewModelFreeText(draft);
-    if (strcmp(mode, "draft-preserved") == 0)
+    if (strcmp(mode, "draft-preserved") == 0 || strcmp(mode, "error-feedback-close") == 0)
     {
         const char *edited = "unsaved\ntop\n  needle\n";
         view.dirty = 1;
@@ -240,6 +306,15 @@ int main(int argc, char **argv)
         view.selection_length = 0U;
         CHECK(UmiUiDocumentViewModelUpsertText(views, &view, edited, strlen(edited)) == UMI_STATUS_OK);
         CHECK(UmiStudioUiSearchOpen(ui, state.requestId, 0U) == UMI_STATUS_NOT_FOUND);
+        if (strcmp(mode, "error-feedback-close") == 0) {
+            GtkWidget *foundNotice = Find(root, "studio.notification");
+            CHECK(GTK_IS_LABEL(foundNotice));
+            notice = g_object_ref(foundNotice);
+            noticeHandler = g_signal_connect(notice, "notify::label",
+                G_CALLBACK(DecodedSearchCloseOnNotice), &workbench);
+            g_signal_emit_by_name(retained, "clicked");
+            CHECK(workbench == NULL);
+        }
         CHECK(UmiUiDocumentViewModelCopyText(views, active.view_id, &draft, &bytes) == UMI_STATUS_OK);
         CHECK(strcmp(draft, edited) == 0);
         UmiUiDocumentViewModelFreeText(draft);
@@ -259,6 +334,10 @@ int main(int argc, char **argv)
               umi_path_equal(active.path, source));
     }
 cleanup:
+    if (focusHandler != 0U) g_signal_handler_disconnect(observedWindow, focusHandler);
+    if (noticeHandler != 0U) g_signal_handler_disconnect(notice, noticeHandler);
+    g_clear_object(&notice);
+    g_clear_object(&observedWindow);
     g_clear_object(&retained);
     umi_studio_gtk_workbench_destroy(workbench);
     umi_studio_bootstrap_destroy(bootstrap);

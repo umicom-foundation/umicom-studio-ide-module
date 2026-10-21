@@ -74,4 +74,19 @@ project-relative file shown separately. Use an explicit file path for a consiste
 required libraries or debugger compatibility. Files can change after the check. Closing the form
 requests cancellation; an operating-system metadata call already in progress may finish later.</p>
 </section>
+<section id="run-current"><h2>Run a program that you have already built</h2>
+<ol><li>Open your project and review its <strong>Project Settings</strong>. Enable build tools only for a project you trust.</li>
+<li>Set <strong>Program to run</strong> to the executable you intend to use, such as <code>./build/my-program.exe</code>. Use an explicit path rather than a bare program name. Select an existing <strong>Program working folder</strong>, or leave it blank to use the project folder.</li>
+<li>Apply the settings. Choose <strong>Run current executable</strong> from the Run menu or command search. This action starts the selected existing file without saving or rebuilding your source. Unsaved edits will not be present in that executable.</li>
+<li>Read <strong>Output</strong> for the result. A queued message means the request was accepted; it does not mean the program started or finished successfully. Use the normal Stop action if the program needs to be cancelled.</li></ol>
+<table><thead><tr><th>Message</th><th>Recovery</th></tr></thead><tbody>
+<tr><td>Select Program to run</td><td>Choose the project's executable in Project Settings, then apply the settings.</td></tr>
+<tr><td>The selected program file is missing or is not a file</td><td>Check the previous build result. Build the program or correct the executable path. A folder cannot be used as the executable.</td></tr>
+<tr><td>The Run working folder is missing or is not a directory</td><td>Select an existing folder for the program's relative data files.</td></tr>
+<tr><td>The project source folder is missing</td><td>Reopen the project's current folder and review its settings.</td></tr>
+<tr><td>Enable the project's build tools</td><td>Review the project before granting execution permission in Project Settings.</td></tr>
+</tbody></table>
+<p>A file can exist yet fail to run because its required libraries, permissions or architecture do not match the machine. Files may also change after inspection. The native launcher reports those failures in Output. If you want to compile your current edits first, use <strong>Build and run project</strong> instead.</p>
+</section>
+<section id="project-ownership"><h2>Keep build settings with their project</h2><p>Build, Run, Debug and queued build operations check that their source folder is still the project you opened. Trusting one project does not authorize a profile that points to another project.</p><ol><li>If Studio says the build profile no longer matches the open project, save your work and use <strong>Open Project</strong> to select the intended source folder.</li><li>Review its source folder, build folder, configuration and program in <strong>Project Build Settings</strong>. An absolute source folder identifies the project independently of where Studio was launched.</li><li>Enable the project's build tools only after reviewing that project. If a build or debugger is already active, wait for it or use Stop before starting another operation.</li><li>Retry the command and read Output for its actual result.</li></ol><p>A rejected command leaves the build profile and operation history unchanged. It does not silently substitute another project, enable trust or begin a compiler or debugger process.</p></section>
 </main><footer><p>Umicom Foundation · Sammy Hegab · MIT</p></footer></body></html>

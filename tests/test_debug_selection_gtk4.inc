@@ -39,6 +39,9 @@ static int VerifyDebugSelection(GtkApplication *application,const char *fixtureP
     strcpy(frame.source_uri,"debug-source.c");frame.line=2;frame.column=4;
     REQUIRE(umi_debug_stack_frame_registry_upsert(umi_debug_service_stack_frame(model),&frame)==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_create_with_options(application,ui,umi_studio_bootstrap_desktop_shell(bootstrap),&options,&workbench)==UMI_STATUS_OK);
+    /* Start without an editor panel: model-only navigation is not sufficient. */
+    REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench,"debug-source-hidden","Debug source") == UMI_STATUS_OK);
+    REQUIRE(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench,UMI_STUDIO_SURFACE_DEBUG,NULL)==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_refresh(workbench)==UMI_STATUS_OK);
     GtkWidget *root=GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
@@ -46,6 +49,16 @@ static int VerifyDebugSelection(GtkApplication *application,const char *fixtureP
     REQUIRE(umi_studio_gtk_workbench_refresh(workbench)==UMI_STATUS_OK);REQUIRE(find_tag(root,"studio.debug.frame.0")==retained);
     g_signal_emit_by_name(retained,"clicked");
     REQUIRE(umi_ui_document_view_model_find(views,viewId,&after)==UMI_STATUS_OK&&after.cursor_offset==9&&after.selection_length==0&&after.dirty);
+    GtkWidget *editor = find_editor(find_tag(root, "studio.workspace.editor-root"));
+    REQUIRE(GTK_IS_TEXT_VIEW(editor) && gtk_text_view_get_editable(GTK_TEXT_VIEW(editor)));
+    for (GtkWidget *widget = editor; widget != root; widget = gtk_widget_get_parent(widget))
+        REQUIRE(widget != NULL && gtk_widget_get_visible(widget));
+    GtkWidget *focus = gtk_root_get_focus(GTK_ROOT(root));
+    REQUIRE(focus == editor || (focus != NULL && gtk_widget_is_ancestor(focus, editor)));
+    GtkTextIter cursor;
+    gtk_text_buffer_get_iter_at_mark(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)), &cursor,
+        gtk_text_buffer_get_insert(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor))));
+    REQUIRE(gtk_text_iter_get_line(&cursor) == 1 && gtk_text_iter_get_line_index(&cursor) == 3);
     /* A changed target invalidates the still-attached button before a timer
      * refresh. Its stale source cannot move the editor back to line one. */
     stale=find_tag(root,"studio.debug.frame.0");REQUIRE(GTK_IS_BUTTON(stale));g_object_ref(stale);
