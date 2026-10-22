@@ -16,6 +16,7 @@
 
 
 #include "umicom/terminal_ui/execution.h"
+#include "umicom/terminal_ui/selection.h"
 
 /* A retained control resolves the current workbench through a weak binding.
  * It cannot launch or stop work after the window's runtime is detached. */
@@ -183,6 +184,8 @@ static void runtime_terminal_refresh_transcript(
     g_string_free(text, TRUE);
 }
 #endif
+/* Transcript refresh now captures all text before native publication and rechecks the workbench and selected session after observable widget changes. Retained for engineering review. */
+#if 0
 static void runtime_terminal_refresh_transcript(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->terminal_text_view == NULL) return;
@@ -257,6 +260,130 @@ static void runtime_terminal_refresh_transcript(UmiStudioGtkRuntimeChrome *runti
         gtk_widget_set_sensitive(runtime->terminal_stop_button, running.execution.pending);
 }
 
+#endif
+/* Rendering copies the model before touching GTK. Each publication boundary
+ * rechecks both host lifetime and selection so a notification cannot mix the
+ * previous session's output with the next session's controls. */
+static UmiStudioGtkRuntimeChrome *RuntimeTerminalRenderOwner(
+    UmiStudioFileDialogRequest *binding, GtkWidget *view,
+    const UmiTerminalSelection *selection, const UmiTerminalSessionSnapshot *fallback,
+    GObject **window)
+{
+    UmiStudioGtkRuntimeChrome *runtime = RuntimeResolveOwner(binding, window);
+    if (runtime == NULL || runtime->terminal_text_view != view) return NULL;
+    UmiTerminalController *controller = RuntimeTerminalController(runtime);
+    if (selection != NULL)
+        return UmiTerminalSelectionValidate(controller, selection) == UMI_STATUS_OK ? runtime : NULL;
+    /* A closed tab may still have a transcript even though it cannot admit a
+     * new asynchronous choice. Preserve that display and the primary-service
+     * fallback, checking the observed identity without retaining its pointer. */
+    UmiTerminalSession *session = umi_terminal_controller_active_session(controller);
+    if (session == NULL) {
+        UmiStudioTerminalService *service = runtime_terminal_service(runtime);
+        session = service != NULL ? umi_studio_terminal_service_primary(service) : NULL;
+    }
+    UmiTerminalSessionSnapshot current = {0};
+    if (session != NULL && umi_terminal_session_snapshot(session, &current) != UMI_STATUS_OK) return NULL;
+    return strcmp(current.session_id, fallback->session_id) == 0 &&
+        strcmp(current.working_directory, fallback->working_directory) == 0 &&
+        current.state == fallback->state && current.commands_executed == fallback->commands_executed
+        ? runtime : NULL;
+}
+static void runtime_terminal_refresh_transcript(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->terminal_text_view == NULL) return;
+    UmiStudioFileDialogRequest *binding = runtime_file_dialog_request_new(runtime, 0U);
+    if (binding == NULL) return;
+    GObject *window = NULL, *reservation = NULL;
+    GtkWidget *view = NULL;
+    GString *text = NULL;
+    char *valid = NULL, *summary = NULL, *safeSummary = NULL;
+    runtime = RuntimeResolveOwner(binding, &window);
+    if (runtime == NULL || g_object_get_data(window, "studio-terminal-rendering") != NULL) goto done;
+    reservation = g_object_ref(window);
+    g_object_set_data(reservation, "studio-terminal-rendering", GINT_TO_POINTER(1));
+    view = g_object_ref(runtime->terminal_text_view);
+    UmiTerminalController *controller = RuntimeTerminalController(runtime);
+    UmiTerminalControllerExecution running = {0};
+    (void)UmiTerminalControllerPollJob(controller, &running);
+    UmiTerminalSelection selection;
+    int captured = UmiTerminalSelectionCapture(controller, &selection) == UMI_STATUS_OK;
+    UmiTerminalSession *session = umi_terminal_controller_active_session(controller);
+    if (session == NULL) {
+        UmiStudioTerminalService *service = runtime_terminal_service(runtime);
+        session = service != NULL ? umi_studio_terminal_service_primary(service) : NULL;
+    }
+    UmiTerminalSessionSnapshot selected = {0};
+    if (session != NULL) (void)umi_terminal_session_snapshot(session, &selected);
+    UmiTerminalTranscript *transcript = session != NULL ? umi_terminal_session_transcript(session) : NULL;
+    text = g_string_sized_new(4096U);
+    if (text == NULL) goto done;
+    size_t count = transcript != NULL ? umi_terminal_transcript_count(transcript) : 0U;
+    size_t start = count > UMI_STUDIO_GTK_TRANSCRIPT_ROW_LIMIT ? count - UMI_STUDIO_GTK_TRANSCRIPT_ROW_LIMIT : 0U;
+    for (size_t index = start; index < count; ++index) {
+        UmiTerminalTranscriptLine line;
+        if (umi_terminal_transcript_at(transcript, index, &line) != UMI_STATUS_OK) continue;
+        const char *prefix = line.stream == UMI_TERMINAL_STREAM_INPUT ? "> " :
+            line.stream == UMI_TERMINAL_STREAM_ERROR ? "! " :
+            line.stream == UMI_TERMINAL_STREAM_SYSTEM ? "# " : "";
+        g_string_append(text, prefix);
+        g_string_append(text, line.text);
+        if (text->len == 0U || text->str[text->len - 1U] != '\n') g_string_append_c(text, '\n');
+    }
+    if (running.execution.pending && strcmp(running.session_id, selected.session_id) == 0) {
+        g_string_append(text, "\n--- Running command output ---\n");
+        if (running.execution.process.output_truncated)
+            g_string_append(text, "[Earlier output omitted from this bounded preview]\n");
+        g_string_append(text, running.execution.process.output);
+    }
+    valid = g_utf8_make_valid(text->str, (gssize)text->len);
+    summary = running.execution.pending
+        ? g_strdup_printf("%s — %s — %zu transcript records — %s command in %s",
+            selected.title, selected.working_directory, count,
+            running.execution.stop_requested ? "Stopping" : "Running", running.session_id)
+        : g_strdup_printf("%s — %s — %zu transcript records — last exit %d",
+            selected.title, selected.working_directory, count, selected.last_exit_code);
+    safeSummary = g_utf8_make_valid(summary, -1);
+    const UmiTerminalSelection *guard = captured ? &selection : NULL;
+    runtime = RuntimeTerminalRenderOwner(binding, view, guard, &selected, &window);
+    if (runtime == NULL) goto done;
+    if (runtime->terminal_directory_entry != NULL &&
+        strcmp(runtime->terminal_directory_session, selected.session_id) != 0) {
+        memcpy(runtime->terminal_directory_session, selected.session_id, strlen(selected.session_id) + 1U);
+        gtk_editable_set_text(GTK_EDITABLE(runtime->terminal_directory_entry), selected.working_directory);
+        runtime = RuntimeTerminalRenderOwner(binding, view, guard, &selected, &window);
+        if (runtime == NULL) goto done;
+    }
+    const char *previous = g_object_get_data(G_OBJECT(view), "umicom-terminal-rendered");
+    if (previous == NULL || strcmp(previous, valid) != 0) {
+        GtkTextBuffer *buffer = g_object_ref(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)));
+        gtk_text_buffer_set_text(buffer, valid, -1);
+        runtime = RuntimeTerminalRenderOwner(binding, view, guard, &selected, &window);
+        int sameBuffer = runtime != NULL && gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)) == buffer;
+        g_object_unref(buffer);
+        if (!sameBuffer) goto done;
+        g_object_set_data_full(G_OBJECT(view), "umicom-terminal-rendered", g_strdup(valid), g_free);
+    }
+    if (runtime->terminal_summary_label != NULL) {
+        gtk_label_set_text(GTK_LABEL(runtime->terminal_summary_label), safeSummary);
+        runtime = RuntimeTerminalRenderOwner(binding, view, guard, &selected, &window);
+        if (runtime == NULL) goto done;
+    }
+    if (runtime->terminal_run_button != NULL) {
+        gtk_widget_set_sensitive(runtime->terminal_run_button, !running.execution.pending);
+        runtime = RuntimeTerminalRenderOwner(binding, view, guard, &selected, &window);
+        if (runtime == NULL) goto done;
+    }
+    if (runtime->terminal_stop_button != NULL)
+        gtk_widget_set_sensitive(runtime->terminal_stop_button, running.execution.pending);
+done:
+    g_free(safeSummary); g_free(summary); g_free(valid);
+    if (text != NULL) g_string_free(text, TRUE);
+    if (reservation != NULL) g_object_set_data(reservation, "studio-terminal-rendering", NULL);
+    g_clear_object(&reservation); g_clear_object(&view); g_clear_object(&window);
+    runtime_file_dialog_request_free(binding);
+}
+
 /*
  * Provide the runtime terminal execute entry operation used by this module and its client
  * applications.
@@ -310,10 +437,19 @@ static void runtime_terminal_execute_entry(UmiStudioGtkRuntimeChrome *runtime)
      * before clearing an entry or refreshing any widgets. */
     GObject *window = NULL;
     runtime = runtime_file_dialog_owner(binding, &window);
+/* Clearing an executed command can notify host closure; reacquire the owner before refreshing its transcript. Retained for engineering review. */
+#if 0
     if (runtime != NULL) {
         if (status == UMI_STATUS_OK && runtime->terminal_entry != NULL)
             gtk_editable_set_text(GTK_EDITABLE(runtime->terminal_entry), "");
         runtime_terminal_refresh_transcript(runtime);
+    }
+#endif
+    if (runtime != NULL) {
+        if (status == UMI_STATUS_OK && runtime->terminal_entry != NULL)
+            gtk_editable_set_text(GTK_EDITABLE(runtime->terminal_entry), "");
+        runtime = RuntimeResolveOwner(binding, &window);
+        if (runtime != NULL) runtime_terminal_refresh_transcript(runtime);
     }
     g_clear_object(&window);
     runtime_file_dialog_request_free(binding);

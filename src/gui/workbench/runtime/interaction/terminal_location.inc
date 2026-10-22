@@ -7,6 +7,8 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/terminal/location.h"
+#include "umicom/terminal_ui/selection.h"
+#include "umicom/ui/gtk4/path_picker.h"
 
 typedef struct UmiStudioTerminalFolderRequest
 {
@@ -14,6 +16,8 @@ typedef struct UmiStudioTerminalFolderRequest
     GCancellable *cancel;
     char session_id[UMI_TERMINAL_ID_CAPACITY];
     uint64_t revision;
+    UmiTerminalSelection selection;
+    GWeakRef entry;
 } UmiStudioTerminalFolderRequest;
 
 /* Entry revisions reject a chooser answer even if a draft changes and later
@@ -68,6 +72,8 @@ static void RuntimeTerminalFolderUnmap(GtkWidget *window, gpointer context)
     (void)window;
     g_cancellable_cancel(G_CANCELLABLE(context));
 }
+/* Chooser setup and completion now share captured session, edit-generation and weak-host checks; explicit Framework seeding replaces the ambient start folder. Retained for engineering review. */
+#if 0
 static void RuntimeTerminalFolderComplete(GObject *source, GAsyncResult *result, gpointer context)
 {
     UmiStudioTerminalFolderRequest *request = context;
@@ -149,6 +155,118 @@ static void RuntimeTerminalFolderChoose(GtkButton *button, gpointer context)
                                   RuntimeTerminalFolderComplete, request);
     g_object_unref(dialog);
     g_clear_object(&window);
+}
+
+#endif
+/* Framework captures selection identity; Studio additionally checks the live
+ * entry and its edit generation. No native reply can choose another session. */
+static UmiStudioGtkRuntimeChrome *RuntimeTerminalFolderCurrent(
+    UmiStudioTerminalFolderRequest *request, GObject **window)
+{
+    UmiStudioGtkRuntimeChrome *runtime = RuntimeResolveOwner(request->owner, window);
+    if (runtime == NULL || g_cancellable_is_cancelled(request->cancel) ||
+        runtime->terminal_directory_revision != request->revision ||
+        runtime->terminal_directory_revision == UINT64_MAX ||
+        !runtime->terminal_directory_choosing ||
+        UmiTerminalSelectionValidate(RuntimeTerminalController(runtime), &request->selection) != UMI_STATUS_OK)
+        return NULL;
+    GObject *entry = g_weak_ref_get(&request->entry);
+    int same = entry != NULL && runtime->terminal_directory_entry == GTK_WIDGET(entry) &&
+        gtk_widget_get_root(GTK_WIDGET(entry)) == GTK_ROOT(*window);
+    g_clear_object(&entry);
+    return same ? runtime : NULL;
+}
+static void RuntimeTerminalFolderRequestFree(UmiStudioTerminalFolderRequest *request)
+{
+    g_weak_ref_clear(&request->entry);
+    g_clear_object(&request->cancel);
+    runtime_file_dialog_request_free(request->owner);
+    g_free(request);
+}
+static void RuntimeTerminalFolderComplete(GObject *source, GAsyncResult *result, gpointer context)
+{
+    UmiStudioTerminalFolderRequest *request = context;
+    GError *error = NULL;
+    GFile *folder = gtk_file_dialog_select_folder_finish(GTK_FILE_DIALOG(source), result, &error);
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = RuntimeTerminalFolderCurrent(request, &window);
+    int applicable = runtime != NULL;
+    runtime = RuntimeResolveOwner(request->owner, &window);
+    if (runtime != NULL) {
+        runtime->terminal_directory_choosing = 0;
+        if (applicable && folder != NULL && runtime->terminal_directory_entry != NULL) {
+            char *selectedPath = g_file_get_path(folder);
+            if (selectedPath != NULL) {
+                /* Filling a field does not apply the directory or run a command.
+                 * The field notification may close Studio; do not reuse runtime. */
+                gtk_editable_set_text(GTK_EDITABLE(runtime->terminal_directory_entry), selectedPath);
+            } else runtime_show_notification(runtime, "Choose a local folder for the terminal.");
+            g_free(selectedPath);
+        } else if (applicable && error != NULL && !runtime_file_dialog_cancelled(error))
+            runtime_show_notification(runtime, error->message);
+    }
+    g_clear_object(&window);
+    g_clear_object(&folder);
+    g_clear_error(&error);
+    RuntimeTerminalFolderRequestFree(request);
+}
+static void RuntimeTerminalFolderChoose(GtkButton *button, gpointer context)
+{
+    (void)button;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context, &window);
+    if (runtime == NULL || runtime->terminal_directory_entry == NULL ||
+        runtime->terminal_directory_choosing || runtime->terminal_directory_revision == UINT64_MAX) {
+        g_clear_object(&window); return;
+    }
+    UmiTerminalSelection selected;
+    if (UmiTerminalSelectionCapture(RuntimeTerminalController(runtime), &selected) != UMI_STATUS_OK) {
+        g_clear_object(&window); return;
+    }
+    UmiStudioTerminalFolderRequest *request = g_try_new0(UmiStudioTerminalFolderRequest, 1);
+    if (request == NULL) { g_clear_object(&window); return; }
+    request->owner = runtime_file_dialog_request_new(runtime, 0U);
+    if (request->owner == NULL) { g_free(request); g_clear_object(&window); return; }
+    request->cancel = g_cancellable_new();
+    request->selection = selected;
+    memcpy(request->session_id, selected.session.session_id, sizeof request->session_id);
+    request->revision = runtime->terminal_directory_revision;
+    g_weak_ref_init(&request->entry, G_OBJECT(runtime->terminal_directory_entry));
+    char *draft = g_strdup(gtk_editable_get_text(GTK_EDITABLE(runtime->terminal_directory_entry)));
+    /* Reserve before construction: native hooks can reenter Browse or retire
+     * the workbench even before asynchronous presentation has begun. */
+    runtime->terminal_directory_choosing = 1;
+    g_signal_connect_object(window, "unmap", G_CALLBACK(RuntimeTerminalFolderUnmap), request->cancel, 0);
+    GtkFileDialog *dialog = gtk_file_dialog_new();
+    runtime = RuntimeTerminalFolderCurrent(request, &window);
+    if (runtime == NULL) goto abandoned;
+    gtk_file_dialog_set_title(dialog, "Choose the terminal folder");
+    runtime = RuntimeTerminalFolderCurrent(request, &window);
+    if (runtime == NULL) goto abandoned;
+    /* Lexical Framework seeding avoids filesystem probes and an implicit
+     * settings-directory fallback. An incomplete draft falls back to the
+     * captured session folder; the original draft remains in its field. */
+    UmiStatus seeded = UmiPathPickerGtk4SetInitialLocation(dialog, UMI_PATH_PICKER_DIRECTORY,
+        draft[0] != '\0' ? draft : selected.session.working_directory, NULL, NULL);
+    if (seeded != UMI_STATUS_OK)
+        seeded = UmiPathPickerGtk4SetInitialLocation(dialog, UMI_PATH_PICKER_DIRECTORY,
+            selected.session.working_directory, NULL, NULL);
+    if (seeded != UMI_STATUS_OK)
+        (void)UmiPathPickerGtk4SetInitialLocation(dialog, UMI_PATH_PICKER_DIRECTORY, NULL, NULL, NULL);
+    runtime = RuntimeTerminalFolderCurrent(request, &window);
+    if (runtime == NULL) goto abandoned;
+    g_free(draft);
+    gtk_file_dialog_select_folder(dialog, GTK_WINDOW(window), request->cancel,
+        RuntimeTerminalFolderComplete, request);
+    /* Completion owns request, including when a provider responds inline. */
+    g_object_unref(dialog); g_clear_object(&window);
+    return;
+abandoned:
+    runtime = RuntimeResolveOwner(request->owner, &window);
+    if (runtime != NULL) runtime->terminal_directory_choosing = 0;
+    g_cancellable_cancel(request->cancel);
+    RuntimeTerminalFolderRequestFree(request);
+    g_free(draft); g_object_unref(dialog); g_clear_object(&window);
 }
 static void RuntimeTerminalFolderControls(UmiStudioGtkRuntimeChrome *runtime, GtkWidget *panel)
 {

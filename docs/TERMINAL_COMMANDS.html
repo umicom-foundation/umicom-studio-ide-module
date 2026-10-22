@@ -21,4 +21,12 @@
 <li><strong>Program not found:</strong> check the selected profile's search path or supply an explicit program path using that shell's quoting rules.</li>
 <li><strong>Folder unchanged:</strong> apply the draft and read the summary. Failed selections retain the previous folder.</li>
 <li><strong>The command expects input:</strong> this panel does not provide interactive standard input. Stop it and use an external terminal.</li></ul>
+<h2>Choose a folder while other work continues</h2>
+<ol><li>Select the terminal session you intend to use. Read its current folder in the summary.</li>
+<li>Choose <strong>Browse…</strong>. A complete absolute path already in the Folder field supplies the starting location. An empty or relative draft falls back to the selected session's folder. If neither is a supported absolute path, the operating-system chooser uses its default.</li>
+<li>Select a local folder. The result fills the field; choose <strong>Apply folder</strong> to change the session. Check the summary before running a command.</li>
+<li>If you edit the field, change the session, or close the window while Browse is open, its answer is ignored. Reopen Browse in the intended session. Switching away and back does not revive the older choice.</li></ol>
+<p>A command or another controller change can also make a pending choice stale. This preserves the current session context. Cancelling Browse leaves the field unchanged. Selection never changes Studio's process-wide working directory or starts a program.</p>
+<h2>Read output while switching sessions</h2>
+<p>Each refresh displays a captured session's output and summary together. If a session changes while the interface is updating, the next refresh displays the new selection. Unchanged output is not rewritten, so a text selection stays available for copying. The terminal keeps the same bounded output limits described above.</p>
 </main></html>

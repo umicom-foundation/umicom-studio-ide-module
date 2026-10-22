@@ -3180,6 +3180,8 @@ include(cmake/UmicomStudioTestArchive.cmake)
 include(cmake/UmicomStudioLearningLocations.cmake)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioTerminalJobs.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioTerminalSelection.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioProblemsPublication.cmake")
 
 # Launch an existing built program while preserving the editor's unsaved draft.
 if(TARGET umicom-studio-project-workflow-test)
