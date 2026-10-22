@@ -104,6 +104,43 @@ static UmiStatus RuntimeQuickOpenSelected(gpointer data, const char *query, cons
     g_clear_object(&window);
     return status;
 }
+/* Source coordinates are resolved by Framework against the current draft.
+ * Use one open-and-position operation so Back returns to the departure, rather
+ * than to an intermediate activation at the start of the selected file. */
+static UmiStatus RuntimeQuickOpenSelectedAt(gpointer data, const char *filter,
+    const UmiFileIndexPage *page, size_t position, const UmiFileIndexEntry *entry,
+    const UmiDocumentLocation *location)
+{
+    if (location == NULL) return RuntimeQuickOpenSelected(data, filter, page, position, entry);
+    RuntimeQuickOpenRequest *request = data;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = RuntimeQuickOpenOwner(request, &window);
+    UmiStatus status = runtime == NULL ? UMI_STATUS_INVALID_STATE
+        : UmiQuickOpenCheckSelection(umi_studio_services_file_index(
+            umi_studio_ui_services(runtime->owner->ui)), filter, page, position, entry);
+    if (status == UMI_STATUS_OK) {
+        UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
+        status = UmiDocumentCoordinatorOpenAtPosition(documents, entry->path,
+            location->line, location->column, NULL);
+        /* Opening and cursor movement can invoke host observers. Resolve the
+         * captured workspace again before presenting its active editor. */
+        g_clear_object(&window);
+        runtime = RuntimeQuickOpenOwner(request, &window);
+        if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+        else if (status == UMI_STATUS_OK) {
+            UmiDocumentWorkingCopySnapshot active;
+            status = umi_document_coordinator_active_snapshot(documents, &active);
+            if (status == UMI_STATUS_OK && strcmp(active.path, entry->path) != 0)
+                status = UMI_STATUS_INVALID_STATE;
+            if (status == UMI_STATUS_OK) {
+                runtime_copy_selection(runtime->selected_file_path, sizeof runtime->selected_file_path, entry->path);
+                status = RuntimePresentActiveSource(runtime);
+            }
+        }
+    }
+    g_clear_object(&window);
+    return status;
+}
 static void RuntimeQuickOpenWindowFree(gpointer data)
 {
     GtkWindow *window = data;
@@ -172,8 +209,13 @@ static void RuntimeShowQuickOpen(UmiStudioGtkRuntimeChrome *runtime)
     request->owner = runtime_file_dialog_request_new(runtime, 0U);
     request->index = umi_studio_services_file_index(services);
     if (request->owner == NULL) goto done;
+/* Studio opts into shared filename-and-position parsing; the original literal callback remains the plain-open path. Retained for engineering review. */
+#if 0
     UmiStatus status = UmiGtk4QuickOpenCreate(GTK_WINDOW(window), RuntimeQuickOpenRead,
         RuntimeQuickOpenSelected, request, RuntimeQuickOpenFree, &dialog);
+#endif
+    UmiStatus status = UmiGtk4QuickOpenCreateAt(GTK_WINDOW(window), RuntimeQuickOpenRead,
+        RuntimeQuickOpenSelectedAt, request, RuntimeQuickOpenFree, &dialog);
     if (status != UMI_STATUS_OK) {
         runtime = RuntimeQuickOpenOwner(request, &resolvedWindow);
         if (runtime != NULL) {

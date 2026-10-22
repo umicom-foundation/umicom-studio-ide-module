@@ -136,6 +136,7 @@ int main(int argc, char **argv)
                                             "retained-control",
                                             "repeated-open",
                                             "no-workspace",
+        "position-line", "position-column", "position-unicode", "position-clamp", "position-dirty", "position-missing-line", "position-invalid", "position-history",
         "constructor-close", "constructor-reenter", "constructor-workspace", "title-close", "child-close", "present-close", "present-reenter", "replacement-close", "replacement-workspace"};
     int known = 0;
     for (size_t i = 0U; i < sizeof(cases) / sizeof(cases[0]); ++i)
@@ -145,6 +146,7 @@ int main(int argc, char **argv)
         return 2;
     if (!gtk_init_check())
         return 77;
+    const int positionCase = strncmp(name, "position-", 9U) == 0;
     int failed = 0;
     bool changed_directory = false;
     char *original = g_get_current_dir(), *directory = NULL, *project = NULL, *other = NULL, *file = NULL,
@@ -197,16 +199,17 @@ int main(int argc, char **argv)
     file = g_build_filename(project, "main.c", NULL);
     extra = g_build_filename(project, "other.c", NULL);
     CHECK(g_file_set_contents(file, "saved source", 12, NULL));
+    if (positionCase) CHECK(g_file_set_contents(file, "first\nx\xc3\xa9z\nlast", -1, NULL));
     if (strcmp(name, "no-workspace") != 0)
         CHECK(umi_studio_workspace_open(services, project, 0, 0) == UMI_STATUS_OK);
     char id[UMI_UI_ID_CAPACITY];
-    if (strcmp(name, "dirty-existing") == 0)
+    if (strcmp(name, "dirty-existing") == 0 || strcmp(name, "position-dirty") == 0)
         CHECK(umi_document_coordinator_open(documents, file, id, sizeof(id)) == UMI_STATUS_OK);
     else
         CHECK(umi_document_coordinator_new(documents, "Scratch.c", id, sizeof(id)) == UMI_STATUS_OK);
     UmiUiDocumentViewSnapshot view;
     CHECK(umi_ui_document_view_model_find(views, id, &view) == UMI_STATUS_OK);
-    const char *text = "unsaved source";
+    const char *text = strcmp(name, "position-dirty") == 0 ? "unsaved\nx\xc3\xa9z\nlast" : "unsaved source";
     view.dirty = 1;
     view.cursor_offset = 0U;
     view.selection_length = 0U;
@@ -290,6 +293,62 @@ int main(int argc, char **argv)
               *refresh = Find(GTK_WIDGET(dialog), "umicom-quick-open-refresh"),
               *list = Find(GTK_WIDGET(dialog), "umicom-quick-open-results");
     CHECK(query != NULL && open != NULL && refresh != NULL && list != NULL && gtk_widget_get_sensitive(open));
+    if (positionCase) {
+        UmiDocumentNavigationHistorySnapshot history;
+        CHECK(UmiDocumentCoordinatorNavigationSnapshot(documents, &history) == UMI_STATUS_OK);
+        CHECK(UmiDocumentCoordinatorClearNavigation(documents, history.revision) == UMI_STATUS_OK);
+        size_t countBefore = umi_document_coordinator_count(documents);
+        const char *positionQuery = "main.c:2";
+        size_t expectedOffset = 6U;
+        if (strcmp(name, "position-column") == 0) { positionQuery = "main.c:2:2"; expectedOffset = 7U; }
+        if (strcmp(name, "position-unicode") == 0) { positionQuery = "main.c:2:3"; expectedOffset = 7U; }
+        if (strcmp(name, "position-clamp") == 0) { positionQuery = "main.c:2:99"; expectedOffset = 10U; }
+        if (strcmp(name, "position-dirty") == 0) { positionQuery = "main.c:2:3"; expectedOffset = 9U; }
+        if (strcmp(name, "position-missing-line") == 0) positionQuery = "main.c:99";
+        if (strcmp(name, "position-invalid") == 0) positionQuery = "main.c:";
+        gtk_editable_set_text(GTK_EDITABLE(query), positionQuery); Pump();
+        if (strcmp(name, "position-invalid") == 0) {
+            CHECK(!gtk_widget_get_sensitive(open));
+            g_signal_emit_by_name(open, "clicked");
+            CHECK(umi_document_coordinator_count(documents) == countBefore);
+        } else {
+            CHECK(gtk_widget_get_sensitive(open));
+            if (strcmp(name, "position-missing-line") != 0) {
+                CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
+                    "umicom.studio.layout.quick-open-position", "Source location") == UMI_STATUS_OK);
+                CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
+            }
+            g_signal_emit_by_name(open, "clicked");
+        }
+        UmiDocumentWorkingCopySnapshot active;
+        CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+        if (strcmp(name, "position-invalid") == 0 || strcmp(name, "position-missing-line") == 0) {
+            CHECK(UmiGtk4WindowIsOpen(dialog) && !gtk_widget_get_sensitive(open));
+            CHECK(strcmp(active.view_id, id) == 0);
+            CHECK(umi_ui_document_view_model_find(views, active.view_id, &view) == UMI_STATUS_OK);
+            CHECK(view.cursor_offset == 0U);
+        } else {
+            CHECK(!UmiGtk4WindowIsOpen(dialog));
+            CHECK(umi_ui_document_view_model_find(views, active.view_id, &view) == UMI_STATUS_OK);
+            CHECK(view.cursor_offset == expectedOffset && view.selection_length == 0U);
+            GtkWidget *editor = FindEditor(root, active.view_id);
+            CHECK(GTK_IS_TEXT_VIEW(editor));
+            GtkWidget *focused = gtk_window_get_focus(GTK_WINDOW(root));
+            CHECK(focused == editor || (focused != NULL && gtk_widget_is_ancestor(focused, editor)));
+            if (strcmp(name, "position-dirty") == 0)
+                CHECK(strcmp(active.view_id, id) == 0 && active.dirty);
+            if (strcmp(name, "position-history") == 0) {
+                CHECK(UmiDocumentCoordinatorNavigationSnapshot(documents, &history) == UMI_STATUS_OK);
+                CHECK(history.can_go_back);
+                CHECK(UmiDocumentCoordinatorTravel(documents, -1, history.revision, NULL) == UMI_STATUS_OK);
+                CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
+                CHECK(strcmp(active.view_id, id) == 0);
+                CHECK(umi_ui_document_view_model_find(views, active.view_id, &view) == UMI_STATUS_OK);
+                CHECK(view.cursor_offset == 0U);
+            }
+        }
+        goto preserved;
+    }
     if (strcmp(name, "filter") == 0 || strcmp(name, "empty") == 0)
     {
         gtk_editable_set_text(GTK_EDITABLE(query), strcmp(name, "empty") == 0 ? "missing" : "MAIN.C");
@@ -300,8 +359,13 @@ int main(int argc, char **argv)
     {
         /* An open picker must still reveal its source after a layout hides the
          * editor. Model selection by itself is insufficient for typing. */
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
         CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
             "quick-open-hidden-editor", "Hidden editor") == UMI_STATUS_OK);
+#endif
+        CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
+            "umicom.studio.layout.quick-open-hidden-editor", "Hidden editor") == UMI_STATUS_OK);
         CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
         g_signal_emit_by_name(open, "clicked");
         CHECK(!UmiGtk4WindowIsOpen(dialog));

@@ -118,6 +118,10 @@ int main(int argc, char **argv)
     UmiSettings *settings = NULL; UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL; GtkApplication *application = NULL;
     GFile *expectedFolder = NULL;
+    size_t initialCount = 0U, initialBytes = 0U;
+    char *initialText = NULL, *retainedText = NULL;
+    UmiDocumentWorkingCopySnapshot initialDocument = {0};
+    UmiStatus initialStatus = UMI_STATUS_NOT_FOUND;
     const int save = strncmp(mode, "save-", 5U) == 0;
     const int folder = strncmp(mode, "folder-", 7U) == 0;
     CHECK(g_mkdtemp(root) != NULL && g_chdir(root) == 0); changedDirectory = 1;
@@ -156,6 +160,13 @@ int main(int argc, char **argv)
         CHECK(umi_ui_document_view_model_find(views, captured.view_id, &view) == UMI_STATUS_OK); view.dirty = 1;
         CHECK(UmiUiDocumentViewModelUpsertText(views, &view, "chosen draft\n", 13U) == UMI_STATUS_OK);
     }
+    /* Studio may seed its editable welcome document. Capture actual identity
+     * and bytes so cancellation proves preservation rather than an empty model. */
+    initialCount = umi_document_coordinator_count(documents);
+    initialStatus = umi_document_coordinator_active_snapshot(documents, &initialDocument);
+    CHECK(initialStatus == UMI_STATUS_OK || initialStatus == UMI_STATUS_NOT_FOUND);
+    if (initialStatus == UMI_STATUS_OK)
+        CHECK(UmiUiDocumentViewModelCopyText(views, initialDocument.view_id, &initialText, &initialBytes) == UMI_STATUS_OK);
     expectedFolder = g_file_new_for_path(project);
     chooserHost = &workbench; chooserScenario = mode; chooserNextProject = secondProject; chooserArmed = 1;
     UmiStatus status = umi_studio_gtk_workbench_execute_command(workbench,
@@ -203,8 +214,25 @@ verify:
         CHECK(!g_file_test(destination, G_FILE_TEST_EXISTS));
         UmiUiDocumentViewSnapshot view;
         CHECK(umi_ui_document_view_model_find(views, captured.view_id, &view) == UMI_STATUS_OK && view.dirty);
-    } else CHECK(umi_document_coordinator_count(documents) == 0U);
+    } else {
+/* Cancelled or retired choosers retain the pre-existing document model, including the welcome document. Retained for engineering review. */
+#if 0
+        CHECK(umi_document_coordinator_count(documents) == 0U);
+#endif
+        CHECK(umi_document_coordinator_count(documents) == initialCount);
+        UmiDocumentWorkingCopySnapshot current;
+        CHECK(umi_document_coordinator_active_snapshot(documents, &current) == initialStatus);
+        if (initialStatus == UMI_STATUS_OK) {
+            size_t bytes = 0U;
+            CHECK(current.document_id == initialDocument.document_id &&
+                strcmp(current.view_id, initialDocument.view_id) == 0);
+            CHECK(UmiUiDocumentViewModelCopyText(views, current.view_id, &retainedText, &bytes) == UMI_STATUS_OK);
+            CHECK(bytes == initialBytes && memcmp(initialText, retainedText, bytes) == 0);
+        }
+    }
 cleanup:
+    UmiUiDocumentViewModelFreeText(initialText);
+    UmiUiDocumentViewModelFreeText(retainedText);
     chooserArmed = 0;
     if (chooserTask != NULL) ChooserReply(NULL);
     chooserHost = NULL;

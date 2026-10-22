@@ -308,6 +308,9 @@ static GtkWidget *runtime_build_application_bar(UmiStudioGtkRuntimeChrome *runti
     gtk_box_append(GTK_BOX(bar), menu_scroll);
     gtk_box_append(GTK_BOX(bar), umi_gtk4_ws_command_bar_widget(runtime->command_bar));
     runtime->notification_label = gtk_label_new("");
+    /* Stable identity exists before the first message, allowing accessibility and
+     * automation clients to observe the next notification without triggering it. */
+    (void)umi_gtk4_automation_tag_widget(runtime->notification_label, "studio.notification");
     gtk_widget_set_visible(runtime->notification_label, FALSE);
     gtk_label_set_ellipsize(GTK_LABEL(runtime->notification_label), PANGO_ELLIPSIZE_END);
     gtk_label_set_max_width_chars(GTK_LABEL(runtime->notification_label), 20);

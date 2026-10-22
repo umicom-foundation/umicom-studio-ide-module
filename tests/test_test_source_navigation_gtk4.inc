@@ -85,7 +85,11 @@ static int VerifyTestSourceLocations(GtkApplication *application, const char *fi
         umi_studio_bootstrap_desktop_shell(bootstrap),&options,&workbench)==UMI_STATUS_OK);
     /* A saved layout may contain Tests without an editor. Explicit source
      * navigation must recover that usable surface without replacing its draft. */
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench,"test-source-only","Test results")==UMI_STATUS_OK);
+#endif
+    REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench,"umicom.studio.layout.test-source-only","Test results")==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_workspace_commit_edit(workbench)==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench,UMI_STUDIO_SURFACE_TEST_EXPLORER,NULL)==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_refresh(workbench)==UMI_STATUS_OK);

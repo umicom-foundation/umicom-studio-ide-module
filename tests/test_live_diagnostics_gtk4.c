@@ -306,7 +306,11 @@ int main(int argc, char **argv)
         bool stale = strcmp(mode, "navigate-stale") == 0, revoked = strcmp(mode, "navigate-revoke") == 0;
         bool focusClose = strcmp(mode, "navigate-focus-close") == 0;
         if (strcmp(mode, "navigate-hidden") == 0 || focusClose) {
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
             CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench, "diagnostic-hidden", "Diagnostics") == UMI_STATUS_OK);
+#endif
+            CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench, "umicom.studio.layout.diagnostic-hidden", "Diagnostics") == UMI_STATUS_OK);
             CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
         }
         if (revoked) CHECK(umi_studio_workspace_set_trusted(services, 0) == UMI_STATUS_OK);

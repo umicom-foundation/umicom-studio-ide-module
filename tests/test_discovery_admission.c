@@ -10,6 +10,7 @@
 #include "umicom/studio/workspace.h"
 #include "umicom/studio/tests.h"
 #include "umicom/studio/test_discovery.h"
+#include "umicom/build/project_profile.h"
 #include "umicom/platform/clock.h"
 #include "umicom/platform/filesystem.h"
 #include <inttypes.h>

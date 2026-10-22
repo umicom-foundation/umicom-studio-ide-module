@@ -209,7 +209,11 @@ int main(int argc, char **argv)
                                                        &options, &workbench) == UMI_STATUS_OK);
     /* Start with Search alone so a successful model jump cannot hide a missing
      * native editor. Result activation must add the editor without losing Search. */
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench, "search-only", "Search") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench, "umicom.studio.layout.search-only", "Search") == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_SEARCH, NULL) ==
           UMI_STATUS_OK);

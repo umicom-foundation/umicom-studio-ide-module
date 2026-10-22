@@ -206,8 +206,13 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
         CHECK(strstr(result->output, "deliberate_studio_compile_failure") != NULL);
         /* The failed compiler must leave a navigable source location even when
          * the user has hidden the editor before opening the diagnostic. */
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
         CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
             "build-error-review", "Build error review") == UMI_STATUS_OK);
+#endif
+        CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
+            "umicom.studio.layout.build-error-review", "Build error review") == UMI_STATUS_OK);
         CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
         CHECK(umi_studio_gtk_workbench_execute_command(workbench, "navigate.problem.next", NULL) == UMI_STATUS_OK);
         CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
@@ -264,7 +269,11 @@ static int ExerciseProjectEntry(UmiStudioGtkWorkbench **slot, UmiStudioServices 
     CHECK(umi_studio_gtk_workbench_execute_command(*slot, "workspace.open-folder", root) == UMI_STATUS_OK);
     CHECK(UmiFileIndexRefreshWait(umi_studio_services_file_index(services), 10000U) == UMI_STATUS_OK);
     CHECK(umi_studio_workspace_set_trusted(services, 1) == UMI_STATUS_OK);
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "project-files", "Project files") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.project-files", "Project files") == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(*slot, UMI_STUDIO_SURFACE_EXPLORER, NULL) == UMI_STATUS_OK);
     GtkWidget *create = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window), "umicom-explorer-create-file");
@@ -355,7 +364,11 @@ static int ExerciseProjectWizard(UmiStudioGtkWorkbench **slot, UmiStudioServices
     char *source = g_build_filename(project, "src", "main.c", NULL);
     char *disk = NULL;
     if (strcmp(name, "wizard-hidden-editor") == 0) {
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
         CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "new-project-empty", "Empty") == UMI_STATUS_OK);
+#endif
+        CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.new-project-empty", "Empty") == UMI_STATUS_OK);
         CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
     }
     CHECK(umi_studio_gtk_workbench_execute_command(*slot, "project.new", NULL) == UMI_STATUS_OK);
@@ -637,7 +650,11 @@ static int ExerciseAvailableProblem(UmiStudioGtkWorkbench *workbench,
         problem.line = 2U; problem.column = 4U;
         CHECK(umi_diagnostic_model_upsert(model, &problem) == UMI_STATUS_OK);
     }
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench, "diagnostic-review", "Diagnostics") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench, "umicom.studio.layout.diagnostic-review", "Diagnostics") == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_execute_command(workbench,
         backwards ? "navigate.problem.previous" : "navigate.problem.next", NULL) == UMI_STATUS_OK);
@@ -684,7 +701,11 @@ static int ExerciseFileKeyboard(UmiStudioGtkWorkbench **slot,
     char *source = g_build_filename(root, "keyboard source.c", NULL), *saved = NULL;
     CHECK(capture != NULL && bubble != NULL);
     CHECK(gtk_event_controller_get_propagation_phase(capture) == GTK_PHASE_CAPTURE);
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "keyboard-edit", "Keyboard editing") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.keyboard-edit", "Keyboard editing") == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
     if (strcmp(mode, "keyboard-save") == 0) {
         CHECK(g_file_set_contents(source, "before\n", -1, NULL));
@@ -907,7 +928,11 @@ static int ExerciseRunFeedback(UmiStudioGtkWorkbench **workbenchSlot,
     CHECK(umi_studio_build_service_set_profile(build, profile) == UMI_STATUS_OK);
     GtkWidget *label = umi_gtk4_automation_find_tagged_widget(window, "studio.notification");
     CHECK(GTK_IS_LABEL(label));
-    notice = g_object_ref(label);
+    /* The generic retained notification owns a GObject reference, so use its checked parent-type conversion. Retained for engineering review. */
+#if 0
+notice = g_object_ref(label);
+#endif
+notice = g_object_ref(G_OBJECT(label));
     if (strcmp(mode, "run-feedback-close") == 0)
         closeHandler = g_signal_connect(notice, "notify::label", G_CALLBACK(CloseWhenFeedbackDisplayed), workbenchSlot);
     CHECK(umi_studio_gtk_workbench_execute_command(workbench, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT, NULL) == expected);
@@ -1129,7 +1154,11 @@ static int ExerciseNativeDiscovery(UmiStudioGtkWorkbench **workbenchSlot,
         GtkWidget *label = umi_gtk4_automation_find_tagged_widget(
             GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), "studio.notification");
         CHECK(label != NULL);
-        notice = g_object_ref(label);
+        /* The generic retained notification owns a GObject reference, so use its checked parent-type conversion. Retained for engineering review. */
+#if 0
+notice = g_object_ref(label);
+#endif
+notice = g_object_ref(G_OBJECT(label));
         closeHandler = g_signal_connect(notice, "notify::label",
             G_CALLBACK(CloseWhenFeedbackDisplayed), workbenchSlot);
     }
@@ -1162,7 +1191,11 @@ static int ExerciseNativeDiscovery(UmiStudioGtkWorkbench **workbenchSlot,
             GtkWidget *label = umi_gtk4_automation_find_tagged_widget(
                 GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), "studio.notification");
             CHECK(label != NULL);
-            notice = g_object_ref(label);
+            /* The generic retained notification owns a GObject reference, so use its checked parent-type conversion. Retained for engineering review. */
+#if 0
+notice = g_object_ref(label);
+#endif
+notice = g_object_ref(G_OBJECT(label));
             closeHandler = g_signal_connect(notice, "notify::label",
                 G_CALLBACK(CloseWhenFeedbackDisplayed), workbenchSlot);
         }
@@ -1390,7 +1423,11 @@ static int ExerciseVisibleHistory(UmiStudioGtkWorkbench **slot,
         gtk_text_buffer_set_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)), "unsaved second\n", -1);
         if (forward) CHECK(umi_studio_gtk_workbench_execute_command(*slot, "navigate.back", NULL) == UMI_STATUS_OK);
     }
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "history-hidden", "History") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.history-hidden", "History") == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
     if (closeDuringFocus)
         closeHandler = g_signal_connect(window, "notify::focus-widget", G_CALLBACK(CloseWhenEditorFocused), slot);
@@ -1509,7 +1546,11 @@ static int ExerciseBuildDenied(UmiStudioGtkWorkbench **slot,
     }
     GtkWidget *label = umi_gtk4_automation_find_tagged_widget(window, "studio.notification");
     CHECK(GTK_IS_LABEL(label));
-    notice = g_object_ref(label);
+    /* The generic retained notification owns a GObject reference, so use its checked parent-type conversion. Retained for engineering review. */
+#if 0
+notice = g_object_ref(label);
+#endif
+notice = g_object_ref(G_OBJECT(label));
     if (closeOnFeedback)
         closeHandler = g_signal_connect(notice, "notify::label", G_CALLBACK(CloseWhenFeedbackDisplayed), slot);
     UmiStudioBuildSnapshot before, after;
@@ -1591,7 +1632,11 @@ static int ExerciseVisibleNavigation(UmiStudioGtkWorkbench **slot,
         if (index == 2U)
             gtk_text_buffer_set_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)), "unsaved third draft\n", -1);
     }
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "navigation-hidden", "Navigation") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.navigation-hidden", "Navigation") == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
     if (closeOnFocus)
         closeHandler = g_signal_connect(window, "notify::focus-widget", G_CALLBACK(CloseWhenEditorFocused), slot);
@@ -1660,7 +1705,11 @@ static int ExerciseSourceLocation(UmiStudioGtkWorkbench **slot,
     CHECK(Reachable(editor, GTK_WIDGET(window)));
     gtk_text_buffer_set_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)), "first\nsecond\nthird\n", -1);
     CHECK(umi_ui_document_view_model_find(views, active.view_id, &before) == UMI_STATUS_OK && before.dirty);
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "location-hidden", "Location") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.location-hidden", "Location") == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
     if (closeOnFocus)
         closeHandler = g_signal_connect(window, "notify::focus-widget", G_CALLBACK(CloseWhenEditorFocused), slot);
@@ -1750,7 +1799,11 @@ static int ExerciseReviewedReload(UmiStudioGtkWorkbench **slot, UmiStudioUi *ui,
         GtkWidget *button = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window), "studio.editor.reload");
         CHECK(GTK_IS_BUTTON(button)); g_signal_emit_by_name(button, "clicked");
     } else {
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
         CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "reload-hidden", "Reload") == UMI_STATUS_OK);
+#endif
+        CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.reload-hidden", "Reload") == UMI_STATUS_OK);
         CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
         if (focusClose) handler = g_signal_connect(window, "notify::focus-widget", G_CALLBACK(CloseWhenEditorFocused), slot);
         UmiStatus status;
@@ -1827,7 +1880,11 @@ static int ExerciseSourceLineCommands(UmiStudioGtkWorkbench **slot, UmiStudioUi 
         keys = FirstUseKeyboard(editor, "umicom-source-editor-commands"); CHECK(keys != NULL);
         CHECK(FirstUseKey(keys, GDK_KEY_d, GDK_CONTROL_MASK | GDK_SHIFT_MASK));
     } else {
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
         CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "line-hidden", "Line editing") == UMI_STATUS_OK);
+#endif
+        CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.line-hidden", "Line editing") == UMI_STATUS_OK);
         CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
         if (focusClose) handler = g_signal_connect(window, "notify::focus-widget", G_CALLBACK(CloseWhenEditorFocused), slot);
         UmiStatus status = umi_studio_gtk_workbench_execute_command(*slot,
@@ -2055,7 +2112,11 @@ static int ExerciseExplorerRefresh(UmiStudioGtkWorkbench **slot, UmiStudioUi *ui
     CHECK(umi_studio_gtk_workbench_execute_command(*slot, "workspace.open-folder", root) == UMI_STATUS_OK);
     UmiFileIndex *index = umi_studio_services_file_index(services);
     CHECK(UmiFileIndexRefreshWait(index, 10000U) == UMI_STATUS_OK);
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "explorer-only", "Explorer") == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(*slot, "umicom.studio.layout.explorer-only", "Explorer") == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_commit_edit(*slot) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(*slot, UMI_STUDIO_SURFACE_EXPLORER, NULL) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_synchronise(*slot) == UMI_STATUS_OK);
@@ -2314,8 +2375,13 @@ int main(int argc, char **argv)
         goto cleanup;
     }
     if (strncmp(name, "hidden-", 7U) == 0) {
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
         CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
             "first-use-empty", "Empty layout") == UMI_STATUS_OK);
+#endif
+        CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
+            "umicom.studio.layout.first-use-empty", "Empty layout") == UMI_STATUS_OK);
         CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
     }
     source = g_build_filename(directory, strcmp(name, "unicode-path") == 0

@@ -40,7 +40,11 @@ static int VerifyDebugSelection(GtkApplication *application,const char *fixtureP
     REQUIRE(umi_debug_stack_frame_registry_upsert(umi_debug_service_stack_frame(model),&frame)==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_create_with_options(application,ui,umi_studio_bootstrap_desktop_shell(bootstrap),&options,&workbench)==UMI_STATUS_OK);
     /* Start without an editor panel: model-only navigation is not sufficient. */
+/* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
+#if 0
     REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench,"debug-source-hidden","Debug source") == UMI_STATUS_OK);
+#endif
+    REQUIRE(umi_studio_gtk_workbench_workspace_create_blank(workbench,"umicom.studio.layout.debug-source-hidden","Debug source") == UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench,UMI_STUDIO_SURFACE_DEBUG,NULL)==UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_refresh(workbench)==UMI_STATUS_OK);
