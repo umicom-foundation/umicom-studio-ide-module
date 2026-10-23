@@ -19,7 +19,11 @@ static UmiStudioGtkWorkbench **testHost;
 static UmiTerminalController *testController;
 static GtkWidget *testEntry, *testBrowse;
 static const char *testMode;
+/* Use a fixture-specific counter so included production callback tables do not shadow test globals. The previous statement is retained for review. */
+#if 0
 static int armed, callbacks;
+#endif
+static int armed, terminalCallbacks;
 static unsigned starts;
 static GTask *pending;
 static GAsyncReadyCallback answer;
@@ -37,7 +41,11 @@ static void CloseHost(void)
 static void Mutate(void)
 {
     if (!armed) return;
+/* Count only this fixture's terminal callbacks. The previous statement is retained for review. */
+#if 0
     armed = 0; ++callbacks;
+#endif
+    armed = 0; ++terminalCallbacks;
     if (strstr(testMode, "close") != NULL) CloseHost();
     else if (strstr(testMode, "reenter") != NULL) {
         if (strncmp(testMode, "render-", 7U) == 0) TerminalRefreshHost();
@@ -183,7 +191,11 @@ int main(int argc, char **argv)
             g_signal_connect(stop, "notify::sensitive", G_CALLBACK(PropertyChanged), NULL);
         } else g_signal_connect(buffer, "changed", G_CALLBACK(ContentChanged), NULL);
         armed = 1; TerminalRefreshHost(); armed = 0;
+/* Read the terminal fixture counter. The previous statement is retained for review. */
+#if 0
         CHECK(callbacks == 1);
+#endif
+        CHECK(terminalCallbacks == 1);
         if (strstr(testMode, "close") != NULL) CHECK(workbench == NULL);
         else if (strcmp(testMode, "render-switch") == 0) {
             /* The older pass must not publish the former session summary. A
@@ -205,7 +217,11 @@ int main(int argc, char **argv)
     armed = 1; g_signal_emit_by_name(testBrowse, "clicked"); armed = 0;
     if (strncmp(testMode, "create-", 7U) == 0 || strncmp(testMode, "title-", 6U) == 0 ||
         strncmp(testMode, "seed-", 5U) == 0) {
+/* Read the terminal fixture counter. The previous statement is retained for review. */
+#if 0
         CHECK(callbacks == 1);
+#endif
+        CHECK(terminalCallbacks == 1);
         if (strstr(testMode, "reenter") == NULL) {
             CHECK(starts == 0U && pending == NULL);
             if (strstr(testMode, "close") != NULL) CHECK(workbench == NULL);
@@ -247,7 +263,16 @@ int main(int argc, char **argv)
         CHECK(!((UmiStudioGtkRuntimeChrome *)workbench->runtime_chrome)->terminal_directory_choosing);
         const char *expectedText = strcmp(testMode, "late-edit") == 0 ? "newer draft" :
             (strncmp(testMode, "late-", 5U) == 0 || strcmp(testMode, "cancel") == 0) ? root : other;
+/* Compare native folder identities across slash styles without weakening the exact draft check. The previous statement is retained for review. */
+#if 0
         CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(testEntry)), expectedText) == 0);
+#endif
+        /* GFile returns native separators; a selected absolute folder is a
+         * path identity, while an untouched relative draft is exact text. */
+        if (strcmp(testMode, "late-edit") == 0)
+            CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(testEntry)), expectedText) == 0);
+        else
+            CHECK(umi_path_equal(gtk_editable_get_text(GTK_EDITABLE(testEntry)), expectedText));
         UmiTerminalSessionSnapshot actual;
         CHECK(umi_terminal_session_snapshot(umi_terminal_controller_active_session(testController), &actual) == UMI_STATUS_OK);
         CHECK(umi_path_equal(actual.working_directory, strcmp(testMode, "late-directory") == 0 ? draft : root));

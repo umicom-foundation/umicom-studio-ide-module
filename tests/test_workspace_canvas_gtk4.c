@@ -1008,6 +1008,13 @@ static int VerifySelectedTestEvidence(GtkApplication *application)
         GtkWidget *copyCsv = find_tag(root, "studio.tests.copy-evidence-csv");
         REQUIRE(VerifySelectedCsvClipboard(copyCsv, messages[i], messages[1U - i]));
     }
+    /* An unchanged catalogue deliberately keeps its native rows. Change one
+     * item revision to require replacement, then exercise retained controls
+     * from the previous catalogue. No-change paging coverage checks reuse. */
+    UmiTestPlatformItemSnapshot revisedItem;
+    REQUIRE(umi_test_platform_item_registry_find(items, ids[0], &revisedItem) == UMI_STATUS_OK);
+    (void)g_strlcpy(revisedItem.name, "Revised selected fixture", sizeof revisedItem.name);
+    REQUIRE(umi_test_platform_item_registry_upsert(items, &revisedItem) == UMI_STATUS_OK);
     /* Synchronisation replaces the row controls. Holding a button alive does
      * not permit it to change selection or start a command for another row. */
     REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);

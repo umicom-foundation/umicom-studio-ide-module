@@ -122,6 +122,9 @@ int main(int argc, char **argv)
     CHECK(umi_settings_set_boolean(settings, UMI_STUDIO_SETTING_AI_PERSIST_SESSIONS, 0) == UMI_STATUS_OK);
     CHECK(umi_settings_set_boolean(settings, UMI_STUDIO_SETTING_WORKSPACE_RESTORE_SESSION, 0) == UMI_STATUS_OK);
     CHECK(umi_settings_set_boolean(settings, UMI_STUDIO_SETTING_AUTO_SAVE, 0) == UMI_STATUS_OK);
+    /* This four-page fixture retains 907 diagnostics. The normal 512-record
+     * setting intentionally evicts old rows and cannot exercise that dataset. */
+    CHECK(umi_settings_set_integer(settings, UMI_STUDIO_SETTING_DIAGNOSTIC_CAPACITY, 1024) == UMI_STATUS_OK);
     CHECK(umi_studio_settings_save(settings, umi_studio_settings_default_path()) == UMI_STATUS_OK);
     UmiStudioServicesOptions serviceOptions = {0};
     CHECK(umi_studio_bootstrap_create_with_options(&serviceOptions, &bootstrap) == UMI_STATUS_OK);
@@ -144,6 +147,7 @@ int main(int argc, char **argv)
         CHECK(AddProblem(id, i % 2U == 0U ? UMI_DIAGNOSTIC_ERROR : UMI_DIAGNOSTIC_WARNING,
             i >= 900U ? "tail-only" : "compiler diagnostic", source) == UMI_STATUS_OK);
     }
+    CHECK(umi_diagnostic_model_count(testModel) == 907U);
     UmiStudioGtkRuntimeChrome *chrome = workbench->runtime_chrome;
     CHECK(GTK_IS_LIST_BOX(chrome->problems_list));
     list = g_object_ref(chrome->problems_list);

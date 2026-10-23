@@ -122,6 +122,12 @@ int main(int argc, char **argv)
     UmiStudioGtkRuntimeChrome *chrome = workbench->runtime_chrome;
     UmiTestPlatformService *platform = runtime_test_platform(chrome);
     CHECK(platform != NULL);
+    /* Run dispatch enforces workspace trust before reaching any registered
+     * handler, including this inert test handler. Prepare only this fixture. */
+    if (strcmp(mode, "run") == 0 || strcmp(mode, "run-reselect") == 0) {
+        UmiStudioServices *services = umi_studio_bootstrap_services(bootstrap);
+        CHECK(UmiStudioServicesPrepareWorkspace(services, root, 1) == UMI_STATUS_OK);
+    }
     UmiTestPlatformItemRegistry *items = umi_test_platform_service_item(platform);
     UmiTestPlatformResultRegistry *results = umi_test_platform_service_result(platform);
     umi_test_platform_item_registry_clear(items); umi_test_platform_result_registry_clear(results);

@@ -932,7 +932,11 @@ static int ExerciseRunFeedback(UmiStudioGtkWorkbench **workbenchSlot,
 #if 0
 notice = g_object_ref(label);
 #endif
+/* This receiver is a GtkWidget; keep the retained reference at that type instead of assigning its GObject parent pointer. The previous statement is retained for review. */
+#if 0
 notice = g_object_ref(G_OBJECT(label));
+#endif
+    notice = GTK_WIDGET(g_object_ref(label));
     if (strcmp(mode, "run-feedback-close") == 0)
         closeHandler = g_signal_connect(notice, "notify::label", G_CALLBACK(CloseWhenFeedbackDisplayed), workbenchSlot);
     CHECK(umi_studio_gtk_workbench_execute_command(workbench, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT, NULL) == expected);
@@ -1550,7 +1554,11 @@ static int ExerciseBuildDenied(UmiStudioGtkWorkbench **slot,
 #if 0
 notice = g_object_ref(label);
 #endif
+/* This receiver is a GtkWidget; keep the retained reference at that type instead of assigning its GObject parent pointer. The previous statement is retained for review. */
+#if 0
 notice = g_object_ref(G_OBJECT(label));
+#endif
+    notice = GTK_WIDGET(g_object_ref(label));
     if (closeOnFeedback)
         closeHandler = g_signal_connect(notice, "notify::label", G_CALLBACK(CloseWhenFeedbackDisplayed), slot);
     UmiStudioBuildSnapshot before, after;
