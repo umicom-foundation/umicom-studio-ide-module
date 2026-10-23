@@ -29,4 +29,6 @@
 <p>A command or another controller change can also make a pending choice stale. This preserves the current session context. Cancelling Browse leaves the field unchanged. Selection never changes Studio's process-wide working directory or starts a program.</p>
 <h2>Read output while switching sessions</h2>
 <p>Each refresh displays a captured session's output and summary together. If a session changes while the interface is updating, the next refresh displays the new selection. Unchanged output is not rewritten, so a text selection stays available for copying. The terminal keeps the same bounded output limits described above.</p>
+<h2>Keep the next command draft</h2>
+<p>An accepted command clears only the unchanged entry from which it was submitted. If the entry changes while command notifications are handled, Studio preserves that newer draft, including an edit that returns to the same text. A rejected command remains available for correction. An immediate nested Run action from the same entry is ignored until that dispatch finishes; starting another command still follows the terminal's existing pending-command checks.</p>
 </main></html>

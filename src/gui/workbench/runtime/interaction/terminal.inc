@@ -424,6 +424,8 @@ static void runtime_terminal_execute_entry(
     runtime_terminal_refresh_transcript(runtime);
 }
 #endif
+/* Command acceptance now retains the originating entry and observes draft edits across dispatch, instead of clearing a newer command or a replacement pane. Retained for engineering review. */
+#if 0
 static void runtime_terminal_execute_entry(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->terminal_entry == NULL) return;
@@ -454,6 +456,49 @@ static void runtime_terminal_execute_entry(UmiStudioGtkRuntimeChrome *runtime)
     g_clear_object(&window);
     runtime_file_dialog_request_free(binding);
     g_free(command);
+}
+#endif
+static void RuntimeTerminalDraftChanged(GtkEditable *editable, gpointer data)
+{
+    (void)editable;
+    *(gboolean *)data = TRUE;
+}
+
+static void runtime_terminal_execute_entry(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->terminal_entry == NULL) return;
+    GtkWidget *entry = g_object_ref(runtime->terminal_entry);
+    /* Dispatch and refresh can emit nested native notifications. One entry
+     * accepts only one dispatch at a time, independently of process lifetime. */
+    if (g_object_get_data(G_OBJECT(entry), "umicom-terminal-dispatch") != NULL) {
+        g_object_unref(entry); return;
+    }
+    char *command = g_strdup(gtk_editable_get_text(GTK_EDITABLE(entry)));
+    if (command == NULL || command[0] == '\0') { g_free(command); g_object_unref(entry); return; }
+    UmiStudioFileDialogRequest *binding = runtime_file_dialog_request_new(runtime, 0U);
+    if (binding == NULL) { g_free(command); g_object_unref(entry); return; }
+    gboolean edited = FALSE;
+    gulong changed = g_signal_connect(entry, "changed", G_CALLBACK(RuntimeTerminalDraftChanged), &edited);
+    g_object_set_data(G_OBJECT(entry), "umicom-terminal-dispatch", binding);
+    runtime_copy_selection(runtime->last_terminal_command, sizeof runtime->last_terminal_command, command);
+    UmiStatus status = runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_TERMINAL_EXECUTE, command);
+    GObject *window = NULL;
+    runtime = RuntimeResolveOwner(binding, &window);
+    /* Preserve edits even when text changed away and back to the same bytes.
+     * A replacement terminal pane also owns its own draft. Command acceptance
+     * can clear only the unchanged entry from which that command was captured. */
+    if (runtime != NULL) {
+        if (status == UMI_STATUS_OK && runtime->terminal_entry == entry && !edited &&
+            strcmp(gtk_editable_get_text(GTK_EDITABLE(entry)), command) == 0)
+            gtk_editable_set_text(GTK_EDITABLE(entry), "");
+        runtime = RuntimeResolveOwner(binding, &window);
+        if (runtime != NULL) runtime_terminal_refresh_transcript(runtime);
+    }
+    g_signal_handler_disconnect(entry, changed);
+    g_object_set_data(G_OBJECT(entry), "umicom-terminal-dispatch", NULL);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(binding);
+    g_free(command); g_object_unref(entry);
 }
 
 /*
