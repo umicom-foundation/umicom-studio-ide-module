@@ -337,6 +337,11 @@ UmiStatus umi_studio_test_explorer_centre_snapshot(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
+    /* The centre displays a count, not hierarchy rows. The canonical registry
+     * already owns that count; constructing and discarding an execution-sized
+     * row buffer needlessly refused catalogues larger than 1024 entries.
+     * Retain the previous materialization for engineering review. */
+#if 0
     if (centre->test_service != NULL) {
         UmiTestPlatformHierarchyNode *nodes =
             (UmiTestPlatformHierarchyNode *)calloc(
@@ -371,6 +376,14 @@ UmiStatus umi_studio_test_explorer_centre_snapshot(
             return status;
         }
     }
+#else
+    if (centre->test_service != NULL) {
+        status = umi_studio_test_service_explorer_state(centre->test_service, &out_snapshot->explorer);
+        if (status != UMI_STATUS_OK) return status;
+        out_snapshot->hierarchy_count = umi_test_platform_item_registry_count(
+            umi_test_platform_service_item(centre->service));
+    }
+#endif
 
     /*
      * The Framework service owns OPERATION selection. The Explorer model owns
@@ -461,6 +474,8 @@ UmiStatus umi_studio_test_explorer_centre_set_workspace(
  * Provide the studio test explorer centre set filter operation used by this module and its
  * client applications.
  */
+/* Commit the complete Framework projection before exposing Studio filter state, preserving the active suite and rejecting overlong query text. The earlier implementation is retained for engineering review. */
+#if 0
 UmiStatus umi_studio_test_explorer_centre_set_filter(
     UmiStudioTestExplorerCentre *centre,
     const char *search_text,
@@ -505,6 +520,42 @@ UmiStatus umi_studio_test_explorer_centre_set_filter(
         &filter);
 
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) ++centre->revision;
+    return status;
+}
+#endif
+
+UmiStatus umi_studio_test_explorer_centre_set_filter(
+    UmiStudioTestExplorerCentre *centre, const char *search_text,
+    const char *label, int outcome, int include_disabled)
+{
+    if (centre == NULL || outcome < -1 || outcome > UMI_TEST_PLATFORM_OUTCOME_TIMED_OUT)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    if (search_text == NULL) search_text = "";
+    if (label == NULL) label = "";
+    UmiTestPlatformFilter filter;
+    umi_test_platform_filter_init(&filter);
+    if (strlen(search_text) >= sizeof filter.text || strlen(label) >= sizeof filter.label)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    memcpy(filter.text, search_text, strlen(search_text) + 1U);
+    memcpy(filter.label, label, strlen(label) + 1U);
+    filter.outcome = outcome;
+    filter.include_disabled = include_disabled != 0;
+    /* An exact outcome query must not also enable the failed-or-timed-out
+     * shortcut; these are separate Framework filter operations. */
+    UmiTestPlatformFilterSummary summary;
+    UmiStatus status;
+    if (centre->test_service != NULL) {
+        UmiStudioTestExplorerState state;
+        status = umi_studio_test_service_explorer_state(centre->test_service, &state);
+        if (status != UMI_STATUS_OK) return status;
+        memcpy(filter.suite_id, state.active_suite_id, sizeof filter.suite_id);
+        status = UmiStudioTestServiceApplyExplorerFilter(centre->test_service,
+            centre->experience, &filter, &summary);
+    } else {
+        status = UmiTestExplorerSessionApplyFilter(centre->experience, &filter, &summary);
+    }
     if (status == UMI_STATUS_OK) ++centre->revision;
     return status;
 }

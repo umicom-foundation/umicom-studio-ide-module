@@ -864,6 +864,8 @@ UmiStatus umi_studio_test_service_set_filter(
 /* Framework admits the complete query and counts before any Studio view fields
  * change. There is no fallible allocation between its commit and ours; callers
  * serialize this service and its canonical workspace on the owning thread. */
+/* Keep the application adapter thin while Framework prepares the Explorer and workspace query together. The earlier implementation is retained for engineering review. */
+#if 0
 UmiStatus UmiStudioTestServiceApplyFilter(UmiStudioTestService *service,
     const UmiTestPlatformFilter *filter, UmiTestPlatformFilterSummary *out_summary)
 {
@@ -892,6 +894,56 @@ UmiStatus UmiStudioTestServiceApplyFilter(UmiStudioTestService *service,
     service->explorer = explorer;
     *out_summary = summary;
     return UMI_STATUS_OK;
+}
+#endif
+
+static UmiStatus StudioApplyExplorerFilter(UmiStudioTestService *service,
+    UmiTestExplorerSession *session,
+    const UmiTestPlatformFilter *filter, UmiTestPlatformFilterSummary *out_summary)
+{
+    if (service == NULL || out_summary == NULL ||
+        UmiTestPlatformFilterValidate(filter) != UMI_STATUS_OK ||
+        filter->outcome < -1 || filter->outcome > UMI_TEST_PLATFORM_OUTCOME_TIMED_OUT)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->explorer.revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    if (session != NULL && !UmiTestExplorerSessionBindingMatches(session, service->platform, service->workspace))
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiTestPlatformFilter next = *filter;
+    next.include_disabled = filter->include_disabled != 0;
+    next.failed_only = filter->failed_only != 0;
+    UmiStudioTestExplorerState explorer = service->explorer;
+    if (strlen(next.text) >= sizeof explorer.search_text ||
+        strlen(next.label) >= sizeof explorer.label_filter)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    copy_text(explorer.search_text, sizeof explorer.search_text, next.text);
+    copy_text(explorer.label_filter, sizeof explorer.label_filter, next.label);
+    explorer.outcome_filter = next.outcome;
+    explorer.include_disabled = next.include_disabled;
+    UmiTestPlatformFilterSummary summary;
+    UmiStatus status = session == NULL
+        ? UmiTestWorkspaceApplyFilter(service->workspace, &next, &summary)
+        : UmiTestExplorerSessionApplyFilter(session, &next, &summary);
+    if (status != UMI_STATUS_OK) return status;
+    explorer.selected_count = summary.matched_count;
+    ++explorer.revision;
+    service->filter = next;
+    service->explorer = explorer;
+    *out_summary = summary;
+    return UMI_STATUS_OK;
+}
+
+UmiStatus UmiStudioTestServiceApplyFilter(UmiStudioTestService *service,
+    const UmiTestPlatformFilter *filter, UmiTestPlatformFilterSummary *out_summary)
+{
+    return StudioApplyExplorerFilter(service, NULL, filter, out_summary);
+}
+
+UmiStatus UmiStudioTestServiceApplyExplorerFilter(UmiStudioTestService *service,
+    UmiTestExplorerSession *session, const UmiTestPlatformFilter *filter,
+    UmiTestPlatformFilterSummary *out_summary)
+{
+    if (session == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return StudioApplyExplorerFilter(service, session, filter, out_summary);
 }
 
 UmiStatus umi_studio_test_service_set_filter(

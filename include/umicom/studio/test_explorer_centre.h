@@ -151,6 +151,10 @@ UmiStatus umi_studio_test_explorer_centre_set_workspace(
  * Provide the studio test explorer centre set filter operation used by this module and its
  * client applications.
  */
+/* Apply complete text without truncation, preserving the bound active suite.
+ * Framework stages the workspace and projection before Studio presentation is
+ * published. Refusal preserves every query representation and centre revision.
+ * Calls are serialized on the owner thread, as for the bound test service. */
 UmiStatus umi_studio_test_explorer_centre_set_filter(
     UmiStudioTestExplorerCentre *centre,
     const char *search_text,

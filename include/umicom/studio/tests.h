@@ -19,6 +19,7 @@
 #include <stddef.h>
 
 #include "umicom/umicom.h"
+#include "umicom/test_platform/explorer_session.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -166,6 +167,13 @@ void umi_studio_test_service_finish(UmiStudioTestService *service);
  * matched count. Both Studio view fields and workspace state remain unchanged
  * on refusal. Calls belong to the service owner thread; out_summary is required.
  * Execution plans remain bounded independently of catalogue size. */
+/* Use for a centre bound to this service. The session must borrow exactly this
+ * service's platform and workspace; a mismatched binding is refused. Query,
+ * projection, workspace and Studio fields stay unchanged on failure. */
+UmiStatus UmiStudioTestServiceApplyExplorerFilter(UmiStudioTestService *service,
+    UmiTestExplorerSession *session, const UmiTestPlatformFilter *filter,
+    UmiTestPlatformFilterSummary *out_summary);
+
 UmiStatus UmiStudioTestServiceApplyFilter(
     UmiStudioTestService *service,
     const UmiTestPlatformFilter *filter,

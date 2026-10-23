@@ -3309,3 +3309,6 @@ include(cmake/UmicomStudioProblemsPaging.cmake)
 
 # Register shared native planning after all workbench consumers are declared.
 include(cmake/UmicomStudioKanban.cmake)
+
+# Keep centre queries coherent with shared Framework projections.
+include(cmake/UmicomStudioExplorerFilter.cmake)
