@@ -162,6 +162,15 @@ void umi_studio_test_service_finish(UmiStudioTestService *service);
  * Provide the studio test service set filter operation used by this module and its client
  * applications.
  */
+/* Atomically apply the complete query through Framework and return the full
+ * matched count. Both Studio view fields and workspace state remain unchanged
+ * on refusal. Calls belong to the service owner thread; out_summary is required.
+ * Execution plans remain bounded independently of catalogue size. */
+UmiStatus UmiStudioTestServiceApplyFilter(
+    UmiStudioTestService *service,
+    const UmiTestPlatformFilter *filter,
+    UmiTestPlatformFilterSummary *out_summary);
+
 UmiStatus umi_studio_test_service_set_filter(
     UmiStudioTestService *service,
     const char *search_text,

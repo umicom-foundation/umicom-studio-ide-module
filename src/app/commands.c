@@ -1763,6 +1763,8 @@ static UmiTestWorkspace *tests_workspace(void *user_data)
  * Provide the tests filter handler operation used by this module and its client
  * applications.
  */
+/* The shared Studio filter transaction below synchronizes command and Explorer state and returns the accepted count without another fallible snapshot. Retained for engineering review. */
+#if 0
 static UmiStatus tests_filter_handler(void *user_data,
                                       const char *argument,
                                       char *out_message,
@@ -1812,6 +1814,38 @@ static UmiStatus tests_filter_handler(void *user_data,
             (void)snprintf(out_message, message_capacity, "Testing filter: %s",
                            umi_status_text(status));
         }
+    }
+    return status;
+}
+#endif
+
+static UmiStatus tests_filter_handler(void *user_data,
+    const char *argument, char *out_message, size_t message_capacity)
+{
+    UmiStudioTestService *service = umi_studio_services_tests((UmiStudioServices *)user_data);
+    if (service == NULL) return UMI_STATUS_UNAVAILABLE;
+    const char *text = argument != NULL ? argument : "";
+    UmiTestPlatformFilter filter;
+    umi_test_platform_filter_init(&filter);
+    if (strcmp(text, "all") == 0) text = "";
+    else if (strcmp(text, "failed") == 0) { filter.failed_only = 1; text = ""; }
+    else if (strcmp(text, "passed") == 0) { filter.outcome = UMI_TEST_PLATFORM_OUTCOME_PASSED; text = ""; }
+    else if (strcmp(text, "skipped") == 0) { filter.outcome = UMI_TEST_PLATFORM_OUTCOME_SKIPPED; text = ""; }
+    else if (strcmp(text, "not-run") == 0) { filter.outcome = UMI_TEST_PLATFORM_OUTCOME_NOT_RUN; text = ""; }
+    UmiTestPlatformFilterSummary summary;
+    UmiStatus status;
+    if (strlen(text) >= sizeof filter.text) status = UMI_STATUS_CAPACITY_EXCEEDED;
+    else {
+        memcpy(filter.text, text, strlen(text) + 1U);
+        /* Commands and the Explorer share one publication path; the returned
+         * count belongs to that transaction, without a second allocation. */
+        status = UmiStudioTestServiceApplyFilter(service, &filter, &summary);
+    }
+    if (out_message != NULL && message_capacity > 0U) {
+        if (status == UMI_STATUS_OK)
+            (void)snprintf(out_message, message_capacity,
+                "Testing filter selected %zu test(s)", summary.matched_count);
+        else (void)snprintf(out_message, message_capacity, "Testing filter: %s", umi_status_text(status));
     }
     return status;
 }

@@ -16,6 +16,9 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/developer_workbench/start_centre.h"
+#if defined(UMICOM_STUDIO_HAS_KANBAN)
+#include "umicom/ui/gtk4/kanban_window.h"
+#endif
 
 /* Create one reusable welcome card with a heading and wrapped explanation. */
 static GtkWidget *runtime_welcome_card(
@@ -369,6 +372,17 @@ static GtkWidget *runtime_build_welcome_surface(
     if (learn != NULL) {
         gtk_flow_box_append(GTK_FLOW_BOX(card_flow), learn);
     }
+#if defined(UMICOM_STUDIO_HAS_KANBAN)
+    /* Framework owns board rules, files and window lifetime. Studio provides
+     * an entry point; its editor/workspace lifecycle cannot discard board edits. */
+    GtkWidget *planning = runtime_welcome_card("Plan development",
+        "Move cards between To do, Doing, Testing, Blocked and Done. Assign developers by name and prepare a reviewed public roadmap.");
+    GtkWidget *launch_board = UmiKanbanGtk4CreateLauncher(runtime->owner->window);
+    if (planning != NULL && launch_board != NULL) {
+        gtk_box_append(GTK_BOX(planning), launch_board);
+        gtk_flow_box_append(GTK_FLOW_BOX(card_flow), planning);
+    }
+#endif
     gtk_box_append(GTK_BOX(page), card_flow);
 
     scroll = runtime_scroll(page);

@@ -433,6 +433,8 @@ UmiStatus umi_studio_test_service_run_all(UmiStudioTestService *service,
  * Provide the studio test service plan all operation used by this module and its client
  * applications.
  */
+/* Framework planning into a private candidate below prevents partial output on refusal and keeps execution tied to the canonical workspace filter. Retained for engineering review. */
+#if 0
 UmiStatus umi_studio_test_service_plan_all(
     UmiStudioTestService *service,
     uint32_t repeat_count,
@@ -461,11 +463,39 @@ UmiStatus umi_studio_test_service_plan_all(
     service->explorer.revision += 1U;
     return UMI_STATUS_OK;
 }
+#endif
+
+UmiStatus umi_studio_test_service_plan_all(
+    UmiStudioTestService *service, uint32_t repeat_count, int stop_on_failure,
+    UmiTestPlatformOperationPlan *out_plan)
+{
+    if (service == NULL || out_plan == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->explorer.revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    UmiTestPlatformOperationPlan *candidate = malloc(sizeof *candidate);
+    if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    /* Read the canonical workspace query, including filters set by commands. */
+    UmiStatus status = umi_test_workspace_plan_all(service->workspace, candidate);
+    if (status == UMI_STATUS_OK) {
+        candidate->kind = repeat_count > 1U ? UMI_TEST_PLATFORM_OPERATION_REPEAT : UMI_TEST_PLATFORM_OPERATION_RUN_ALL;
+        candidate->repeat_count = repeat_count == 0U ? 1U : repeat_count;
+        candidate->stop_on_failure = stop_on_failure != 0;
+        status = umi_test_platform_operation_plan_validate(candidate);
+    }
+    if (status == UMI_STATUS_OK) {
+        *out_plan = *candidate;
+        service->explorer.selected_count = candidate->selection.count;
+        ++service->explorer.revision;
+    }
+    free(candidate);
+    return status;
+}
 
 /*
  * Find studio test service plan while leaving the underlying catalogue or model owned by
  * this module.
  */
+/* Framework planning into a private candidate below prevents partial output on refusal and keeps execution tied to the canonical workspace filter. Retained for engineering review. */
+#if 0
 UmiStatus umi_studio_test_service_plan_selected(
     UmiStudioTestService *service,
     const char *const *item_ids,
@@ -507,11 +537,38 @@ UmiStatus umi_studio_test_service_plan_selected(
     service->explorer.revision += 1U;
     return UMI_STATUS_OK;
 }
+#endif
+
+UmiStatus umi_studio_test_service_plan_selected(
+    UmiStudioTestService *service, const char *const *item_ids, size_t item_count,
+    uint32_t repeat_count, int stop_on_failure, UmiTestPlatformOperationPlan *out_plan)
+{
+    if (service == NULL || item_ids == NULL || item_count == 0U || out_plan == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->explorer.revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    UmiTestPlatformOperationPlan *candidate = malloc(sizeof *candidate);
+    if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    umi_test_platform_operation_plan_init(candidate, UMI_TEST_PLATFORM_OPERATION_RUN_SELECTED);
+    candidate->repeat_count = repeat_count == 0U ? 1U : repeat_count;
+    candidate->stop_on_failure = stop_on_failure != 0;
+    UmiStatus status = UmiTestPlatformOperationPlanSelected(candidate,
+        umi_test_platform_service_item(service->platform), item_ids, item_count);
+    if (status == UMI_STATUS_OK) {
+        candidate->kind = repeat_count > 1U ? UMI_TEST_PLATFORM_OPERATION_REPEAT : UMI_TEST_PLATFORM_OPERATION_RUN_SELECTED;
+        *out_plan = *candidate;
+        service->explorer.selected_count = candidate->selection.count;
+        ++service->explorer.revision;
+    }
+    free(candidate);
+    return status;
+}
 
 /*
  * Provide the studio test service plan failed operation used by this module and its client
  * applications.
  */
+/* Framework planning into a private candidate below prevents partial output on refusal and keeps execution tied to the canonical workspace filter. Retained for engineering review. */
+#if 0
 UmiStatus umi_studio_test_service_plan_failed(
     UmiStudioTestService *service,
     UmiTestPlatformOperationPlan *out_plan)
@@ -532,6 +589,26 @@ UmiStatus umi_studio_test_service_plan_failed(
         service->explorer.selected_count = out_plan->selection.count;
         service->explorer.revision += 1U;
     }
+    return status;
+}
+#endif
+
+UmiStatus umi_studio_test_service_plan_failed(
+    UmiStudioTestService *service, UmiTestPlatformOperationPlan *out_plan)
+{
+    if (service == NULL || out_plan == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->explorer.revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    UmiTestPlatformOperationPlan *candidate = malloc(sizeof *candidate);
+    if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    /* The command and service paths use the same workspace scope, including
+     * suite, text, labels, disabled state and failed-or-timed-out outcomes. */
+    UmiStatus status = umi_test_workspace_plan_failed(service->workspace, candidate);
+    if (status == UMI_STATUS_OK) {
+        *out_plan = *candidate;
+        service->explorer.selected_count = candidate->selection.count;
+        ++service->explorer.revision;
+    }
+    free(candidate);
     return status;
 }
 
@@ -737,6 +814,8 @@ void umi_studio_test_service_finish(UmiStudioTestService *service)
  * Provide the studio test service set filter operation used by this module and its client
  * applications.
  */
+/* The Framework filter transaction below replaces partial field edits and execution-buffer-based counting; retain this earlier service adapter for review. Retained for engineering review. */
+#if 0
 UmiStatus umi_studio_test_service_set_filter(
     UmiStudioTestService *service,
     const char *search_text,
@@ -779,6 +858,63 @@ UmiStatus umi_studio_test_service_set_filter(
     service->explorer.selected_count = selection.count;
     service->explorer.revision += 1U;
     return UMI_STATUS_OK;
+}
+#endif
+
+/* Framework admits the complete query and counts before any Studio view fields
+ * change. There is no fallible allocation between its commit and ours; callers
+ * serialize this service and its canonical workspace on the owning thread. */
+UmiStatus UmiStudioTestServiceApplyFilter(UmiStudioTestService *service,
+    const UmiTestPlatformFilter *filter, UmiTestPlatformFilterSummary *out_summary)
+{
+    if (service == NULL || out_summary == NULL ||
+        UmiTestPlatformFilterValidate(filter) != UMI_STATUS_OK ||
+        filter->outcome < -1 || filter->outcome > UMI_TEST_PLATFORM_OUTCOME_TIMED_OUT)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->explorer.revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    UmiTestPlatformFilter next = *filter;
+    next.include_disabled = filter->include_disabled != 0;
+    next.failed_only = filter->failed_only != 0;
+    UmiStudioTestExplorerState explorer = service->explorer;
+    if (strlen(next.text) >= sizeof explorer.search_text ||
+        strlen(next.label) >= sizeof explorer.label_filter)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    copy_text(explorer.search_text, sizeof explorer.search_text, next.text);
+    copy_text(explorer.label_filter, sizeof explorer.label_filter, next.label);
+    explorer.outcome_filter = next.outcome;
+    explorer.include_disabled = next.include_disabled;
+    UmiTestPlatformFilterSummary summary;
+    UmiStatus status = UmiTestWorkspaceApplyFilter(service->workspace, &next, &summary);
+    if (status != UMI_STATUS_OK) return status;
+    explorer.selected_count = summary.matched_count;
+    ++explorer.revision;
+    service->filter = next;
+    service->explorer = explorer;
+    *out_summary = summary;
+    return UMI_STATUS_OK;
+}
+
+UmiStatus umi_studio_test_service_set_filter(
+    UmiStudioTestService *service, const char *search_text, const char *label,
+    int outcome, int include_disabled)
+{
+    if (service == NULL || outcome < -1 || outcome > UMI_TEST_PLATFORM_OUTCOME_TIMED_OUT)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    if (search_text == NULL) search_text = "";
+    if (label == NULL) label = "";
+    UmiTestPlatformFilter next;
+    umi_test_platform_filter_init(&next);
+    /* Reject complete caller strings before copying; the compatibility helper
+     * elsewhere intentionally truncates display text and is unsuitable here. */
+    if (strlen(search_text) >= sizeof next.text || strlen(label) >= sizeof next.label)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    copy_text(next.text, sizeof next.text, search_text);
+    copy_text(next.label, sizeof next.label, label);
+    copy_text(next.suite_id, sizeof next.suite_id, service->explorer.active_suite_id);
+    next.outcome = outcome;
+    next.include_disabled = include_disabled != 0;
+    UmiTestPlatformFilterSummary summary;
+    return UmiStudioTestServiceApplyFilter(service, &next, &summary);
 }
 
 /*

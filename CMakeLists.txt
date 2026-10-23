@@ -3306,3 +3306,6 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioTerminalDraft.cmake")
 include(cmake/UmicomStudioExplorerPaging.cmake)
 
 include(cmake/UmicomStudioProblemsPaging.cmake)
+
+# Register shared native planning after all workbench consumers are declared.
+include(cmake/UmicomStudioKanban.cmake)
