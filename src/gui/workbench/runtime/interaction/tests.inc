@@ -90,6 +90,8 @@ static int runtime_test_select(UmiStudioGtkRuntimeChrome *runtime, const char *t
     return 1;
 }
 #endif
+/* A live host alone cannot authorize Run or Debug after a callback changes the selected test; canonical selection and discovery identity now agree before execution. Retained for engineering review. */
+#if 0
 static int runtime_test_select(UmiStudioGtkRuntimeChrome *runtime, const char *test_id)
 {
     if (runtime == NULL || test_id == NULL || test_id[0] == '\0') return 0;
@@ -112,6 +114,57 @@ static int runtime_test_select(UmiStudioGtkRuntimeChrome *runtime, const char *t
         /* Run and Debug must not follow selection into a closed workbench. */
         GObject *remaining = NULL;
         accepted = runtime_file_dialog_owner(binding, &remaining) == runtime;
+        g_clear_object(&remaining);
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(binding);
+    return accepted;
+}
+#endif
+static int runtime_test_select(UmiStudioGtkRuntimeChrome *runtime, const char *test_id)
+{
+    if (runtime == NULL || test_id == NULL || test_id[0] == '\0') return 0;
+    /* A command can rebuild rows or detach the workbench. Own its identifier
+     * and reacquire the same runtime before publishing selected evidence. */
+    char requested[sizeof(runtime->selected_test_id)];
+    size_t length = strlen(test_id);
+    if (length >= sizeof(requested)) return 0;
+    memcpy(requested, test_id, length + 1U);
+    UmiStudioFileDialogRequest *binding = runtime_file_dialog_request_new(runtime, 0U);
+    if (binding == NULL) return 0;
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    UmiTestPlatformItemSnapshot original;
+    if (platform == NULL || umi_test_platform_item_registry_find(
+        umi_test_platform_service_item(platform), requested, &original) != UMI_STATUS_OK) {
+        runtime_file_dialog_request_free(binding); return 0;
+    }
+    UmiStatus status = runtime_execute_registered_command(runtime,
+        UMI_STUDIO_COMMAND_TESTS_SELECT, requested);
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *current = runtime_file_dialog_owner(binding, &window);
+    int accepted = status == UMI_STATUS_OK && current == runtime;
+    if (accepted) {
+        runtime_copy_selection(current->selected_test_id, sizeof(current->selected_test_id), requested);
+        RuntimeSelectedTestEvidenceRefresh(current);
+        /* Run and Debug must not follow selection into a closed workbench. */
+        GObject *remaining = NULL;
+        current = runtime_file_dialog_owner(binding, &remaining);
+        accepted = current == runtime && strcmp(current->selected_test_id, requested) == 0;
+        if (accepted) {
+            /* A selected-evidence notification may choose another test or
+             * replace discovery. The service, UI and captured item must still
+             * agree before Run/Debug can follow this selection. */
+            UmiStudioServices *services = umi_studio_ui_services(current->owner->ui);
+            UmiTestWorkspaceSnapshot selection;
+            UmiTestPlatformItemSnapshot item;
+            UmiTestPlatformService *live = runtime_test_platform(current);
+            accepted = live != NULL &&
+                umi_test_workspace_snapshot(umi_studio_test_service_workspace(
+                    umi_studio_services_tests(services)), &selection) == UMI_STATUS_OK &&
+                strcmp(selection.selected_item_id, requested) == 0 &&
+                umi_test_platform_item_registry_find(umi_test_platform_service_item(live),
+                    requested, &item) == UMI_STATUS_OK && item.revision == original.revision;
+        }
         g_clear_object(&remaining);
     }
     g_clear_object(&window);
@@ -168,6 +221,8 @@ static void runtime_on_test_run(
     }
 }
 #endif
+/* Paged row dispatch retains this action in RuntimeTestPageClicked and checks the page again after selection before launching; the previous internal callback remains for review. Retained for engineering review. */
+#if 0
 static void runtime_on_test_run(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime = user_data;
@@ -178,6 +233,8 @@ static void runtime_on_test_run(GtkButton *button, gpointer user_data)
             UMI_STUDIO_COMMAND_TESTS_RUN_SELECTED, NULL);
     }
 }
+#endif
+
 
 /*
  * Provide the runtime on test debug operation used by this module and its client
@@ -211,6 +268,8 @@ static void runtime_on_test_debug(
     }
 }
 #endif
+/* Paged row dispatch retains this action in RuntimeTestPageClicked and checks the page again after selection before launching; the previous internal callback remains for review. Retained for engineering review. */
+#if 0
 static void runtime_on_test_debug(GtkButton *button, gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime = user_data;
@@ -221,6 +280,8 @@ static void runtime_on_test_debug(GtkButton *button, gpointer user_data)
             UMI_STUDIO_COMMAND_TESTS_DEBUG_SELECTED, NULL);
     }
 }
+#endif
+
 
 /*
  * Provide the runtime on test source operation used by this module and its client
@@ -617,6 +678,8 @@ static void runtime_tests_refresh_list(
     UmiStudioGtkRuntimeChrome *runtime);
 
 /* A changed grouping or sort choice rebuilds only the Test Explorer projection. */
+/* Weak-owner paging controls now observe edits immediately and reset the displayed range; this callback remains for review. Retained for engineering review. */
+#if 0
 static void RuntimeTestViewChanged(
     GObject *object,
     GParamSpec *parameter,
@@ -626,8 +689,12 @@ static void RuntimeTestViewChanged(
     (void)parameter;
     runtime_tests_refresh_list((UmiStudioGtkRuntimeChrome *)userData);
 }
+#endif
+
 
 /* Keep the toggle callback signature native while reusing the same refresh path. */
+/* Weak-owner paging controls now observe edits immediately and reset the displayed range; this callback remains for review. Retained for engineering review. */
+#if 0
 static void RuntimeTestFailedOnlyChanged(
     GtkCheckButton *button,
     gpointer userData)
@@ -635,11 +702,15 @@ static void RuntimeTestFailedOnlyChanged(
     (void)button;
     runtime_tests_refresh_list((UmiStudioGtkRuntimeChrome *)userData);
 }
+#endif
+
 
 /*
  * Build the visible Test Explorer from the canonical Framework model. Studio
  * creates no second result history, filter engine, hierarchy or sort policy.
  */
+/* Immutable Framework pages and guarded native publication replace the truncated first-page renderer, retaining all row actions. Retained for engineering review. */
+#if 0
 static void runtime_tests_refresh_list(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -931,11 +1002,124 @@ static void runtime_tests_refresh_list(
 
     umi_test_explorer_model_destroy(model);
 }
+#endif
+#include "test_paging.inc"
+
+static void runtime_tests_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
+{
+    RuntimeTestPageState *state = RuntimeTestPages(runtime);
+    if (state == NULL || state->publishing) return;
+    if (RuntimeTestPageCurrent(runtime, state->published) == UMI_STATUS_OK) return;
+    GtkWidget *list = g_object_ref(runtime->test_list);
+    GObject *token = g_object_new(G_TYPE_OBJECT, NULL);
+    RuntimeTestPageCapture *capture = g_new0(RuntimeTestPageCapture, 1);
+    capture->owner = runtime_file_dialog_request_new(runtime, 0U);
+    capture->query = g_object_ref(state->query);
+    capture->list = list;
+    capture->running = runtime->test_snapshot.operation_running;
+    capture->requested_offset = state->offset;
+    g_object_set_data_full(token, "capture", capture, RuntimeTestPageCaptureFree);
+    GPtrArray *rows = g_ptr_array_new_with_free_func(g_object_unref);
+    UmiStatus status = UMI_STATUS_CANCELLED;
+    state->publishing = 1;
+    g_clear_object(&state->published);
+    if (capture->owner == NULL) goto done;
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (platform == NULL) goto done;
+    capture->items = umi_test_platform_service_item(platform);
+    capture->results = umi_test_platform_service_result(platform);
+    UmiTestPlatformFilter filter;
+    RuntimeTestPageFilter(runtime, &filter);
+    status = umi_test_explorer_model_create(&capture->model);
+    if (status == UMI_STATUS_OK) status = umi_test_explorer_model_set_filter(capture->model, &filter);
+    if (status == UMI_STATUS_OK) status = umi_test_explorer_model_set_group(capture->model, RuntimeTestGroupMode(runtime));
+    if (status == UMI_STATUS_OK) status = umi_test_explorer_model_set_sort(capture->model, RuntimeTestSortMode(runtime));
+    if (status == UMI_STATUS_OK) status = umi_test_explorer_model_rebuild(capture->model, capture->items, capture->results);
+    if (status == UMI_STATUS_OK) status = UmiTestExplorerPageCreate(capture->model,
+        state->offset, UMI_TEST_EXPLORER_PAGE_LIMIT, &capture->page);
+    if (status == UMI_STATUS_OK) status = UmiTestExplorerPageRead(capture->page, &capture->summary);
+    if (status != UMI_STATUS_OK) {
+/* Report the actual model capacity or capture error; repeated discovery cannot repair an oversized projection Retained for engineering review. */
+#if 0
+        gtk_label_set_text(GTK_LABEL(state->range), "Test page unavailable. Refresh discovery and try again.");
+#endif
+        size_t discovered = umi_test_platform_item_registry_count(capture->items);
+        char reason[256];
+/* The legacy projection ceiling is retained for review; the compact Framework model now reports its full discovery limit. Retained for engineering review. */
+#if 0
+        if (status == UMI_STATUS_CAPACITY_EXCEEDED && discovered > UMI_TEST_EXPLORER_MODEL_CAPACITY)
+            (void)snprintf(reason, sizeof reason,
+                "No current page: %zu discovered tests exceed the Test Explorer model limit of %u. Use CTest or a smaller configured suite.",
+                discovered, (unsigned)UMI_TEST_EXPLORER_MODEL_CAPACITY);
+        else (void)snprintf(reason, sizeof reason, "No current test page: %s. Check discovery and the selected build directory.",
+            umi_status_text(status));
+
+#endif
+        if (status == UMI_STATUS_CAPACITY_EXCEEDED && discovered > UMI_TEST_EXPLORER_MODEL_MAX_CAPACITY)
+            (void)snprintf(reason, sizeof reason,
+                "No current page: %zu discovered tests exceed the Test Explorer model limit of %u. Use CTest or a smaller configured suite.",
+                discovered, (unsigned)UMI_TEST_EXPLORER_MODEL_MAX_CAPACITY);
+        else (void)snprintf(reason, sizeof reason, "No current test page: %s. Check discovery and the selected build directory.",
+            umi_status_text(status));
+        gtk_label_set_text(GTK_LABEL(state->range), reason);
+        goto done;
+    }
+    /* A shrinking projection clamps through Framework. The next refresh uses
+     * this actual boundary instead of repeatedly requesting an obsolete page. */
+    state->offset = capture->summary.offset;
+    capture->requested_offset = state->offset;
+    for (size_t i = 0U; i < capture->summary.count; ++i) {
+        UmiTestExplorerRow row;
+        status = UmiTestExplorerPageRowAt(capture->page, i, &row);
+        if (status != UMI_STATUS_OK) goto done;
+        g_ptr_array_add(rows, RuntimeTestPageRow(&row, token));
+        if (RuntimeTestPagePublicationCurrent(GTK_LIST_BOX(list), token) != UMI_STATUS_OK) goto done;
+    }
+    if (rows->len == 0U) {
+        GtkWidget *empty = runtime_label(filter.failed_only ?
+            "No failed tests match the current filter." : "No tests match the current filter.", 0.0F);
+        g_object_ref_sink(empty); g_ptr_array_add(rows, empty);
+    }
+    status = UmiGtk4ListBoxPublish(GTK_LIST_BOX(list), (GtkWidget *const *)rows->pdata,
+        rows->len, RuntimeTestPagePublicationCurrent, token);
+    if (status != UMI_STATUS_OK) goto done;
+    const UmiTestExplorerPageSummary *s = &capture->summary;
+    char range[256], summary[320];
+    (void)snprintf(range, sizeof range, "Page %zu of %zu — rows %zu–%zu of %zu matching",
+        s->page_count == 0U ? 0U : s->page_index + 1U, s->page_count,
+        s->count == 0U ? 0U : s->offset + 1U, s->offset + s->count, s->model.visible_row_count);
+    (void)snprintf(summary, sizeof summary,
+        "%zu discovered — %zu passed, %zu failed, %zu skipped, %zu not run — showing %zu rows%s",
+        s->model.row_count, s->model.passed_count, s->model.failed_count,
+        s->model.skipped_count, s->model.not_run_count, s->count, capture->running ? " — running" : "");
+    gtk_label_set_text(GTK_LABEL(state->range), range);
+    if (RuntimeTestPagePublicationCurrent(GTK_LIST_BOX(list), token) != UMI_STATUS_OK) goto done;
+    gtk_widget_set_sensitive(state->first, s->has_previous);
+    if (RuntimeTestPagePublicationCurrent(GTK_LIST_BOX(list), token) != UMI_STATUS_OK) goto done;
+    gtk_widget_set_sensitive(state->last, s->has_next);
+    if (RuntimeTestPagePublicationCurrent(GTK_LIST_BOX(list), token) != UMI_STATUS_OK) goto done;
+    gtk_widget_set_sensitive(state->previous, s->has_previous);
+    if (RuntimeTestPagePublicationCurrent(GTK_LIST_BOX(list), token) != UMI_STATUS_OK) goto done;
+    gtk_widget_set_sensitive(state->next, s->has_next);
+    if (RuntimeTestPagePublicationCurrent(GTK_LIST_BOX(list), token) != UMI_STATUS_OK) goto done;
+    gtk_label_set_text(GTK_LABEL(state->summary), summary);
+    if (RuntimeTestPagePublicationCurrent(GTK_LIST_BOX(list), token) != UMI_STATUS_OK) goto done;
+    state->published = g_object_ref(token);
+done:
+    /* Partial or cancelled publication deliberately grants no row actions.
+     * A later refresh retries current state; no recursive rebuild is started. */
+    state->publishing = 0;
+    g_ptr_array_unref(rows);
+    g_object_unref(token);
+    g_object_unref(list);
+}
 
 /*
  * Provide the runtime on test search changed operation used by this module and its client
  * applications.
  */
+/* Weak-owner paging controls now observe edits immediately and reset the displayed range; this callback remains for review. Retained for engineering review. */
+#if 0
 static void runtime_on_test_search_changed(
     GtkSearchEntry *entry,
     gpointer user_data)
@@ -944,3 +1128,4 @@ static void runtime_on_test_search_changed(
     runtime_tests_refresh_list(
         (UmiStudioGtkRuntimeChrome *)user_data);
 }
+#endif

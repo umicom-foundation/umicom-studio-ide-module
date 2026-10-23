@@ -515,10 +515,25 @@ static void runtime_on_problems_clear(GtkButton *button, gpointer user_data)
 /* Immutable pages and the Framework native-list publisher keep presentation
  * separate from model access. Native notifications may retire this window or
  * replace its query; only a complete, still-current page grants row actions. */
+#include "problems_paging.inc"
+/* Use the list-owned page offset while retaining canonical diagnostic query filters Retained for engineering review. */
+#if 0
 static void RuntimeProblemsQuery(UmiStudioGtkRuntimeChrome *runtime, UmiDiagnosticQuery *query)
 {
     umi_diagnostic_query_init(query);
     query->limit = UMI_DIAGNOSTIC_PAGE_LIMIT;
+    query->sort = RuntimeProblemsSort(runtime);
+    query->filter.include_resolved = RuntimeProblemsIncludeResolved(runtime);
+    RuntimeProblemsApplySeverity(runtime, &query->filter);
+    RuntimeProblemsApplyText(runtime, &query->filter);
+}
+#endif
+static void RuntimeProblemsQuery(UmiStudioGtkRuntimeChrome *runtime, UmiDiagnosticQuery *query)
+{
+    umi_diagnostic_query_init(query);
+    query->limit = UMI_DIAGNOSTIC_PAGE_LIMIT;
+    RuntimeProblemsPaging *paging = RuntimeProblemsPagingState(runtime->problems_list);
+    query->offset = paging != NULL ? paging->offset : 0U;
     query->sort = RuntimeProblemsSort(runtime);
     query->filter.include_resolved = RuntimeProblemsIncludeResolved(runtime);
     RuntimeProblemsApplySeverity(runtime, &query->filter);
@@ -568,6 +583,8 @@ static UmiStatus RuntimeProblemsPublicationCurrent(GtkListBox *list, void *conte
     g_clear_object(&window);
     return status;
 }
+/* Convert invalid diagnostic display bytes to visible replacement characters while retaining original source identity Retained for engineering review. */
+#if 0
 static GtkWidget *RuntimeProblemsPrepareRow(const UmiDiagnosticSnapshot *problem, GObject *token)
 {
     GtkWidget *row = gtk_list_box_row_new();
@@ -594,6 +611,47 @@ static GtkWidget *RuntimeProblemsPrepareRow(const UmiDiagnosticSnapshot *problem
     g_object_set_data_full(G_OBJECT(row), "studio-problem-page", g_object_ref(token), g_object_unref);
     return row;
 }
+#endif
+static GtkWidget *RuntimeProblemsPrepareRow(const UmiDiagnosticSnapshot *problem, GObject *token)
+{
+    GtkWidget *row = gtk_list_box_row_new();
+    g_object_ref_sink(row);
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    char *heading = g_strdup_printf("%s%s — %s%s%s", problem->resolved ? "Resolved — " : "",
+        umi_diagnostic_severity_text(problem->severity), problem->source,
+        problem->code[0] != '\0' ? " — " : "", problem->code);
+    /* Display repairs stay in the presenter; IDs, source paths and canonical
+     * message bytes remain unchanged in the owned Framework snapshot. */
+    char *displayHeading = g_utf8_make_valid(heading, -1);
+    GtkWidget *severity = runtime_label(displayHeading, 0.0F);
+    g_free(displayHeading);
+    g_free(heading);
+    gtk_widget_add_css_class(severity, "umicom-runtime-muted");
+    gtk_box_append(GTK_BOX(box), severity);
+    char *displayMessage = g_utf8_make_valid(problem->message, -1);
+    gtk_box_append(GTK_BOX(box), runtime_label(displayMessage, 0.0F));
+    g_free(displayMessage);
+    if (problem->uri[0] != '\0') {
+        char *location = g_strdup_printf("%s:%u:%u", problem->uri,
+            (unsigned)problem->line, (unsigned)problem->column);
+        char *displayLocation = g_utf8_make_valid(location, -1);
+        gtk_widget_set_tooltip_text(row, displayLocation);
+        gtk_box_append(GTK_BOX(box), runtime_label(displayLocation, 0.0F));
+        g_free(displayLocation);
+        g_free(location);
+    }
+    if (problem->detail[0] != '\0') {
+        char *displayDetail = g_utf8_make_valid(problem->detail, -1);
+        gtk_widget_set_tooltip_text(box, displayDetail);
+        g_free(displayDetail);
+    }
+    gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), box);
+    g_object_set_data_full(G_OBJECT(row), "umicom-problem-id", g_strdup(problem->id), g_free);
+    g_object_set_data_full(G_OBJECT(row), "studio-problem-page", g_object_ref(token), g_object_unref);
+    return row;
+}
+/* Publish an aligned diagnostic window with checked page controls so errors beyond the first 300 remain reachable Retained for engineering review. */
+#if 0
 static void runtime_problems_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->owner == NULL || runtime->problems_list == NULL) return;
@@ -693,6 +751,131 @@ static void runtime_problems_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
     g_object_unref(list);
     runtime_file_dialog_request_free(capture.owner);
 }
+#endif
+static void runtime_problems_refresh_list(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->problems_list == NULL) return;
+    GtkWidget *list = runtime->problems_list;
+    if (g_object_get_data(G_OBJECT(list), "studio-problems-refreshing") != NULL) return;
+    GObject *old = g_object_get_data(G_OBJECT(list), "studio-problems-page");
+    if (runtime->problemsRendered && RuntimeProblemsTokenCurrent(runtime, old) == UMI_STATUS_OK) return;
+    RuntimeProblemsPublication capture = {0};
+    capture.owner = runtime_file_dialog_request_new(runtime, 0U);
+    if (capture.owner == NULL) return;
+    capture.list = g_object_ref(list);
+    capture.summary = runtime->problems_summary_label != NULL ? g_object_ref(runtime->problems_summary_label) : NULL;
+    GObject *window = NULL;
+    GPtrArray *rows = NULL;
+    UmiDiagnosticPage *page = NULL;
+    UmiDiagnosticQuery query;
+    UmiDiagnosticPageSummary summary;
+    UmiDiagnosticPageNavigation navigation;
+    RuntimeProblemsPaging *paging = RuntimeProblemsPagingState(list);
+    UmiStatus status = UMI_STATUS_CANCELLED;
+    char selected[UMI_DIAGNOSTIC_ID_CAPACITY];
+    g_strlcpy(selected, runtime->problemsSelectedId, sizeof selected);
+    /* The query token records even an edit away from and back to equal text.
+     * Do not reset it on a timer refresh: it belongs to control changes. */
+    GObject *queryGeneration = g_object_get_data(G_OBJECT(list), "studio-problems-query");
+    if (queryGeneration == NULL) {
+        queryGeneration = g_object_new(G_TYPE_OBJECT, NULL);
+        g_object_set_data_full(G_OBJECT(list), "studio-problems-query", queryGeneration, g_object_unref);
+    }
+    g_object_set_data(G_OBJECT(list), "studio-problems-refreshing", &capture);
+    RuntimeProblemsQuery(runtime, &query);
+    status = UmiDiagnosticPageCreateWindow(RuntimeProblemsModel(runtime), &query, &page, &navigation);
+    if (status != UMI_STATUS_OK) goto done;
+    query = navigation.query;
+    if (paging != NULL) paging->offset = query.offset;
+    capture.token = g_object_new(G_TYPE_OBJECT, NULL);
+    g_object_set_data_full(capture.token, "page", page, RuntimeProblemsPageFree);
+    UmiDiagnosticPageNavigation *savedNavigation = g_new(UmiDiagnosticPageNavigation, 1);
+    *savedNavigation = navigation;
+    g_object_set_data_full(capture.token, "navigation", savedNavigation, g_free);
+    g_object_set_data_full(capture.token, "query-generation", g_object_ref(queryGeneration), g_object_unref);
+    (void)UmiDiagnosticPageReadSummary(page, &summary);
+    rows = g_ptr_array_new_with_free_func(g_object_unref);
+    for (size_t index = 0U; index < summary.count; ++index)
+        g_ptr_array_add(rows, RuntimeProblemsPrepareRow(UmiDiagnosticPageItem(page, index), capture.token));
+    if (summary.count == 0U) {
+        GtkWidget *empty = runtime_label(summary.active == 0U && !query.filter.include_resolved
+            ? "No active problems. Build a project to collect compiler messages."
+            : "No problems match the current filter.", 0.0F);
+        g_ptr_array_add(rows, g_object_ref_sink(empty));
+    }
+    status = RuntimeProblemsPublicationCurrent(GTK_LIST_BOX(list), &capture);
+    if (status != UMI_STATUS_OK) goto done;
+    runtime = RuntimeResolveOwner(capture.owner, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto done; }
+    runtime->problemsRendered = 0;
+    runtime->problemsSelectedId[0] = '\0';
+    g_object_set_data(G_OBJECT(list), "studio-problems-page", NULL);
+    status = UmiGtk4ListBoxPublish(GTK_LIST_BOX(list), (GtkWidget *const *)rows->pdata, rows->len,
+        RuntimeProblemsPublicationCurrent, &capture);
+    if (status != UMI_STATUS_OK) goto done;
+    runtime = RuntimeResolveOwner(capture.owner, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto done; }
+    char text[320];
+    snprintf(text, sizeof text,
+        "%zu matching / %zu active — %zu warnings, %zu errors, %zu fatal — %zu resolved — showing %zu",
+        summary.total_matches, summary.active, summary.warnings, summary.errors, summary.fatal,
+        summary.resolved, summary.count);
+    if (capture.summary != NULL)
+        gtk_label_set_text(GTK_LABEL(capture.summary), text);
+    status = RuntimeProblemsPublicationCurrent(GTK_LIST_BOX(list), &capture);
+    if (status != UMI_STATUS_OK) goto done;
+    if (paging != NULL) {
+        char range[192];
+        if (navigation.page_count == 0U) snprintf(range, sizeof range, "No matching diagnostics");
+        else snprintf(range, sizeof range, "Page %zu of %zu — rows %zu–%zu of %zu matching",
+            navigation.page_index + 1U, navigation.page_count, query.offset + 1U,
+            query.offset + summary.count, summary.total_matches);
+        /* These notifications may replace the query or close the host. The
+         * retained list owns controls, but only current captures grant actions. */
+        gtk_label_set_text(GTK_LABEL(paging->range), range);
+        status = RuntimeProblemsPublicationCurrent(GTK_LIST_BOX(list), &capture);
+        if (status != UMI_STATUS_OK) goto done;
+        gtk_widget_set_sensitive(paging->previous, navigation.has_previous);
+        status = RuntimeProblemsPublicationCurrent(GTK_LIST_BOX(list), &capture);
+        if (status != UMI_STATUS_OK) goto done;
+        gtk_widget_set_sensitive(paging->next, navigation.has_next);
+        status = RuntimeProblemsPublicationCurrent(GTK_LIST_BOX(list), &capture);
+        if (status != UMI_STATUS_OK) goto done;
+    }
+    g_object_set_data_full(G_OBJECT(list), "studio-problems-page", g_object_ref(capture.token), g_object_unref);
+    for (guint index = 0U; index < rows->len; ++index) {
+        GtkWidget *row = g_ptr_array_index(rows, index);
+        const char *id = g_object_get_data(G_OBJECT(row), "umicom-problem-id");
+        if (id != NULL && strcmp(selected, id) == 0) {
+            gtk_list_box_select_row(GTK_LIST_BOX(list), GTK_LIST_BOX_ROW(row));
+            break;
+        }
+    }
+    status = RuntimeProblemsPublicationCurrent(GTK_LIST_BOX(list), &capture);
+    if (status != UMI_STATUS_OK) goto done;
+    runtime = RuntimeResolveOwner(capture.owner, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto done; }
+    runtime->problemsModelRevision = summary.revision;
+    runtime->problemsRendered = 1;
+ done:
+    if (status != UMI_STATUS_OK) {
+        /* Retained or partial rows remain visible only as non-actionable
+         * evidence until a later timer/control refresh captures current data. */
+        g_object_set_data(G_OBJECT(list), "studio-problems-page", NULL);
+        runtime = RuntimeResolveOwner(capture.owner, &window);
+        if (runtime != NULL && runtime->problems_list == list) {
+            runtime->problemsRendered = 0;
+            runtime->problemsSelectedId[0] = '\0';
+        }
+    }
+    g_object_set_data(G_OBJECT(list), "studio-problems-refreshing", NULL);
+    g_clear_object(&window);
+    if (rows != NULL) g_ptr_array_unref(rows);
+    g_clear_object(&capture.token);
+    g_clear_object(&capture.summary);
+    g_object_unref(list);
+    runtime_file_dialog_request_free(capture.owner);
+}
 
 /* Signals retain only a weak host/list binding, never the runtime allocation.
  * This also makes externally retained controls harmless after pane replacement. */
@@ -755,11 +938,30 @@ static void RuntimeProblemsOpenClicked(GtkButton *button, gpointer data)
         RuntimeProblemsOpenSelected(runtime);
     g_clear_object(&list); g_clear_object(&window);
 }
+/* Restart changed diagnostic filters at the first page without changing source-navigation commands Retained for engineering review. */
+#if 0
 static void RuntimeProblemsFilterChanged(gpointer data)
 {
     GObject *window = NULL, *list = NULL;
     UmiStudioGtkRuntimeChrome *runtime = RuntimeProblemsBindingOwner(data, &window, &list);
     if (runtime != NULL) {
+        g_object_set_data_full(list, "studio-problems-query", g_object_new(G_TYPE_OBJECT, NULL), g_object_unref);
+        g_object_set_data(list, "studio-problems-page", NULL);
+        runtime->problemsRendered = 0;
+        /* The captured ID may still match the next filtered page. Its action
+         * token is already revoked, so retaining selection cannot open it. */
+        runtime_problems_refresh_list(runtime);
+    }
+    g_clear_object(&list); g_clear_object(&window);
+}
+#endif
+static void RuntimeProblemsFilterChanged(gpointer data)
+{
+    GObject *window = NULL, *list = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = RuntimeProblemsBindingOwner(data, &window, &list);
+    if (runtime != NULL) {
+        RuntimeProblemsPaging *paging = RuntimeProblemsPagingState(GTK_WIDGET(list));
+        if (paging != NULL) paging->offset = 0U;
         g_object_set_data_full(list, "studio-problems-query", g_object_new(G_TYPE_OBJECT, NULL), g_object_unref);
         g_object_set_data(list, "studio-problems-page", NULL);
         runtime->problemsRendered = 0;

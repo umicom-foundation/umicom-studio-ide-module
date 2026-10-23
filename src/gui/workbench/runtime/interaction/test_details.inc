@@ -115,6 +115,8 @@ static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtim
 }
 
 #endif
+/* Selected-test text now shares the source pane run filter and rechecks scope across native notifications. Retained for engineering review. */
+#if 0
 static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->test_selected_view == NULL) return;
@@ -142,6 +144,64 @@ static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtim
     RuntimeFailureLocationsRefresh(runtime);
     runtime = RuntimeResolveOwner(request, &window);
     if (runtime == NULL || runtime->test_selected_view != view || strcmp(runtime->selected_test_id, itemId) != 0) goto cleanup;
+    if (report != NULL) {
+        platform = runtime_test_platform(runtime);
+        if (platform == NULL ||
+            umi_test_platform_result_registry_revision(umi_test_platform_service_result(platform)) != summary.result_revision ||
+            umi_test_platform_output_registry_revision(umi_test_platform_service_output(platform)) != summary.output_revision) goto cleanup;
+    }
+    /* A native changed callback can destroy Studio. The shared text allocation
+     * and captured objects survive independently; no runtime is used afterwards. */
+    runtime_text_view_set(view, message);
+cleanup:
+    UmiTestEvidenceTextFree(report); UmiTestEvidenceDestroy(capture);
+    g_object_unref(view); g_clear_object(&window); runtime_file_dialog_request_free(request);
+}
+#endif
+static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->test_selected_view == NULL) return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    GObject *window = NULL;
+    GtkWidget *view = g_object_ref(runtime->test_selected_view);
+    char itemId[sizeof runtime->selected_test_id];
+    g_strlcpy(itemId, runtime->selected_test_id, sizeof itemId);
+    UmiTestEvidence *capture = NULL;
+    UmiTestEvidenceSummary summary = {0};
+    char *report = NULL;
+    const char *message = "Select a test to inspect its retained results and output.";
+    int refreshed = RuntimeTestRunsRefresh(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (!refreshed || runtime == NULL || runtime->test_selected_view != view ||
+        strcmp(runtime->selected_test_id, itemId) != 0) goto cleanup;
+    char session[128] = ""; uint64_t generation = 0U;
+    if (itemId[0] != '\0' && !RuntimeTestRunChoice(runtime, session, &generation)) {
+        /* Do not leave another test's report visible after capture failure. */
+        (void)RuntimeTestLinksClear(runtime, "Run evidence is unavailable. Refresh before opening source locations.");
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime != NULL && runtime->test_selected_view == view && strcmp(runtime->selected_test_id, itemId) == 0)
+            runtime_text_view_set(view, "Run evidence is unavailable. No result or source location has been selected.");
+        goto cleanup;
+    }
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (itemId[0] != '\0') {
+        message = "Test evidence is unavailable.";
+        if (platform != NULL) {
+            UmiStatus status = RuntimeTestRunCapture(runtime, &capture);
+            if (status == UMI_STATUS_OK) status = UmiTestEvidenceGetSummary(capture, &summary);
+            if (status == UMI_STATUS_OK) status = UmiTestEvidenceFormatText(capture, &report, NULL);
+            message = status == UMI_STATUS_OK ? report :
+                status == UMI_STATUS_NOT_FOUND ? "The chosen run is no longer retained. Select another run or All retained runs." :
+                "Unable to capture selected-test evidence.";
+        }
+    }
+    RuntimeFailureLocationsRefresh(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL || runtime->test_selected_view != view || strcmp(runtime->selected_test_id, itemId) != 0) goto cleanup;
+    char currentRun[128]; uint64_t currentGeneration;
+    if (itemId[0] != '\0' && (!RuntimeTestRunChoice(runtime, currentRun, &currentGeneration) ||
+        strcmp(currentRun, session) != 0 || currentGeneration != generation)) goto cleanup;
     if (report != NULL) {
         platform = runtime_test_platform(runtime);
         if (platform == NULL ||
@@ -597,6 +657,8 @@ static void RuntimeCopyTestEvidenceCsv(GtkButton *button, gpointer data)
 }
 
 #endif
+/* CSV export now uses the same checked run scope as the visible evidence and source locations. Retained for engineering review. */
+#if 0
 static void RuntimeCopyTestEvidenceCsv(GtkButton *button, gpointer data)
 {
     UmiStudioGtkRuntimeChrome *runtime = data;
@@ -620,6 +682,37 @@ static void RuntimeCopyTestEvidenceCsv(GtkButton *button, gpointer data)
         gdk_clipboard_set_text(gtk_widget_get_clipboard(GTK_WIDGET(button)), UmiCsvDocumentData(document));
         runtime = RuntimeResolveOwner(request, &window);
         if (runtime != NULL) runtime_show_notification(runtime, "Copied selected-test evidence CSV with retained/matching counts. No test was launched.");
+    } else {
+        char message[160];
+        (void)snprintf(message, sizeof(message), "Test evidence was not copied: %s. The clipboard is unchanged.", umi_status_text(status));
+        runtime_show_notification(runtime, message);
+    }
+    UmiCsvDocumentDestroy(document);
+    g_clear_object(&window); runtime_file_dialog_request_free(request);
+}
+#endif
+static void RuntimeCopyTestEvidenceCsv(GtkButton *button, gpointer data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = data;
+    if (runtime->selected_test_id[0] == '\0') {
+        runtime_show_notification(runtime, "Select a test before copying evidence."); return;
+    }
+    UmiTestPlatformService *platform = runtime_test_platform(runtime);
+    if (platform == NULL) {
+        runtime_show_notification(runtime, "Test evidence is unavailable."); return;
+    }
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    GObject *window = NULL;
+    UmiTestEvidence *capture = NULL;
+    UmiCsvDocument *document = NULL;
+    UmiStatus status = RuntimeTestRunCapture(runtime, &capture);
+    if (status == UMI_STATUS_OK) status = UmiTestEvidenceExportCsv(capture, &document);
+    UmiTestEvidenceDestroy(capture);
+    if (status == UMI_STATUS_OK) {
+        gdk_clipboard_set_text(gtk_widget_get_clipboard(GTK_WIDGET(button)), UmiCsvDocumentData(document));
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime != NULL) runtime_show_notification(runtime, "Copied the selected test and run evidence CSV with retained/matching counts. No test was launched.");
     } else {
         char message[160];
         (void)snprintf(message, sizeof(message), "Test evidence was not copied: %s. The clipboard is unchanged.", umi_status_text(status));
@@ -701,6 +794,7 @@ static GtkWidget *runtime_test_details_notebook(
         gtk_label_new("Selected test"));
 #endif
     GtkWidget *selectedPage = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    gtk_box_append(GTK_BOX(selectedPage), RuntimeTestRunControls(runtime));
     GtkWidget *copyCsv = gtk_button_new_with_label("Copy selected evidence CSV");
     (void)umi_gtk4_automation_tag_widget(copyCsv, "studio.tests.copy-evidence-csv");
     runtime_bind_editor_action(runtime, copyCsv, RuntimeCopyTestEvidenceCsv);

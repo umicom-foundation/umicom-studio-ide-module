@@ -3295,3 +3295,14 @@ endif()
 
 # Exercise the visible file workflow from a closed workspace.
 include(cmake/UmicomStudioFirstUse.cmake)
+
+# Native selected-run evidence workflow and ownership qualification.
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioEvidenceRuns.cmake")
+
+# Command acceptance must preserve newer native terminal drafts.
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioTerminalDraft.cmake")
+
+# Test Explorer pages use the same Framework projection and native row publisher.
+include(cmake/UmicomStudioExplorerPaging.cmake)
+
+include(cmake/UmicomStudioProblemsPaging.cmake)

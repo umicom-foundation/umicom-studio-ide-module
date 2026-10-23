@@ -204,6 +204,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *test_summary_label;
     GtkWidget *test_results_view;
     GtkWidget *test_selected_view;
+    /* Framework owns run identity and evidence; these are borrowed native controls. */
+    GtkWidget *test_run_picker;
+    GtkWidget *test_run_summary;
     GtkWidget *test_failure_links;
     GtkWidget *test_failure_summary;
     GtkWidget *test_coverage_view;
