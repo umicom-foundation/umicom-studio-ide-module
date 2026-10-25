@@ -17,6 +17,7 @@
 #include "umicom/document/file_search.h"
 #include "umicom/build/diagnostic_location.h"
 #include "umicom/studio/ui.h"
+#include "umicom/studio/editor_settings.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/diagnostics.h"
 #include "umicom/diagnostic_ui/navigation.h"
@@ -143,6 +144,8 @@ UmiStatus umi_studio_ui_create(UmiStudioServices *services,
     if (status == UMI_STATUS_OK) status = umi_document_coordinator_create(
         umi_studio_services_documents(services), ui->workbench, NULL,
         &ui->document_coordinator);
+    /* Apply the existing settings before restoring drafts or registering commands. */
+    if (status == UMI_STATUS_OK) status = UmiStudioUiApplyEditorSettings(ui);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) status = umi_studio_workbench_commands_register(commands, ui);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
@@ -249,6 +252,8 @@ UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui)
      * used.
      */
     if (ui == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = UmiStudioUiApplyEditorSettings(ui);
+    if (status != UMI_STATUS_OK) return status;
     {
         UmiStudioBuildService *build = umi_studio_services_build(ui->services);
         UmiBuildProjectSessionSnapshot progress;

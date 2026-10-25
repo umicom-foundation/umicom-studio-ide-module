@@ -380,6 +380,12 @@ static GtkWidget *runtime_build_welcome_surface(
     GtkWidget *launch_board = UmiKanbanGtk4CreateLauncher(runtime->owner->window);
     if (planning != NULL && launch_board != NULL) {
         gtk_box_append(GTK_BOX(planning), launch_board);
+        GtkWidget *project_board = runtime_make_command_button(runtime, "Open project board", "project.board",
+            "Return to this project’s board while choosing its private storage folder separately");
+        if (project_board != NULL) {
+            g_object_set_data(G_OBJECT(project_board), "umicom-automation-id", "studio.project-board");
+            gtk_box_append(GTK_BOX(planning), project_board);
+        }
         gtk_flow_box_append(GTK_FLOW_BOX(card_flow), planning);
     }
 #endif

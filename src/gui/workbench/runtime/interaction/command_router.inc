@@ -16,6 +16,14 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/gtk4/document_indentation.h"
+#include "umicom/ui/gtk4/document_whitespace.h"
+#include "umicom/ui/gtk4/document_inspection.h"
+#include "umicom/ui/gtk4/document_language.h"
+#include "umicom/ui/gtk4/selection_replace.h"
+#include "umicom/ui/gtk4/source_selection.h"
+#include "umicom/ui/gtk4/editor_config_adoption.h"
+
 /* The shared dialog may invoke native observers while being created. Keep an
  * identity request across that call and report only to the same live host. */
 /* Toolbar search preferences are captured once by the shared replacement owner, so later UI changes cannot alter a pending review.
@@ -108,6 +116,31 @@ static UmiStatus RuntimeReviewReplacementSet(UmiStudioGtkRuntimeChrome *runtime)
     runtime = runtime_file_dialog_owner(request, &ownerWindow);
     if (runtime != NULL && status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
     g_clear_object(&ownerWindow);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+/* Capture toolbar values before native construction can invoke observers.
+ * Framework retains the selected document and owns matching, review and Undo. */
+static UmiStatus RuntimeReviewSelectionReplacement(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (runtime->editor_find_entry == NULL || runtime->editor_replace_entry == NULL)
+        return UMI_STATUS_UNAVAILABLE;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    char *needle = g_strdup(gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry)));
+    char *replacement = g_strdup(gtk_editable_get_text(GTK_EDITABLE(runtime->editor_replace_entry)));
+    UmiEditorSearchOptions options = RuntimeEditorSearchOptions(runtime);
+    UmiStatus status = UmiGtk4AdapterReviewSelectionReplacement(runtime->owner->adapter,
+        needle, replacement, &options);
+    g_free(needle);
+    g_free(replacement);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && status != UMI_STATUS_OK)
+        runtime_show_notification(runtime, umi_status_text(status));
+    g_clear_object(&window);
     runtime_file_dialog_request_free(request);
     return status;
 }
@@ -526,6 +559,20 @@ static UmiStatus runtime_route_command(
          strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0)) return UMI_STATUS_BUSY;
     if (strcmp(command_id, "editor.replace-complete-set") == 0)
         return RuntimeReviewReplacementSet(runtime);
+
+    if (strcmp(command_id, "project.editor-config") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeOpenEditorConfigInspection(runtime);
+    }
+    if (strcmp(command_id, "project.board") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+#if defined(UMICOM_STUDIO_HAS_KANBAN)
+        return RuntimeOpenProjectBoard(runtime);
+#else
+        return UMI_STATUS_NOT_IMPLEMENTED;
+#endif
+    }
+
     if (strcmp(command_id, "editor.replace-open-documents") == 0)
         return RuntimeReviewOpenReplacements(runtime);
 
@@ -588,6 +635,8 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_BUSY;
 
 
+    if (strcmp(command_id, "file.save-copy") == 0) return RuntimeSaveCopy(runtime, argument);
+
     if (strcmp(command_id, "file.open.cancel") == 0 ||
         strcmp(command_id, "file.open.results") == 0) {
         if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
@@ -602,6 +651,14 @@ static UmiStatus runtime_route_command(
     if (RuntimeBuildReadsSavedDocuments(command_id) && runtime->owner != NULL &&
         UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter))
         return UMI_STATUS_BUSY;
+
+    /* Source commands reveal and recheck the same editor before mutation. */
+    if (strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_NEWLINE) == 0 ||
+        strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_PLAIN_NEWLINE) == 0 ||
+        strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_INDENTATION) == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeSourceLineCommand(runtime, command_id);
+    }
 
     UmiEditorEditCommandKind lineKind;
     if (UmiDocumentLineEditCommandFromId(command_id, &lineKind) == UMI_STATUS_OK) {
@@ -676,6 +733,47 @@ static UmiStatus runtime_route_command(
     if (strcmp(command_id, "project.new") == 0) return RuntimeNewProject(runtime);
     if (strcmp(command_id, "project.new-application") == 0) return RuntimeNewApplication(runtime);
     if (strcmp(command_id, "file.new") == 0) return runtime_document_new(runtime);
+    /* Shared descriptors keep availability and dispatch on the same exact IDs. */
+    /* Framework owns syntax selection and the single document transaction. */
+    if (strcmp(command_id, "editor.toggle-language-comment") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, UMI_DOCUMENT_COMMAND_TOGGLE_LANGUAGE_COMMENT);
+    }
+    UmiEditorSourceSelectionKind sourceSelection;
+    if (UmiDocumentSourceSelectionCommandFromId(command_id, &sourceSelection) == UMI_STATUS_OK) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterSelectSourceUnit(runtime->owner->adapter, sourceSelection);
+    }
+    if (strcmp(command_id, "editor.replace-selection") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeReviewSelectionReplacement(runtime);
+    }
+    if (strcmp(command_id, "editor.document-language") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterReviewDocumentLanguage(runtime->owner->adapter, 0U);
+    }
+    if (strcmp(command_id, "editor.inspect-source") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterInspectDocumentText(runtime->owner->adapter, 0U);
+    }
+    for (size_t i = 0U; i < UmiDocumentWhitespaceCommandCount(); ++i)
+        if (strcmp(command_id, UmiDocumentWhitespaceCommandAt(i)->id) == 0) {
+            if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+            return UmiGtk4AdapterReviewWhitespaceCommand(runtime->owner->adapter, command_id);
+        }
+    if (strcmp(command_id, "editor.project-indentation") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        UmiStudioWorkspaceSnapshot workspace;
+        UmiStatus status = umi_studio_workspace_snapshot(umi_studio_ui_services(runtime->owner->ui), &workspace);
+        if (status != UMI_STATUS_OK) return status;
+        if (!workspace.graph.open) return UMI_STATUS_INVALID_STATE;
+        return UmiGtk4AdapterReviewEditorConfig(runtime->owner->adapter, workspace.graph.root, 0U);
+    }
+    if (strcmp(command_id, "editor.document-indentation") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterReviewDocumentIndentation(runtime->owner->adapter, 0U);
+    }
+    if (strcmp(command_id, "editor.preferences") == 0) return RuntimeOpenEditorPreferences(runtime);
     if (strcmp(command_id, "build.settings") == 0) return RuntimeBuildSettings(runtime);
     if (strcmp(command_id, "build.test") == 0)
         return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_TEST);

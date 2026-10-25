@@ -307,7 +307,12 @@ static UmiStatus bind_context_interactions(
  * to request without global environment switches or a second GTK code path. */
 UmiStudioGtkWorkbenchOptions umi_studio_gtk_workbench_options_default(void)
 {
+    /* Retain the former four-field defaults for review; saved editor preferences
+     * are now an independently controlled startup operation. */
+#if 0
     UmiStudioGtkWorkbenchOptions options = {1, 1, 1, 1};
+#endif
+    UmiStudioGtkWorkbenchOptions options = {1, 1, 1, 1, 1};
     return options;
 }
 
@@ -446,6 +451,8 @@ UmiStatus umi_studio_gtk_workbench_create_with_options(
         return status;
     }
 
+    if (workbench->options.load_editor_preferences)
+        (void)RuntimePreferenceStorageStart(workbench->runtime_chrome, NULL, 0, NULL, NULL);
     *out_workbench = workbench;
     /* Present only after all production chrome is attached. This also avoids
      * flashing the intermediate reference-adapter layout during startup. */
@@ -869,4 +876,26 @@ UmiStatus umi_studio_gtk_workbench_cancel_open_files(UmiStudioGtkWorkbench *work
     int running = 0;
     UmiDocumentOpenBatch *batch = StudioOpenFilesCurrent(workbench, &running);
     return batch != NULL && running ? UmiDocumentOpenBatchCancel(batch) : UMI_STATUS_NOT_FOUND;
+}
+
+/* Explicit paths allow isolated tests and portable hosts to use the same
+ * worker without consulting or overwriting the real user's configuration. */
+UmiStatus umi_studio_gtk_workbench_editor_preferences_storage(
+    UmiStudioGtkWorkbench *workbench,const char *path,int save)
+{
+    if(workbench==NULL||workbench->runtime_chrome==NULL)return UMI_STATUS_INVALID_ARGUMENT;
+    return RuntimePreferenceStorageStart(workbench->runtime_chrome,path,save,NULL,NULL);
+}
+UmiStatus umi_studio_gtk_workbench_editor_preferences_storage_snapshot(
+    UmiStudioGtkWorkbench *workbench,UmiStudioEditorPreferencesStorageSnapshot *out)
+{
+    if(workbench==NULL||out==NULL)return UMI_STATUS_INVALID_ARGUMENT;
+    if(workbench->window==NULL||workbench->runtime_chrome==NULL)return UMI_STATUS_CANCELLED;
+    GObject *binding=g_object_get_data(G_OBJECT(workbench->window),"umicom-studio-file-dialog-binding");
+    if(binding==NULL)return UMI_STATUS_NOT_FOUND;
+    if(g_object_get_data(binding,"runtime")!=workbench->runtime_chrome)return UMI_STATUS_CANCELLED;
+    const UmiStudioEditorPreferencesStorageSnapshot *snapshot=
+        g_object_get_data(binding,"studio-editor-preference-result");
+    if(snapshot==NULL)return UMI_STATUS_NOT_FOUND;
+    *out=*snapshot;return UMI_STATUS_OK;
 }

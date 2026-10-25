@@ -15,6 +15,8 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+#include "umicom/document/source_selection.h"
+
 
 #include "umicom/ui/gtk4/text_comparison.h"
 
@@ -948,6 +950,7 @@ static void RuntimeSourceCallees(GtkButton *button,gpointer data);
 
 /* Shared action groups reorganize the original, fully bound controls. */
 #include "editor_action_groups.inc"
+#include "editor_whitespace.inc"
 #include "editor_line_edits.inc"
 #include "editor_document_format.inc"
 #include "editor_recovery.inc"
@@ -1576,6 +1579,45 @@ static GtkWidget *runtime_build_editor_command_bar(
     runtime_editor_update_info(runtime);
     RuntimeAppendLineEdits(runtime,bar);
     RuntimeAppendDocumentFormats(runtime,bar);
+    GtkWidget *preferences = gtk_button_new_with_label("Editor preferences");
+    (void)umi_gtk4_automation_tag_widget(preferences, "studio.editor.preferences");
+    runtime_bind_editor_action(runtime, preferences, RuntimeEditorPreferencesClicked);
+    gtk_box_append(GTK_BOX(bar), preferences);
+    /* Document policy stays separate from the persisted session preference. */
+    GtkWidget *documentIndentation = runtime_make_command_button(runtime, "Document indentation",
+        "editor.document-indentation", "Choose indentation for the captured source document");
+    (void)umi_gtk4_automation_tag_widget(documentIndentation, "studio.editor.document-indentation");
+    gtk_box_append(GTK_BOX(bar), documentIndentation);
+    GtkWidget *projectIndentation = runtime_make_command_button(runtime, "Use project indentation",
+        "editor.project-indentation", "Inspect and explicitly adopt EditorConfig indentation for this saved file");
+    (void)umi_gtk4_automation_tag_widget(projectIndentation, "studio.editor.project-indentation");
+    gtk_box_append(GTK_BOX(bar), projectIndentation);
+    RuntimeAppendWhitespaceActions(runtime,bar);
+    GtkWidget *inspection = runtime_make_command_button(runtime, "Inspect source",
+        "editor.inspect-source", "Count document and selection text; inspect invisible character locations");
+    (void)umi_gtk4_automation_tag_widget(inspection, "studio.editor.inspect-source");
+    gtk_box_append(GTK_BOX(bar), inspection);
+    /* Shared command labels and IDs keep selection policy outside Studio. */
+    for (size_t i = 0U; i < UmiDocumentSourceSelectionCommandCount(); ++i) {
+        const UmiDocumentSourceSelectionCommand *command = UmiDocumentSourceSelectionCommandAt(i);
+        GtkWidget *select = runtime_make_command_button(runtime, command->label, command->id,
+            "Select source text without editing or saving the document");
+        (void)umi_gtk4_automation_tag_widget(select, command->id);
+        gtk_box_append(GTK_BOX(bar), select);
+    }
+    /* Limit replacement to the captured selection; the shared review remains explicit. */
+    GtkWidget *selectedReplacement = runtime_make_command_button(runtime, "Replace in selection",
+        "editor.replace-selection", "Review matches inside the selected text using the Find and Replace fields");
+    (void)umi_gtk4_automation_tag_widget(selectedReplacement, "studio.editor.replace-selection");
+    gtk_box_append(GTK_BOX(bar), selectedReplacement);
+    GtkWidget *language = runtime_make_command_button(runtime, "Document language",
+        "editor.document-language", "Choose this document's syntax language without renaming or changing its text");
+    (void)umi_gtk4_automation_tag_widget(language, "studio.editor.document-language");
+    gtk_box_append(GTK_BOX(bar), language);
+    GtkWidget *languageComment = runtime_make_command_button(runtime, "Toggle language comment",
+        "editor.toggle-language-comment", "Add or remove the current language's line-comment prefix; Undo restores the change");
+    (void)umi_gtk4_automation_tag_widget(languageComment, "studio.editor.toggle-language-comment");
+    gtk_box_append(GTK_BOX(bar), languageComment);
     RuntimeGroupEditorActions(bar,save);
     /* Recovery is a document workflow and remains next to Save. */
     RuntimeAppendRecovery(runtime,bar,save);

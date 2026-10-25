@@ -22,6 +22,7 @@
 #include <gtk/gtk.h>
 
 #include "umicom/studio/ui.h"
+#include "editor_preferences_storage.h"
 #include "umicom/studio_runtime/types.h"
 #include "umicom/ui/gtk4/workstation/workspace_layout_host.h"
 #include "umicom/ui/gtk4/workstation/shell_header.h"
@@ -45,6 +46,9 @@ typedef struct UmiStudioGtkWorkbenchOptions {
     int persist_session;
     int restore_session;
     int automatic_refresh;
+    /* Normal startup loads saved editor preferences on a worker. Zero keeps
+     * isolated hosts independent from the real user configuration folder. */
+    int load_editor_preferences;
 } UmiStudioGtkWorkbenchOptions;
 
 /** Return the existing interactive startup and session behaviour. */
@@ -55,6 +59,7 @@ UmiStudioGtkWorkbenchOptions umi_studio_gtk_workbench_options_default(void);
  * Options are copied; NULL selects normal defaults. With present_window zero,
  * construction never presents the main window. Test callers should disable
  * all four options and avoid commands which intentionally open other windows.
+ * The additional load_editor_preferences option must also be zero for isolated hosts.
  */
 UmiStatus umi_studio_gtk_workbench_create_with_options(
     GtkApplication *application,

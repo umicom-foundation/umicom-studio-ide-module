@@ -10,7 +10,9 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-line-edits-test)
     endif()
-    foreach(case duplicate delete move-up move-down join indent outdent comment trim selection read-only undo-redo retained-control no-neighbor)
+    foreach(case newline newline-plain newline-selection newline-crlf newline-readonly newline-argument duplicate delete move-up move-down join indent outdent comment trim selection read-only undo-redo retained-control no-neighbor
+        sort-ascending sort-descending sort-empty sort-read-only sort-undo sort-retained
+        case-upper case-lower case-unicode case-empty case-read-only case-undo case-retained case-selection)
         add_test(NAME studio.editor.line_edits.gtk4.${case} COMMAND umicom-studio-line-edits-test ${case})
         set_tests_properties(studio.editor.line_edits.gtk4.${case} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;editor;line-edit;gtk4;ownership;regression")
     endforeach()

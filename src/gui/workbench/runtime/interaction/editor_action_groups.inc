@@ -13,6 +13,13 @@ typedef struct RuntimeEditorActionGroup
     int navigation;
 } RuntimeEditorActionGroup;
 static const RuntimeEditorActionGroup runtime_editor_action_groups[] = {
+    {"studio.editor.project-indentation", "project editorconfig indentation inspect adopt settings", 0},
+    {"studio.editor.document-indentation", "document indentation override inherit tab width spaces", 0},
+    {"studio.editor.preferences", "editor preferences indentation tab width spaces settings", 0},
+    {"studio.editor.line-uppercase", "selection case ASCII uppercase convert letters", 0},
+    {"studio.editor.line-lowercase", "selection case ASCII lowercase convert letters", 0},
+    {"studio.editor.line-sort-ascending", "sort selected lines ascending ordinal text", 0},
+    {"studio.editor.line-sort-descending", "sort selected lines descending ordinal text", 0},
     {"studio.editor.completion", "completion suggestions", 0},
     {"studio.editor.formatting", "format document selection indentation", 0},
     {"studio.editor.source-information", "hover documentation help", 0},

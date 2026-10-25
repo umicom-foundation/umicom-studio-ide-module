@@ -66,6 +66,18 @@ static void RuntimeAppendLineEdits(UmiStudioGtkRuntimeChrome *runtime, GtkWidget
         const char *id, *label, *help, *command;
         UmiEditorEditCommandKind kind;
     } actions[] = {
+        {"studio.editor.line-uppercase", "Uppercase selected ASCII letters",
+         "Convert a-z within the selection; preserve other characters, selection and Undo.",
+         UMI_DOCUMENT_COMMAND_UPPERCASE_SELECTION, UMI_EDITOR_EDIT_COMMAND_TRANSFORM_UPPERCASE},
+        {"studio.editor.line-lowercase", "Lowercase selected ASCII letters",
+         "Convert A-Z within the selection; preserve other characters, selection and Undo.",
+         UMI_DOCUMENT_COMMAND_LOWERCASE_SELECTION, UMI_EDITOR_EDIT_COMMAND_TRANSFORM_LOWERCASE},
+        {"studio.editor.line-sort-ascending", "Sort selected lines ascending",
+         "Order the selected complete lines by ordinal text. Undo restores the draft.",
+         UMI_DOCUMENT_COMMAND_SORT_LINES_ASCENDING, UMI_EDITOR_EDIT_COMMAND_SORT_LINES_ASCENDING},
+        {"studio.editor.line-sort-descending", "Sort selected lines descending",
+         "Reverse ordinal order of selected complete lines; keep line endings and Undo.",
+         UMI_DOCUMENT_COMMAND_SORT_LINES_DESCENDING, UMI_EDITOR_EDIT_COMMAND_SORT_LINES_DESCENDING},
         {"studio.editor.line-delete", "Delete current line",
          "Remove the caret line. Undo restores it; Save is separate.", UMI_DOCUMENT_COMMAND_DELETE_LINE, UMI_EDITOR_EDIT_COMMAND_DELETE_LINE},
         {"studio.editor.line-duplicate", "Duplicate current line",
@@ -84,10 +96,12 @@ static void RuntimeAppendLineEdits(UmiStudioGtkRuntimeChrome *runtime, GtkWidget
          "Remove spaces and tabs at line ends throughout the draft. The caret returns to the start.",
          UMI_DOCUMENT_COMMAND_TRIM_TRAILING_WHITESPACE, UMI_EDITOR_EDIT_COMMAND_TRIM_TRAILING_WHITESPACE},
         {"studio.editor.line-indent", "Indent selected lines",
-         "Add four spaces to each selected line, or to the caret line when nothing is selected.",
+         /* Previous fixed-width guidance: "Add four spaces to each selected line, or to the caret line when nothing is selected." */
+         "Use editor indentation preferences on selected lines, or the caret line when nothing is selected.",
          UMI_DOCUMENT_COMMAND_INDENT_LINES, UMI_EDITOR_EDIT_COMMAND_INDENT_LINES},
         {"studio.editor.line-outdent", "Outdent selected lines",
-         "Remove one leading tab or up to four spaces from each selected line.",
+         /* Previous fixed-width guidance: "Remove one leading tab or up to four spaces from each selected line." */
+         "Remove one tab or up to the configured tab width of leading spaces.",
          UMI_DOCUMENT_COMMAND_OUTDENT_LINES, UMI_EDITOR_EDIT_COMMAND_OUTDENT_LINES},
         {"studio.editor.line-comment", "Toggle // comment",
          "Add or remove the literal // prefix on selected nonblank lines. This does not infer the "

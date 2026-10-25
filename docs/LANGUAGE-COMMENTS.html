@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Comment source lines in Studio</title><body>
+<h1>Comment source lines in Studio</h1><ol><li>Open a source file, for example a C file, Python file or CMakeLists.txt.</li>
+<li>Place the caret on a line, or select a group of lines.</li><li>Choose <strong>Toggle language comment</strong> in the editor actions.</li>
+<li>Review the result and save when ready. Use Undo to reverse the edit.</li></ol>
+<p>The command uses the document language: <code>//</code> for C, <code>#</code> for Python and CMake, and <code>--</code> for SQL. Other known line-comment languages are listed by Framework's comment-style catalogue. If all selected nonblank lines already carry the prefix, the command removes it; otherwise it adds the prefix.</p>
+<p>It is unavailable when the source is read-only, no supported language is known, or another editing review prevents changes. The original explicit // comment action and its shortcut retain their behaviour.</p>
+<p>This is a line-editing tool, not a parser. Review string literals, shebang lines, multiline strings and embedded languages yourself. JSON, HTML, CSS, Markdown, generic Assembly and plain text have no automatically guessed comment prefix. The action does not save or execute source code.</p>
+</body></html>

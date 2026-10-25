@@ -12,7 +12,10 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+#include "umicom/document/source_selection.h"
 
+
+#include "umicom/document/whitespace_commands.h"
 #include "umicom/document/commands.h"
 
 /* Studio collects the two fields; Framework owns capture, decisions and undo.
@@ -580,6 +583,69 @@ static int runtime_command_enabled(
          strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0 ||
          strcmp(command_id, "file.close") == 0 || strcmp(command_id, "file.close-all") == 0 ||
          strcmp(command_id, "file.close-others") == 0)) return 0;
+
+    /* Inspection is available on read-only sources because it grants no edit authority. */
+    if (strcmp(command_id, "editor.toggle-language-comment") == 0)
+        return UmiGtk4AdapterDocumentCommandEnabled(runtime->owner->adapter, UMI_DOCUMENT_COMMAND_TOGGLE_LANGUAGE_COMMENT);
+    UmiEditorSourceSelectionKind sourceSelection;
+    if (UmiDocumentSourceSelectionCommandFromId(command_id, &sourceSelection) == UMI_STATUS_OK) {
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_document_coordinator_active_snapshot(umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+    if (strcmp(command_id, "editor.replace-selection") == 0) {
+        UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
+        UmiDocumentWorkingCopySnapshot active;
+        UmiDocumentEditState edit;
+        return !UmiGtk4AdapterDocumentProposalBusy(runtime->owner->adapter) &&
+            umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK &&
+            UmiDocumentCoordinatorGetEditState(documents, active.document_id, &edit) == UMI_STATUS_OK &&
+            !edit.read_only && edit.selection_bytes != 0U;
+    }
+    if (strcmp(command_id, "editor.document-language") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_document_coordinator_active_snapshot(umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+    if (strcmp(command_id, "editor.inspect-source") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_document_coordinator_active_snapshot(umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+    for (size_t i = 0U; i < UmiDocumentWhitespaceCommandCount(); ++i)
+        if (strcmp(command_id, UmiDocumentWhitespaceCommandAt(i)->id) == 0) {
+            UmiDocumentCoordinator *documents = umi_studio_ui_documents(runtime->owner->ui);
+            UmiDocumentWorkingCopySnapshot active;
+            UmiDocumentEditState edit;
+            return umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK &&
+                UmiDocumentCoordinatorGetEditState(documents, active.document_id, &edit) == UMI_STATUS_OK && !edit.read_only;
+        }
+    if (strcmp(command_id, "editor.project-indentation") == 0) {
+        UmiStudioWorkspaceSnapshot workspace;
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_studio_workspace_snapshot(umi_studio_ui_services(runtime->owner->ui), &workspace) == UMI_STATUS_OK &&
+            workspace.graph.open && workspace.graph.root[0] != '\0' &&
+            umi_document_coordinator_active_snapshot(umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK &&
+            active.has_path && umi_path_is_within(workspace.graph.root, active.path);
+    }
+    if (strcmp(command_id, "editor.document-indentation") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_document_coordinator_active_snapshot(umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+    if (strcmp(command_id, "project.editor-config") == 0) {
+        UmiStudioWorkspaceSnapshot workspace;
+        return g_object_get_data(G_OBJECT(runtime->owner->window), "studio-editor-config-pending") == NULL &&
+            umi_studio_workspace_snapshot(umi_studio_ui_services(runtime->owner->ui), &workspace) == UMI_STATUS_OK &&
+            workspace.graph.open && workspace.graph.root[0] != '\0';
+    }
+    if (strcmp(command_id, "project.board") == 0) {
+#if defined(UMICOM_STUDIO_HAS_KANBAN)
+        UmiStudioWorkspaceSnapshot workspace;
+        return g_object_get_data(G_OBJECT(runtime->owner->window), "studio-project-board-pending") == NULL &&
+            umi_studio_workspace_snapshot(umi_studio_ui_services(runtime->owner->ui), &workspace) == UMI_STATUS_OK &&
+            workspace.graph.open && workspace.graph.root[0] != '\0';
+#else
+        return 0;
+#endif
+    }
+
     if (strcmp(command_id, "editor.replace-open-documents") == 0)
         return runtime->editor_find_entry != NULL && runtime->editor_replace_entry != NULL &&
             gtk_editable_get_text(GTK_EDITABLE(runtime->editor_find_entry))[0] != '\0' &&
@@ -666,6 +732,13 @@ static int runtime_command_enabled(
          strcmp(command_id, "file.close") == 0)) return 0;
 
 
+    /* Exporting a separate captured draft does not require a writable source. */
+    if (strcmp(command_id, "file.save-copy") == 0) {
+        UmiDocumentWorkingCopySnapshot active;
+        return umi_document_coordinator_active_snapshot(
+            umi_studio_ui_documents(runtime->owner->ui), &active) == UMI_STATUS_OK;
+    }
+
     /* Native queue state controls opening actions; an admitted item cannot be
      * cancelled while its synchronous provider operation is executing. */
     if (strcmp(command_id, "file.open.cancel") == 0 ||
@@ -680,6 +753,12 @@ static int runtime_command_enabled(
     }
     if (strcmp(command_id, "file.save-all.cancel") == 0)
         return UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
+
+    /* Availability uses the same native admission rule as invocation. */
+    if (strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_NEWLINE) == 0 ||
+        strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_PLAIN_NEWLINE) == 0 ||
+        strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_INDENTATION) == 0)
+        return UmiGtk4AdapterDocumentCommandEnabled(runtime->owner->adapter, command_id);
 
     UmiEditorEditCommandKind lineKind;
     if (UmiDocumentLineEditCommandFromId(command_id, &lineKind) == UMI_STATUS_OK)

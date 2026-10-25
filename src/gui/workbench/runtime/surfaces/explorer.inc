@@ -99,6 +99,15 @@ static GtkWidget *runtime_build_surface_explorer(
     g_object_set_data(G_OBJECT(runtime->explorer_summary_label), "umicom-automation-id", "umicom-explorer-summary");
 
     actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+#if defined(UMICOM_STUDIO_HAS_KANBAN)
+    /* Project planning remains reachable while source documents hide Welcome. */
+    GtkWidget *project_board = runtime_make_command_button(runtime, "Project board", "project.board",
+        "Open the current project’s independently owned planning board");
+    if (project_board != NULL) {
+        g_object_set_data(G_OBJECT(project_board), "umicom-automation-id", "studio.explorer.project-board");
+        gtk_box_append(GTK_BOX(panel), project_board);
+    }
+#endif
     new_file = gtk_button_new_from_icon_name("document-new-symbolic");
     open_file = runtime_make_icon_command_button(
         runtime,
@@ -210,6 +219,11 @@ static GtkWidget *runtime_build_surface_explorer(
     RuntimeExplorerBindControl(runtime, projectFolder, "clicked", "umicom-explorer-create-folder", RuntimeExplorerNewFolderInvoked);
     gtk_box_append(GTK_BOX(projectActions), projectFile);
     gtk_box_append(GTK_BOX(projectActions), projectFolder);
+    /* Renaming delegates document and filesystem ownership to shared services. */
+    GtkWidget *projectRename = gtk_button_new_with_label("Rename…");
+    RuntimeExplorerBindControl(runtime, projectRename, "clicked", "umicom-explorer-rename",
+        RuntimeExplorerRenameInvoked);
+    gtk_box_append(GTK_BOX(projectActions), projectRename);
     GtkWidget *projectScroll = gtk_scrolled_window_new();
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(projectScroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(projectScroll), projectActions);
@@ -245,6 +259,16 @@ static GtkWidget *runtime_build_surface_explorer(
         gtk_expander_set_expanded(GTK_EXPANDER(about), FALSE);
         gtk_box_append(GTK_BOX(panel), about);
     }
+
+    /* Reuse the established weak-owner command button helper. The draft name
+     * is retained for review; it was not part of Studio\'s native API. */
+#if 0
+    GtkWidget *configReview = runtime_button_new_command(runtime, "Inspect EditorConfig", "project.editor-config", NULL);
+#endif
+    GtkWidget *configReview = runtime_make_command_button(runtime, "Inspect EditorConfig", "project.editor-config",
+        "Read matching project editor settings without applying them");
+    (void)umi_gtk4_automation_tag_widget(configReview, "studio.explorer.editor-config");
+    gtk_box_append(GTK_BOX(panel), configReview);
 
     runtime_append_context_actions(runtime, panel, "workspace");
 

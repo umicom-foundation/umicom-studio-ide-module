@@ -13,6 +13,7 @@
 #include "umicom/ui/gtk4/text_folding.h"
 #include "umicom/ui/gtk4/action_menu.h"
 #include "umicom/document/navigation_history.h"
+#include "umicom/document/commands.h"
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <string.h>
@@ -56,9 +57,12 @@ int main(int argc, char **argv)
     if (argc != 2)
         return 2;
     const char *name = argv[1];
-    const char *cases[] = {"duplicate", "delete",    "move-up",          "move-down",  "join",
+    const char *cases[] = {"newline", "newline-plain", "newline-selection", "newline-crlf", "newline-readonly", "newline-argument","duplicate", "delete",    "move-up",          "move-down",  "join",
                            "indent",    "outdent",   "comment",          "trim",       "selection",
-                           "read-only", "undo-redo", "retained-control", "no-neighbor"};
+                           "read-only", "undo-redo", "retained-control", "no-neighbor",
+                           "sort-ascending", "sort-descending", "sort-empty", "sort-read-only",
+                           "sort-undo", "sort-retained", "case-upper", "case-lower", "case-unicode",
+                           "case-empty", "case-read-only", "case-undo", "case-retained", "case-selection"};
     bool known = false;
     for (size_t i = 0U; i < sizeof(cases) / sizeof(cases[0]); ++i)
         if (strcmp(name, cases[i]) == 0)
@@ -177,24 +181,107 @@ int main(int argc, char **argv)
         view.cursor_offset = 0U;
         expected = source;
     }
+    if (strncmp(name, "sort-", 5U) == 0) {
+        source = "z\nbee\nant\ny\n"; expected = "z\nant\nbee\ny\n";
+        action = "sort-ascending"; view.cursor_offset = 3U; view.selection_length = 5U;
+        if (strcmp(name, "sort-descending") == 0) {
+            source = "z\nant\nbee\ny\n"; expected = "z\nbee\nant\ny\n"; action = "sort-descending";
+        }
+        if (strcmp(name, "sort-empty") == 0) { view.selection_length = 0U; expected = source; }
+        if (strcmp(name, "sort-read-only") == 0) { view.read_only = 1; expected = source; }
+    }
+    if (strncmp(name, "case-", 5U) == 0) {
+        source = "xAbcy"; expected = "xABCy"; action = "uppercase";
+        view.cursor_offset = 1U; view.selection_length = 3U;
+        if (strcmp(name, "case-lower") == 0) { expected = "xabcy"; action = "lowercase"; }
+        if (strcmp(name, "case-unicode") == 0) { source = "x\xc3\xa9" "by"; expected = "x\xc3\xa9" "By"; }
+        if (strcmp(name, "case-empty") == 0) { view.selection_length = 0U; expected = source; }
+        if (strcmp(name, "case-read-only") == 0) { view.read_only = 1; expected = source; }
+    }
+
+    if (strncmp(name, "newline", 7U) == 0) {
+        source = "  ab"; expected = "  ab\n  "; view.cursor_offset = 4U;
+        if (!strcmp(name, "newline-plain")) expected = "  ab\n";
+        if (!strcmp(name, "newline-crlf")) { source = "  ab\r\nx"; expected = "  ab\r\n  \r\nx"; }
+        if (!strcmp(name, "newline-selection")) { source = "  abcdef"; expected = "  a\n  f"; view.cursor_offset = 3U; view.selection_length = 3U; }
+        if (!strcmp(name, "newline-readonly")) { view.read_only = 1; expected = source; }
+        if (!strcmp(name, "newline-argument")) expected = source;
+    }
+
     CHECK(UmiUiDocumentViewModelUpsertText(views, &view, source, strlen(source)) == UMI_STATUS_OK);
     CHECK(umi_document_coordinator_sync_active(documents) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
     Pump();
+
+    if (strncmp(name, "newline", 7U) == 0) {
+        const char *command = !strcmp(name, "newline-plain") ? UMI_DOCUMENT_COMMAND_INSERT_PLAIN_NEWLINE : UMI_DOCUMENT_COMMAND_INSERT_NEWLINE;
+        UmiStatus status = umi_studio_gtk_workbench_execute_command(workbench, command,
+            !strcmp(name, "newline-argument") ? "unexpected" : NULL);
+        UmiStatus wanted = !strcmp(name, "newline-readonly") ? UMI_STATUS_PERMISSION_DENIED :
+            !strcmp(name, "newline-argument") ? UMI_STATUS_INVALID_ARGUMENT : UMI_STATUS_OK;
+        CHECK(status == wanted);
+        CHECK(UmiUiDocumentViewModelCopyText(views, id, &output, &output_bytes) == UMI_STATUS_OK);
+        CHECK(!strcmp(output, expected));
+        if (wanted == UMI_STATUS_OK) {
+            CHECK(umi_document_coordinator_undo(documents) == UMI_STATUS_OK);
+            UmiUiDocumentViewModelFreeText(output); output = NULL;
+            CHECK(UmiUiDocumentViewModelCopyText(views, id, &output, &output_bytes) == UMI_STATUS_OK && !strcmp(output, source));
+            CHECK(umi_document_coordinator_redo(documents) == UMI_STATUS_OK);
+            UmiUiDocumentViewModelFreeText(output); output = NULL;
+            CHECK(UmiUiDocumentViewModelCopyText(views, id, &output, &output_bytes) == UMI_STATUS_OK && !strcmp(output, expected));
+        }
+        goto cleanup;
+    }
+
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     GtkWidget *menu = Find(root, "studio.editor.code-tools");
     CHECK(GTK_IS_MENU_BUTTON(menu));
+    /* Keep the original nine line actions and verify the two selection sorts
+     * can be discovered independently through the shared action filter. */
+#if 0
     CHECK(UmiGtk4ActionMenuSetFilter(menu, "line editing") == UMI_STATUS_OK);
+#endif
+    /* Keep earlier filter expectations for review; case actions form their own
+     * searchable group without changing the original line-editing category. */
+#if 0
+    CHECK(UmiGtk4ActionMenuSetFilter(menu, strncmp(name, "sort-", 5U) == 0 ? "sort selected" : "line editing") == UMI_STATUS_OK);
+#endif
+    const char *filter = strncmp(name, "case-", 5U) == 0 ? "selection case" :
+        strncmp(name, "sort-", 5U) == 0 ? "sort selected" : "line editing";
+    CHECK(UmiGtk4ActionMenuSetFilter(menu, filter) == UMI_STATUS_OK);
     Pump();
+    /* The original group remains nine; the sorting filter returns two. */
+#if 0
     CHECK(UmiGtk4ActionMenuVisibleCount(menu) == 9U);
+#endif
+    /* Both selection groups contain two commands; keep the old assertion. */
+#if 0
+    CHECK(UmiGtk4ActionMenuVisibleCount(menu) == (strncmp(name, "sort-", 5U) == 0 ? 2U : 9U));
+#endif
+    CHECK(UmiGtk4ActionMenuVisibleCount(menu) == (strcmp(filter, "line editing") == 0 ? 9U : 2U));
     char control[128];
     (void)snprintf(control, sizeof(control), "studio.editor.line-%s", action);
     GtkWidget *button = Find(root, control);
     CHECK(GTK_IS_BUTTON(button) && gtk_widget_is_ancestor(button, menu));
+    /* Case and sorting share explicit-selection and read-only availability. */
+#if 0
+    if (strcmp(name, "sort-empty") == 0 || strcmp(name, "sort-read-only") == 0)
+#endif
+    if (strcmp(name, "sort-empty") == 0 || strcmp(name, "sort-read-only") == 0 ||
+        strcmp(name, "case-empty") == 0 || strcmp(name, "case-read-only") == 0)
+        CHECK(!gtk_widget_get_sensitive(button));
     retained = g_object_ref(button);
     UmiDocumentWorkingCopySnapshot before, after;
     CHECK(umi_document_coordinator_active_snapshot(documents, &before) == UMI_STATUS_OK);
+    /* Retained sorting controls must share the existing weak-owner behavior. */
+#if 0
     if (strcmp(name, "retained-control") == 0)
+#endif
+    /* Retained case buttons use the same weak-owner control binding. */
+#if 0
+    if (strcmp(name, "retained-control") == 0 || strcmp(name, "sort-retained") == 0)
+#endif
+    if (strcmp(name, "retained-control") == 0 || strcmp(name, "sort-retained") == 0 || strcmp(name, "case-retained") == 0)
     {
         umi_studio_gtk_workbench_destroy(workbench);
         workbench = NULL;
@@ -206,10 +293,21 @@ int main(int argc, char **argv)
     CHECK(output_bytes == strlen(expected) && strcmp(output, expected) == 0);
     CHECK(umi_document_coordinator_active_snapshot(documents, &after) == UMI_STATUS_OK);
     CHECK(after.undo_count == before.undo_count + (strcmp(source, expected) == 0 ? 0U : 1U));
+    if (strcmp(name, "case-selection") == 0)
+        CHECK(umi_ui_document_view_model_find(views, id, &view) == UMI_STATUS_OK &&
+              view.cursor_offset == 1U && view.selection_length == 3U);
     if (strcmp(name, "selection") == 0)
         CHECK(umi_ui_document_view_model_find(views, id, &view) == UMI_STATUS_OK &&
               view.cursor_offset == 0U && view.selection_length == 13U);
+    /* Sorting is one document-history transaction, including its selection. */
+#if 0
     if (strcmp(name, "undo-redo") == 0)
+#endif
+    /* Case conversion is one reversible edit, like the existing line actions. */
+#if 0
+    if (strcmp(name, "undo-redo") == 0 || strcmp(name, "sort-undo") == 0)
+#endif
+    if (strcmp(name, "undo-redo") == 0 || strcmp(name, "sort-undo") == 0 || strcmp(name, "case-undo") == 0)
     {
         CHECK(umi_document_coordinator_undo(documents) == UMI_STATUS_OK);
         UmiUiDocumentViewModelFreeText(output);

@@ -16,7 +16,7 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-kanban-entry-test)
     endif()
-    foreach(_case IN ITEMS entry retained)
+    foreach(_case IN ITEMS entry retained project project-reuse project-switch project-independent project-untrusted project-none project-argument)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/kanban-${_case}")
         add_test(NAME studio.kanban.gtk4.${_case} COMMAND umicom-studio-kanban-entry-test "${_case}"
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/kanban-${_case}")

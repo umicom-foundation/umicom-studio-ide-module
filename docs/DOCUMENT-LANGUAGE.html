@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Choose a language in Studio</title><body>
+<h1>Choose a language in Studio</h1><p>Use a session language override when an untitled file or unusual extension needs a known syntax language.</p>
+<ol><li>Open the source tab and choose <strong>Document language</strong> in the editor actions.</li><li>Choose a language, then press <strong>Apply to this document</strong>.</li>
+<li>Inspect the editor display. The captured tab keeps its identity even if you switched tabs while the form was open.</li><li>To restore automatic filename detection, press <strong>Use filename detection</strong>.</li></ol>
+<p>The language choice does not modify or save the source. It keeps selection, pending edits and Undo/Redo history. It remains through normal edits and Save As, then expires when the document closes. Closing the form without applying changes nothing.</p>
+<p>Language-aware comments and new language-service requests use this identity. Choosing a language does not install a compiler, syntax definition or language server. Existing live diagnostics may stop when their captured language no longer matches; restart them explicitly for the new language.</p>
+<p>Read-only documents may change display language. If the document closed or its filename or policy changed elsewhere, reopen the form. Finish other active source reviews before applying a new language.</p>
+</body></html>

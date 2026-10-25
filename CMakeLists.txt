@@ -82,6 +82,8 @@ add_library(umicom_studio_core STATIC
     src/app/observability.c
     src/app/resilience.c
     src/app/ui.c
+    src/app/project_rename.c
+    src/app/editor_settings.c
     src/app/automation_audit.c
     src/app/application_surface.c
     src/app/application_surface_controllers.c
@@ -3308,6 +3310,15 @@ include(cmake/UmicomStudioExplorerPaging.cmake)
 include(cmake/UmicomStudioProblemsPaging.cmake)
 
 # Register shared native planning after all workbench consumers are declared.
+include(cmake/UmicomStudioEditorConfig.cmake)
+include(cmake/UmicomStudioDocumentIndentation.cmake)
+include(cmake/UmicomStudioEditorConfigAdoption.cmake)
+include(cmake/UmicomStudioWhitespace.cmake)
+include(cmake/UmicomStudioSourceInspection.cmake)
+include(cmake/UmicomStudioLanguageComments.cmake)
+include(cmake/UmicomStudioDocumentLanguage.cmake)
+include(cmake/UmicomStudioSelectionReplacement.cmake)
+include(cmake/UmicomStudioSourceSelection.cmake)
 include(cmake/UmicomStudioKanban.cmake)
 
 # Keep centre queries coherent with shared Framework projections.
@@ -3315,3 +3326,57 @@ include(cmake/UmicomStudioExplorerFilter.cmake)
 
 # Native file selection shares Framework document ownership.
 include(cmake/UmicomStudioOpenFiles.cmake)
+include(cmake/UmicomStudioSourceCopy.cmake)
+include(cmake/UmicomStudioEditorSettings.cmake)
+
+# Rename uses the same Framework operation in the service and native Explorer.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-project-rename-test tests/test_project_rename.c)
+    target_link_libraries(umicom-studio-project-rename-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-project-rename-test)
+    umicom_apply_sanitizers(umicom-studio-project-rename-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-project-rename-test)
+    endif()
+    foreach(_rename_case IN ITEMS closed open dirty inactive destination descendant existing untrusted stale arguments)
+        set(_rename_test "studio.project_rename.service.${_rename_case}")
+        add_test(NAME ${_rename_test} COMMAND umicom-studio-project-rename-test ${_rename_case})
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-rename/${_rename_case}")
+        set_tests_properties(${_rename_test} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/project-rename/${_rename_case}"
+            ENVIRONMENT "UMICOM_STUDIO_DATA_PATH="
+            LABELS "studio;workspace;rename;regression")
+        if(COMMAND umicom_test_impact_owners)
+            umicom_test_impact_owners(${_rename_test} TARGETS umicom-studio-project-rename-test)
+        endif()
+    endforeach()
+    if(TARGET umicom-studio-workspace-canvas-test)
+        add_executable(umicom-studio-project-rename-native-test
+            tests/test_project_rename_gtk4.c src/gui/workbench/workbench_window.c)
+        target_include_directories(umicom-studio-project-rename-native-test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        target_link_libraries(umicom-studio-project-rename-native-test PRIVATE
+            Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+        umicom_apply_warnings(umicom-studio-project-rename-native-test)
+        umicom_apply_sanitizers(umicom-studio-project-rename-native-test)
+        if(COMMAND umicom_register_validation_target)
+            umicom_register_validation_target(umicom-studio-project-rename-native-test)
+        endif()
+        foreach(_rename_case IN ITEMS rename cancel existing open stale retained-button retired-owner repeat close-notification owner-during-open)
+            set(_rename_test "studio.project_rename.gtk4.${_rename_case}")
+            add_test(NAME ${_rename_test} COMMAND umicom-studio-project-rename-native-test ${_rename_case})
+            set_tests_properties(${_rename_test} PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77
+                ENVIRONMENT "G_DEBUG=fatal-warnings"
+                LABELS "studio;workspace;rename;gtk4;ownership;regression")
+            if(COMMAND umicom_test_impact_owners)
+                umicom_test_impact_owners(${_rename_test} TARGETS umicom-studio-project-rename-native-test)
+            endif()
+        endforeach()
+    endif()
+    unset(_rename_case)
+    unset(_rename_test)
+endif()
+
+include(cmake/UmicomStudioEditorPreferences.cmake)
+
+include(cmake/UmicomStudioEditorPreferenceStorage.cmake)
