@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Use a project board inside Studio</title>
+<style>body{font:17px/1.6 system-ui;max-width:850px;margin:3rem auto;padding:0 1rem;color:#243342}h1,h2{line-height:1.2}</style>
+<h1>Use a project board inside Studio</h1>
+<p>The Project Board pane lets you plan work while keeping your editor open. It uses the same Framework board editor as the separate Kanban window.</p>
+<ol><li>Open your project in Studio.</li><li>Choose <strong>Project Board</strong> in the activity rail, or run <strong>view.kanban</strong> from the command palette. Opening the pane alone does not access a board file.</li><li>Click <strong>Dock current project's board</strong>. Studio reuses an existing window for that project when available.</li><li>Choose an existing private folder. Review the suggested filename, then choose <strong>Create board</strong> or <strong>Open board</strong>. Do not place private planning files in a public source repository.</li><li>Add cards, type developer names to assign work, and drag cards between the board's columns. Use <strong>Save board</strong> to retain these changes.</li><li>Click <strong>Open board in separate window</strong> when you want more space. The same board and unsaved edits move with it.</li></ol>
+<h2>Changing projects</h2>
+<p>The pane shows the board's captured project path. Opening a different Studio project does not silently change that board. Click <strong>Dock current project's board</strong> to choose the new project's board. The previous board returns to its separate window, preserving unsaved edits.</p>
+<h2>Closing Studio</h2>
+<p>Closing Studio returns a docked board to its separate window. Save or explicitly close that window when finished. Closing a layout pane only hides its retained contents. Terminating the whole process cannot preserve unsaved memory.</p>
+<h2>When docking is refused</h2>
+<p>Wait for the current board file operation to finish. If the board is already docked in another Studio window, return it there first. A build without native Kanban support displays an unavailable message. Existing independent board windows remain available through the project explorer's board command.</p>
+<p>Website generation and saved publication selections remain separate, explicit actions. Docking never uploads a board.</p>
+</html>

@@ -348,6 +348,7 @@ static const UmiStudioGtkSurfaceProfile RUNTIME_SURFACE_PROFILES[] = {
 #include "profiles/surfaces/terminal.inc"
 #include "profiles/surfaces/source_control.inc"
 #include "profiles/surfaces/test_explorer.inc"
+#include "profiles/surfaces/kanban.inc"
 #include "profiles/surfaces/debug.inc"
 #include "profiles/surfaces/build.inc"
 #include "profiles/surfaces/ai_chat.inc"

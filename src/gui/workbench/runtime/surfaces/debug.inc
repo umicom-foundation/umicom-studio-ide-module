@@ -86,6 +86,8 @@ static GtkWidget *runtime_build_surface_debug(
     gtk_box_append(GTK_BOX(panel), RuntimeDebugExceptionInformationCreate(runtime));
     /* Keep disassembly beside the other paused-debugger inspection tools. */
     gtk_box_append(GTK_BOX(panel), RuntimeDebugInstructionsCreate(runtime));
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugBacktraceCreate(runtime));
+    gtk_box_append(GTK_BOX(panel), RuntimeDebugConsoleCreate(runtime));
 
     runtime->debug_summary_label = runtime_label("", 0.0F);
     runtime->debug_thread_entry = gtk_entry_new();

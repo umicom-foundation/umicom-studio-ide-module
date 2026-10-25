@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review debugger output in Studio</title><style>body{font:18px/1.6 system-ui;max-width:900px;margin:3rem auto;padding:0 1rem}</style></head><body>
+<h1>Review debugger output in Studio</h1>
+<p>The Debugger output section shows retained output from Studio's debugger service. Refresh captures results once so you can read pages without incoming output moving them.</p>
+<ol><li>Open a project you trust and open the debugger surface. Expand <strong>Debugger output</strong>.</li>
+<li>Choose optional session, category, text, severity and ordering filters. Empty session and category fields include every retained session or category.</li>
+<li>Select <strong>Refresh output</strong>. The first page contains at most 64 records. Use Next and Previous to read the same capture.</li>
+<li>Change filters and refresh to take a new capture. Use Copy page to copy only the current page, or Clear view to clear the display without clearing the debugger's records.</li></ol>
+<p>This section is an output viewer. It does not run commands or evaluate expressions. It can review retained output after debugging stops. A project must remain trusted when a new capture is requested.</p>
+<h2>If nothing appears</h2><p>Check project trust, remove restrictive filters and refresh. If the debugger has not supplied output, the result is empty. A failed refresh clears the old view rather than presenting it as a new result. Reopen the project if its workbench was closed. Review copied output for private paths or data before sharing it.</p>
+<p>The viewer retains at most the service's current bounded registry and is not a complete saved transcript. Text matching is bytewise case-insensitive and exact session/category matching is case-sensitive.</p></body></html>

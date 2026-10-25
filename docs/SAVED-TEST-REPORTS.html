@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Saved test reports in Studio</title>
+<style>body{max-width:60rem;margin:3rem auto;padding:0 1rem;font:18px/1.6 system-ui;color:#17212b}pre{padding:1rem;background:#f0f3f6;overflow:auto}</style>
+<h1>Saved test reports in Studio</h1>
+<p>Use the Test Explorer’s <strong>Open a saved CTest report</strong> section to review a previous test run. This review is separate from Studio’s live test execution and archive controls. You can open a saved report without opening a project.</p>
+<ol><li>Finish the build, then create XML and a console log with CTest from your build directory:
+<pre>ctest --output-on-failure --no-tests=error --output-junit "C:/work/private/tests.xml" --output-log "C:/work/private/tests.log"</pre>
+Use an existing private folder and keep both files.</li>
+<li>Expand the saved-report section in Test Explorer. Choose the XML filename and click <strong>Open report</strong>. The panel reads it in the background.</li>
+<li>Review the captured filename, full report counts, and the default non-passed results. Not run, disabled, skipped and timed out remain separate from failed and passed.</li>
+<li>Enter part of a test name, choose an outcome or sort order, and click <strong>Apply filters</strong>. Name matching ignores ASCII letter case. Next and Previous retain that selection until you apply another.</li>
+<li>Use <strong>Copy page</strong> to copy the current 64-record page. Use <strong>Close report</strong> to discard the loaded view without deleting its file.</li></ol>
+<p><strong>Cancel load</strong> prevents a pending read from displaying results. It waits for the local read to finish releasing resources. Closing or hiding the panel also prevents late publication. A later load is a new operation.</p>
+<p>A saved report is historical evidence. Studio does not claim it matches the current project, source revision or executables. The original console log is still needed for complete failure details. This panel neither reruns failed tests nor changes the live test selection.</p>
+<p>If the report cannot be opened, check the absolute filename, complete JUnit XML format, encoding and 64 MiB size limit. A console transcript is not JUnit XML. If a filter is rejected, correct it and Apply again; an invalid filter never leaves the previous page looking current.</p></html>

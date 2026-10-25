@@ -15,6 +15,8 @@
 
 #include "umicom/testing/ctest_output_gtk4.h"
 #include "test_archive.inc"
+/* Saved report review is independent of the live execution poller. */
+#include "saved_test_report.inc"
 
 /* Poll one copied capture on the GTK thread. Output controls remain independent
  * of selection and never dispatch another test or retain a Studio service. */
@@ -579,6 +581,8 @@ static GtkWidget *runtime_build_surface_test_explorer(
     runtime->test_live_output = UmiCtestOutputGtk4Create();
     gtk_box_append(GTK_BOX(panel), runtime->test_live_output);
     RuntimeTestArchiveControls(runtime, panel);
+    /* Review saved observations independently of the current test invocation. */
+    gtk_box_append(GTK_BOX(panel), RuntimeSavedCtestReportCreate());
     RuntimeTestLiveOutputRefresh(runtime);
 
     runtime_append_context_actions(runtime, panel, "tests");

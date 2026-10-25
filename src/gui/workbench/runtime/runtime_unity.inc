@@ -73,6 +73,7 @@
 #include "surfaces/terminal.inc"
 #include "surfaces/source_control.inc"
 #include "surfaces/test_explorer.inc"
+#include "surfaces/kanban.inc"
 #include "surfaces/debug.inc"
 #include "surfaces/build.inc"
 #include "surfaces/ai_chat.inc"

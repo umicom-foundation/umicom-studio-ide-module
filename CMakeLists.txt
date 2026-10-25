@@ -3380,3 +3380,9 @@ endif()
 include(cmake/UmicomStudioEditorPreferences.cmake)
 
 include(cmake/UmicomStudioEditorPreferenceStorage.cmake)
+
+include(cmake/UmicomStudioDebugBacktrace.cmake)
+
+include(cmake/UmicomStudioDebugConsole.cmake)
+
+include(cmake/UmicomStudioSavedTestReport.cmake)

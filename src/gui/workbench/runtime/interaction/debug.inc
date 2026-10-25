@@ -282,3 +282,6 @@ static void runtime_debug_update_summary(
 
 /* Instruction browsing shares Framework stop ownership and keeps Studio project checks here. */
 #include "debug_instructions.inc"
+/* Framework owns copied stack reporting and native review lifetime. */
+#include "debug_backtrace.inc"
+#include "debug_console.inc"
