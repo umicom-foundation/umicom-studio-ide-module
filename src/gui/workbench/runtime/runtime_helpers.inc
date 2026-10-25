@@ -665,6 +665,19 @@ static int runtime_command_enabled(
          strcmp(command_id, "workspace.open-folder") == 0 ||
          strcmp(command_id, "file.close") == 0)) return 0;
 
+
+    /* Native queue state controls opening actions; an admitted item cannot be
+     * cancelled while its synchronous provider operation is executing. */
+    if (strcmp(command_id, "file.open.cancel") == 0 ||
+        strcmp(command_id, "file.open.results") == 0) {
+        UmiDocumentOpenBatchSummary summary;
+        int running = 0;
+        if (umi_studio_gtk_workbench_open_files_snapshot(runtime->owner, &summary, &running)
+            != UMI_STATUS_OK) return 0;
+        return strcmp(command_id, "file.open.cancel") == 0
+            ? running && summary.pending != 0U && !summary.busy
+            : !running && summary.count != 0U;
+    }
     if (strcmp(command_id, "file.save-all.cancel") == 0)
         return UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter);
 

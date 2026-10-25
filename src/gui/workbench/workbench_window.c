@@ -824,3 +824,49 @@ UmiStatus umi_studio_gtk_workbench_execute_command(UmiStudioGtkWorkbench *workbe
     if (!runtime_command_enabled(runtime, command_id)) return UMI_STATUS_PERMISSION_DENIED;
     return runtime_execute_command(runtime, command_id, argument);
 }
+
+/* Expose the same native admission for embedders and regression fixtures.
+ * Framework owns the captured paths and results; Studio owns scheduling. */
+UmiStatus umi_studio_gtk_workbench_open_files(UmiStudioGtkWorkbench *workbench,
+    const char *const *paths, size_t count)
+{
+    if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioGtkRuntimeChrome *runtime = workbench->runtime_chrome;
+    if (runtime == NULL || !runtime->runtime_ready) return UMI_STATUS_UNAVAILABLE;
+    if (!runtime_command_enabled(runtime, "file.open")) return UMI_STATUS_PERMISSION_DENIED;
+    return RuntimeStartOpenFiles(runtime, paths, count);
+}
+static UmiDocumentOpenBatch *StudioOpenFilesCurrent(UmiStudioGtkWorkbench *workbench, int *running)
+{
+    if (workbench == NULL || workbench->window == NULL || workbench->runtime_chrome == NULL) return NULL;
+    GObject *window = G_OBJECT(workbench->window);
+    StudioOpenFilesJob *job = g_object_get_data(window, STUDIO_OPEN_FILES_JOB);
+    *running = job != NULL;
+    return job != NULL ? job->batch : g_object_get_data(window, STUDIO_OPEN_FILES_RESULT);
+}
+UmiStatus umi_studio_gtk_workbench_open_files_snapshot(UmiStudioGtkWorkbench *workbench,
+    UmiDocumentOpenBatchSummary *out_summary, int *out_running)
+{
+    if (workbench == NULL || out_summary == NULL || out_running == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    int running = 0;
+    UmiDocumentOpenBatch *batch = StudioOpenFilesCurrent(workbench, &running);
+    if (batch == NULL) return UMI_STATUS_NOT_FOUND;
+    UmiStatus status = UmiDocumentOpenBatchInspect(batch, out_summary);
+    if (status == UMI_STATUS_OK) *out_running = running;
+    return status;
+}
+UmiStatus umi_studio_gtk_workbench_open_file_result(UmiStudioGtkWorkbench *workbench,
+    size_t index, UmiDocumentOpenItem *out_item)
+{
+    if (workbench == NULL || out_item == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    int running = 0;
+    UmiDocumentOpenBatch *batch = StudioOpenFilesCurrent(workbench, &running);
+    return batch != NULL ? UmiDocumentOpenBatchAt(batch, index, out_item) : UMI_STATUS_NOT_FOUND;
+}
+UmiStatus umi_studio_gtk_workbench_cancel_open_files(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    int running = 0;
+    UmiDocumentOpenBatch *batch = StudioOpenFilesCurrent(workbench, &running);
+    return batch != NULL && running ? UmiDocumentOpenBatchCancel(batch) : UMI_STATUS_NOT_FOUND;
+}

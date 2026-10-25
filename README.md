@@ -203,3 +203,7 @@ For persistent build outcomes, see [Reviewing local build-job history](docs/LOCA
 ## Private test history
 
 Test Explorer can retain completed queued runs in an explicitly selected local SQLite database. Read [Private test history](docs/PRIVATE_TEST_HISTORY.html) for saving, reopening and inspecting evidence without changing current test results.
+
+## Open related source files together
+
+[Open several files](docs/OPENING_SEVERAL_FILES.html) explains multi-selection, per-file results and preservation of existing drafts.

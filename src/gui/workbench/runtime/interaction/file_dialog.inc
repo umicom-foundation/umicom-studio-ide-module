@@ -142,6 +142,10 @@ static UmiStatus RuntimeOpenSourcePath(UmiStudioGtkRuntimeChrome *runtime, const
     return status;
 }
 
+/* Multi-file selection now uses the captured Framework open plan below.
+ * Keep the original single-file callback for review; explicit path commands
+ * still use RuntimeOpenSourcePath and retain their existing behavior. */
+#if 0
 static void runtime_open_file_complete(
     GObject *source_object,
     GAsyncResult *result,
@@ -229,6 +233,9 @@ cleanup:
     g_clear_object(&ownerWindow);
     runtime_file_dialog_request_free(request);
 }
+
+#endif
+#include "open_files.inc"
 
 /*
  * Provide the runtime save as complete operation used by this module and its client
@@ -638,7 +645,7 @@ static UmiStatus RuntimePresentDocumentChooser(UmiStudioGtkRuntimeChrome *runtim
     if (runtime != NULL && UmiGtk4WindowIsOpen(GTK_WINDOW(window))) {
         RuntimePrepareDocumentChooser(workspaceStatus == UMI_STATUS_OK ? &workspace : NULL, dialog, mode, active);
         gtk_file_dialog_set_title(dialog, mode == UMI_PATH_PICKER_NEW_FILE ? "Save As"
-            : mode == UMI_PATH_PICKER_DIRECTORY ? "Open Workspace Folder" : "Open File");
+            : mode == UMI_PATH_PICKER_DIRECTORY ? "Open Workspace Folder" : "Open Files"); /* Former caption: Open File. */
         g_clear_object(&window);
         runtime = runtime_file_dialog_owner(request, &window);
         if (runtime != NULL && UmiGtk4WindowIsOpen(GTK_WINDOW(window))) {
@@ -648,7 +655,13 @@ static UmiStatus RuntimePresentDocumentChooser(UmiStudioGtkRuntimeChrome *runtim
                 gtk_file_dialog_save(dialog, GTK_WINDOW(window), NULL, runtime_save_as_complete, request);
             else if (mode == UMI_PATH_PICKER_DIRECTORY)
                 gtk_file_dialog_select_folder(dialog, GTK_WINDOW(window), NULL, runtime_open_folder_complete, request);
-            else gtk_file_dialog_open(dialog, GTK_WINDOW(window), NULL, runtime_open_file_complete, request);
+            else {
+                /* The chooser now accepts several files. Preserve its earlier launch for review. */
+#if 0
+                gtk_file_dialog_open(dialog, GTK_WINDOW(window), NULL, runtime_open_file_complete, request);
+#endif
+                gtk_file_dialog_open_multiple(dialog, GTK_WINDOW(window), NULL, runtime_open_files_complete, request);
+            }
             request = NULL;
             status = UMI_STATUS_OK;
         }

@@ -141,6 +141,20 @@ UmiStatus umi_studio_gtk_workbench_workspace_request_canvas_geometry(
 UmiStatus umi_studio_gtk_workbench_execute_command(UmiStudioGtkWorkbench *workbench,
     const char *command_id, const char *argument);
 
+#include "umicom/document/open_batch.h"
+
+/* Multi-file opening uses the same owner-thread admission as the chooser.
+ * OK means queued. Pump the GTK context and inspect completion separately.
+ * Inputs are copied; at most 32 absolute local paths are admitted. */
+UmiStatus umi_studio_gtk_workbench_open_files(UmiStudioGtkWorkbench *workbench,
+    const char *const *paths, size_t count);
+UmiStatus umi_studio_gtk_workbench_open_files_snapshot(UmiStudioGtkWorkbench *workbench,
+    UmiDocumentOpenBatchSummary *out_summary, int *out_running);
+UmiStatus umi_studio_gtk_workbench_open_file_result(UmiStudioGtkWorkbench *workbench,
+    size_t index, UmiDocumentOpenItem *out_item);
+/* Stop pending files only; successful tabs remain open. */
+UmiStatus umi_studio_gtk_workbench_cancel_open_files(UmiStudioGtkWorkbench *workbench);
+
 /** Run the same status synchronization as the native refresh timer without
  * enabling a recurring source. Normal document reconciliation still applies. */
 UmiStatus umi_studio_gtk_workbench_workspace_synchronise(UmiStudioGtkWorkbench *workbench);

@@ -48,6 +48,8 @@ static UmiStatus runtime_build_shell(UmiStudioGtkRuntimeChrome *runtime)
     gtk_stack_set_vhomogeneous(GTK_STACK(runtime->centre_stack), FALSE);
     gtk_widget_set_hexpand(runtime->centre_stack, TRUE);
     gtk_widget_set_vexpand(runtime->centre_stack, TRUE);
+    status = RuntimeAttachFileDrop(runtime);
+    if (status != UMI_STATUS_OK) return status;
     runtime->document_tabs = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
     runtime->status_bar = runtime_build_status_bar(runtime);
     runtime->editor_command_bar = runtime_build_editor_command_bar(runtime);

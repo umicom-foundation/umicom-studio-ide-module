@@ -587,6 +587,14 @@ static UmiStatus runtime_route_command(
          strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0))
         return UMI_STATUS_BUSY;
 
+
+    if (strcmp(command_id, "file.open.cancel") == 0 ||
+        strcmp(command_id, "file.open.results") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return strcmp(command_id, "file.open.cancel") == 0
+            ? umi_studio_gtk_workbench_cancel_open_files(runtime->owner)
+            : RuntimeReviewOpenFiles(runtime);
+    }
     if (strcmp(command_id, "file.save-all.cancel") == 0)
         return RuntimeCancelSaveAll(runtime);
 

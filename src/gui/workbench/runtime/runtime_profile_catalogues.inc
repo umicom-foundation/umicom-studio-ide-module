@@ -433,6 +433,7 @@ static const UmiStudioGtkCommandProfile RUNTIME_COMMAND_PROFILES[] = {
 #include "profiles/commands/bookmarks.inc"
 #include "profiles/commands/replacement_review.inc"
 #include "profiles/commands/replacement_set.inc"
+#include "profiles/commands/opening.inc"
 #include "profiles/commands/save.inc"
 #include "profiles/commands/save_all.inc"
 #include "profiles/commands/build.inc"

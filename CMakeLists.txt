@@ -3312,3 +3312,6 @@ include(cmake/UmicomStudioKanban.cmake)
 
 # Keep centre queries coherent with shared Framework projections.
 include(cmake/UmicomStudioExplorerFilter.cmake)
+
+# Native file selection shares Framework document ownership.
+include(cmake/UmicomStudioOpenFiles.cmake)
