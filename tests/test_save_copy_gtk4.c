@@ -73,7 +73,14 @@ int main(int argc, char **argv) {
   application = gtk_application_new("org.umicom.studio.copytest", G_APPLICATION_NON_UNIQUE);
   CHECK(g_application_register(G_APPLICATION(application), NULL, &error));
   UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+  /* The workbench borrows the bootstrap-owned desktop shell. Keep the old
+   * incomplete call for review; supply the same owner used by Studio itself. */
+#if 0
   CHECK(umi_studio_gtk_workbench_create(application, ui, &workbench) == UMI_STATUS_OK);
+#endif
+  CHECK(umi_studio_gtk_workbench_create(application, ui,
+                                        umi_studio_bootstrap_desktop_shell(bootstrap),
+                                        &workbench) == UMI_STATUS_OK);
   source = g_build_filename(directory, "source.c", NULL);
   destination =
       g_build_filename(directory, strcmp(name, "unicode") == 0 ? "caf\xc3\xa9.c" : "copy.c", NULL);

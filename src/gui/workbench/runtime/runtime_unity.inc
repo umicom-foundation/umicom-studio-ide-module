@@ -19,6 +19,12 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "runtime_types.inc"
+/* Interaction fragments create command controls before runtime_actions.inc
+ * supplies the implementation. Declare the shared factory here so every host
+ * translation unit sees its actual pointer return type before the first use. */
+static GtkWidget *runtime_make_command_button(
+    UmiStudioGtkRuntimeChrome *runtime, const char *label,
+    const char *command_id, const char *tooltip);
 #include "interaction/editor_search_options.inc"
 #include "runtime_helpers.inc"
 #include "runtime_profile_catalogues.inc"

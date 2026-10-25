@@ -114,10 +114,11 @@ int main(int argc, char **argv) {
     }
     if (!strcmp(name, "readonly")) {
       UmiUiDocumentViewModel *views = umi_ui_workbench_documents(umi_studio_ui_workbench(ui));
-      UmiUiDocumentViewSnapshot snapshot;
-      CHECK(umi_ui_document_view_model_find(views, view, &snapshot) == UMI_STATUS_OK);
-      snapshot.read_only = 1;
-      CHECK(umi_ui_document_view_model_upsert(views, &snapshot) == UMI_STATUS_OK);
+      /* Keep the view projection distinct from the working-copy snapshot above. */
+      UmiUiDocumentViewSnapshot viewSnapshot;
+      CHECK(umi_ui_document_view_model_find(views, view, &viewSnapshot) == UMI_STATUS_OK);
+      viewSnapshot.read_only = 1;
+      CHECK(umi_ui_document_view_model_upsert(views, &viewSnapshot) == UMI_STATUS_OK);
     }
   }
   CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
