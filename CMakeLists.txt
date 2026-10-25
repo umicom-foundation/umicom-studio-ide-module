@@ -3386,3 +3386,8 @@ include(cmake/UmicomStudioDebugBacktrace.cmake)
 include(cmake/UmicomStudioDebugConsole.cmake)
 
 include(cmake/UmicomStudioSavedTestReport.cmake)
+
+include(cmake/UmicomStudioSearchPages.cmake)
+
+# Session navigation uses Framework selection and native ownership.
+include(cmake/UmicomStudioBookmarkPanel.cmake)

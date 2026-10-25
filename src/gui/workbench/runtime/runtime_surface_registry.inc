@@ -76,6 +76,8 @@ static GtkWidget *runtime_build_surface_for_kind(
             return runtime_build_surface_terminal(runtime);
         case UMI_STUDIO_SURFACE_SOURCE_CONTROL:
             return runtime_build_surface_source_control(runtime);
+        case UMI_STUDIO_SURFACE_BOOKMARKS:
+            return runtime_build_surface_bookmarks(runtime);
         case UMI_STUDIO_SURFACE_KANBAN:
             return runtime_build_surface_kanban(runtime);
         case UMI_STUDIO_SURFACE_TEST_EXPLORER:

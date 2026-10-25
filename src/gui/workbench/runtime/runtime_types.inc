@@ -70,7 +70,12 @@
 #include "umicom/vcs/diff_document.h"
 #include "umicom/vcs/workspace.h"
 
+/* Surface storage and all Framework-driven loops must share one upper bound.
+ * The fixed predecessor is retained for review; new panes cannot index past it. */
+#if 0
 #define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT 27U
+#endif
+#define UMI_STUDIO_GTK_RUNTIME_SURFACE_COUNT ((size_t)UMI_STUDIO_SURFACE_LAST)
 #define UMI_STUDIO_GTK_RUNTIME_STATUS_COUNT 10U
 #define UMI_STUDIO_GTK_RUNTIME_REFRESH_MS 750U
 /* These bounds keep useful panels readable without allowing two tool regions
@@ -340,6 +345,22 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiStudioTerminalSnapshot terminal_snapshot;
     UmiAiAuthorEngineServiceSnapshot ai_snapshot;
 } UmiStudioGtkRuntimeChrome;
+
+/* Every indexed presentation projection must cover the Framework catalogue.
+ * These compile-time checks catch a future fixed-size field before it can be
+ * indexed by a newly registered pane. */
+#define STUDIO_SURFACE_STORAGE_CHECK(member) \
+    static_assert(sizeof(((UmiStudioGtkRuntimeChrome *)0)->member) / \
+        sizeof(((UmiStudioGtkRuntimeChrome *)0)->member[0]) > UMI_STUDIO_SURFACE_LAST, \
+        "Studio surface storage must cover the shared catalogue")
+STUDIO_SURFACE_STORAGE_CHECK(surface_panels);
+STUDIO_SURFACE_STORAGE_CHECK(activity_buttons);
+STUDIO_SURFACE_STORAGE_CHECK(surface_location_labels);
+STUDIO_SURFACE_STORAGE_CHECK(surface_regions);
+STUDIO_SURFACE_STORAGE_CHECK(surface_visible);
+STUDIO_SURFACE_STORAGE_CHECK(surface_floating);
+STUDIO_SURFACE_STORAGE_CHECK(surface_state_initialised);
+#undef STUDIO_SURFACE_STORAGE_CHECK
 
 /*
  * Provide the runtime show command palette operation used by this module and its client

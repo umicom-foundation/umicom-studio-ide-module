@@ -23,6 +23,7 @@
 #include "umicom/umicom.h"
 #include "umicom/platform/workspace_files.h"
 #include "umicom/platform/search_session.h"
+#include "umicom/platform/search_page.h"
 #include "umicom/studio/application_surface.h"
 #include "umicom/studio/application_surface_policy.h"
 #include "umicom/studio/services.h"
@@ -218,6 +219,10 @@ UmiStatus UmiStudioUiSearchStartFiltered(UmiStudioUi *ui, const char *query,
 UmiStatus UmiStudioUiSearchFilterRead(UmiStudioUi *ui, uint64_t requestId,
     UmiSearchPathFilter *outFilter);
 UmiStatus UmiStudioUiSearchCancel(UmiStudioUi *ui);
+/* Capture/validate a copied Framework page only for this current workspace. */
+UmiStatus UmiStudioUiSearchPageCreate(UmiStudioUi *ui, size_t offset, size_t limit,
+    UmiFileSearchPage **out_page);
+UmiStatus UmiStudioUiSearchPageValidate(UmiStudioUi *ui, const UmiFileSearchPage *page);
 UmiStatus UmiStudioUiSearchRead(UmiStudioUi *ui, UmiFileSearchSnapshot *outSnapshot);
 UmiStatus UmiStudioUiSearchMatchAt(UmiStudioUi *ui, uint64_t requestId,
     size_t position, UmiSearchMatch *outMatch);

@@ -713,6 +713,29 @@ UmiStatus UmiStudioUiSearchMatchAt(UmiStudioUi *ui, uint64_t requestId,
     return UmiFileSearchMatchAt(ui->fileSearch, requestId, position, outMatch);
 }
 
+/* Framework owns copied results; Studio adds its workspace generation check
+ * before capture or activation, including reopening the same directory. */
+UmiStatus UmiStudioUiSearchPageCreate(UmiStudioUi *ui, size_t offset, size_t limit,
+    UmiFileSearchPage **out_page)
+{
+    if (ui == NULL || out_page == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiFileSearchSnapshot state;
+    UmiStatus status = UmiStudioUiSearchRead(ui, &state);
+    if (status != UMI_STATUS_OK) return status;
+    if (!state.ready || state.stale || state.active || ui->fileSearch == NULL) return UMI_STATUS_BUSY;
+    return UmiFileSearchPageCreate(ui->fileSearch, offset, limit, out_page);
+}
+
+UmiStatus UmiStudioUiSearchPageValidate(UmiStudioUi *ui, const UmiFileSearchPage *page)
+{
+    if (ui == NULL || page == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiFileSearchSnapshot state;
+    UmiStatus status = UmiStudioUiSearchRead(ui, &state);
+    if (status != UMI_STATUS_OK) return status;
+    if (!state.ready || state.stale || state.active || ui->fileSearch == NULL) return UMI_STATUS_BUSY;
+    return UmiFileSearchPageValidate(page, ui->fileSearch);
+}
+
 UmiStatus UmiStudioUiSearchOpen(UmiStudioUi *ui, uint64_t requestId, size_t position)
 {
     UmiSearchMatch match;

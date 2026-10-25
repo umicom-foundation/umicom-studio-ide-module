@@ -29,6 +29,10 @@ typedef struct RuntimeFileSearchPanel {
     GtkWidget *results;
     uint64_t renderedRequest;
     int renderedReady;
+    size_t offset;
+    int publishing;
+    GObject *published;
+    GtkWidget *first, *previous, *next, *last, *range;
 } RuntimeFileSearchPanel;
 
 typedef struct RuntimeFileSearchRow {
@@ -45,6 +49,13 @@ static void RuntimeFileSearchPanelFree(gpointer data)
         runtime->file_search_panel = NULL;
     g_clear_object(&window);
     runtime_file_dialog_request_free(panel->owner);
+    g_clear_object(&panel->published);
+    g_clear_object(&panel->query); g_clear_object(&panel->matchCase);
+    g_clear_object(&panel->includePatterns); g_clear_object(&panel->excludePatterns);
+    g_clear_object(&panel->capturedScope); g_clear_object(&panel->start); g_clear_object(&panel->cancel);
+    g_clear_object(&panel->summary); g_clear_object(&panel->results);
+    g_clear_object(&panel->first); g_clear_object(&panel->previous); g_clear_object(&panel->next);
+    g_clear_object(&panel->last); g_clear_object(&panel->range);
     g_free(panel);
 }
 
@@ -119,6 +130,9 @@ static void RuntimeFileSearchOpen(GtkButton *button, gpointer data)
 #endif
 
 
+/* The copied-page implementation below replaces this borrowed runtime path.
+ * Retain it for review of result navigation, scope and ownership behaviour. */
+#if 0
 static void RuntimeFileSearchOpen(GtkButton *button, gpointer data)
 {
     g_object_ref(data);
@@ -158,6 +172,7 @@ static void RuntimeFileSearchOpen(GtkButton *button, gpointer data)
     runtime_file_dialog_request_free(request);
     g_object_unref(data);
 }
+#endif
 /* Describe decoder skips alongside binary files so the visible summary explains why malformed or unsupported text was not searched.
  * The former implementation is retained for engineering review. */
 #if 0
@@ -216,6 +231,9 @@ static void RuntimeFileSearchRefresh(UmiStudioGtkRuntimeChrome *runtime)
     }
 }
 #endif
+/* The copied-page implementation below replaces this borrowed runtime path.
+ * Retain it for review of result navigation, scope and ownership behaviour. */
+#if 0
 static void RuntimeFileSearchRefresh(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->file_search_panel == NULL) return;
@@ -270,7 +288,11 @@ static void RuntimeFileSearchRefresh(UmiStudioGtkRuntimeChrome *runtime)
         g_free(path); g_free(preview); g_free(labelText);
     }
 }
+#endif
 
+/* The copied-page implementation below replaces this borrowed runtime path.
+ * Retain it for review of result navigation, scope and ownership behaviour. */
+#if 0
 static void RuntimeFileSearchStart(gpointer widget, gpointer data)
 {
     RuntimeFileSearchPanel *panel = g_object_get_data(G_OBJECT(data), "umicom-file-search");
@@ -306,7 +328,11 @@ static void RuntimeFileSearchStart(gpointer widget, gpointer data)
     }
     g_clear_object(&window);
 }
+#endif
 
+/* The copied-page implementation below replaces this borrowed runtime path.
+ * Retain it for review of result navigation, scope and ownership behaviour. */
+#if 0
 static void RuntimeFileSearchCancel(GtkButton *button, gpointer data)
 {
     RuntimeFileSearchPanel *panel = g_object_get_data(G_OBJECT(data), "umicom-file-search");
@@ -319,6 +345,10 @@ static void RuntimeFileSearchCancel(GtkButton *button, gpointer data)
     }
     g_clear_object(&window);
 }
+#endif
+
+/* Shared result pages and guarded native publication keep this product adapter thin. */
+#include "../interaction/search_pages.inc"
 
 static GtkWidget *runtime_build_surface_search(UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -400,6 +430,23 @@ static GtkWidget *runtime_build_surface_search(UmiStudioGtkRuntimeChrome *runtim
     search->summary = runtime_label("", 0.0F);
     gtk_label_set_wrap(GTK_LABEL(search->summary), TRUE);
     gtk_box_append(GTK_BOX(panel), search->summary);
+    GtkWidget *pages = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    search->first = gtk_button_new_with_label("First");
+    search->previous = gtk_button_new_with_label("Previous");
+    search->next = gtk_button_new_with_label("Next");
+    search->last = gtk_button_new_with_label("Last");
+    GtkWidget *moves[] = {search->first, search->previous, search->next, search->last};
+    const char *tags[] = {"umicom-file-search-first", "umicom-file-search-previous", "umicom-file-search-next", "umicom-file-search-last"};
+    for (size_t i = 0U; i < 4U; ++i) {
+        g_object_set_data(G_OBJECT(moves[i]), "studio-search-move", GINT_TO_POINTER((int)i));
+        g_object_set_data(G_OBJECT(moves[i]), "umicom-automation-id", (gpointer)tags[i]);
+        g_signal_connect_object(moves[i], "clicked", G_CALLBACK(RuntimeSearchPageMove), panel, 0);
+        gtk_box_append(GTK_BOX(pages), moves[i]);
+    }
+    gtk_box_append(GTK_BOX(panel), pages);
+    search->range = runtime_label("", 0.0F);
+    g_object_set_data(G_OBJECT(search->range), "umicom-automation-id", "umicom-file-search-range");
+    gtk_box_append(GTK_BOX(panel), search->range);
     search->results = gtk_list_box_new();
     gtk_list_box_set_selection_mode(GTK_LIST_BOX(search->results), GTK_SELECTION_NONE);
     g_object_set_data(G_OBJECT(search->results), "umicom-automation-id", "umicom-file-search-results");
@@ -409,6 +456,15 @@ static GtkWidget *runtime_build_surface_search(UmiStudioGtkRuntimeChrome *runtim
     g_signal_connect_object(search->excludePatterns, "activate", G_CALLBACK(RuntimeFileSearchStart), panel, 0);
     g_signal_connect_object(search->start, "clicked", G_CALLBACK(RuntimeFileSearchStart), panel, 0);
     g_signal_connect_object(search->cancel, "clicked", G_CALLBACK(RuntimeFileSearchCancel), panel, 0);
+    /* Strong widget references outlive observable list/window disposal during
+     * a refresh. The root owns state; row captures retain only its identity. */
+    g_object_ref(search->query); g_object_ref(search->matchCase);
+    g_object_ref(search->includePatterns); g_object_ref(search->excludePatterns);
+    g_object_ref(search->capturedScope); g_object_ref(search->start); g_object_ref(search->cancel);
+    g_object_ref(search->summary); g_object_ref(search->results);
+    g_object_ref(search->first); g_object_ref(search->previous); g_object_ref(search->next);
+    g_object_ref(search->last); g_object_ref(search->range);
+    g_object_set_data(G_OBJECT(search->summary), "umicom-automation-id", "umicom-file-search-summary");
     RuntimeFileSearchRefresh(runtime);
     return runtime_scroll(panel);
 }
