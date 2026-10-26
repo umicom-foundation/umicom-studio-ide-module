@@ -36,7 +36,15 @@ static GtkWindow *Form(void) {
   GListModel *windows = gtk_window_get_toplevels();
   for (guint i = 0; i < g_list_model_get_n_items(windows); ++i) {
     GtkWindow *window = g_list_model_get_item(windows, i);
+    /* Automation tags identify this review window independently of GTK CSS
+     * names. Retain the previous name lookup for review; it could not find
+     * windows tagged through the Framework automation service. */
+#if 0
     if (!strcmp(gtk_widget_get_name(GTK_WIDGET(window)), "document.proposal.review") &&
+        UmiGtk4WindowIsOpen(window))
+      return window;
+#endif
+    if (Find(GTK_WIDGET(window), "document.proposal.review") == GTK_WIDGET(window) &&
         UmiGtk4WindowIsOpen(window))
       return window;
     g_object_unref(window);
@@ -112,6 +120,21 @@ int main(int argc, char **argv) {
     view.cursor_offset = !strcmp(name, "unicode") ? 2U : 1U;
     view.selection_length = 0U;
     CHECK(umi_ui_document_view_model_upsert(views, &view) == UMI_STATUS_OK);
+  }
+  /* Startup includes a real welcome document. A negative admission case must
+   * close its fixture-owned documents explicitly rather than assume startup
+   * is empty. Check progress on each close so lifecycle defects cannot hang. */
+  if (!strcmp(name, "no-document")) {
+    size_t remaining = umi_document_coordinator_count(documents);
+    while (remaining != 0U) {
+      CHECK(umi_document_coordinator_close_active(documents, 1) == UMI_STATUS_OK);
+      size_t afterClose = umi_document_coordinator_count(documents);
+      CHECK(afterClose < remaining);
+      remaining = afterClose;
+    }
+    UmiDocumentWorkingCopySnapshot absent;
+    CHECK(umi_document_coordinator_count(documents) == 0U);
+    CHECK(umi_document_coordinator_active_snapshot(documents, &absent) == UMI_STATUS_NOT_FOUND);
   }
   UmiStatus status = umi_studio_gtk_workbench_execute_command(
       workbench, command, !strcmp(name, "argument") ? "invalid" : NULL);

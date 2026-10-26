@@ -127,11 +127,21 @@ static inline void SearchPagesCreate(SearchPagesFixture *f) {
   f->root = GTK_WIDGET(umi_studio_gtk_workbench_window(f->workbench));
   CHECK(umi_studio_gtk_workbench_workspace_open_surface(f->workbench, UMI_STUDIO_SURFACE_SEARCH,
                                                         NULL) == UMI_STATUS_OK);
-  CHECK(umi_studio_gtk_workbench_refresh(f->workbench) == UMI_STATUS_OK);
+  /* Synchronize runtime panes as well as document projections. The former
+     * adapter-only refresh is retained; it cannot publish completed search pages. */
+#if 0
+    CHECK(umi_studio_gtk_workbench_refresh(f->workbench) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(f->workbench) == UMI_STATUS_OK);
   gtk_editable_set_text(GTK_EDITABLE(SearchControl(f, "query")), "PageMarker");
   SearchClick(f, "start");
   SearchWait(f);
-  CHECK(umi_studio_gtk_workbench_refresh(f->workbench) == UMI_STATUS_OK);
+  /* Synchronize runtime panes as well as document projections. The former
+     * adapter-only refresh is retained; it cannot publish completed search pages. */
+#if 0
+    CHECK(umi_studio_gtk_workbench_refresh(f->workbench) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(f->workbench) == UMI_STATUS_OK);
 }
 static inline size_t SearchRowCount(SearchPagesFixture *f) {
   size_t count = 0U;

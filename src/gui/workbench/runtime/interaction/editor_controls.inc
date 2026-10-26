@@ -16,6 +16,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/document/source_selection.h"
+#include "umicom/document/line_edit.h"
 
 
 #include "umicom/ui/gtk4/text_comparison.h"
@@ -62,6 +63,8 @@ static void runtime_bind_editor_action(UmiStudioGtkRuntimeChrome *runtime,
         return;
     }
     action->clicked = clicked;
+    /* A refresh must never revive an action whose weak binding failed. */
+    g_object_set_data(G_OBJECT(button), "studio-editor-action-bound", GINT_TO_POINTER(1));
     g_signal_connect_data(button, "clicked", G_CALLBACK(runtime_editor_action_clicked),
         action, runtime_editor_action_destroy, 0);
 }
@@ -674,13 +677,13 @@ static void runtime_on_editor_replace_all(GtkButton *button, gpointer user_data)
 //     char message[192];
 //     UmiStatus status;
 //     (void)button;
-// 
+//
 //     /*
 //      * Protect caller-owned memory by checking that required state is available before it is
 //      * used.
 //      */
 //     if (runtime == NULL || runtime->editor_goto_entry == NULL) return;
-// 
+//
 //     line_text = gtk_editable_get_text(
 //         GTK_EDITABLE(runtime->editor_goto_entry));
 //     /*
@@ -688,7 +691,7 @@ static void runtime_on_editor_replace_all(GtkButton *button, gpointer user_data)
 //      * used.
 //      */
 //     if (line_text == NULL || line_text[0] == '\0') return;
-// 
+//
 //     line = strtoul(line_text, &end, 10);
 //     /* Apply this branch only when its contract condition is satisfied. */
 //     if (end == line_text || *end != '\0' || line == 0UL) {
@@ -702,12 +705,12 @@ static void runtime_on_editor_replace_all(GtkButton *button, gpointer user_data)
 //         return;
 //     }
 // #endif
-// 
+//
 //     status = umi_document_coordinator_go_to_line(
 //         runtime_documents(runtime),
 //         (size_t)line,
 //         &offset);
-// 
+//
 //     /* Preserve the original failure result so the caller can respond to the correct cause. */
 //     if (status == UMI_STATUS_OK) {
 //         (void)snprintf(

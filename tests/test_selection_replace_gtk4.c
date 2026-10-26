@@ -36,7 +36,15 @@ static GtkWindow *Form(void) {
   GListModel *windows = gtk_window_get_toplevels();
   for (guint i = 0; i < g_list_model_get_n_items(windows); ++i) {
     GtkWindow *window = g_list_model_get_item(windows, i);
+    /* Automation tags identify this review window independently of GTK CSS
+     * names. Retain the previous name lookup for review; it could not find
+     * windows tagged through the Framework automation service. */
+#if 0
     if (!strcmp(gtk_widget_get_name(GTK_WIDGET(window)), "document.proposal.review") &&
+        UmiGtk4WindowIsOpen(window))
+      return window;
+#endif
+    if (Find(GTK_WIDGET(window), "document.proposal.review") == GTK_WIDGET(window) &&
         UmiGtk4WindowIsOpen(window))
       return window;
     g_object_unref(window);

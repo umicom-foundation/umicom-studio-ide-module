@@ -615,6 +615,11 @@ static UmiStatus runtime_refresh_services(
     runtime_refresh_command_sensitivity(runtime, runtime->activity_bar);
     runtime = RuntimeResolveOwner(request, &window);
     if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    /* Editor actions live inside the retained centre body, outside the four
+     * chrome containers above. Refresh their existing command policy too. */
+    runtime_refresh_command_sensitivity(runtime, runtime->centre_stack);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
 
     RuntimeTestLiveOutputRefresh(runtime);
     runtime = RuntimeResolveOwner(request, &window);

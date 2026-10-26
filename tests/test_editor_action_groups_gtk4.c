@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: tests/test_editor_action_groups_gtk4.c
- * PURPOSE: Verify grouped editor actions keep their original identities, behavior and host lifetime.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Verify grouped editor actions keep their original identities, behavior and host lifetime.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"

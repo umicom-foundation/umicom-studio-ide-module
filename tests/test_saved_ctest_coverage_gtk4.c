@@ -93,6 +93,9 @@ int main(int argc, char **argv) {
   UmiStudioGtkWorkbenchOptions options = {0};
   CHECK(umi_studio_gtk_workbench_create_with_options(application, umi_studio_bootstrap_ui(bootstrap),
     umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
+  /* Request the actual panel before looking up its controls. Workspace hosts
+   * create bodies on demand; default layouts are not a fixture dependency. */
+  CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_TEST_EXPLORER, NULL) == UMI_STATUS_OK);
   CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
   GtkWindow *window = umi_studio_gtk_workbench_window(workbench);
   gtk_window_present(window);

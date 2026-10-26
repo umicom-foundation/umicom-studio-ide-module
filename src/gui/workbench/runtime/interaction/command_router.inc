@@ -1040,5 +1040,18 @@ static UmiStatus runtime_route_command(
                 return runtime_workspace_open_surface(runtime, profile->kind, NULL);
         }
     }
+    /* Canonical identifiers from command search and native integrations must
+     * keep Studio's scheduling wrapper, just like the menu aliases above.
+     * Falling through to the generic host executes registry handlers directly
+     * and loses background arming, save admission and completion feedback. */
+    if (RuntimeBuildReadsSavedDocuments(command_id) ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_REFRESH) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_DISCOVER) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RUN_ALL) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RUN_SELECTED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RERUN_FAILED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_REPEAT_SELECTED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TERMINAL_EXECUTE) == 0)
+        return runtime_execute_registered_command(runtime, command_id, argument);
     return runtime_execute_phase1_host_command(runtime, command_id, argument);
 }

@@ -878,7 +878,37 @@ UmiStatus umi_studio_gtk_workbench_execute_command(UmiStudioGtkWorkbench *workbe
         return UMI_STATUS_INVALID_ARGUMENT;
     UmiStudioGtkRuntimeChrome *runtime = workbench->runtime_chrome;
     if (runtime == NULL || !runtime->runtime_ready) return UMI_STATUS_UNAVAILABLE;
+    /* Preserve conservative admission while explaining a rejected tool request.
+     * The service query reads workspace/profile policy; it neither saves source
+     * nor starts a process. Enabled commands still repeat admission at dispatch. */
+#if 0
     if (!runtime_command_enabled(runtime, command_id)) return UMI_STATUS_PERMISSION_DENIED;
+#endif
+    if (!runtime_command_enabled(runtime, command_id)) {
+        UmiStatus denied = UMI_STATUS_PERMISSION_DENIED;
+        char reason[512] = {0};
+        const char *mapped = runtime_mapped_studio_command(command_id);
+        const char *canonical = mapped != NULL ? mapped : command_id;
+        if (RuntimeBuildReadsSavedDocuments(command_id) ||
+            strcmp(canonical, UMI_STUDIO_COMMAND_DEBUG_START) == 0) {
+            UmiStatus admission = UmiStudioBuildCheckAdmission(
+                umi_studio_ui_services(runtime->owner->ui), reason, sizeof reason);
+            if (admission != UMI_STATUS_OK) denied = admission;
+        }
+        if (reason[0] == '\0')
+            (void)snprintf(reason, sizeof reason, "%s is unavailable in the current workspace state.",
+                command_id);
+        /* Notification observers may destroy the workbench. Recheck through
+         * the weak owner token and never revisit the raw host after feedback. */
+        UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+        if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+        runtime_show_notification(runtime, reason);
+        GObject *window = NULL;
+        if (runtime_file_dialog_owner(request, &window) == NULL) denied = UMI_STATUS_CANCELLED;
+        g_clear_object(&window);
+        runtime_file_dialog_request_free(request);
+        return denied;
+    }
     return runtime_execute_command(runtime, command_id, argument);
 }
 

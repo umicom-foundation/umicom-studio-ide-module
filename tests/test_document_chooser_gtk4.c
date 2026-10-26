@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: tests/test_document_chooser_gtk4.c
- * PURPOSE: Exercise production chooser requests with deterministic native replies.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Exercise production chooser requests with deterministic native replies.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
@@ -23,6 +30,7 @@ static const char *chooserScenario, *chooserNextProject;
 static UmiStatus chooserNestedStatus;
 static int chooserArmed, chooserClosed;
 static unsigned chooserStarts;
+static int chooserMultiple;
 static GTask *chooserTask;
 static GAsyncReadyCallback chooserCallback;
 static gpointer chooserContext;
@@ -59,7 +67,19 @@ static void ChooserReply(GFile *file)
     GAsyncReadyCallback callback = chooserCallback;
     gpointer context = chooserContext;
     chooserTask = NULL; chooserCallback = NULL; chooserContext = NULL;
+    /* Multi-file selection returns a list model at the actual GTK boundary.
+     * Preserve the former single-file reply for the retained chooser paths. */
+#if 0
     if (file != NULL) g_task_return_pointer(task, file, g_object_unref);
+#endif
+    if (file != NULL) {
+        if (chooserMultiple) {
+            GListStore *files = g_list_store_new(G_TYPE_OBJECT);
+            g_list_store_append(files, file);
+            g_object_unref(file);
+            g_task_return_pointer(task, files, g_object_unref);
+        } else g_task_return_pointer(task, file, g_object_unref);
+    }
     else g_task_return_new_error(task, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED, "Dismissed");
     callback(g_task_get_source_object(task), G_ASYNC_RESULT(task), context);
     g_object_unref(task);
@@ -81,6 +101,21 @@ static GFile *ChooserFinish(GtkFileDialog *dialog, GAsyncResult *result, GError 
 {
     (void)dialog; return g_task_propagate_pointer(G_TASK(result), error);
 }
+/* The production Open command schedules a batch. Keep the old interception
+ * too, so legacy paths cannot escape to a real chooser during this fixture. */
+static void ChooserPresentMultiple(GtkFileDialog *dialog, GtkWindow *parent, GCancellable *cancel,
+    GAsyncReadyCallback callback, gpointer context)
+{
+    chooserMultiple = 1;
+    ChooserPresent(dialog, parent, cancel, callback, context);
+}
+static GListModel *ChooserFinishMultiple(GtkFileDialog *dialog, GAsyncResult *result, GError **error)
+{
+    (void)dialog;
+    return g_task_propagate_pointer(G_TASK(result), error);
+}
+#define gtk_file_dialog_open_multiple ChooserPresentMultiple
+#define gtk_file_dialog_open_multiple_finish ChooserFinishMultiple
 #define gtk_file_dialog_new ChooserNew
 #define gtk_file_dialog_open ChooserPresent
 #define gtk_file_dialog_save ChooserPresent
@@ -89,6 +124,8 @@ static GFile *ChooserFinish(GtkFileDialog *dialog, GAsyncResult *result, GError 
 #define gtk_file_dialog_save_finish ChooserFinish
 #define gtk_file_dialog_select_folder_finish ChooserFinish
 #include "../src/gui/workbench/workbench_window.c"
+#undef gtk_file_dialog_open_multiple
+#undef gtk_file_dialog_open_multiple_finish
 #undef gtk_file_dialog_new
 #undef gtk_file_dialog_open
 #undef gtk_file_dialog_save
@@ -183,7 +220,11 @@ int main(int argc, char **argv)
     CHECK(status == UMI_STATUS_OK && chooserTask != NULL && chooserStarts == 1U);
     CHECK(chooserFolder != NULL && g_file_equal(chooserFolder, expectedFolder));
     if (strcmp(mode, "open-switch-project") == 0) CHECK(chooserNestedStatus == UMI_STATUS_OK);
+    /* The current chooser accepts multiple files; keep its earlier caption for review. */
+#if 0
     CHECK(strcmp(chooserTitle, save ? "Save As" : folder ? "Open Workspace Folder" : "Open File") == 0);
+#endif
+    CHECK(strcmp(chooserTitle, save ? "Save As" : folder ? "Open Workspace Folder" : "Open Files") == 0);
     if (save) CHECK(chooserName != NULL && strcmp(chooserName, captured.display_name) == 0);
     if (strstr(mode, "late-reply") != NULL) ChooserCloseHost();
     UmiDocumentWorkingCopySnapshot other = {0};
@@ -193,6 +234,20 @@ int main(int argc, char **argv)
     }
     if (strstr(mode, "cancel") != NULL) ChooserReply(NULL);
     else ChooserReply(g_file_new_for_path(folder ? secondProject : destination));
+    /* Opening a selected file is scheduled, not complete when the chooser
+     * callback returns. Pump the native loop with a bound and inspect its own
+     * completion state before asserting document contents. */
+    if (!save && !folder && workbench != NULL &&
+        (strstr(mode, "choose") != NULL || strcmp(mode, "open-switch-project") == 0)) {
+        int running = 1;
+        UmiDocumentOpenBatchSummary summary;
+        for (unsigned attempt = 0U; attempt < 10000U && running; ++attempt) {
+            while (g_main_context_iteration(NULL, FALSE)) {}
+            CHECK(umi_studio_gtk_workbench_open_files_snapshot(workbench, &summary, &running) == UMI_STATUS_OK);
+            if (running) g_usleep(1000UL);
+        }
+        CHECK(!running);
+    }
     if (strcmp(mode, "save-other-tab") == 0) {
         UmiDocumentWorkingCopySnapshot active;
         CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && active.document_id == other.document_id);

@@ -821,6 +821,11 @@ static UmiStatus runtime_execute_registered_command_capture(
     }
 
 command_finished:
+    /* The final completion message may retire the host too. Report cancellation
+     * consistently even when the underlying service finished successfully. */
+    g_clear_object(&ownerWindow);
+    if (runtime_file_dialog_owner(ownerRequest, &ownerWindow) == NULL)
+        status = UMI_STATUS_CANCELLED;
     g_clear_object(&ownerWindow);
     runtime_file_dialog_request_free(ownerRequest);
     g_free(ownedCommand);

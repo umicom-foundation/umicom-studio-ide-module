@@ -98,6 +98,11 @@ int main(int argc, char **argv) {
   view.selection_length = 0U;
   CHECK(UmiUiDocumentViewModelUpsertText(views, &view, draft, strlen(draft)) == UMI_STATUS_OK);
   if (strcmp(name, "readonly") == 0) {
+    /* UpsertText copies the supplied snapshot; it does not refresh the caller's
+     * inline text. Read current metadata before changing permission so this
+     * test cannot restore the saved text while preparing a read-only draft. */
+    CHECK(umi_ui_document_view_model_find(views, before.view_id, &view) == UMI_STATUS_OK);
+    CHECK(strcmp(view.source_text, draft) == 0);
     view.read_only = 1;
     CHECK(umi_ui_document_view_model_upsert(views, &view) == UMI_STATUS_OK);
   }

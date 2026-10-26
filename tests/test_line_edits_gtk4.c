@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: tests/test_line_edits_gtk4.c
- * PURPOSE: Exercise real Studio line-edit controls against shared document text and Undo.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Exercise real Studio line-edit controls against shared document text and Undo.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
@@ -112,7 +119,12 @@ int main(int argc, char **argv)
                                                        &options, &workbench) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_EDITOR, NULL) ==
           UMI_STATUS_OK);
+    /* Synchronize runtime panes as well as document projections. The former
+     * adapter-only refresh is retained; it cannot publish completed search pages. */
+#if 0
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
 
     const char *source = "a\nbb\nccc", *expected = "a\nbb\nbb\nccc", *action = "duplicate";
     UmiUiDocumentViewSnapshot view;
@@ -215,7 +227,12 @@ int main(int argc, char **argv)
 
     CHECK(UmiUiDocumentViewModelUpsertText(views, &view, source, strlen(source)) == UMI_STATUS_OK);
     CHECK(umi_document_coordinator_sync_active(documents) == UMI_STATUS_OK);
+    /* Synchronize runtime panes as well as document projections. The former
+     * adapter-only refresh is retained; it cannot publish completed search pages. */
+#if 0
     CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
     Pump();
 
     if (strncmp(name, "newline", 7U) == 0) {

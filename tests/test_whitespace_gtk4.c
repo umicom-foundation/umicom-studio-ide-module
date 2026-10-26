@@ -149,6 +149,21 @@ int main(int argc, char **argv) {
   }
   CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
   CHECK(Find(GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), "studio.editor.whitespace"));
+  /* Startup includes a real welcome document. A negative admission case must
+   * close its fixture-owned documents explicitly rather than assume startup
+   * is empty. Check progress on each close so lifecycle defects cannot hang. */
+  if (!strcmp(name, "no-document")) {
+    size_t remaining = umi_document_coordinator_count(documents);
+    while (remaining != 0U) {
+      CHECK(umi_document_coordinator_close_active(documents, 1) == UMI_STATUS_OK);
+      size_t afterClose = umi_document_coordinator_count(documents);
+      CHECK(afterClose < remaining);
+      remaining = afterClose;
+    }
+    UmiDocumentWorkingCopySnapshot absent;
+    CHECK(umi_document_coordinator_count(documents) == 0U);
+    CHECK(umi_document_coordinator_active_snapshot(documents, &absent) == UMI_STATUS_NOT_FOUND);
+  }
   UmiStatus status = umi_studio_gtk_workbench_execute_command(
       workbench, command, !strcmp(name, "argument") ? "invalid" : NULL);
   GtkWindow *form = Form();

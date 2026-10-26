@@ -210,6 +210,19 @@ static GtkWidget *runtime_build_welcome_surface(
     gtk_widget_set_halign(quick_tools, GTK_ALIGN_START);
     gtk_box_append(GTK_BOX(header), heading);
     gtk_box_append(GTK_BOX(header), quick_tools);
+    /* Make workspace navigation discoverable at startup. The existing native
+     * actions retain weak host ownership, so welcome controls cannot reopen a
+     * palette or layout window after this workbench has been destroyed. */
+    GtkWidget *workspace_tools = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    GtkWidget *command_search = runtime_make_local_button(runtime,
+        "Command Search", "Find Studio commands and their keyboard shortcuts", 0);
+    GtkWidget *layouts = runtime_make_local_button(runtime,
+        "Layouts", "Choose and review a workspace layout", 1);
+    if (command_search != NULL)
+        gtk_box_append(GTK_BOX(workspace_tools), command_search);
+    if (layouts != NULL) gtk_box_append(GTK_BOX(workspace_tools), layouts);
+    gtk_widget_set_halign(workspace_tools, GTK_ALIGN_START);
+    gtk_box_append(GTK_BOX(header), workspace_tools);
     gtk_box_append(GTK_BOX(page), header);
 
     /* FlowBox automatically changes from three columns to two or one as the

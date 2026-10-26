@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: tests/test_test_source_navigation_gtk4.inc
- * PURPOSE: Exercise real Studio failure-location controls and retained callback lifetime.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Exercise real Studio failure-location controls and retained callback lifetime.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* Included by the isolated native workspace fixture so its real bootstrap,

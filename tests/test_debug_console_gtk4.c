@@ -3,8 +3,8 @@
  * File: tests/test_debug_console_gtk4.c
  *
  * PURPOSE:
- *   Exercise Framework console filtering and captured-page ownership through Studio workspace
- * guards.
+ *   * Exercise Framework console filtering and captured-page ownership through Studio
+ *   workspace guards.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
@@ -85,6 +85,9 @@ int main(int argc, char **argv) {
   CHECK(umi_studio_gtk_workbench_create_with_options(app, umi_studio_bootstrap_ui(bootstrap),
                                                      umi_studio_bootstrap_desktop_shell(bootstrap),
                                                      &options, &workbench) == UMI_STATUS_OK);
+  /* Request the actual panel before looking up its controls. Workspace hosts
+   * create bodies on demand; default layouts are not a fixture dependency. */
+  CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_DEBUG, NULL) == UMI_STATUS_OK);
   CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
   GtkWindow *window = umi_studio_gtk_workbench_window(workbench);
   gtk_window_present(window);

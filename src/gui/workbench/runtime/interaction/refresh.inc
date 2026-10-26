@@ -158,6 +158,9 @@ static void runtime_refresh_interactive_panels(
     runtime_editor_update_info(runtime);
     runtime = RuntimeResolveOwner(request, &window);
     if (runtime == NULL) goto cleanup;
+    RuntimeRefreshLineActions(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) goto cleanup;
     runtime_test_details_refresh(runtime);
     runtime = RuntimeResolveOwner(request, &window);
     if (runtime == NULL) goto cleanup;

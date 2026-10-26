@@ -3,8 +3,8 @@
  * File: tests/test_editor_settings.c
  *
  * PURPOSE:
- *   Exercise stored and changed Studio indentation preferences through the shared document
- * coordinator.
+ *   * Exercise stored and changed Studio indentation preferences through the shared document
+ *   coordinator.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab

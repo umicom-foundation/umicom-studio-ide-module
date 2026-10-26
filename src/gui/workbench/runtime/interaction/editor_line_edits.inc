@@ -1,9 +1,17 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/gui/workbench/runtime/interaction/editor_line_edits.inc
- * PURPOSE: Expose shared line transformations through the document coordinator and the existing weak editor binding.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Expose shared line transformations through the document coordinator and the existing weak
+ *   editor binding.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 /* Line actions now use the same source presentation and document identity checks as canonical commands. The previous direct adapter call remains for review. */
@@ -120,4 +128,56 @@ static void RuntimeAppendLineEdits(UmiStudioGtkRuntimeChrome *runtime, GtkWidget
         runtime_bind_editor_action(runtime, button, RuntimeLineEdit);
         gtk_box_append(GTK_BOX(bar), button);
     }
+}
+
+
+/* Collect references before changing sensitivity: GTK notifications can remove
+ * controls or retire the workbench. Never walk sibling pointers across a setter. */
+static void RuntimeCollectLineActions(GtkWidget *widget, GPtrArray *actions)
+{
+    if (GTK_IS_BUTTON(widget) &&
+        g_object_get_data(G_OBJECT(widget), "document-line-edit-kind") != NULL &&
+        g_object_get_data(G_OBJECT(widget), "studio-editor-action-bound") != NULL)
+        g_ptr_array_add(actions, g_object_ref(widget));
+    for (GtkWidget *child = gtk_widget_get_first_child(widget); child != NULL;
+         child = gtk_widget_get_next_sibling(child))
+        RuntimeCollectLineActions(child, actions);
+}
+
+static void RuntimeRefreshLineActions(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL) return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) {
+        g_clear_object(&window);
+        runtime_file_dialog_request_free(request);
+        return;
+    }
+    GPtrArray *actions = g_ptr_array_new_with_free_func(g_object_unref);
+    RuntimeCollectLineActions(GTK_WIDGET(window), actions);
+    for (guint i = 0U; i < actions->len; ++i) {
+        g_clear_object(&window);
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime == NULL) break;
+        GtkWidget *button = g_ptr_array_index(actions, i);
+        if ((gpointer)gtk_widget_get_root(button) != (gpointer)window) continue;
+        UmiDocumentCoordinator *documents = runtime_documents(runtime);
+        UmiDocumentWorkingCopySnapshot active;
+        UmiEditorEditCommandKind kind = (UmiEditorEditCommandKind)GPOINTER_TO_INT(
+            g_object_get_data(G_OBJECT(button), "document-line-edit-kind"));
+        gboolean available = documents != NULL &&
+            !UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
+            umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK &&
+            UmiDocumentCoordinatorCheckLineEdit(documents, active.document_id, kind) == UMI_STATUS_OK;
+        /* Only the shared admission query chooses availability. The native
+         * callback still rechecks the live source before dispatching an edit. */
+        if (gtk_widget_get_sensitive(button) != available)
+            gtk_widget_set_sensitive(button, available);
+    }
+    g_ptr_array_unref(actions);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
 }

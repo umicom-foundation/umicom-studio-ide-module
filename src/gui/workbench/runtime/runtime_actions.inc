@@ -366,7 +366,11 @@ static int RuntimeConnectCommandButton(UmiStudioGtkRuntimeChrome *runtime,
     GtkWidget *button, GCallback callback)
 {
     UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
-    if (request == NULL) return 0;
+    if (request == NULL) {
+        /* Preserve failed binding state across future sensitivity refreshes. */
+        g_object_set_data(G_OBJECT(button), "studio-command-binding-failed", GINT_TO_POINTER(1));
+        return 0;
+    }
     g_signal_connect_data(button, "clicked", callback, request,
         RuntimeCommandButtonReleased, 0);
     return 1;
@@ -640,6 +644,9 @@ static GtkWidget *runtime_make_icon_command_button(
  * Provide the runtime refresh command sensitivity operation used by this module and its
  * client applications.
  */
+/* Preserve the borrowed recursive traversal for comparison. Retained control
+ * references and weak-owner rechecks below replace it across GTK notifications. */
+#if 0
 static void runtime_refresh_command_sensitivity(
     UmiStudioGtkRuntimeChrome *runtime,
     GtkWidget *container)
@@ -676,4 +683,46 @@ static void runtime_refresh_command_sensitivity(
         runtime_refresh_command_sensitivity(runtime, child);
         child = gtk_widget_get_next_sibling(child);
     }
+}
+
+#endif
+/* Snapshot controls before setters: notify::sensitive may remove a panel or
+ * destroy its owner. A borrowed recursive walk cannot cross those callbacks. */
+static void RuntimeCollectCommandControls(GtkWidget *widget, GPtrArray *controls)
+{
+    if (g_object_get_data(G_OBJECT(widget), "umicom-command-id") != NULL)
+        g_ptr_array_add(controls, g_object_ref(widget));
+    for (GtkWidget *child = gtk_widget_get_first_child(widget); child != NULL;
+         child = gtk_widget_get_next_sibling(child))
+        RuntimeCollectCommandControls(child, controls);
+}
+
+static void runtime_refresh_command_sensitivity(UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *container)
+{
+    if (runtime == NULL || container == NULL) return;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return;
+    GPtrArray *controls = g_ptr_array_new_with_free_func(g_object_unref);
+    g_object_ref(container);
+    RuntimeCollectCommandControls(container, controls);
+    GObject *window = NULL;
+    for (guint i = 0U; i < controls->len; ++i) {
+        g_clear_object(&window);
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime == NULL) break;
+        GtkWidget *button = g_ptr_array_index(controls, i);
+        if ((gpointer)gtk_widget_get_root(button) != (gpointer)window ||
+            (button != container && !gtk_widget_is_ancestor(button, container))) continue;
+        const char *command = g_object_get_data(G_OBJECT(button), "umicom-command-id");
+        gboolean enabled = command != NULL &&
+            g_object_get_data(G_OBJECT(button), "studio-command-binding-failed") == NULL &&
+            runtime_command_enabled(runtime, command);
+        if (gtk_widget_get_sensitive(button) != enabled)
+            gtk_widget_set_sensitive(button, enabled);
+    }
+    g_clear_object(&window);
+    g_ptr_array_unref(controls);
+    g_object_unref(container);
+    runtime_file_dialog_request_free(request);
 }
