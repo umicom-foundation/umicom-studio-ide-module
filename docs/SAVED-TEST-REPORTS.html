@@ -12,4 +12,31 @@ Use an existing private folder and keep both files.</li>
 <p><strong>Cancel load</strong> prevents a pending read from displaying results. It waits for the local read to finish releasing resources. Closing or hiding the panel also prevents late publication. A later load is a new operation.</p>
 <p>A saved report is historical evidence. Studio does not claim it matches the current project, source revision or executables. The original console log is still needed for complete failure details. This panel neither reruns failed tests nor changes the live test selection.</p>
 <p>If the report cannot be opened, check the absolute filename, complete JUnit XML format, encoding and 64 MiB size limit. A console transcript is not JUnit XML. <!-- Previous clear-on-refusal guidance retained for review: If a filter is rejected, correct it and Apply again; an invalid filter never leaves the previous page looking current. -->
-If a filter is rejected, the status explains that it was not applied and the previously accepted page stays visible. Correct the draft and Apply again. Missing or malformed replacement files and cancelled loads also retain the accepted report and its captured filename. Path and filter choices are captured together when Open report is selected; later edits require another explicit action.</p></html>
+If a filter is rejected, the status explains that it was not applied and the previously accepted page stays visible. Correct the draft and Apply again. Missing or malformed replacement files and cancelled loads also retain the accepted report and its captured filename. Path and filter choices are captured together when Open report is selected; later edits require another explicit action.</p>
+<h2>Review required coverage across hosts</h2>
+<p>Expand <strong>Review required host coverage</strong> in Test Explorer to compare saved observations against explicit requirements. This is separate from browsing one report and from running the project's tests. A pass on one host does not replace a required result on another.</p>
+<ol>
+<li>Put the complete JUnit reports in a private evidence directory. Create a UTF-8 CSV plan beside them using this exact header and seven fields per record. Replace the illustrative names and source fingerprint with those recorded for your runs:
+<pre>kind,host,configuration,source_identity,test,capability,report
+host,desktop,Debug,source-fingerprint-from-the-run,,,desktop.xml
+require,desktop,Debug,,notes.open,GTK display,
+require,linux,Debug,,filesystem.exchange,Linux filesystem,</pre>
+The first row declares a report. Each <code>require</code> row lists an exact test, host and configuration. This example's Linux requirement remains <em>missing host</em> until a corresponding host report is supplied.</li>
+<li>Choose the absolute CSV filename. Enter the source/build fingerprint to review, then click <strong>Open coverage</strong>.</li>
+<li>Read the requested identity, counts and each outstanding row. Skipped, disabled, not run, failed, timed out, missing and source-mismatched observations are distinct. No source identity or host capability is independently verified by this panel.</li>
+<li>Use Next and Previous for 64-record pages. Copy page includes the current page's identity and scope. Close review clears the view without deleting files.</li>
+</ol>
+<p>Changing an entry does not change the accepted review until another Open coverage succeeds. Cancelling, hiding the panel or failing to read a replacement retains the last accepted review. In-progress file reads finish before releasing their resources. Empty plans never establish passing coverage.</p>
+<p>CSV plans are limited to 4 MiB and 256 host reports; all report input together is limited to 64 MiB. Use relative report paths beneath a trusted evidence directory. Extra columns, duplicate host/configuration pairs, duplicate requirements, parent traversal and malformed input are refused. Correct the draft and open it again. External evidence never changes the live runner's discovery, selection or results.</p>
+<h2>Compare saved test runs</h2>
+<ol>
+<li>Expand <strong>Compare two saved test runs</strong> in Test Explorer. This feature is available independently of a loaded project.</li>
+<li>Select two completed CTest JUnit files: the older baseline and the current report. Use different absolute filenames and keep each run's source revision and console log beside it.</li>
+<li>Select <strong>Compare reports</strong>. The accepted filenames identify the displayed pair. Editing either filename alone does not change that pair.</li>
+<li>Review recovered, regressed, added, removed and other changed outcomes. A removed failure has not been fixed. Unchanged outcomes can include continuing failures, so also open the current file under <strong>Open a saved CTest report</strong>.</li>
+<li>Use Next and Previous for 64-record pages. Copy page copies only the displayed page and summary. Close comparison clears the review without changing either file.</li>
+</ol>
+<p>A failed or cancelled replacement keeps the accepted pair and page. Cancel load prevents a pending result from being accepted; local reads finish before resources are released. Completed publication keeps text and filename labels together. Read errors usually mean an incomplete run, a wrong filename, an unsupported report format or a file exceeding the 64 MiB per-file limit.</p>
+<p>The comparison uses exact decoded test names and saved outcomes. It does not compare source code, verify timestamps, rerun tests, prove a repair, or change Studio's current test discovery, selection and execution results. Empty reports and unchanged failures are not successful qualification.</p>
+
+</html>

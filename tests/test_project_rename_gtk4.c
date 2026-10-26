@@ -149,6 +149,25 @@ int main(int argc, char **argv) {
                                                      umi_studio_bootstrap_desktop_shell(bootstrap),
                                                      &native, &workbench) == UMI_STATUS_OK);
   GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+  /* Explorer starts on a collapsed rail and creates its body on explicit Open.
+   * Follow that user action before looking for Rename; revealing a rail must
+   * not turn it into a permanently docked panel or edit the saved layout. */
+  UmiUiWorkspaceLayout *before = g_new0(UmiUiWorkspaceLayout, 1);
+  UmiUiWorkspaceLayout *after = g_new0(UmiUiWorkspaceLayout, 1);
+  UmiStatus reveal = umi_studio_gtk_workbench_workspace_snapshot(workbench, before);
+  if (reveal == UMI_STATUS_OK)
+    reveal = umi_studio_gtk_workbench_workspace_open_surface(
+        workbench, UMI_STUDIO_SURFACE_EXPLORER, NULL);
+  if (reveal == UMI_STATUS_OK)
+    reveal = umi_studio_gtk_workbench_workspace_snapshot(workbench, after);
+  int preserved = reveal == UMI_STATUS_OK && memcmp(before, after, sizeof *before) == 0;
+  g_free(before);
+  g_free(after);
+  if (reveal != UMI_STATUS_OK)
+    fprintf(stderr, "Explorer reveal before rename: %s\n", umi_status_text(reveal));
+  CHECK(preserved);
+  /* The former eager lookup is retained as the assertion below. Its setup now
+   * includes the explicit rail reveal rather than assuming every body exists. */
   GtkWidget *button = Find(root, "umicom-explorer-rename");
   CHECK(button != NULL);
   CloseOwnerDuringForm closing = {GTK_WINDOW(root), 0};

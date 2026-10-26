@@ -583,6 +583,9 @@ static GtkWidget *runtime_build_surface_test_explorer(
     RuntimeTestArchiveControls(runtime, panel);
     /* Review saved observations independently of the current test invocation. */
     gtk_box_append(GTK_BOX(panel), RuntimeSavedCtestReportCreate());
+    /* Explicit host coverage stays independent of live execution and archives. */
+    gtk_box_append(GTK_BOX(panel), RuntimeSavedCtestCoverageCreate());
+    gtk_box_append(GTK_BOX(panel), RuntimeSavedCtestComparisonCreate());
     RuntimeTestLiveOutputRefresh(runtime);
 
     runtime_append_context_actions(runtime, panel, "tests");
