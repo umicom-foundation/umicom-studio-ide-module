@@ -22,6 +22,17 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
+
+/* Emit command identities only, never user arguments or private model data.
+ * Flushing before dispatch localises a blocking command without changing its
+ * assertions or treating diagnostic instrumentation as a functional repair. */
+static void ReportCommandPhase(const char *phase)
+{
+    fprintf(stderr, "Studio command phase: %s\n", phase);
+    fflush(stderr);
+}
+
 
 /*
  * Start this command or application, report setup failures, and return a process exit code
@@ -37,13 +48,16 @@ int main(void)
     char message[512];
 
     (void)umi_fs_remove_tree(".umicom");
+    ReportCommandPhase("bootstrap-create");
     assert(umi_studio_bootstrap_create(&bootstrap) == UMI_STATUS_OK);
+    ReportCommandPhase("bootstrap-start");
     assert(umi_studio_bootstrap_start(bootstrap) == UMI_STATUS_OK);
 
     registry = umi_studio_bootstrap_command_registry(bootstrap);
     /* The explicit restart command is registered even before a session exists.
      * It must report missing execution state rather than creating a process. */
     assert(umi_command_registry_snapshot(registry, UMI_STUDIO_COMMAND_DEBUG_RESTART, &snapshot) == UMI_STATUS_OK);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DEBUG_RESTART");
     assert(umi_command_registry_execute(registry, UMI_STUDIO_COMMAND_DEBUG_RESTART, NULL,
         message, sizeof message) == UMI_STATUS_INVALID_STATE);
     assert(registry != NULL);
@@ -68,6 +82,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strcmp(snapshot.category, "Session") == 0);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_TASKS_WAIT_IDLE");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_TASKS_WAIT_IDLE,
@@ -77,6 +92,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "idle") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_WORKSPACE_REFRESH");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_WORKSPACE_REFRESH,
@@ -86,6 +102,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "refreshed") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_WATCHER_SCAN");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_WATCHER_SCAN,
@@ -95,6 +112,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "scanned") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DATA_INTEGRITY");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_DATA_INTEGRITY,
@@ -104,6 +122,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "integrity OK") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_MESSAGES_FLUSH");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_MESSAGES_FLUSH,
@@ -113,6 +132,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "Outbox delivered") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_MESSAGES_REPLAY");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_MESSAGES_REPLAY,
@@ -123,6 +143,7 @@ int main(void)
     assert(strstr(message, "Replayed") != NULL);
 
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_NOTIFICATION_INFO");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_NOTIFICATION_INFO,
@@ -132,6 +153,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "published") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DEVELOPER_REPORT");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_DEVELOPER_REPORT,
@@ -150,19 +172,23 @@ int main(void)
                registry, UMI_STUDIO_COMMAND_BUILD_FILTER, &snapshot) ==
            UMI_STATUS_OK);
     assert(strcmp(snapshot.category, "Build") == 0);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_BUILD_FILTER");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_BUILD_FILTER, "all",
                message, sizeof(message)) == UMI_STATUS_OK);
     assert(strstr(message, "build node") != NULL);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_BUILD_SELECT_NODE");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_BUILD_SELECT_NODE, "configure",
                message, sizeof(message)) == UMI_STATUS_OK);
     assert(strstr(message, "configure") != NULL);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_BUILD_REFRESH");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_BUILD_REFRESH, "",
                message, sizeof(message)) == UMI_STATUS_OK);
     assert(strstr(message, "refreshed") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_AI_EXPLAIN_CODE");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_AI_EXPLAIN_CODE,
@@ -173,6 +199,7 @@ int main(void)
     assert(strstr(message, "explanation plan") != NULL);
     assert(strstr(message, "repository file(s)") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_LANGUAGE_INITIALIZE");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_LANGUAGE_INITIALIZE,
@@ -182,6 +209,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "LSP initialise request") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DEBUG_INITIALIZE");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_DEBUG_INITIALIZE,
@@ -191,6 +219,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "DAP initialise request") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DEBUG_ADD_BREAKPOINT");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_DEBUG_ADD_BREAKPOINT,
@@ -198,6 +227,7 @@ int main(void)
         message,
         sizeof(message)
     ) == UMI_STATUS_OK);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DEBUG_SET_BREAKPOINT_ENABLED");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_DEBUG_SET_BREAKPOINT_ENABLED,
@@ -205,6 +235,7 @@ int main(void)
         message,
         sizeof(message)
     ) == UMI_STATUS_OK);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DEBUG_ADD_WATCH");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_DEBUG_ADD_WATCH,
@@ -213,6 +244,7 @@ int main(void)
         sizeof(message)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "watch-1") != NULL);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DEBUG_REMOVE_WATCH");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_DEBUG_REMOVE_WATCH,
@@ -220,6 +252,7 @@ int main(void)
         message,
         sizeof(message)
     ) == UMI_STATUS_OK);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_DEBUG_CLEAR_CONSOLE");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_DEBUG_CLEAR_CONSOLE,
@@ -232,10 +265,12 @@ int main(void)
                registry, UMI_STUDIO_COMMAND_VCS_FILTER, &snapshot) ==
            UMI_STATUS_OK);
     assert(strcmp(snapshot.category, "Source Control") == 0);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_VCS_FILTER");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_VCS_FILTER, "conflicts",
                message, sizeof(message)) == UMI_STATUS_OK);
     assert(strstr(message, "conflicts") != NULL);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_VCS_SET_COMMIT_MESSAGE");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_VCS_SET_COMMIT_MESSAGE,
                "feat: professional source control", message,
@@ -248,12 +283,15 @@ int main(void)
                registry, UMI_STUDIO_COMMAND_TRADING_REFRESH, &snapshot) ==
            UMI_STATUS_OK);
     assert(strcmp(snapshot.category, "Trading") == 0);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_TRADING_FILTER_INSTRUMENTS");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_TRADING_FILTER_INSTRUMENTS,
                "CME", message, sizeof(message)) == UMI_STATUS_OK);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_TRADING_SELECT_INSTRUMENT");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_TRADING_SELECT_INSTRUMENT,
                "CME.ES.REFERENCE", message, sizeof(message)) == UMI_STATUS_OK);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_TRADING_PREVIEW_ORDER");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_TRADING_PREVIEW_ORDER,
                "", message, sizeof(message)) == UMI_STATUS_OK);
@@ -261,6 +299,7 @@ int main(void)
 
     /* Command-palette tape controls must reach the same Framework workspace
      * used by Studio's dockable Time and Sales view. */
+    ReportCommandPhase("UMI_STUDIO_COMMAND_TRADING_FILTER_TRADE_TAPE");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_TRADING_FILTER_TRADE_TAPE,
                "buyer:10", message, sizeof(message)) == UMI_STATUS_OK);
@@ -271,6 +310,7 @@ int main(void)
     assert(trading_snapshot.trade_tape.filter ==
            UMI_TRADING_TRADE_TAPE_BUYER_INITIATED);
     assert(trading_snapshot.trade_tape.minimum_size == 10.0);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_TRADING_PAUSE_TRADE_TAPE");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_TRADING_PAUSE_TRADE_TAPE,
                "", message, sizeof(message)) == UMI_STATUS_OK);
@@ -279,6 +319,7 @@ int main(void)
                    umi_studio_bootstrap_services(bootstrap)),
                &trading_snapshot) == UMI_STATUS_OK);
     assert(trading_snapshot.trade_tape.paused);
+    ReportCommandPhase("UMI_STUDIO_COMMAND_TRADING_RESUME_TRADE_TAPE");
     assert(umi_command_registry_execute(
                registry, UMI_STUDIO_COMMAND_TRADING_RESUME_TRADE_TAPE,
                "", message, sizeof(message)) == UMI_STATUS_OK);
@@ -295,10 +336,12 @@ int main(void)
                    umi_test_platform_service_item(
                        umi_studio_test_service_platform(tests)), &item) ==
                UMI_STATUS_OK);
+        ReportCommandPhase("UMI_STUDIO_COMMAND_TESTS_FILTER");
         assert(umi_command_registry_execute(
                    registry, UMI_STUDIO_COMMAND_TESTS_FILTER, "all",
                    message, sizeof(message)) == UMI_STATUS_OK);
         assert(strstr(message, "1 test(s)") != NULL);
+        ReportCommandPhase("UMI_STUDIO_COMMAND_TESTS_SELECT");
         assert(umi_command_registry_execute(
                    registry, UMI_STUDIO_COMMAND_TESTS_SELECT,
                    "studio.command.alpha", message, sizeof(message)) ==
@@ -309,6 +352,7 @@ int main(void)
         assert(strcmp(snapshot.category, "Testing") == 0);
     }
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_SECURITY_REPORT");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_SECURITY_REPORT,
@@ -318,6 +362,7 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(strstr(message, "Security:") != NULL);
 
+    ReportCommandPhase("UMI_STUDIO_COMMAND_SESSION_SAVE");
     assert(umi_command_registry_execute(
         registry,
         UMI_STUDIO_COMMAND_SESSION_SAVE,
@@ -327,8 +372,11 @@ int main(void)
     ) == UMI_STATUS_OK);
     assert(umi_fs_is_file(".umicom/studio.session"));
 
+    ReportCommandPhase("bootstrap-stop");
     assert(umi_studio_bootstrap_stop(bootstrap) == UMI_STATUS_OK);
+    ReportCommandPhase("bootstrap-destroy");
     umi_studio_bootstrap_destroy(bootstrap);
     assert(umi_fs_remove_tree(".umicom") == UMI_STATUS_OK);
+    ReportCommandPhase("complete");
     return 0;
 }

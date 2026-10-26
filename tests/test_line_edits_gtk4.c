@@ -203,7 +203,12 @@ int main(int argc, char **argv)
         source = "  ab"; expected = "  ab\n  "; view.cursor_offset = 4U;
         if (!strcmp(name, "newline-plain")) expected = "  ab\n";
         if (!strcmp(name, "newline-crlf")) { source = "  ab\r\nx"; expected = "  ab\r\n  \r\nx"; }
+        /* Replacing [3, 6) removes b/c/d and retains e/f. Preserve the old
+         * fixture for review; Framework's byte-range contract is unchanged. */
+#if 0
         if (!strcmp(name, "newline-selection")) { source = "  abcdef"; expected = "  a\n  f"; view.cursor_offset = 3U; view.selection_length = 3U; }
+#endif
+        if (!strcmp(name, "newline-selection")) { source = "  abcdef"; expected = "  a\n  ef"; view.cursor_offset = 3U; view.selection_length = 3U; }
         if (!strcmp(name, "newline-readonly")) { view.read_only = 1; expected = source; }
         if (!strcmp(name, "newline-argument")) expected = source;
     }

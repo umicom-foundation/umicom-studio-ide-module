@@ -20,6 +20,10 @@ static GtkWidget *FindDiscoveredSource(GtkWidget *root, const char *itemId)
 }
 /* Model movement alone is insufficient: the selected source must be editable,
  * visible in the current layout, focused, and positioned at the requested byte. */
+/* The former helper chose the first retained text view, which can be an
+ * inactive document page. Preserve it for review; the replacement verifies
+ * actual keyboard focus, requested document identity and every visibility guard. */
+#if 0
 static int TestSourceEditorReachable(GtkWidget *root, size_t expectedOffset)
 {
     GtkWidget *editor = find_editor(find_tag(root, "studio.workspace.editor-root"));
@@ -35,6 +39,52 @@ static int TestSourceEditorReachable(GtkWidget *root, size_t expectedOffset)
     char *prefix = gtk_text_buffer_get_text(buffer, &start, &cursor, TRUE);
     int matched = prefix != NULL && strlen(prefix) == expectedOffset;
     g_free(prefix);
+    return matched;
+}
+
+#endif
+static int TestSourceEditorReachable(GtkWidget *root, const char *expectedViewId, size_t expectedOffset)
+{
+    GtkWidget *editorRoot = find_tag(root, "studio.workspace.editor-root");
+    GtkWidget *focus = gtk_window_get_focus(GTK_WINDOW(root));
+    GtkWidget *editor = focus;
+    /* Multiple document pages can coexist. Start from actual keyboard focus,
+     * not the first text view in retained notebook order. */
+    while (editor != NULL && editor != root &&
+           !(GTK_IS_TEXT_VIEW(editor) && gtk_widget_has_css_class(editor, "umicom-editor")))
+        editor = gtk_widget_get_parent(editor);
+    if (!GTK_IS_TEXT_VIEW(editor) || editorRoot == NULL ||
+        !gtk_widget_is_ancestor(editor, editorRoot) ||
+        !gtk_text_view_get_editable(GTK_TEXT_VIEW(editor))) {
+        fprintf(stderr, "Test-source reachability: focus=%s has no editable source under the editor surface\n",
+            focus != NULL ? G_OBJECT_TYPE_NAME(focus) : "none");
+        fflush(stderr); return 0;
+    }
+    int matchedView = 0;
+    for (GtkWidget *node = editor; node != root; node = gtk_widget_get_parent(node)) {
+        if (node == NULL || !gtk_widget_get_visible(node) || !gtk_widget_get_child_visible(node)) {
+            fputs("Test-source reachability: focused editor has a hidden or detached ancestor\n", stderr);
+            fflush(stderr); return 0;
+        }
+        const char *viewId = g_object_get_data(G_OBJECT(node), "umicom-view-id");
+        if (viewId != NULL) matchedView |= strcmp(viewId, expectedViewId) == 0;
+    }
+    if (!matchedView) {
+        fputs("Test-source reachability: focused page does not identify the requested document\n", stderr);
+        fflush(stderr); return 0;
+    }
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor));
+    GtkTextIter start, cursor;
+    gtk_text_buffer_get_start_iter(buffer, &start);
+    gtk_text_buffer_get_iter_at_mark(buffer, &cursor, gtk_text_buffer_get_insert(buffer));
+    char *prefix = gtk_text_buffer_get_text(buffer, &start, &cursor, TRUE);
+    size_t actual = prefix != NULL ? strlen(prefix) : SIZE_MAX;
+    int matched = actual == expectedOffset;
+    g_free(prefix);
+    if (!matched) {
+        fprintf(stderr, "Test-source reachability: expected byte %zu, focused editor byte %zu\n", expectedOffset, actual);
+        fflush(stderr);
+    }
     return matched;
 }
 
@@ -102,13 +152,13 @@ static int VerifyTestSourceLocations(GtkApplication *application, const char *fi
     g_signal_emit_by_name(retained,"clicked");
     REQUIRE(umi_ui_document_view_model_find(views,viewId,&after)==UMI_STATUS_OK);
     REQUIRE(after.cursor_offset==9 && after.selection_length==0 && after.dirty);
-    REQUIRE(TestSourceEditorReachable(root,9U));
+    REQUIRE(TestSourceEditorReachable(root,viewId,9U));
     GtkWidget *discoverySource=FindDiscoveredSource(root,ids[0]); REQUIRE(GTK_IS_BUTTON(discoverySource));
     g_signal_emit_by_name(discoverySource,"clicked");
     REQUIRE(umi_ui_document_view_model_find(views,viewId,&after)==UMI_STATUS_OK && after.cursor_offset==6U && after.dirty);
-    REQUIRE(TestSourceEditorReachable(root,6U));
+    REQUIRE(TestSourceEditorReachable(root,viewId,6U));
     g_signal_emit_by_name(retained,"clicked");
-    REQUIRE(TestSourceEditorReachable(root,9U));
+    REQUIRE(TestSourceEditorReachable(root,viewId,9U));
     select=FindTestSelect(root,ids[1]); REQUIRE(GTK_IS_BUTTON(select)); g_signal_emit_by_name(select,"clicked");
     /* Removed rows and failed opens must never move the prior draft's caret. */
     g_signal_emit_by_name(retained,"clicked");

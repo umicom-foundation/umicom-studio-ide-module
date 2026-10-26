@@ -130,6 +130,65 @@ int main(int argc, char **argv)
     GtkWidget *code = Find(root, "studio.editor.code-tools"),
               *navigation = Find(root, "studio.editor.navigate-tools");
     CHECK(GTK_IS_MENU_BUTTON(code) && GTK_IS_MENU_BUTTON(navigation));
+
+    /* This independent public-control inventory names every required action.
+     * Counts are derived from these expectations so adding a tested action does
+     * not leave a separate positional boundary or magic total behind. */
+    const char *expected_code[] = {
+        "project-indentation",
+        "document-indentation",
+        "preferences",
+        "line-uppercase",
+        "line-lowercase",
+        "line-sort-ascending",
+        "line-sort-descending",
+        "completion",
+        "formatting",
+        "source-information",
+        "symbols",
+        "parameters",
+        "rename",
+        "actions",
+        "diagnostics",
+        "live-diagnostics",
+        "definition",
+        "references",
+        "type-definition",
+        "implementation",
+        "syntax-selection",
+        "syntax-folding",
+        "callers",
+        "callees",
+        "snippet",
+        "line-delete",
+        "line-duplicate",
+        "line-move-up",
+        "line-move-down",
+        "line-join",
+        "line-trim",
+        "line-indent",
+        "line-outdent",
+        "line-comment",
+        "format-lf",
+        "format-crlf",
+        "format-utf8",
+        "format-utf8-bom",
+        "format-utf16-le",
+        "format-utf16-be"
+    };
+    const char *expected_navigation[] = {
+        "match-delimiter",
+        "select-delimiter-content",
+        "select-delimiter-pair",
+        "fold-selection",
+        "reveal-folds",
+        "bookmark-toggle",
+        "bookmark-next",
+        "bookmark-previous"
+    };
+    const size_t code_count = sizeof expected_code / sizeof expected_code[0];
+    const size_t navigation_count = sizeof expected_navigation / sizeof expected_navigation[0];
+
 /* Syntax folding adds one code tool while retaining every earlier action.
  * Keep the former expectation for review. */
 #if 0
@@ -145,9 +204,21 @@ int main(int argc, char **argv)
 #if 0
     CHECK(UmiGtk4ActionMenuVisibleCount(code) == 32U && UmiGtk4ActionMenuVisibleCount(navigation) == 8U);
 #endif
+    /* Keep the obsolete count for review; the required named inventory below
+     * includes selection transforms and indentation preferences. */
+#if 0
     CHECK(UmiGtk4ActionMenuVisibleCount(code) == 33U && UmiGtk4ActionMenuVisibleCount(navigation) == 8U);
+#endif
+    fprintf(stderr, "Editor action counts: code=%zu expected=%zu; navigation=%zu expected=%zu\n",
+        UmiGtk4ActionMenuVisibleCount(code), code_count, UmiGtk4ActionMenuVisibleCount(navigation), navigation_count);
+    CHECK(UmiGtk4ActionMenuVisibleCount(code) == code_count &&
+        UmiGtk4ActionMenuVisibleCount(navigation) == navigation_count);
     filter = g_object_ref(UmiGtk4ActionMenuFilterEntry(code));
     CHECK(GTK_IS_ENTRY(filter));
+
+    /* Retain the previous positional catalogue below for review. Separate
+     * required groups make each identity and its parentage explicit. */
+#if 0
     const char *expected[] = {"completion",
                               "formatting",
                               "source-information",
@@ -212,6 +283,20 @@ int main(int argc, char **argv)
 #endif
         CHECK(gtk_widget_is_ancestor(control, i < 33U ? code : navigation));
     }
+
+#endif
+    for (size_t group = 0U; group < 2U; ++group) {
+        const char *const *expected_group = group == 0U ? expected_code : expected_navigation;
+        const size_t count = group == 0U ? code_count : navigation_count;
+        for (size_t i = 0U; i < count; ++i) {
+            char action[128];
+            int written = snprintf(action, sizeof action, "studio.editor.%s", expected_group[i]);
+            CHECK(written > 0 && (size_t)written < sizeof action);
+            GtkWidget *control = Find(root, action);
+            CHECK(GTK_IS_BUTTON(control));
+            CHECK(gtk_widget_is_ancestor(control, group == 0U ? code : navigation));
+        }
+    }
     if (strcmp(name, "code-filter") == 0)
     {
         CHECK(UmiGtk4ActionMenuSetFilter(code, "call hierarchy") == UMI_STATUS_OK);
@@ -246,7 +331,11 @@ int main(int argc, char **argv)
 #if 0
         CHECK(UmiGtk4ActionMenuVisibleCount(code) == 32U);
 #endif
+        /* The independent named catalogue replaces the stale total. */
+#if 0
         CHECK(UmiGtk4ActionMenuVisibleCount(code) == 33U);
+#endif
+        CHECK(UmiGtk4ActionMenuVisibleCount(code) == code_count);
     }
     if (strcmp(name, "matching-action") == 0)
     {
