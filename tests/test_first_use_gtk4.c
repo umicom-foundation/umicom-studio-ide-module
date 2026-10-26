@@ -2235,6 +2235,15 @@ int main(int argc, char **argv)
     CHECK(umi_studio_workspace_close(services) == UMI_STATUS_OK);
     UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
     UmiDocumentCoordinator *documents = umi_studio_ui_documents(ui);
+    /* These workflows deliberately exercise an empty editor. Close only the
+     * known, pristine sample through its normal non-discard close operation;
+     * never change Studio's real startup or hide an unexpected user draft.
+     * Startup ownership is covered separately by test_editor_settings.c. */
+    UmiDocumentWorkingCopySnapshot welcome;
+    CHECK(umi_document_coordinator_count(documents) == 1U);
+    CHECK(umi_document_coordinator_active_snapshot(documents, &welcome) == UMI_STATUS_OK);
+    CHECK(!strcmp(welcome.view_id, "studio.editor.welcome") && !welcome.dirty && !welcome.has_path);
+    CHECK(UmiDocumentCoordinatorClose(documents, welcome.document_id, 0) == UMI_STATUS_OK);
     UmiUiDocumentViewModel *views = umi_ui_workbench_documents(umi_studio_ui_workbench(ui));
     application = gtk_application_new("org.umicom.studio.first-use-test", G_APPLICATION_NON_UNIQUE);
     CHECK(application != NULL && g_application_register(G_APPLICATION(application), NULL, &error));

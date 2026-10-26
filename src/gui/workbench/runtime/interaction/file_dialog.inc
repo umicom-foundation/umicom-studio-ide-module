@@ -51,6 +51,10 @@ static UmiStudioGtkRuntimeChrome *runtime_file_dialog_owner(
     UmiStudioFileDialogRequest *request, GObject **outWindow)
 {
     *outWindow = request != NULL ? g_weak_ref_get(&request->window) : NULL;
+    /* A strong window reference can outlive native destruction. Use Framework
+     * registration, rather than finalisation alone, to reject late dialog and
+     * preferences callbacks before they mutate the retired Studio session. */
+    if (*outWindow != NULL && !UmiGtk4WindowIsOpen(GTK_WINDOW(*outWindow))) return NULL;
     /* A retained token also rejects callbacks from an earlier runtime if
      * the same window is later attached to a new owner. */
     if (*outWindow == NULL || g_object_get_data(*outWindow,

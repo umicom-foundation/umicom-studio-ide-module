@@ -180,6 +180,10 @@ int main(int argc, char **argv) {
     gtk_window_destroy(form);
   if (!strcmp(name, "retired-owner"))
     gtk_window_destroy(GTK_WINDOW(root));
+  /* The workbench retains the object, so this verifies native retirement
+   * without relying on finalisation to invalidate the callback token. */
+  if (!strcmp(name, "retired-owner"))
+    CHECK(!UmiGtk4WindowIsOpen(GTK_WINDOW(root)));
   if (!strcmp(name, "close-notification") || !strcmp(name, "reentrant")) {
     GtkWidget *message = Find(GTK_WIDGET(form), "studio.editor-preferences.message");
     CHECK(message != NULL);

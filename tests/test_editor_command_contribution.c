@@ -32,6 +32,13 @@ int main(void)
 
     assert(umi_studio_editor_command_contribution_count() ==
            umi_editor_edit_command_count());
+    /* Check coverage in both directions: equal counts alone cannot prove that
+     * every Framework command is reachable from the Studio contribution. */
+    for (index = 0U; index < umi_editor_edit_command_count(); ++index) {
+        const UmiEditorEditCommandDescriptor *command = umi_editor_edit_command_at(index);
+        assert(command != NULL);
+        assert(umi_studio_editor_command_contribution_find(command->id) != NULL);
+    }
     /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_studio_editor_command_contribution_count();

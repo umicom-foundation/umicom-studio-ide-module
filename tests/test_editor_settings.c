@@ -16,6 +16,7 @@
 
 #include "umicom/document/edit.h"
 #include "umicom/document/indentation.h"
+#include "umicom/document/indentation_override.h"
 #include "umicom/platform/filesystem.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/editor_settings.h"
@@ -55,6 +56,15 @@ int main(int argc, char **argv) {
   CHECK(umi_studio_bootstrap_create_with_options(&options, &bootstrap) == UMI_STATUS_OK);
   UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
   UmiDocumentCoordinator *documents = umi_studio_ui_documents(ui);
+  /* Startup keeps its editable Welcome document and publishes a valid owned
+   * identity before any native indentation or selection projection runs. */
+  CHECK(umi_document_coordinator_count(documents) == 1U);
+  UmiDocumentWorkingCopySnapshot welcome;
+  CHECK(umi_document_coordinator_active_snapshot(documents, &welcome) == UMI_STATUS_OK);
+  CHECK(!strcmp(welcome.view_id, "studio.editor.welcome") && !welcome.dirty);
+  UmiDocumentIndentationReview welcomePolicy;
+  CHECK(UmiDocumentCoordinatorInspectIndentation(documents, welcome.document_id,
+                                                 &welcomePolicy) == UMI_STATUS_OK);
   UmiSettings *settings = umi_studio_services_settings(umi_studio_bootstrap_services(bootstrap));
   UmiEditorIndentation policy;
   CHECK(UmiDocumentCoordinatorGetIndentation(documents, &policy) == UMI_STATUS_OK);

@@ -69,6 +69,8 @@ struct UmiStudioGtkWorkbench {
     GtkWidget *content_root;
     UmiStudioGtkRuntimeChrome *runtime_chrome;
     UmiGtk4AutomationDriver *automation;
+    UmiStatus last_refresh_failure;
+    unsigned last_refresh_stage;
 };
 
 /*
@@ -533,6 +535,10 @@ UmiStatus umi_studio_gtk_workbench_automation(
  * Provide the studio gtk workbench refresh operation used by this module and its client
  * applications.
  */
+/* A failed refresh previously returned only a status to callers. Keep that
+ * implementation for comparison while recording the failing public stage.
+ * Diagnostics carry no file paths, document text, tokens or account data. */
+#if 0
 UmiStatus umi_studio_gtk_workbench_refresh(
     UmiStudioGtkWorkbench *workbench)
 {
@@ -560,6 +566,50 @@ UmiStatus umi_studio_gtk_workbench_refresh(
     return umi_workbench_context_host_gtk4_strip_refresh(
         workbench->context_strip,
         umi_studio_context_link_centre_host(workbench->context_links));
+}
+
+#endif
+
+static void workbench_refresh_diagnostic(const UmiDiagnostic *diagnostic, void *data)
+{
+    (void)data;
+    g_printerr("[Studio refresh] %s\n", diagnostic->message);
+}
+
+static UmiStatus workbench_refresh_failure(UmiStudioGtkWorkbench *workbench,
+    unsigned stage, const char *operation, UmiStatus status)
+{
+    /* Idle refreshes must not flood logs with the same failure. A successful
+     * refresh resets this observation so a later recurrence is reported again. */
+    if (workbench->last_refresh_failure != status || workbench->last_refresh_stage != stage) {
+        workbench->last_refresh_failure = status;
+        workbench->last_refresh_stage = stage;
+        UmiLogger logger = {workbench_refresh_diagnostic, NULL, "studio-refresh"};
+        umi_log_status(&logger, operation, status, 0U);
+    }
+    return status;
+}
+
+UmiStatus umi_studio_gtk_workbench_refresh(UmiStudioGtkWorkbench *workbench)
+{
+    if (workbench == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStatus status = umi_studio_ui_refresh(workbench->ui);
+    if (status != UMI_STATUS_OK)
+        return workbench_refresh_failure(workbench, 1U, "Refresh application models", status);
+    status = umi_studio_context_link_centre_refresh(workbench->context_links,
+        (uint64_t)(g_get_monotonic_time() / 1000));
+    if (status != UMI_STATUS_OK)
+        return workbench_refresh_failure(workbench, 2U, "Refresh linked context", status);
+    status = umi_gtk4_adapter_refresh(workbench->adapter);
+    if (status != UMI_STATUS_OK)
+        return workbench_refresh_failure(workbench, 3U, "Refresh native workbench", status);
+    status = umi_workbench_context_host_gtk4_strip_refresh(workbench->context_strip,
+        umi_studio_context_link_centre_host(workbench->context_links));
+    if (status != UMI_STATUS_OK)
+        return workbench_refresh_failure(workbench, 4U, "Refresh context controls", status);
+    workbench->last_refresh_failure = UMI_STATUS_OK;
+    workbench->last_refresh_stage = 0U;
+    return UMI_STATUS_OK;
 }
 
 /* Use the existing appearance owner; no product-specific theme model or

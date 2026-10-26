@@ -25,6 +25,10 @@
     }
 
 static const UmiStudioEditorCommandContribution CONTRIBUTIONS[] = {
+    /* Sorting uses the shared line-edit implementation; Studio only assigns
+     * menu placement so command-centre and menu actions share one identity. */
+    CONTRIBUTION("editor.edit.sort-lines-ascending", "Selection", "sort", 300),
+    CONTRIBUTION("editor.edit.sort-lines-descending", "Selection", "sort", 310),
     CONTRIBUTION("editor.edit.insert-text", "Edit", "text", 10),
     CONTRIBUTION("editor.edit.replace-range", "Edit", "text", 20),
     CONTRIBUTION("editor.edit.delete-line", "Edit", "lines", 100),
