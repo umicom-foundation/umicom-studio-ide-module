@@ -16,6 +16,7 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio/workspace.h"
+#include "umicom/studio/tests.h"
 #include "umicom/ui/gtk4/automation.h"
 #include "umicom/ui/gtk4/ctest_report.h"
 #include "umicom/ui/gtk4/window_lifecycle.h"
@@ -30,6 +31,9 @@
       return 1;                                                                                    \
     }                                                                                              \
   } while (0)
+/* Keep the original idle-draining fixture for review. Bounded dispatch lets
+ * deadlines advance even when an editor source remains ready continuously. */
+#if 0
 static void Drain(void) {
   for (unsigned i = 0U; i < 50U; ++i) {
     while (g_main_context_iteration(NULL, FALSE)) {
@@ -37,9 +41,19 @@ static void Drain(void) {
     g_usleep(1000U);
   }
 }
+#endif
+static void Drain(void) {
+  gint64 end = g_get_monotonic_time() + 50 * G_TIME_SPAN_MILLISECOND;
+  while (g_get_monotonic_time() < end) {
+    for (unsigned i = 0; i < 32U && g_get_monotonic_time() < end; ++i)
+      if (!g_main_context_iteration(NULL, FALSE)) break;
+    g_usleep(1000U);
+  }
+}
 int main(int argc, char **argv) {
   CHECK(argc == 3);
-  const char *name = argv[1], *names[] = {"normal", "filter", "no-project", "retained", "cancel"};
+  const char *name = argv[1], *names[] = {"normal", "filter", "no-project", "retained", "cancel",
+      "invalid-filter-preserves", "failed-replacement"};
   bool known = false;
   for (size_t i = 0U; i < sizeof names / sizeof names[0]; ++i)
     known |= !strcmp(name, names[i]);
@@ -101,6 +115,8 @@ int main(int argc, char **argv) {
     umi_studio_gtk_workbench_destroy(workbench);
     workbench = NULL;
   }
+  UmiStudioTestSnapshot live_before, live_after;
+  CHECK(umi_studio_test_service_snapshot(umi_studio_services_tests(services), &live_before) == UMI_STATUS_OK);
   g_signal_emit_by_name(button, "clicked");
   if (!strcmp(name, "cancel")) {
     GtkWidget *cancel = umi_gtk4_automation_find_tagged_widget(root, "ctest.report.cancel");
@@ -133,6 +149,40 @@ int main(int argc, char **argv) {
     CHECK(strstr(text, "Showing 1..2 of 2"));
     g_free(text);
   }
+  if (!strcmp(name, "invalid-filter-preserves") || !strcmp(name, "failed-replacement")) {
+    gtk_text_buffer_get_bounds(buffer, &first, &last);
+    char *accepted = gtk_text_buffer_get_text(buffer, &first, &last, FALSE);
+    if (!strcmp(name, "invalid-filter-preserves")) {
+      GtkWidget *outcome = umi_gtk4_automation_find_tagged_widget(root, "ctest.report.outcome");
+      GtkWidget *apply = umi_gtk4_automation_find_tagged_widget(root, "ctest.report.apply");
+      CHECK(GTK_IS_DROP_DOWN(outcome) && GTK_IS_BUTTON(apply));
+      gtk_drop_down_set_selected(GTK_DROP_DOWN(outcome), GTK_INVALID_LIST_POSITION);
+      g_signal_emit_by_name(apply, "clicked");
+    } else {
+      char *missing = g_build_filename(directory, "missing.xml", NULL);
+      gtk_editable_set_text(GTK_EDITABLE(path), missing); g_free(missing);
+      g_signal_emit_by_name(button, "clicked");
+      end = g_get_monotonic_time() + 10 * G_TIME_SPAN_SECOND;
+      while (UmiGtk4CtestReportBusy(root)) {
+        CHECK(g_get_monotonic_time() < end);
+        g_main_context_iteration(NULL, FALSE); g_usleep(1000U);
+      }
+    }
+    gtk_text_buffer_get_bounds(buffer, &first, &last);
+    text = gtk_text_buffer_get_text(buffer, &first, &last, FALSE);
+    CHECK(!strcmp(accepted, text)); g_free(accepted); g_free(text);
+    GtkWidget *loaded = umi_gtk4_automation_find_tagged_widget(root, "ctest.report.source");
+    CHECK(GTK_IS_LABEL(loaded) && !strcmp(gtk_label_get_text(GTK_LABEL(loaded)), filename));
+  }
+  CHECK(umi_studio_test_service_snapshot(umi_studio_services_tests(services), &live_after) == UMI_STATUS_OK);
+  /* Saved external observations must not be inserted into the live runner. */
+  CHECK(live_after.test_count == live_before.test_count && live_after.passed == live_before.passed &&
+      live_after.failed == live_before.failed && live_after.skipped == live_before.skipped &&
+      live_after.cancelled == live_before.cancelled && live_after.timed_out == live_before.timed_out &&
+      live_after.selected_count == live_before.selected_count &&
+      live_after.retained_result_count == live_before.retained_result_count &&
+      live_after.retained_attachment_count == live_before.retained_attachment_count &&
+      live_after.operation_running == live_before.operation_running);
   umi_studio_gtk_workbench_destroy(workbench);
   g_object_unref(buffer);
   g_object_unref(button);
