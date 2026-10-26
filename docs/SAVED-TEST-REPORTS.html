@@ -39,4 +39,7 @@ The first row declares a report. Each <code>require</code> row lists an exact te
 <p>A failed or cancelled replacement keeps the accepted pair and page. Cancel load prevents a pending result from being accepted; local reads finish before resources are released. Completed publication keeps text and filename labels together. Read errors usually mean an incomplete run, a wrong filename, an unsupported report format or a file exceeding the 64 MiB per-file limit.</p>
 <p>The comparison uses exact decoded test names and saved outcomes. It does not compare source code, verify timestamps, rerun tests, prove a repair, or change Studio's current test discovery, selection and execution results. Empty reports and unchanged failures are not successful qualification.</p>
 
+<h2>Keep the comparison tied to its saved input</h2>
+<p>The top of each comparison page now includes the accepted reports' byte counts and SHA-256 digests. Copy page includes them too. These content identifiers are computed during reading from the same bytes used for parsing. Paging never rereads the selected paths. Cancelled or failed replacements retain the previous pair and its identifiers.</p>
+<p>A filename can later contain a different report. Retain the original XML and console logs in your private evidence folder and compare content identifiers when reviewing another copy. Formatting changes, including line endings, change the digest even when outcomes are unchanged. Digests do not prove a source revision, authenticate the report's author, or establish passing tests.</p>
 </html>
