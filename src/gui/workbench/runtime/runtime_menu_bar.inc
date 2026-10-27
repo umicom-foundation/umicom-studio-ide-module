@@ -19,6 +19,10 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* Menu signals now use the same weak owner as toolbar commands, preserve
+ * explicit arguments, and reacquire authority after dismissing the popover.
+ * The former borrowed-runtime, chooser-only implementation is kept for review. */
+#if 0
 static void runtime_on_menu_item_clicked(
     GtkButton *button,
     gpointer user_data)
@@ -88,6 +92,64 @@ static void runtime_on_menu_item_clicked(
     }
 
     runtime_show_notification(runtime, "Menu contribution was not found.");
+}
+
+#endif
+
+static void runtime_on_menu_item_clicked(GtkButton *button, gpointer user_data)
+{
+    UmiStudioFileDialogRequest *binding = user_data;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(binding, &window);
+    if (runtime == NULL) {
+        g_clear_object(&window);
+        return;
+    }
+
+    /* Dismissal can remove the button or close Studio through a GTK observer.
+     * Own the selected command and argument before invoking any such observer. */
+    const char *id = g_object_get_data(G_OBJECT(button), "umicom-contribution-id");
+    UmiStudioRuntimeBindings *bindings = runtime->runtime_bootstrap != NULL
+        ? umi_studio_runtime_platform_bindings(runtime->runtime_bootstrap->platform) : NULL;
+    char command[UMI_APPLICATION_SHELL_ID_CAPACITY] = {0};
+    if (id != NULL && bindings != NULL && bindings->shell_registry != NULL) {
+        for (size_t index = 0U; index < umi_application_shell_registry_count(bindings->shell_registry); ++index) {
+            UmiApplicationShellContribution contribution;
+            if (umi_application_shell_registry_at(bindings->shell_registry, index,
+                    &contribution) == UMI_STATUS_OK &&
+                strcmp(contribution.contribution_id, id) == 0) {
+                g_strlcpy(command, contribution.command_id, sizeof command);
+                break;
+            }
+        }
+    }
+    if (command[0] == '\0') {
+        runtime_show_notification(runtime, "Menu contribution was not found.");
+        g_clear_object(&window);
+        return;
+    }
+
+    char *argument = g_strdup(g_object_get_data(G_OBJECT(button), "umicom-command-argument"));
+    /* Use an independent request for the rest of this call: popdown may release
+     * the signal closure which owns binding before control returns here. */
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) {
+        g_free(argument);
+        g_clear_object(&window);
+        return;
+    }
+    GtkWidget *popover = gtk_widget_get_ancestor(GTK_WIDGET(button), GTK_TYPE_POPOVER);
+    if (popover != NULL) {
+        g_object_ref(popover);
+        gtk_popover_popdown(GTK_POPOVER(popover));
+        g_object_unref(popover);
+    }
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL) (void)runtime_execute_command(runtime, command, argument);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    g_free(argument);
 }
 
 /*
@@ -226,11 +288,18 @@ static GtkWidget *runtime_build_single_menu(
             "umicom-contribution-id",
             g_strdup(contribution.contribution_id),
             g_free);
+        /* Retained menu controls must lose authority when their Studio owner
+         * retires. The earlier direct binding is preserved below for review. */
+#if 0
         g_signal_connect(
             button,
             "clicked",
             G_CALLBACK(runtime_on_menu_item_clicked),
             runtime);
+#endif
+        if (!RuntimeConnectCommandButton(runtime, button,
+                G_CALLBACK(runtime_on_menu_item_clicked)))
+            gtk_widget_set_sensitive(button, FALSE);
 
         gtk_box_append(GTK_BOX(items), button);
     }

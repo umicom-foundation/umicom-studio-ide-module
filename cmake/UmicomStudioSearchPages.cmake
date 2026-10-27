@@ -29,7 +29,7 @@ if(COMMAND umicom_target_qualification_inputs)
         "${CMAKE_CURRENT_LIST_DIR}/../src/gui/workbench/runtime/interaction/search_pages.inc"
         "${CMAKE_CURRENT_LIST_DIR}/../src/gui/workbench/runtime/surfaces/search.inc")
 endif()
-foreach(case IN ITEMS normal next previous last first unchanged old-row new-request stale-index filter-query empty retired summary-close scope-close range-close rows-close refresh-reentry start-reentry workspace-during-publication invalid-retired)
+foreach(case IN ITEMS normal next previous last first unchanged old-row new-request stale-index unchanged-index filter-query empty retired summary-close scope-close range-close rows-close refresh-reentry start-reentry workspace-during-publication invalid-retired)
     set(test "studio.file_search.pages.${case}")
     set(directory "${CMAKE_CURRENT_BINARY_DIR}/qualification/search-pages/${case}")
     file(MAKE_DIRECTORY "${directory}")

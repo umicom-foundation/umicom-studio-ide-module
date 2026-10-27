@@ -1565,6 +1565,22 @@ cleanup:
 
 /* Retain actual toolbar/welcome controls across workbench teardown. A signal
  * emitted on a retired widget must not regain command or local-window authority. */
+/* Menu and toolbar controls share command IDs. Require the contribution tag
+ * here so a menu regression cannot accidentally exercise a working toolbar. */
+static GtkWidget *FindMenuCommand(GtkWidget *root, const char *command)
+{
+    const char *id = g_object_get_data(G_OBJECT(root), "umicom-command-id");
+    if (GTK_IS_BUTTON(root) && id != NULL && strcmp(id, command) == 0 &&
+        g_object_get_data(G_OBJECT(root), "umicom-contribution-id") != NULL)
+        return root;
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = FindMenuCommand(child, command);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+
 static int ExerciseCommandButtons(UmiStudioGtkWorkbench **slot,
     UmiDocumentCoordinator *documents, const char *root, const char *mode)
 {
@@ -1573,11 +1589,21 @@ static int ExerciseCommandButtons(UmiStudioGtkWorkbench **slot,
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(*slot));
     char *source = g_build_filename(root, "button source.c", NULL);
     int opening = strcmp(mode, "button-open") == 0 || strcmp(mode, "button-retired-argument") == 0;
+    const int menu = strstr(mode, "menu-") != NULL;
+    const int missingContribution = strcmp(mode, "button-menu-missing") == 0;
+    if (menu) opening = 1;
     int retired = strstr(mode, "retired") != NULL;
     const char *localTag = strcmp(mode, "button-retired-palette") == 0
         ? "studio.local.command-palette" : strcmp(mode, "button-retired-layout") == 0
         ? "studio.local.layout-browser" : NULL;
+    /* Keep the former ambiguous lookup for review; menu cases now require
+     * a menu contribution, while existing cases keep their original selection. */
+#if 0
     GtkWidget *found = localTag != NULL
+        ? umi_gtk4_automation_find_tagged_widget(window, localTag)
+        : FindAction(window, opening ? "file.open" : "file.new");
+#endif
+    GtkWidget *found = menu ? FindMenuCommand(window, "file.open") : localTag != NULL
         ? umi_gtk4_automation_find_tagged_widget(window, localTag)
         : FindAction(window, opening ? "file.open" : "file.new");
     CHECK(GTK_IS_BUTTON(found));
@@ -1589,6 +1615,9 @@ static int ExerciseCommandButtons(UmiStudioGtkWorkbench **slot,
         umi_studio_gtk_workbench_destroy(*slot);
         *slot = NULL;
     }
+    if (missingContribution)
+        g_object_set_data_full(G_OBJECT(button), "umicom-contribution-id",
+            g_strdup("studio.menu.missing.contribution"), g_free);
     guint windowsBefore = g_list_model_get_n_items(gtk_window_get_toplevels());
     g_signal_emit_by_name(button, "clicked");
 /* The explicit-path button does not create a multi-file open batch; waiting for that absent batch rejected successful opens. The previous implementation is retained for review. */
@@ -1612,7 +1641,12 @@ static int ExerciseCommandButtons(UmiStudioGtkWorkbench **slot,
     /* A button with an explicit path uses RuntimeOpenSourcePath synchronously.
      * The active document and reachable editor checks below are the observable
      * contract. Multi-file chooser completion has separate batch coverage. */
+    /* Unknown contributions, like retired controls, must not open a chooser
+     * or create a document. Preserve the previous retired-only branch below. */
+#if 0
     if (retired) {
+#endif
+    if (retired || missingContribution) {
         CHECK(umi_document_coordinator_count(documents) == 0U);
         CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == windowsBefore);
     } else {

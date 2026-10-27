@@ -31,6 +31,7 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
         history-back-hidden history-forward-hidden
         button-new button-open button-retired-command button-retired-argument
         button-retired-palette button-retired-layout
+        button-menu-open button-menu-retired-argument button-menu-missing
         build-denied-closed build-denied-untrusted build-denied-other-project build-denied-feedback-close
         navigation-document-next navigation-document-previous navigation-bookmark-next
         navigation-bookmark-previous navigation-bookmark-empty navigation-bookmark-focus-close

@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
                          "old-row",
                          "new-request",
                          "stale-index",
+                         "unchanged-index",
                          "filter-query",
                          "empty",
                          "retired",
@@ -131,8 +132,21 @@ int main(int argc, char **argv) {
       CHECK(strstr(gtk_label_get_text(GTK_LABEL(SearchControl(&f, "range"))), "Page 1 of 3") !=
             NULL);
   } else if (strcmp(f.action, "stale-index") == 0) {
+    UmiFileIndex *index = umi_studio_services_file_index(
+        umi_studio_bootstrap_services(f.bootstrap));
+    UmiFileIndexStats before = umi_file_index_stats(index);
+    /* A rebuild preserves its revision when the indexed files are unchanged.
+     * Change the size of a real saved source before asking old results to retire.
+     * The old no-change rebuild is retained below for comparison. */
+#if 0
     CHECK(umi_file_index_rebuild(umi_studio_services_file_index(
               umi_studio_bootstrap_services(f.bootstrap))) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_fs_write_text(f.source, "Different saved source after the search.\n") == UMI_STATUS_OK);
+    CHECK(umi_file_index_rebuild(index) == UMI_STATUS_OK);
+    CHECK(umi_file_index_stats(index).revision != before.revision);
+    UmiFileSearchSnapshot stale;
+    CHECK(UmiStudioUiSearchRead(f.ui, &stale) == UMI_STATUS_OK && stale.stale && !stale.ready);
     /* This check observes native controls. Preserve the projection-only
      * refresh for review; explicit workspace synchronization publishes the
      * search pane and command availability without waiting for a timer. */
@@ -141,6 +155,19 @@ int main(int argc, char **argv) {
 #endif
     CHECK(umi_studio_gtk_workbench_workspace_synchronise(f.workbench) == UMI_STATUS_OK);
     CHECK(SearchRowCount(&f) == 0U && !gtk_widget_get_sensitive(SearchControl(&f, "next")));
+  } else if (strcmp(f.action, "unchanged-index") == 0) {
+    UmiFileIndex *index = umi_studio_services_file_index(
+        umi_studio_bootstrap_services(f.bootstrap));
+    UmiFileIndexStats before = umi_file_index_stats(index);
+    GtkWidget *row = g_object_ref(SearchFirstButton(&f));
+    CHECK(umi_file_index_rebuild(index) == UMI_STATUS_OK);
+    CHECK(umi_file_index_stats(index).revision == before.revision);
+    UmiFileSearchSnapshot current;
+    CHECK(UmiStudioUiSearchRead(f.ui, &current) == UMI_STATUS_OK && current.ready && !current.stale);
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(f.workbench) == UMI_STATUS_OK);
+    CHECK(SearchRowCount(&f) == 64U && SearchFirstButton(&f) == row);
+    CHECK(gtk_widget_get_sensitive(SearchControl(&f, "next")));
+    g_object_unref(row);
   } else if (strcmp(f.action, "filter-query") == 0) {
     gtk_editable_set_text(GTK_EDITABLE(SearchControl(&f, "query")), "Unsubmitted");
     gtk_editable_set_text(GTK_EDITABLE(SearchControl(&f, "include")), "*.h");
