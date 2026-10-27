@@ -1,15 +1,41 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: tests/test_debug_selection_gtk4.inc
- * PURPOSE: Exercise real debugger row callbacks, refresh identity and retained native controls.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Exercise real debugger row callbacks, refresh identity and retained native controls.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/studio/debugger.h"
 #include "umicom/debug/selection.h"
 /* Included by the existing isolated native fixture. No window is presented and
  * the debugger uses its memory transport; no debuggee or adapter is launched. */
+/* Retained notebooks contain Welcome.c and other inactive pages. Resolve the
+ * requested view identity before testing keyboard focus; child order does not
+ * identify the document selected by a debugger frame. */
+static GtkWidget *DebugSourceEditor(GtkWidget *widget, const char *viewId)
+{
+    if (widget == NULL) return NULL;
+    const char *actual = g_object_get_data(G_OBJECT(widget), "umicom-view-id");
+    if (actual != NULL && strcmp(actual, viewId) == 0) {
+        GtkWidget *editor = g_object_get_data(G_OBJECT(widget), "umicom-editor-view");
+        return GTK_IS_TEXT_VIEW(editor) ? editor : NULL;
+    }
+    for (GtkWidget *child = gtk_widget_get_first_child(widget); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *editor = DebugSourceEditor(child, viewId);
+        if (editor != NULL) return editor;
+    }
+    return NULL;
+}
+
 static int VerifyDebugSelection(GtkApplication *application,const char *fixturePath)
 {
     int failed=0;UmiStudioBootstrap *bootstrap=NULL;UmiStudioGtkWorkbench *workbench=NULL;
@@ -53,11 +79,37 @@ static int VerifyDebugSelection(GtkApplication *application,const char *fixtureP
     REQUIRE(umi_studio_gtk_workbench_refresh(workbench)==UMI_STATUS_OK);REQUIRE(find_tag(root,"studio.debug.frame.0")==retained);
     g_signal_emit_by_name(retained,"clicked");
     REQUIRE(umi_ui_document_view_model_find(views,viewId,&after)==UMI_STATUS_OK&&after.cursor_offset==9&&after.selection_length==0&&after.dirty);
+/* The first retained editor can be Welcome.c rather than the debugger source. Resolve the requested document page without changing the focus assertion. The previous implementation is retained for review. */
+#if 0
     GtkWidget *editor = find_editor(find_tag(root, "studio.workspace.editor-root"));
+#endif
+    GtkWidget *surface = find_tag(root, "studio.workspace.editor-root");
+    GtkWidget *editor = DebugSourceEditor(surface, viewId);
+    GtkWidget *welcome = DebugSourceEditor(surface, "studio.editor.welcome");
+    /* Keep the competing retained page in the fixture: selecting the first
+     * editor must not accidentally make this regression pass. */
+    REQUIRE(GTK_IS_TEXT_VIEW(welcome) && welcome != editor);
     REQUIRE(GTK_IS_TEXT_VIEW(editor) && gtk_text_view_get_editable(GTK_TEXT_VIEW(editor)));
+    REQUIRE(buffer_contains(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)), draft));
     for (GtkWidget *widget = editor; widget != root; widget = gtk_widget_get_parent(widget))
-        REQUIRE(widget != NULL && gtk_widget_get_visible(widget));
+        REQUIRE(widget != NULL && gtk_widget_get_visible(widget) && gtk_widget_get_child_visible(widget));
     GtkWidget *focus = gtk_root_get_focus(GTK_ROOT(root));
+    /* Keep a failing focus assertion visible. Capture native ownership and
+     * visibility, rather than weakening the assertion or guessing which widget
+     * lost focus. This diagnostic does not itself repair a navigation defect. */
+    if (focus != editor && (focus == NULL || !gtk_widget_is_ancestor(focus, editor))) {
+        fprintf(stderr, "debug focus: GTK %u.%u.%u, focus=%s, editor-root=%p, expected-root=%p\n",
+            gtk_get_major_version(), gtk_get_minor_version(), gtk_get_micro_version(),
+            focus != NULL ? G_OBJECT_TYPE_NAME(focus) : "(none)",
+            (void *)gtk_widget_get_root(editor), (void *)root);
+        for (GtkWidget *widget = editor; widget != NULL; widget = gtk_widget_get_parent(widget)) {
+            fprintf(stderr, "debug focus ancestor: %s visible=%d child-visible=%d mapped=%d sensitive=%d\n",
+                G_OBJECT_TYPE_NAME(widget), gtk_widget_get_visible(widget),
+                gtk_widget_get_child_visible(widget), gtk_widget_get_mapped(widget),
+                gtk_widget_is_sensitive(widget));
+            if (widget == root) break;
+        }
+    }
     REQUIRE(focus == editor || (focus != NULL && gtk_widget_is_ancestor(focus, editor)));
     GtkTextIter cursor;
     gtk_text_buffer_get_iter_at_mark(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)), &cursor,
