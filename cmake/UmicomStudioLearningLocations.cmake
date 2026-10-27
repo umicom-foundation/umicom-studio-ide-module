@@ -11,7 +11,8 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     umicom_apply_warnings(umicom-studio-learning-locations-test)
     umicom_apply_sanitizers(umicom-studio-learning-locations-test)
     get_target_property(_learning_framework_source umicom_developer SOURCE_DIR)
-    foreach(case controls project-separation retained-controls first-lesson relative-without-project)
+    foreach(case controls project-separation retained-controls first-lesson relative-without-project
+                 document-utf8 document-overflow document-binary)
         add_test(NAME studio.learning.locations.${case} COMMAND umicom-studio-learning-locations-test "${case}" "${_learning_framework_source}")
         set_tests_properties(studio.learning.locations.${case} PROPERTIES TIMEOUT 60
             SKIP_RETURN_CODE 77 LABELS "studio;learning;workspace;gtk4;ownership;regression")

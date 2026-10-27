@@ -51,6 +51,10 @@ static void runtime_documentation_set_text(
     gtk_text_buffer_set_text(buffer, text != NULL ? text : "", -1);
 }
 
+/* The former pathname check and unbounded second open are retained below for
+ * review. Framework now enforces the byte budget on one open file handle and
+ * rejects observable changes before Studio displays the resulting preview. */
+#if 0
 /* Load one local document only after its size is known to be reasonable. */
 static UmiStatus runtime_documentation_read_local(
     UmiStudioGtkRuntimeChrome *runtime,
@@ -109,6 +113,49 @@ static UmiStatus runtime_documentation_read_local(
         preview.source_bytes,
         preview.text_bytes);
     runtime_documentation_set_text(runtime, summary, preview.text);
+    return UMI_STATUS_OK;
+}
+
+#endif
+
+static UmiStatus runtime_documentation_read_local(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *path)
+{
+    UmiBrowserDocumentPreview preview;
+    UmiStatus status;
+    gchar *title;
+    gchar *text;
+    gchar *summary;
+    if (runtime == NULL || path == NULL || path[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    status = umi_browser_document_preview_read_file(
+        path, UMI_STUDIO_DOCUMENTATION_MAX_SOURCE_BYTES, &preview);
+    if (status != UMI_STATUS_OK) {
+        runtime_documentation_set_text(runtime,
+            status == UMI_STATUS_CAPACITY_EXCEEDED
+                ? "Document is larger than the safe preview limit"
+                : "Document could not be previewed",
+            umi_status_text(status));
+        return status;
+    }
+    /* The shared preview is byte-oriented and can end at a capacity boundary.
+     * GTK requires UTF-8, so repair invalid or cut code points only at this
+     * presentation boundary. The source file and Framework result stay intact. */
+    title = g_utf8_make_valid(preview.title, -1);
+    text = g_utf8_make_valid(preview.text, -1);
+    /* Repaired UTF-8 can occupy more bytes than its source. Allocate the
+     * small bounded summary instead of cutting a code point at a fixed limit. */
+    summary = g_strdup_printf(
+        "%s%s · %zu source bytes · %zu readable bytes",
+        title[0] != '\0' ? title : "Local documentation",
+        preview.truncated ? " · preview shortened" : "",
+        preview.source_bytes, preview.text_bytes);
+    runtime_documentation_set_text(runtime, summary, text);
+    g_free(summary);
+    g_free(text);
+    g_free(title);
     return UMI_STATUS_OK;
 }
 

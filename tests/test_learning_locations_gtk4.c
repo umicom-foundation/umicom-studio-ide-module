@@ -44,6 +44,9 @@ int main(int argc, char **argv)
     char *original_data = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
     char *directory = g_dir_make_tmp("umicom-learning-locations-XXXXXX", &error);
     char *project = NULL;
+    char *document_path = NULL;
+    char *displayed_text = NULL;
+    GString *document_bytes = NULL;
     char library[UMI_PATH_CAPACITY] = {0};
     GtkApplication *application = NULL;
     UmiStudioBootstrap *bootstrap = NULL;
@@ -146,6 +149,77 @@ int main(int argc, char **argv)
         CHECK(strcmp(gtk_label_get_text(GTK_LABEL(notice)), "Choose a document location") == 0);
         CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(location)), "welcome.html") == 0);
     }
+    else if (g_str_has_prefix(argv[1], "document-"))
+    {
+        /* Exercise the actual documentation surface with synthetic files.
+         * The input budget and presentation encoding must both survive the
+         * boundary from Framework bytes to native GTK text. */
+        document_path = g_build_filename(directory, "lesson.html", NULL);
+        document_bytes = g_string_new(NULL);
+        CHECK(document_path != NULL && document_bytes != NULL);
+        if (strcmp(argv[1], "document-utf8") == 0)
+        {
+            g_string_append(document_bytes, "<title>");
+            for (size_t i = 0U; i < 255U; ++i)
+                g_string_append_c(document_bytes, (char)0xff);
+            g_string_append(document_bytes, "</title><p>Readable body</p>");
+        }
+        else if (strcmp(argv[1], "document-overflow") == 0)
+        {
+            g_string_set_size(document_bytes, 4U * 1024U * 1024U + 1U);
+            memset(document_bytes->str, 'x', document_bytes->len);
+        }
+        else if (strcmp(argv[1], "document-binary") == 0)
+        {
+            static const char binary[] = "<p>Before\0After</p>";
+            g_string_append_len(document_bytes, binary, (gssize)(sizeof(binary) - 1U));
+        }
+        else
+        {
+            CHECK(0 && "Unknown document boundary case");
+        }
+        CHECK(g_file_set_contents(document_path, document_bytes->str,
+                                  (gssize)document_bytes->len, &error));
+        CHECK(umi_studio_gtk_workbench_workspace_open_surface(
+                  workbench, UMI_STUDIO_SURFACE_DOCUMENTATION, NULL) == UMI_STATUS_OK);
+        GtkWidget *location =
+            umi_gtk4_automation_find_tagged_widget(root, "studio.documentation.location");
+        GtkWidget *open =
+            umi_gtk4_automation_find_tagged_widget(root, "studio.documentation.open");
+        GtkWidget *notice =
+            umi_gtk4_automation_find_tagged_widget(root, "studio.documentation.summary");
+        GtkWidget *preview =
+            umi_gtk4_automation_find_tagged_widget(root, "studio.documentation.preview");
+        CHECK(GTK_IS_ENTRY(location) && GTK_IS_BUTTON(open) &&
+              GTK_IS_LABEL(notice) && GTK_IS_TEXT_VIEW(preview));
+        gtk_editable_set_text(GTK_EDITABLE(location), document_path);
+        g_signal_emit_by_name(open, "clicked");
+        const char *summary = gtk_label_get_text(GTK_LABEL(notice));
+        CHECK(g_utf8_validate(summary, -1, NULL));
+        GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(preview));
+        GtkTextIter first, last;
+        gtk_text_buffer_get_bounds(buffer, &first, &last);
+        displayed_text = gtk_text_buffer_get_text(buffer, &first, &last, FALSE);
+        CHECK(displayed_text != NULL && g_utf8_validate(displayed_text, -1, NULL));
+        if (strcmp(argv[1], "document-utf8") == 0)
+        {
+            /* The repaired title alone is 765 bytes. A 512-byte snprintf
+             * would cut its UTF-8 and lose the useful source-size suffix. */
+            CHECK(strlen(summary) > 765U);
+            CHECK(strstr(summary, "source bytes") != NULL);
+            CHECK(strstr(displayed_text, "Readable body") != NULL);
+        }
+        else if (strcmp(argv[1], "document-overflow") == 0)
+        {
+            CHECK(strcmp(summary, "Document is larger than the safe preview limit") == 0);
+        }
+        else
+        {
+            CHECK(strcmp(summary, "Document could not be previewed") == 0);
+        }
+        CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
+        CHECK(!workspace.graph.open);
+    }
     else if (strcmp(argv[1], "controls") == 0)
     {
         CHECK(!gtk_widget_get_visible(root));
@@ -206,6 +280,10 @@ cleanup:
     if (directory != NULL)
         printf("Retained isolated learning fixture: %s\n", directory);
     g_clear_error(&error);
+    if (document_bytes != NULL)
+        g_string_free(document_bytes, TRUE);
+    g_free(document_path);
+    g_free(displayed_text);
     g_free(project);
     g_free(directory);
     g_free(original_directory);

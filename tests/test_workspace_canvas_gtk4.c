@@ -669,7 +669,18 @@ static int VerifyProjectExplorer(GtkApplication *application, const char *fixtur
         umi_thread_sleep_ms(1U);
     }
     REQUIRE(!refreshState.active && refreshState.status == UMI_STATUS_OK && refreshState.filesScanned == 605U);
+    /* Model completion can occur after the last projection refresh. The
+     * unpresented fixture has no recurring native timer, so explicitly drive
+     * that layer before asserting its label and command availability. */
+    REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+    REQUIRE(drain_context());
+    refreshLabel = find_tag(window, "umicom-explorer-refresh-status");
+    REQUIRE(GTK_IS_LABEL(refreshLabel));
+    if (strstr(gtk_label_get_text(GTK_LABEL(refreshLabel)), "Refresh complete") == NULL)
+        fprintf(stderr, "Explorer refresh presentation: %s\n",
+            gtk_label_get_text(GTK_LABEL(refreshLabel)));
     REQUIRE(strstr(gtk_label_get_text(GTK_LABEL(refreshLabel)), "Refresh complete") != NULL);
+    REQUIRE(gtk_widget_get_sensitive(oldRefresh) && !gtk_widget_get_sensitive(oldCancel));
     oldNext = g_object_ref(next); oldCreate = g_object_ref(create);
     REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 599) != NULL);
     REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 600) == NULL);
