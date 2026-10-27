@@ -51,7 +51,7 @@ static void Drain(void) {
 int main(int argc, char **argv) {
   CHECK(argc == 3);
   const char *name = argv[1], *names[] = {"normal", "empty",    "running",    "denied",
-                                          "hidden", "retained", "owner-close"};
+                                          "hidden", "retained", "owner-close", "disabled"};
   bool known = false;
   for (size_t i = 0U; i < sizeof names / sizeof names[0]; ++i)
     known |= !strcmp(name, names[i]);
@@ -121,6 +121,10 @@ int main(int argc, char **argv) {
     CHECK(umi_studio_workspace_set_trusted(services, 0) == UMI_STATUS_OK);
   if (!strcmp(name, "hidden"))
     gtk_widget_set_visible(button, FALSE);
+  /* Signal emission is intentionally stronger than a real pointer click:
+   * unavailable retained controls must still refuse to open a review. */
+  if (!strcmp(name, "disabled"))
+    gtk_widget_set_sensitive(button, FALSE);
   if (!strcmp(name, "retained")) {
     umi_studio_gtk_workbench_destroy(workbench);
     workbench = NULL;

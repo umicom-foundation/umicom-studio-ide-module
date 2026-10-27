@@ -15,7 +15,15 @@
 
 #include "umicom/ui/gtk4/debug_backtrace.h"
 static void RuntimeDebugBacktraceClicked(GtkButton *button, gpointer context) {
+  /* A retained control must not create a review after becoming hidden or
+   * unavailable. Keep the original unused-argument marker for comparison;
+   * the weak owner binding still governs the window lifetime separately. */
+#if 0
   (void)button;
+#endif
+  if (!gtk_widget_get_mapped(GTK_WIDGET(button)) ||
+      !gtk_widget_is_sensitive(GTK_WIDGET(button)))
+    return;
   UmiStudioGtkRuntimeChrome *runtime = context;
   if (runtime == NULL || runtime->owner == NULL)
     return;

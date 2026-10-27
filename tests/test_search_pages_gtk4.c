@@ -21,7 +21,13 @@ static void Observed(GObject *object, GParamSpec *property, gpointer data) {
   if (f->callbacks++ != 0U)
     return;
   if (strcmp(f->action, "refresh-reentry") == 0)
+    /* This check observes native controls. Preserve the projection-only
+     * refresh for review; explicit workspace synchronization publishes the
+     * search pane and command availability without waiting for a timer. */
+#if 0
     (void)umi_studio_gtk_workbench_refresh(f->workbench);
+#endif
+    (void)umi_studio_gtk_workbench_workspace_synchronise(f->workbench);
   else if (strcmp(f->action, "start-reentry") == 0)
     SearchClick(f, "start");
   else if (strcmp(f->action, "workspace-during-publication") == 0)
@@ -89,7 +95,13 @@ int main(int argc, char **argv) {
     CHECK(!gtk_widget_get_sensitive(SearchControl(&f, "next")));
   } else if (strcmp(f.action, "unchanged") == 0) {
     GtkWidget *old = g_object_ref(SearchFirstButton(&f));
+    /* This check observes native controls. Preserve the projection-only
+     * refresh for review; explicit workspace synchronization publishes the
+     * search pane and command availability without waiting for a timer. */
+#if 0
     CHECK(umi_studio_gtk_workbench_refresh(f.workbench) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(f.workbench) == UMI_STATUS_OK);
     CHECK(old == SearchFirstButton(&f));
     g_object_unref(old);
   } else if (strcmp(f.action, "old-row") == 0) {
@@ -107,7 +119,13 @@ int main(int argc, char **argv) {
                           strcmp(f.action, "empty") == 0 ? "AbsentMarker" : "Page");
     SearchClick(&f, "start");
     SearchWait(&f);
+    /* This check observes native controls. Preserve the projection-only
+     * refresh for review; explicit workspace synchronization publishes the
+     * search pane and command availability without waiting for a timer. */
+#if 0
     CHECK(umi_studio_gtk_workbench_refresh(f.workbench) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(f.workbench) == UMI_STATUS_OK);
     CHECK(SearchRowCount(&f) == (strcmp(f.action, "empty") == 0 ? 0U : 64U));
     if (strcmp(f.action, "empty") != 0)
       CHECK(strstr(gtk_label_get_text(GTK_LABEL(SearchControl(&f, "range"))), "Page 1 of 3") !=
@@ -115,7 +133,13 @@ int main(int argc, char **argv) {
   } else if (strcmp(f.action, "stale-index") == 0) {
     CHECK(umi_file_index_rebuild(umi_studio_services_file_index(
               umi_studio_bootstrap_services(f.bootstrap))) == UMI_STATUS_OK);
+    /* This check observes native controls. Preserve the projection-only
+     * refresh for review; explicit workspace synchronization publishes the
+     * search pane and command availability without waiting for a timer. */
+#if 0
     CHECK(umi_studio_gtk_workbench_refresh(f.workbench) == UMI_STATUS_OK);
+#endif
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(f.workbench) == UMI_STATUS_OK);
     CHECK(SearchRowCount(&f) == 0U && !gtk_widget_get_sensitive(SearchControl(&f, "next")));
   } else if (strcmp(f.action, "filter-query") == 0) {
     gtk_editable_set_text(GTK_EDITABLE(SearchControl(&f, "query")), "Unsubmitted");
@@ -168,7 +192,13 @@ int main(int argc, char **argv) {
         CHECK(UmiStudioUiSearchStart(f.ui, strcmp(part, "summary") == 0 ? "AbsentMarker" : "Page",
                                      1) == UMI_STATUS_OK);
         SearchWait(&f);
+        /* This check observes native controls. Preserve the projection-only
+         * refresh for review; explicit workspace synchronization publishes the
+         * search pane and command availability without waiting for a timer. */
+#if 0
         (void)umi_studio_gtk_workbench_refresh(f.workbench);
+#endif
+        (void)umi_studio_gtk_workbench_workspace_synchronise(f.workbench);
       } else
         SearchClick(&f, "next");
       g_signal_handlers_disconnect_by_data(observed, &f);

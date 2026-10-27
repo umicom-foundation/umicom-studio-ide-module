@@ -104,7 +104,13 @@ int main(int argc, char **argv) {
     view.read_only = 1;
     CHECK(umi_ui_document_view_model_upsert(views, &view) == UMI_STATUS_OK);
   }
+  /* This check observes native controls. Preserve the projection-only
+   * refresh for review; explicit workspace synchronization publishes the
+   * search pane and command availability without waiting for a timer. */
+#if 0
   CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+  CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
   GtkWidget *button = Find(GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)),
                            "studio.editor.toggle-language-comment");
   CHECK(GTK_IS_BUTTON(button));
