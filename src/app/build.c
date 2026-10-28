@@ -573,11 +573,23 @@ static UmiStatus StudioBuildSubmitMode(UmiStudioBuildService *service,
         }
     }
     const char *log_path = service->next_log_path[0] != '\0' ? service->next_log_path : NULL;
+/* Framework now owns automatic test selection for project Build and Test. Studio retains workspace trust, asynchronous output, cancellation and durable job history. The previous statement is retained for review. */
+#if 0
     status = run_current
         ? UmiBuildProjectSessionRunCurrent(service->project_session, &service->profile,
             trusted != 0, log_path)
         : UmiBuildProjectSessionSubmitLogged(service->project_session, &service->profile,
             phase, trusted != 0, log_path);
+#endif
+    if (!run_current && (phase == UMI_BUILD_PHASE_BUILD || phase == UMI_BUILD_PHASE_TEST))
+        status = UmiBuildProjectSessionSubmitAutomatic(service->project_session,
+            &service->profile, phase, trusted != 0, log_path);
+    else
+        status = run_current
+            ? UmiBuildProjectSessionRunCurrent(service->project_session, &service->profile,
+                trusted != 0, log_path)
+            : UmiBuildProjectSessionSubmitLogged(service->project_session, &service->profile,
+                phase, trusted != 0, log_path);
     if (status == UMI_STATUS_OK) {
         service->published_results = 0U;
         service->next_log_path[0] = '\0';

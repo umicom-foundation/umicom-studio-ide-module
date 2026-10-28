@@ -1227,6 +1227,18 @@ if(BUILD_TESTING)
     umicom_apply_warnings(umicom-studio-commands-test)
     umicom_apply_sanitizers(umicom-studio-commands-test)
     add_test(NAME studio.commands COMMAND umicom-studio-commands-test)
+    # Command dispatch includes index refresh and watcher scans. Give these
+    # real operations a bounded owned project, not the accumulated binary tree.
+    # Copy a real Studio source for the existing code-context command. The
+    # original default-directory registration above remains unchanged.
+    set(_studio_command_fixture "${CMAKE_CURRENT_BINARY_DIR}/qualification/command-dispatch")
+    file(MAKE_DIRECTORY "${_studio_command_fixture}/applications/studio/src/app")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/app/ai_platform.c"
+        "${_studio_command_fixture}/applications/studio/src/app/ai_platform.c" COPYONLY)
+    set_tests_properties(studio.commands PROPERTIES
+        WORKING_DIRECTORY "${_studio_command_fixture}")
+    set_property(TEST studio.commands APPEND PROPERTY ENVIRONMENT
+        "UMICOM_STUDIO_COMMAND_FIXTURE_ROOT=${_studio_command_fixture}")
     # Retain the proposed limit for review. The aggregate command fixture can
     # perform long-running project actions; phase diagnostics must establish
     # their cost before a tighter per-command timeout is appropriate.

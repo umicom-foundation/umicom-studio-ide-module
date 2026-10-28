@@ -23,13 +23,29 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
+#include "umicom/platform/clock.h"
+#include "umicom/platform/path.h"
+#include "umicom/platform/filesystem.h"
 
 /* Emit command identities only, never user arguments or private model data.
  * Flushing before dispatch localises a blocking command without changing its
  * assertions or treating diagnostic instrumentation as a functional repair. */
 static void ReportCommandPhase(const char *phase)
 {
+    /* Preserve the identity-only diagnostic. Monotonic durations now reveal
+     * which preceding command is slow without logging any model/user data. */
+#if 0
     fprintf(stderr, "Studio command phase: %s\n", phase);
+#endif
+    static uint64_t previous = 0U;
+    UmiClock clock = umi_clock_system();
+    const uint64_t now = clock.monotonic_nanoseconds(&clock);
+    const uint64_t elapsed = previous != 0U && now >= previous ? now - previous : 0U;
+    fprintf(stderr, "Studio command phase: %s; previous phase duration: %" PRIu64 " ms\n",
+        phase, elapsed / UINT64_C(1000000));
+    previous = now;
     fflush(stderr);
 }
 
@@ -46,6 +62,18 @@ int main(void)
     UmiStudioPlatformContractSnapshot contract;
     UmiTradingWorkspaceSnapshot trading_snapshot;
     char message[512];
+
+    /* CTest supplies an owned fixture. Refuse accidental direct execution from
+     * a developer workspace before the established relative-state operations. */
+    char fixture_directory[UMI_PATH_CAPACITY];
+    const char *fixture_root = getenv("UMICOM_STUDIO_COMMAND_FIXTURE_ROOT");
+    if (fixture_root == NULL ||
+        umi_fs_current_directory(fixture_directory, sizeof fixture_directory) != UMI_STATUS_OK ||
+        !umi_path_equal(fixture_directory, fixture_root) ||
+        !umi_fs_is_file("applications/studio/src/app/ai_platform.c")) {
+        fputs("Run studio.commands through CTest in its configured fixture directory.\n", stderr);
+        return 2;
+    }
 
     (void)umi_fs_remove_tree(".umicom");
     ReportCommandPhase("bootstrap-create");
