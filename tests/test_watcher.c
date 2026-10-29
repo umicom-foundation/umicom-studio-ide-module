@@ -13,6 +13,11 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/watcher.h"
 #include "umicom/studio/workspace.h"
 
@@ -25,6 +30,10 @@
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioServices *services = NULL;
     UmiWatcherStats watcher_stats;
     UmiFileIndexStats index_stats;
@@ -32,7 +41,12 @@ int main(void)
     char root[UMI_PATH_CAPACITY];
     char file[UMI_PATH_CAPACITY];
 
+    /* Fixed fixture names belong beneath this invocation, not the shared temp root.
+     * Retain the old base selection for review of the ownership correction. */
+#if 0
     assert(umi_fs_temp_directory(temporary, sizeof(temporary)) == UMI_STATUS_OK);
+#endif
+    assert(umi_path_copy(temporary, sizeof(temporary), test_state.directory) == UMI_STATUS_OK);
     assert(umi_path_join(temporary,
                          "umicom-studio-watcher-test",
                          root,
@@ -54,5 +68,6 @@ int main(void)
 
     umi_studio_services_destroy(services);
     assert(umi_fs_remove_tree(root) == UMI_STATUS_OK);
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

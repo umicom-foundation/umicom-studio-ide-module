@@ -17,6 +17,11 @@
  * Verify Studio consumes all Framework Source Control Centre view factories.
  * Created by Sammy Hegab, Umicom Foundation. Licence: MIT.
  *---------------------------------------------------------------------------*/
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,6 +47,10 @@ static void verify_kind(UmiUiWorkbench *workbench, const char *view_type, const 
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioBootstrap *bootstrap = NULL; UmiUiWorkbench *workbench;
     assert(umi_studio_bootstrap_create(&bootstrap) == UMI_STATUS_OK);
     workbench = umi_studio_ui_workbench(umi_studio_bootstrap_ui(bootstrap)); assert(workbench != NULL);
@@ -53,5 +62,6 @@ int main(void)
     verify_kind(workbench, "studio.vcs-conflicts", UMI_STUDIO_PANE_VCS_CONFLICTS, "source-control-conflicts");
     verify_kind(workbench, "studio.vcs-diff", UMI_STUDIO_PANE_VCS_DIFF, "source-control-diff");
     verify_kind(workbench, "studio.vcs-operations", UMI_STUDIO_PANE_VCS_OPERATIONS, "source-control-operations");
-    umi_studio_bootstrap_destroy(bootstrap); return 0;
+    umi_studio_bootstrap_destroy(bootstrap); if (!StudioTestStateEnd(&test_state)) return 1;
+    return 0;
 }

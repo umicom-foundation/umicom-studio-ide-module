@@ -430,6 +430,18 @@ void UmiStudioBuildProfilesDetach(UmiStudioServices *services);
 UmiStatus UmiStudioBuildProfileSave(UmiStudioServices *services,
     const UmiBuildProfile *profile);
 
+/** Remove an exact displayed workspace-history revision only after saving it.
+ * Does not alter project files or active workspace state. May block on local I/O.
+ * A stale item returns INVALID_STATE; unavailable persistence preserves memory. */
+UmiStatus UmiStudioServicesForgetRecentWorkspace(UmiStudioServices *services,
+    const char *id, uint64_t expectedItemRevision);
+
+/** Pin or unpin an exact displayed workspace-history revision after saving it.
+ * Does not grant trust, open a project or modify its files. Same owner-thread,
+ * stale-view and local-I/O rules as ForgetRecentWorkspace. */
+UmiStatus UmiStudioServicesPinRecentWorkspace(UmiStudioServices *services,
+    const char *id, uint64_t expectedItemRevision, int pinned);
+
 #ifdef __cplusplus
 }
 #endif

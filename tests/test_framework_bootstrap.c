@@ -17,6 +17,11 @@
  * Umicom Studio IDE
  * File: applications/studio/tests/test_framework_bootstrap.c
  *---------------------------------------------------------------------------*/
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/bootstrap.h"
 
 #include <assert.h>
@@ -28,6 +33,10 @@
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioBootstrap *bootstrap = NULL;
     assert(umi_studio_bootstrap_create(&bootstrap) == UMI_STATUS_OK);
     assert(bootstrap != NULL);
@@ -37,5 +46,6 @@ int main(void)
     assert(umi_studio_bootstrap_start(bootstrap) == UMI_STATUS_OK);
     assert(umi_studio_bootstrap_stop(bootstrap) == UMI_STATUS_OK);
     umi_studio_bootstrap_destroy(bootstrap);
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

@@ -1,4 +1,17 @@
-# Umicom Studio IDE | Sammy Hegab, Umicom Foundation | MIT
+#-----------------------------------------------------------------------------
+# Umicom Studio IDE
+# File: cmake/UmicomStudioLearningLocations.cmake
+#
+# PURPOSE:
+#   Compose native learning workflows and their source-aware qualification.
+#
+# AUTHOR AND ORGANISATION:
+# Sammy Hegab
+# Umicom Foundation
+#
+# LICENCE:
+# MIT
+#---------------------------------------------------------------------------
 include_guard(GLOBAL)
 if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     add_executable(umicom-studio-learning-locations-test
@@ -43,6 +56,10 @@ function(umicom_studio_link_learning_catalogue)
                 target_link_libraries("${_consumer}" PRIVATE Umicom::learning_catalogue_gtk4)
                 target_compile_definitions("${_consumer}" PRIVATE
                     UMICOM_STUDIO_HAS_LEARNING_CATALOGUE=1)
+                if(COMMAND umicom_target_qualification_inputs)
+                    umicom_target_qualification_inputs("${_consumer}" FILES
+                        "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/gui/workbench/runtime/interaction/learning_commands.inc")
+                endif()
                 break()
             endif()
         endforeach()
@@ -67,3 +84,6 @@ endif()
 
 # The guide pack is independent of the project and contains reviewed public content.
 include("${CMAKE_CURRENT_LIST_DIR}/UmicomStudioLearningPack.cmake")
+
+# The same deferred workbench wiring includes these Welcome consumers.
+include("${CMAKE_CURRENT_LIST_DIR}/UmicomStudioRecentWorkspace.cmake")

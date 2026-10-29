@@ -79,13 +79,74 @@ static void runtime_welcome_add_action(
     gtk_box_append(GTK_BOX(card), button);
 }
 
+typedef struct RuntimeWelcomeRecentBinding {
+    UmiStudioFileDialogRequest *owner;
+    GWeakRef list;
+    char id[128];
+    uint64_t revision;
+} RuntimeWelcomeRecentBinding;
+static void RuntimeWelcomeRecentAction(GtkButton *button, gpointer context);
+static void RuntimeWelcomeRecentBindingFree(gpointer context, GClosure *closure)
+{
+    (void)closure;
+    RuntimeWelcomeRecentBinding *binding = context;
+    runtime_file_dialog_request_free(binding->owner);
+    g_weak_ref_clear(&binding->list);
+    g_free(binding);
+}
+static GtkWidget *RuntimeWelcomeRecentButton(UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *list, const UmiRecentItemSnapshot *item)
+{
+    RuntimeWelcomeRecentBinding *binding = g_try_new0(RuntimeWelcomeRecentBinding, 1);
+    if (binding == NULL) return NULL;
+    binding->owner = runtime_file_dialog_request_new(runtime, 0U);
+    if (binding->owner == NULL) { g_free(binding); return NULL; }
+    g_weak_ref_init(&binding->list, G_OBJECT(list));
+    if (item != NULL) {
+        memcpy(binding->id, item->id, sizeof(binding->id));
+        binding->revision = item->revision;
+    }
+    GtkWidget *button = gtk_button_new_with_label(item != NULL ? "Remove from recent projects" : "Refresh recent projects");
+    char tag[192];
+    if (item != NULL)
+        (void)snprintf(tag, sizeof(tag), "studio.welcome.recent.remove.%s", item->id);
+    else
+        (void)snprintf(tag, sizeof(tag), "%s", "studio.welcome.recent.refresh");
+    (void)umi_gtk4_automation_tag_widget(button, tag);
+    gtk_widget_set_tooltip_text(button, item != NULL ?
+        "Forget this local history entry. Project files and open documents are kept." :
+        "Read the current local recent-project list again.");
+    g_signal_connect_data(button, "clicked", G_CALLBACK(RuntimeWelcomeRecentAction), binding,
+        RuntimeWelcomeRecentBindingFree, 0);
+    return button;
+}
+
+/* Reuse the copied identity and weak owner held by the history button. The
+ * extra action value is copied before replacing rows can destroy that button. */
+static GtkWidget *RuntimeWelcomeRecentPinButton(UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *list, const UmiRecentItemSnapshot *item)
+{
+    GtkWidget *button = RuntimeWelcomeRecentButton(runtime, list, item);
+    if (button == NULL) return NULL;
+    gtk_button_set_label(GTK_BUTTON(button), item->pinned ? "Unpin project" : "Pin project");
+    gtk_widget_set_tooltip_text(button, item->pinned ?
+        "Return this project to recent-use ordering. Project files are kept." :
+        "Keep this project ahead of unpinned history. This does not grant workspace trust.");
+    char tag[192];
+    (void)snprintf(tag, sizeof(tag), "studio.welcome.recent.pin.%s", item->id);
+    (void)umi_gtk4_automation_tag_widget(button, tag);
+    g_object_set_data(G_OBJECT(button), "studio-recent-pin-action",
+        GINT_TO_POINTER(item->pinned ? 2 : 1));
+    return button;
+}
+
 /*
  * Present one recent workspace with its full path and current availability.
  * Opening still routes through the existing workspace command and service.
  */
 static GtkWidget *runtime_welcome_recent_workspace(
     UmiStudioGtkRuntimeChrome *runtime,
-    const UmiDeveloperWorkbenchRecentWorkItem *item)
+    const UmiDeveloperWorkbenchRecentWorkItem *item, GtkWidget *list)
 {
     GtkWidget *row;
     GtkWidget *open;
@@ -118,6 +179,9 @@ static GtkWidget *runtime_welcome_recent_workspace(
     gtk_label_set_ellipsize(GTK_LABEL(path), PANGO_ELLIPSIZE_MIDDLE);
     gtk_widget_set_tooltip_text(path, item->recent.uri);
     gtk_widget_set_halign(open, GTK_ALIGN_FILL);
+    /* Availability belongs to this row as well as the global command policy. */
+    g_object_set_data(G_OBJECT(open), "studio-command-unavailable",
+        item->available ? NULL : GINT_TO_POINTER(1));
     gtk_widget_set_sensitive(open, item->available != 0);
     gtk_widget_set_tooltip_text(
         open,
@@ -134,7 +198,98 @@ static GtkWidget *runtime_welcome_recent_workspace(
     gtk_box_append(GTK_BOX(row), open);
     gtk_box_append(GTK_BOX(row), path);
     gtk_box_append(GTK_BOX(row), state);
+    GtkWidget *pin = RuntimeWelcomeRecentPinButton(runtime, list, &item->recent);
+    if (pin != NULL) gtk_box_append(GTK_BOX(row), pin);
+    GtkWidget *remove = RuntimeWelcomeRecentButton(runtime, list, &item->recent);
+    if (remove != NULL) gtk_box_append(GTK_BOX(row), remove);
     return row;
+}
+
+/* Build a detached replacement before changing the visible list. Retained
+ * buttons carry copied identities and weak host/list references, not a service
+ * pointer or a request to delete project files. */
+static GtkWidget *RuntimeWelcomeRecentRows(UmiStudioGtkRuntimeChrome *runtime, GtkWidget *list)
+{
+    GtkWidget *rows = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    UmiDeveloperWorkbenchRecentWorkSnapshot snapshot = {0};
+    UmiRecentItemRegistry *registry = umi_studio_services_recent_items(
+        umi_studio_ui_services(runtime->owner->ui));
+    UmiStatus status = registry != NULL ?
+        umi_developer_workbench_start_centre_recent_work_snapshot(registry, "workspace", 5U,
+            &snapshot) : UMI_STATUS_UNAVAILABLE;
+    if (status != UMI_STATUS_OK || snapshot.count == 0U) {
+        GtkWidget *notice = runtime_label(status == UMI_STATUS_OK ?
+            "No recent project is recorded yet." : "Recent projects could not be read.", 0.0F);
+        gtk_box_append(GTK_BOX(rows), notice);
+    } else {
+        for (size_t i = 0U; i < snapshot.count; ++i) {
+            GtkWidget *row = runtime_welcome_recent_workspace(runtime, &snapshot.items[i], list);
+            if (row != NULL) gtk_box_append(GTK_BOX(rows), row);
+        }
+    }
+    return rows;
+}
+static void RuntimeWelcomeRecentAction(GtkButton *button, gpointer context)
+{
+    int pinAction = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "studio-recent-pin-action"));
+    RuntimeWelcomeRecentBinding *binding = context;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(binding->owner, &window);
+    GtkWidget *list = GTK_WIDGET(g_weak_ref_get(&binding->list));
+    if (runtime == NULL || list == NULL) { g_clear_object(&window); g_clear_object(&list); return; }
+    /* Replacing rows can destroy this button and its signal closure. Copy all
+     * command data and own a separate weak binding before publishing widgets. */
+    UmiStudioFileDialogRequest *owner = runtime_file_dialog_request_new(runtime, 0U);
+    if (owner == NULL) { g_clear_object(&window); g_object_unref(list); return; }
+    char id[sizeof(binding->id)]; memcpy(id, binding->id, sizeof(id));
+    uint64_t revision = binding->revision;
+    UmiStatus status = UMI_STATUS_OK;
+    /* Preserve the removal-only dispatch for review. Both actions now use
+     * Framework transactions while the copied row revision rejects stale clicks. */
+#if 0
+    if (id[0] != '\0') status = UmiStudioServicesForgetRecentWorkspace(
+        umi_studio_ui_services(runtime->owner->ui), id, revision);
+#endif
+    if (id[0] != '\0') {
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        status = pinAction != 0 ?
+            UmiStudioServicesPinRecentWorkspace(services, id, revision, pinAction == 1) :
+            UmiStudioServicesForgetRecentWorkspace(services, id, revision);
+    }
+    if (status == UMI_STATUS_OK || status == UMI_STATUS_INVALID_STATE || status == UMI_STATUS_NOT_FOUND) {
+        GtkWidget *rows = RuntimeWelcomeRecentRows(runtime, list);
+        g_object_ref_sink(rows);
+        GtkWidget *old = gtk_widget_get_first_child(list);
+        if (old != NULL) gtk_box_remove(GTK_BOX(list), old);
+        GObject *current = NULL;
+        runtime = runtime_file_dialog_owner(owner, &current);
+        if (runtime != NULL) gtk_box_append(GTK_BOX(list), rows);
+        g_clear_object(&current);
+        g_object_unref(rows);
+    }
+    GObject *current = NULL;
+    runtime = runtime_file_dialog_owner(owner, &current);
+    if (runtime != NULL && id[0] != '\0') {
+        /* Keep the former removal wording for review; pinning has its own
+         * outcome and shares the same stale-view and storage-failure notices. */
+#if 0
+        runtime_show_notification(runtime, status == UMI_STATUS_OK ?
+            "Removed from recent projects. Project files and open documents were kept." :
+            (status == UMI_STATUS_INVALID_STATE || status == UMI_STATUS_NOT_FOUND) ?
+            "Recent projects changed. Review the refreshed list before removing an entry." :
+            "The history change could not be saved. The recent entry and project files were kept.");
+#endif
+        const char *success = pinAction == 1 ? "Project pinned. Workspace trust was not changed." :
+            pinAction == 2 ? "Project unpinned. Project files and open documents were kept." :
+            "Removed from recent projects. Project files and open documents were kept.";
+        runtime_show_notification(runtime, status == UMI_STATUS_OK ? success :
+            (status == UMI_STATUS_INVALID_STATE || status == UMI_STATUS_NOT_FOUND) ?
+            "Recent projects changed. Review the refreshed list before changing an entry." :
+            "The history change could not be saved. The recent entry and project files were kept.");
+    }
+    g_clear_object(&current);
+    runtime_file_dialog_request_free(owner);
+    g_clear_object(&window);g_object_unref(list);
 }
 
 /* Build the responsive startup surface that introduces common Studio tasks. */
@@ -153,6 +308,7 @@ static GtkWidget *runtime_build_welcome_surface(
     GtkWidget *recent;
     GtkWidget *learn;
     GtkWidget *scroll;
+#if 0 /* Previous inline history presentation retained below. */
     GtkWidget *empty_recent;
 #if 0
     UmiRecentItemSnapshot recent_items[5] = {{0}};
@@ -164,6 +320,7 @@ static GtkWidget *runtime_build_welcome_surface(
 #endif
     UmiDeveloperWorkbenchRecentWorkSnapshot recent_work = {0};
     size_t recent_index;
+#endif
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -272,8 +429,10 @@ static GtkWidget *runtime_build_welcome_surface(
     recent = runtime_welcome_card(
         "Recent Work",
         "Projects and folders you open will appear here for quick access.");
+#if 0 /* Registry access now belongs to the replaceable recent list. */
     recent_registry = umi_studio_services_recent_items(
         umi_studio_ui_services(runtime->owner->ui));
+#endif
 
     /*
      * The previous direct registry rendering is retained for review. Framework
@@ -320,6 +479,9 @@ static GtkWidget *runtime_build_welcome_surface(
     }
 #endif
 
+    /* Preserve the former fixed rows for review. A replaceable list now makes
+     * history removal and refresh visible without reopening the application. */
+#if 0
     if (recent_registry != NULL) {
         (void)umi_developer_workbench_start_centre_recent_work_snapshot(
             recent_registry,
@@ -347,6 +509,13 @@ static GtkWidget *runtime_build_welcome_surface(
         }
     }
 
+#endif
+    GtkWidget *recent_list = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_box_append(GTK_BOX(recent_list), RuntimeWelcomeRecentRows(runtime, recent_list));
+    gtk_box_append(GTK_BOX(recent), recent_list);
+    GtkWidget *refresh_recent = RuntimeWelcomeRecentButton(runtime, recent_list, NULL);
+    if (refresh_recent != NULL) gtk_box_append(GTK_BOX(recent), refresh_recent);
+
     runtime_welcome_add_action(
         runtime, recent, "Browse for a Workspace", "workspace.open-folder",
         "Choose a folder to add to recent work", 0);
@@ -363,6 +532,21 @@ static GtkWidget *runtime_build_welcome_surface(
     runtime_welcome_add_action(
         runtime, learn, "Keyboard Shortcuts", "help.shortcuts",
         "Review IDE keyboard shortcuts", 0);
+
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    /* These local routes use the same verified reader as Guided Learning.
+     * They need neither a project nor a configured AI provider. */
+    runtime_welcome_add_action(runtime, learn, "Browse local learning libraries",
+        "help.learning.catalogue", "Open the shared local learning catalogue", 0);
+    runtime_welcome_add_action(runtime, learn, "Read the Studio learning guide",
+        "help.learning.guide", "Read the admitted Studio learning guide", 0);
+    for (size_t i = 0U; i < sizeof(runtime_learning_product_guides) /
+        sizeof(runtime_learning_product_guides[0]); ++i) {
+        const RuntimeLearningProductGuide *guide = &runtime_learning_product_guides[i];
+        runtime_welcome_add_action(runtime, learn, guide->title, guide->command,
+            "Read this topic in the local Studio guide library", 0);
+    }
+#endif
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is

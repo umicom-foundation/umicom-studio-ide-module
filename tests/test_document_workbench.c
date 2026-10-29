@@ -13,6 +13,11 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+/* Setup and contract assertions remain active in optimized test builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/workbench_commands.h"
 #include "umicom/studio/workspace.h"
@@ -40,10 +45,20 @@ int main(void)
     char source_path[UMI_PATH_CAPACITY];
     char message[512];
 
+    /* Keep the former caller-relative cleanup for review. Each invocation now
+     * owns a unique state directory, so direct execution cannot erase user state. */
+#if 0
     (void)umi_fs_remove_tree(".umicom");
+#endif
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
     /* Build a small real workspace so this test verifies folder selection all
      * the way through indexing without scanning or changing the source tree. */
+    /* Project files live beneath this invocation, never a shared temporary name. */
+#if 0
     assert(umi_fs_temp_directory(temporary, sizeof(temporary)) == UMI_STATUS_OK);
+#endif
+    assert(umi_path_copy(temporary, sizeof(temporary), test_state.directory) == UMI_STATUS_OK);
     assert(umi_path_join(temporary, "umicom-studio-open-folder-test",
                          workspace_root, sizeof(workspace_root)) ==
            UMI_STATUS_OK);
@@ -100,8 +115,12 @@ int main(void)
     assert(document.dirty && !document.has_path);
     assert(umi_studio_bootstrap_stop(bootstrap) == UMI_STATUS_OK);
     umi_studio_bootstrap_destroy(bootstrap);
+    /* Retain generated evidence instead of deleting a launch-directory tree. */
+#if 0
     assert(umi_fs_remove_tree(".umicom") == UMI_STATUS_OK);
+#endif
     assert(umi_fs_remove_tree(workspace_root) == UMI_STATUS_OK);
     (void)printf("Studio document workbench passed\n");
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

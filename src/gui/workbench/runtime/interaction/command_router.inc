@@ -1019,6 +1019,10 @@ static UmiStatus runtime_route_command(
 
     /* Help actions reveal operational workbench panels rather than sending
      * users to a disconnected placeholder or a separate application. */
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    if (RuntimeLearningCommandKnown(command_id))
+        return RuntimeLearningDispatch(runtime, command_id);
+#endif
     if (strcmp(command_id, "help.ai-teacher") == 0) {
         runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LEARNING);
         return UMI_STATUS_OK;

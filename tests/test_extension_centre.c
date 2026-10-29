@@ -12,6 +12,11 @@
  * LICENCE:
  *   MIT
  *----------------------------------------------------------------------------*/
+/* Setup and contract assertions remain active in optimized test builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include <assert.h>
 
 #include "umicom/studio/bootstrap.h"
@@ -28,7 +33,13 @@ int main(void)
     UmiStudioExtensionCentreSnapshot snapshot;
     UmiUiViewModel *view = NULL;
     UmiUiValue value;
+    /* Keep the former caller-relative cleanup for review. Each invocation now
+     * owns a unique state directory, so direct execution cannot erase user state. */
+#if 0
     (void)umi_fs_remove_tree(".umicom");
+#endif
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
     assert(umi_studio_bootstrap_create(&bootstrap) == UMI_STATUS_OK);
     services = umi_studio_bootstrap_services(bootstrap);
     assert(umi_studio_extension_centre_snapshot(services, &snapshot) == UMI_STATUS_OK);
@@ -48,6 +59,10 @@ int main(void)
     assert(value.integer_value == 3);
     umi_ui_view_model_destroy(view);
     umi_studio_bootstrap_destroy(bootstrap);
+    /* Retain generated evidence instead of deleting a launch-directory tree. */
+#if 0
     assert(umi_fs_remove_tree(".umicom") == UMI_STATUS_OK);
+#endif
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

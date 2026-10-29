@@ -14,6 +14,11 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/diagnostics.h"
 
 #include <assert.h>
@@ -25,6 +30,10 @@
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioServices *services = NULL;
     UmiDiagnosticStoreSummary summary;
     UmiDiagnosticRecord record;
@@ -68,5 +77,6 @@ int main(void)
     assert(umi_studio_diagnostics_count(services) == 0U);
 
     umi_studio_services_destroy(services);
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

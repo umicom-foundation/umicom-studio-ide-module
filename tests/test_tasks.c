@@ -13,6 +13,7 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+#include "studio_test_state.h"
 #include "umicom/studio/tasks.h"
 
 /* This executable performs its setup in assertions; keep them active in Release. */
@@ -45,7 +46,13 @@ int main(void)
     atomic_int counter;
     UmiTaskQueueStats stats;
 
+    /* Keep the former caller-relative cleanup for review. Each invocation now
+     * owns a unique state directory, so direct execution cannot erase user state. */
+#if 0
     (void)umi_fs_remove_tree(".umicom");
+#endif
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
     atomic_init(&counter, 0);
     assert(umi_studio_services_create(NULL, NULL, &services) == UMI_STATUS_OK);
 
@@ -72,6 +79,10 @@ int main(void)
     assert(stats.failed == 0U);
 
     umi_studio_services_destroy(services);
+    /* Retain generated evidence instead of deleting a launch-directory tree. */
+#if 0
     assert(umi_fs_remove_tree(".umicom") == UMI_STATUS_OK);
+#endif
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

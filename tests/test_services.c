@@ -15,7 +15,12 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/services.h"
 
+/* Setup and checks must execute in optimized configurations too. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <assert.h>
+#include "studio_test_state.h"
 #include <stddef.h>
 
 /*
@@ -49,7 +54,13 @@ int main(void)
     size_t first_count = 0U;
     size_t second_count = 0U;
 
+    /* Preserve the old launch-directory cleanup for review. Each test now owns
+     * isolated state and cannot erase the caller's .umicom directory. */
+#if 0
     (void)umi_fs_remove_tree(".umicom");
+#endif
+    StudioTestState isolated = {0};
+    assert(StudioTestStateBegin(&isolated));
 
     assert(umi_studio_services_create(count_sink,
                                       &first_count,
@@ -108,6 +119,10 @@ int main(void)
     assert(umi_studio_services_diagnostic_sink_count(services) == 3U);
 
     umi_studio_services_destroy(services);
+    /* Retain fixture evidence instead of recursively deleting launch state. */
+#if 0
     assert(umi_fs_remove_tree(".umicom") == UMI_STATUS_OK);
+#endif
+    assert(StudioTestStateEnd(&isolated));
     return 0;
 }

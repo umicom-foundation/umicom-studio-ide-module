@@ -13,6 +13,11 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+/* Setup and contract assertions remain active in optimized test builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/documents.h"
 
 #include <assert.h>
@@ -33,8 +38,18 @@ int main(void)
     char path[UMI_PATH_CAPACITY];
     char *text = NULL;
 
+    /* Keep the former caller-relative cleanup for review. Each invocation now
+     * owns a unique state directory, so direct execution cannot erase user state. */
+#if 0
     (void)umi_fs_remove_tree(".umicom");
+#endif
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+    /* Project files live beneath this invocation, never a shared temporary name. */
+#if 0
     assert(umi_fs_temp_directory(temp_root, sizeof(temp_root)) == UMI_STATUS_OK);
+#endif
+    assert(umi_path_copy(temp_root, sizeof(temp_root), test_state.directory) == UMI_STATUS_OK);
     assert(umi_fs_join(test_root,
                        sizeof(test_root),
                        temp_root,
@@ -97,6 +112,10 @@ int main(void)
 
     umi_studio_services_destroy(services);
     assert(umi_fs_remove_tree(test_root) == UMI_STATUS_OK);
+    /* Retain generated evidence instead of deleting a launch-directory tree. */
+#if 0
     assert(umi_fs_remove_tree(".umicom") == UMI_STATUS_OK);
+#endif
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

@@ -789,6 +789,10 @@ static int runtime_command_enabled(
         return umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK &&
             workspace.graph.open && !UmiStudioBuildBusy(umi_studio_services_build(services));
     }
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    /* Local guides remain available before a project or model is selected. */
+    if (RuntimeLearningCommandKnown(command_id)) return 1;
+#endif
     if (strcmp(command_id, "file.new") == 0 || strcmp(command_id, "file.open") == 0 ||
         strcmp(command_id, "application.exit") == 0 ||
         strcmp(command_id, "studio.command.search") == 0 ||

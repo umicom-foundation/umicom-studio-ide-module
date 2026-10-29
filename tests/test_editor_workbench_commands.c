@@ -14,6 +14,11 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/ui.h"
 #include "umicom/studio/workbench_commands.h"
@@ -48,6 +53,10 @@ static void add_document(UmiUiWorkbench *workbench,
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioBootstrap *bootstrap = NULL;
     UmiUiWorkbench *workbench;
     UmiUiWorkbenchSnapshot workbench_snapshot;
@@ -207,5 +216,6 @@ int main(void)
                   "studio.editor.unsaved") == 0);
 
     umi_studio_bootstrap_destroy(bootstrap);
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

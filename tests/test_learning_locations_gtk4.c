@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
- * File: applications/studio/tests/test_learning_locations_gtk4.c
- * PURPOSE: Check explicit lesson and project locations and the lifetime of learning controls.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ * File: tests/test_learning_locations_gtk4.c
+ *
+ * PURPOSE:
+ *   Check explicit lesson and project locations and the lifetime of learning controls.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/platform/session_store.h"
@@ -245,11 +252,11 @@ int main(int argc, char **argv)
     else if (g_str_has_prefix(argv[1],"catalogue-topic-"))
     {
         const char *mode=argv[1];
-        const char *tag=strcmp(mode,"catalogue-topic-errors")==0?"studio.learning.errors-guide":
+        const char *tag=strcmp(mode,"catalogue-topic-recent")==0?"studio.learning.recent-guide":strcmp(mode,"catalogue-topic-errors")==0?"studio.learning.errors-guide":
             strcmp(mode,"catalogue-topic-tests")==0?"studio.learning.tests-guide":"studio.learning.editing-guide";
-        const char *resource=strcmp(mode,"catalogue-topic-errors")==0?"reading-build-errors":
+        const char *resource=strcmp(mode,"catalogue-topic-recent")==0?"recent-projects":strcmp(mode,"catalogue-topic-errors")==0?"reading-build-errors":
             strcmp(mode,"catalogue-topic-tests")==0?"running-tests":"editing-files";
-        CHECK(strcmp(mode,"catalogue-topic-editing")==0 || strcmp(mode,"catalogue-topic-errors")==0 ||
+        CHECK(strcmp(mode,"catalogue-topic-recent")==0 || strcmp(mode,"catalogue-topic-editing")==0 || strcmp(mode,"catalogue-topic-errors")==0 ||
             strcmp(mode,"catalogue-topic-tests")==0 || strcmp(mode,"catalogue-topic-switch")==0 ||
             strcmp(mode,"catalogue-topic-busy")==0 || strcmp(mode,"catalogue-topic-retained")==0);
         catalogue_button=umi_gtk4_automation_find_tagged_widget(root,tag);
@@ -299,6 +306,74 @@ int main(int argc, char **argv)
             CHECK(UmiLearningHelpGtk4CopyState(catalogue_panel,&help)==UMI_STATUS_OK &&
                 help.attempts==0U && strcmp(help.request.key,"learning")==0);
             CHECK(umi_studio_workspace_snapshot(services,&workspace)==UMI_STATUS_OK && !workspace.graph.open);
+        }
+    }
+    else if (g_str_has_prefix(argv[1], "welcome-"))
+    {
+        const char *mode = argv[1];
+        const char *command = "help.learning.editing", *resource = "editing-files";
+        if (strcmp(mode, "welcome-library") == 0) { command = "help.learning.catalogue"; resource = NULL; }
+        else if (strcmp(mode, "welcome-guide") == 0) { command = "help.learning.guide"; resource = "learning-in-studio"; }
+        else if (strcmp(mode, "welcome-errors") == 0) { command = "help.learning.errors"; resource = "reading-build-errors"; }
+        else if (strcmp(mode, "welcome-recent") == 0) { command = "help.learning.recent"; resource = "recent-projects"; }
+        else if (strcmp(mode, "welcome-tests") == 0) { command = "help.learning.tests"; resource = "running-tests"; }
+        else CHECK(strcmp(mode, "welcome-editing") == 0 || strcmp(mode, "welcome-repeat") == 0 ||
+            strcmp(mode, "welcome-busy") == 0 || strcmp(mode, "welcome-retained") == 0 ||
+            strcmp(mode, "welcome-close-pending") == 0);
+        catalogue_button = umi_gtk4_automation_find_tagged_widget(root, command);
+        CHECK(GTK_IS_BUTTON(catalogue_button) && gtk_widget_get_sensitive(catalogue_button));
+        g_object_ref(catalogue_button);
+        if (strcmp(mode, "welcome-retained") == 0) {
+            umi_studio_gtk_workbench_destroy(workbench); workbench = NULL;
+            umi_studio_bootstrap_destroy(bootstrap); bootstrap = NULL;
+            guint before = g_list_model_get_n_items(gtk_window_get_toplevels());
+            g_signal_emit_by_name(catalogue_button, "clicked");
+            CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == before);
+        } else {
+            /* A missing library is visible in the shared reader, not replaced
+             * by source-checkout guesses, a network request or project trust. */
+            g_signal_emit_by_name(catalogue_button, "clicked");
+            for (GList *item = gtk_application_get_windows(application); item != NULL; item = item->next) {
+                GtkWindow *candidate = item->data;
+                GtkWidget *panel = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(candidate), "learning.catalogue");
+                if (panel != NULL) { catalogue_window = g_object_ref(candidate); catalogue_panel = g_object_ref(panel); break; }
+            }
+            CHECK(catalogue_window != NULL && catalogue_panel != NULL);
+            UmiLearningCatalogueGtkState state;
+            CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK &&
+                !state.busy && !state.reader.has_document && state.pack_count == 0U);
+            if (resource != NULL) CHECK(state.last_status == UMI_STATUS_NOT_FOUND);
+            CHECK(UmiLearningCatalogueGtk4Load(catalogue_panel, argv[2]) == UMI_STATUS_OK && FinishCatalogue());
+            guint before = g_list_model_get_n_items(gtk_window_get_toplevels());
+            g_signal_emit_by_name(catalogue_button, "clicked");
+            if (strcmp(mode, "welcome-busy") == 0) {
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK && state.busy);
+                GtkWidget *other = umi_gtk4_automation_find_tagged_widget(root, "help.learning.tests");
+                CHECK(GTK_IS_BUTTON(other)); g_signal_emit_by_name(other, "clicked");
+            }
+            if (strcmp(mode, "welcome-close-pending") == 0) {
+                umi_studio_gtk_workbench_destroy(workbench); workbench = NULL;
+                CHECK(FinishCatalogue());
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK && state.retired);
+            } else {
+                CHECK(FinishCatalogue());
+                CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == before);
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK &&
+                    !state.busy && state.pack_count == 1U);
+                if (resource != NULL) CHECK(state.last_status == UMI_STATUS_OK && state.reader.has_document &&
+                    strcmp(state.reader.selection.resource.id, resource) == 0);
+                else CHECK(!state.reader.has_document);
+                if (strcmp(mode, "welcome-repeat") == 0) {
+                    g_signal_emit_by_name(catalogue_button, "clicked"); CHECK(FinishCatalogue());
+                    CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == before);
+                    CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK &&
+                        strcmp(state.reader.selection.resource.id, resource) == 0);
+                }
+                UmiLearningHelpGtkState help;
+                CHECK(UmiLearningHelpGtk4CopyState(catalogue_panel, &help) == UMI_STATUS_OK &&
+                    strcmp(help.request.key, "learning") == 0);
+                CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK && !workspace.graph.open);
+            }
         }
     }
     else if (strcmp(argv[1], "catalogue") == 0 || strcmp(argv[1], "catalogue-retained") == 0 ||

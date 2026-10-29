@@ -13,6 +13,11 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/search.h"
 #include "umicom/studio/workspace.h"
 
@@ -39,6 +44,10 @@ static UmiStatus count_match(const UmiSearchMatch *match, void *user_data)
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioServices *services = NULL;
     UmiFileIndexEntry entries[4];
     UmiSearchRequest request;
@@ -50,7 +59,12 @@ int main(void)
     size_t count = 0U;
     size_t matches = 0U;
 
+    /* Fixed fixture names belong beneath this invocation, not the shared temp root.
+     * Retain the old base selection for review of the ownership correction. */
+#if 0
     assert(umi_fs_temp_directory(temporary, sizeof(temporary)) == UMI_STATUS_OK);
+#endif
+    assert(umi_path_copy(temporary, sizeof(temporary), test_state.directory) == UMI_STATUS_OK);
     assert(umi_path_join(temporary,
                          "umicom-studio-search-test",
                          root,
@@ -84,5 +98,6 @@ int main(void)
 
     umi_studio_services_destroy(services);
     assert(umi_fs_remove_tree(root) == UMI_STATUS_OK);
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

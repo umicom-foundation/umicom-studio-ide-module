@@ -5,7 +5,7 @@
   "title": "Learning with Umicom Studio IDE",
   "product": "studio",
   "locale": "en",
-  "revision": 4,
+  "revision": 7,
   "compatibility": {
     "minimum": [
       0,
@@ -50,6 +50,14 @@
       "kind": "guide",
       "path": "RUNNING_TESTS.html",
       "sha256": "@_studio_guide_RUNNING_TESTS_sha256@"
+    },
+    {
+      "id": "recent-projects",
+      "title": "Manage recent projects",
+      "topic": "recent-projects",
+      "kind": "guide",
+      "path": "recent-projects.html",
+      "sha256": "@_studio_guide_recent-projects_sha256@"
     }
   ]
 }

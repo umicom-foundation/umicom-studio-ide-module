@@ -88,6 +88,9 @@ static void RuntimeLearningCatalogueAction(gpointer context, int open_help)
     g_clear_object(&owner_window);
 }
 #endif
+/* Retain the earlier void route for review. Checked dispatch now returns
+ * missing-library, busy and lifetime refusals to ordinary Studio commands. */
+#if 0
 static void RuntimeLearningCatalogueRoute(gpointer context, int open_help,
     const char *topic, const char *resource)
 {
@@ -128,10 +131,79 @@ static void RuntimeLearningCatalogueRoute(gpointer context, int open_help,
     }
     g_clear_object(&owner_window);
 }
+#endif
+static UmiStatus RuntimeLearningCatalogueRouteChecked(gpointer context, int open_help,
+    const char *topic, const char *resource)
+{
+    UmiStatus result = UMI_STATUS_UNAVAILABLE;
+    GObject *owner_window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context, &owner_window);
+    if (runtime != NULL) {
+        UmiVersion version = { UMICOM_FRAMEWORK_VERSION_MAJOR,
+            UMICOM_FRAMEWORK_VERSION_MINOR, UMICOM_FRAMEWORK_VERSION_PATCH };
+        GtkWindow *window = UmiLearningCatalogueGtk4PresentShared(runtime->owner->window, version);
+        if (window != NULL) {
+            g_object_ref(window);
+            GtkWidget *panel = gtk_window_get_child(window);
+            if (panel != NULL) {
+                g_object_ref(panel);
+                UmiLearningHelpRoute route = {0};
+                (void)snprintf(route.request.product, sizeof(route.request.product), "studio");
+                (void)snprintf(route.request.locale, sizeof(route.request.locale), "en");
+                route.request.kind = UMI_LEARNING_HELP_TOPIC;
+                (void)snprintf(route.request.key, sizeof(route.request.key), "learning");
+                (void)snprintf(route.pack_id, sizeof(route.pack_id), "studio.learning-guide");
+                (void)snprintf(route.resource_id, sizeof(route.resource_id), "learning-in-studio");
+                UmiStatus status = UmiLearningHelpGtk4Bind(panel, panel, &route);
+                result = status == UMI_STATUS_ALREADY_EXISTS ? UMI_STATUS_OK : status;
+                if (open_help && result == UMI_STATUS_OK) {
+                    if (topic == NULL || resource == NULL)
+                        result = UmiLearningHelpGtk4Open(panel);
+                    else {
+                        /* Product buttons select explicit identities without
+                         * replacing the catalogue's existing F1 help policy. */
+                        (void)snprintf(route.request.key,sizeof(route.request.key),"%s",topic);
+                        (void)snprintf(route.resource_id,sizeof(route.resource_id),"%s",resource);
+                        result = UmiLearningHelpGtk4OpenRoute(panel,&route);
+                    }
+                }
+                g_object_unref(panel);
+            }
+            g_object_unref(window);
+        }
+    }
+    g_clear_object(&owner_window);
+    return result;
+}
+static void RuntimeLearningCatalogueRoute(gpointer context, int open_help,
+    const char *topic, const char *resource)
+{
+    (void)RuntimeLearningCatalogueRouteChecked(context, open_help, topic, resource);
+}
+
+static UmiStatus RuntimeLearningDispatch(UmiStudioGtkRuntimeChrome *runtime, const char *command)
+{
+    if (!RuntimeLearningCommandKnown(command)) return UMI_STATUS_NOT_FOUND;
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_STATE;
+    UmiStudioFileDialogRequest *binding = runtime_file_dialog_request_new(runtime, 0U);
+    if (binding == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    const RuntimeLearningProductGuide *guide = RuntimeLearningGuideForCommand(command);
+    /* Copying the weak binding before presentation permits a window callback
+     * to close Studio. No runtime pointer is reused after the shared dispatch. */
+    UmiStatus status = RuntimeLearningCatalogueRouteChecked(binding,
+        strcmp(command, "help.learning.catalogue") != 0,
+        guide != NULL ? guide->topic : NULL, guide != NULL ? guide->resource : NULL);
+    runtime_file_dialog_request_free(binding);
+    return status;
+}
+
 static void RuntimeLearningCatalogueAction(gpointer context,int open_help)
 {
     RuntimeLearningCatalogueRoute(context,open_help,NULL,NULL);
 }
+/* The former surface-only catalogue is retained for review. The shared private
+ * command catalogue now supplies these identities to both learning and welcome. */
+#if 0
 typedef struct RuntimeLearningProductGuide {
     const char *title,*topic,*resource,*tag;
 } RuntimeLearningProductGuide;
@@ -140,6 +212,7 @@ static const RuntimeLearningProductGuide runtime_learning_product_guides[]={
     {"Read the compiler error guide","build-errors","reading-build-errors","studio.learning.errors-guide"},
     {"Read the testing guide","testing","running-tests","studio.learning.tests-guide"}
 };
+#endif
 static void RuntimeLearningOpenProductGuide(GtkButton *button,gpointer context)
 {
     guint choice=GPOINTER_TO_UINT(g_object_get_data(G_OBJECT(button),"studio-learning-guide-choice"));

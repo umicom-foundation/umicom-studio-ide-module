@@ -14,6 +14,11 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include <assert.h>
 #include <string.h>
 
@@ -40,6 +45,10 @@ static int container_has_view(const UmiUiViewContainerSnapshot *container,
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioBootstrap *bootstrap = NULL;
     UmiUiWorkbench *workbench;
     UmiUiViewPresentation presentation;
@@ -272,5 +281,6 @@ int main(void)
     umi_ui_view_model_destroy(chat);
 
     umi_studio_bootstrap_destroy(bootstrap);
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

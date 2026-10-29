@@ -26,6 +26,7 @@ static GtkWidget *runtime_make_command_button(
     UmiStudioGtkRuntimeChrome *runtime, const char *label,
     const char *command_id, const char *tooltip);
 #include "interaction/editor_search_options.inc"
+#include "interaction/learning_commands.inc"
 #include "runtime_helpers.inc"
 #include "runtime_profile_catalogues.inc"
 #include "runtime_theme.inc"

@@ -90,12 +90,29 @@ struct UmiStudioServices {
     UmiStudioExtensionPlatform *extension_platform;
     UmiStudioProductCentre *product_centre;
     UmiClock clock;
+    /* Fixed at construction; later tools changing cwd cannot redirect history. */
+    char recent_items_path[UMI_PATH_CAPACITY];
     int recent_items_persistence_enabled;
     int recent_items_dirty;
     int published;
 };
 
 static const char *STUDIO_RECENT_ITEMS_PATH = ".umicom/studio-recent-items";
+
+/* Studio retains its established history location, resolved once against the
+ * startup directory. Shared Framework code owns bounded decoding and atomic
+ * replacement; saving history never follows a recent project URI. */
+static UmiStatus StudioRecentItemsSave(UmiStudioServices *services)
+{
+    if (services == NULL || !services->recent_items_persistence_enabled ||
+        services->recent_items_path[0] == '\0') return UMI_STATUS_UNAVAILABLE;
+    char parent[UMI_PATH_CAPACITY];
+    UmiStatus status = umi_path_parent(services->recent_items_path, parent, sizeof(parent));
+    if (status == UMI_STATUS_OK) status = umi_fs_make_directories(parent);
+    if (status == UMI_STATUS_OK)
+        status = UmiRecentItemsSaveLocal(services->recent_items, services->recent_items_path);
+    return status;
+}
 
 /* Record a workspace through the shared Framework model. The path is
  * normalised before hashing so equivalent spellings do not create duplicates. */
@@ -272,8 +289,12 @@ static UmiStatus destroy_partial_checked(UmiStudioServices *services)
     if (services->recent_items != NULL) {
         if (services->recent_items_persistence_enabled != 0 &&
             services->recent_items_dirty != 0) {
+            /* Keep the old relative save visible; shutdown uses the bound path. */
+#if 0
             (void)umi_platform_recent_items_registry_save(
                 services->recent_items, STUDIO_RECENT_ITEMS_PATH);
+#endif
+            (void)StudioRecentItemsSave(services);
         }
         umi_platform_recent_items_registry_destroy(services->recent_items);
         services->recent_items = NULL;
@@ -516,10 +537,22 @@ UmiStatus umi_studio_services_create_with_options(
     }
     (void)session_loaded;
 
+    /* Preserve the earlier cwd-relative load for review. Resolve the same
+     * location once, then refuse damaged/nonregular metadata through Framework. */
+#if 0
     status = umi_platform_recent_items_registry_load(
         STUDIO_RECENT_ITEMS_PATH,
         &services->recent_items,
         &recent_items_loaded);
+#endif
+    char recent_startup_directory[UMI_PATH_CAPACITY];
+    status = umi_fs_current_directory(recent_startup_directory, sizeof(recent_startup_directory));
+    if (status == UMI_STATUS_OK)
+        status = umi_path_absolute(STUDIO_RECENT_ITEMS_PATH, recent_startup_directory,
+            services->recent_items_path, sizeof(services->recent_items_path));
+    if (status == UMI_STATUS_OK)
+        status = UmiRecentItemsLoadLocal(services->recent_items_path,
+            &services->recent_items, &recent_items_loaded);
     if (status == UMI_STATUS_OK) {
         services->recent_items_persistence_enabled = 1;
     } else {
@@ -2353,12 +2386,17 @@ static UmiStatus StudioOpenWorkspace(UmiStudioServices *services,
         recent_status = studio_remember_workspace(services, root);
         if (recent_status == UMI_STATUS_OK) {
             services->recent_items_dirty = 1;
+            /* Preserve the cwd-relative save for review; use the bound local path. */
+#if 0
             if (services->recent_items_persistence_enabled != 0 &&
                 umi_platform_recent_items_registry_save(
                     services->recent_items,
                     STUDIO_RECENT_ITEMS_PATH) == UMI_STATUS_OK) {
                 services->recent_items_dirty = 0;
             }
+#endif
+            if (StudioRecentItemsSave(services) == UMI_STATUS_OK)
+                services->recent_items_dirty = 0;
         }
     }
     if (status != UMI_STATUS_OK) {
@@ -2565,4 +2603,39 @@ UmiStudioProductCentre *umi_studio_services_product_centre(
     UmiStudioServices *services)
 {
     return services != NULL ? services->product_centre : NULL;
+}
+
+/* Forgetting history is independent of workspace ownership and trust. It
+ * never closes a project, removes its directory or alters open documents. */
+UmiStatus UmiStudioServicesForgetRecentWorkspace(UmiStudioServices *services,
+    const char *id, uint64_t expectedItemRevision)
+{
+    if (services == NULL || id == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (!services->recent_items_persistence_enabled) return UMI_STATUS_UNAVAILABLE;
+    UmiRecentItemSnapshot item;
+    UmiStatus status = umi_platform_recent_items_registry_find(services->recent_items, id, &item);
+    if (status != UMI_STATUS_OK) return status;
+    if (strcmp(item.kind, "workspace") != 0) return UMI_STATUS_INVALID_ARGUMENT;
+    status = UmiRecentItemsRemoveLocal(services->recent_items, id,
+        expectedItemRevision, services->recent_items_path);
+    /* The saved candidate includes all previously dirty history changes. */
+    if (status == UMI_STATUS_OK) services->recent_items_dirty = 0;
+    return status;
+}
+
+/* Pin preferences share Framework's transaction and the service's startup
+ * storage location. They express ordering, never permission to run a project. */
+UmiStatus UmiStudioServicesPinRecentWorkspace(UmiStudioServices *services,
+    const char *id, uint64_t expectedItemRevision, int pinned)
+{
+    if (services == NULL || id == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (!services->recent_items_persistence_enabled) return UMI_STATUS_UNAVAILABLE;
+    UmiRecentItemSnapshot item;
+    UmiStatus status = umi_platform_recent_items_registry_find(services->recent_items, id, &item);
+    if (status != UMI_STATUS_OK) return status;
+    if (strcmp(item.kind, "workspace") != 0) return UMI_STATUS_INVALID_ARGUMENT;
+    status = UmiRecentItemsSetPinnedLocal(services->recent_items, id,
+        expectedItemRevision, pinned, services->recent_items_path);
+    if (status == UMI_STATUS_OK) services->recent_items_dirty = 0;
+    return status;
 }

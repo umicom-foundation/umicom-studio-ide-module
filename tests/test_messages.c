@@ -12,6 +12,11 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/messages.h"
 
@@ -35,6 +40,10 @@ static UmiStatus receive(const UmiMessageEnvelope *message, void *user_data)
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServices *services;
     UmiSubscription subscription = umi_subscription_all();
@@ -59,5 +68,6 @@ int main(void)
     assert(report.journal_messages == 1U);
     assert(umi_studio_messages_unsubscribe(services, subscription_id) == UMI_STATUS_OK);
     umi_studio_bootstrap_destroy(bootstrap);
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }

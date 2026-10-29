@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Manage recent projects | Umicom Studio</title><style>body{font:1.05rem/1.65 system-ui,sans-serif;color:#203348;max-width:58rem;margin:2rem auto;padding:0 1rem}a{color:#006c86}code{overflow-wrap:anywhere}aside{padding:1rem;background:#eef4f7;border-left:4px solid #357a91}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:.6rem;border:1px solid #bac9d3}</style></head><body><main>
+<h1>Manage recent projects</h1>
+<p>The Welcome page lists projects and folders recorded on this computer. A history entry remembers where a project was opened. It is separate from the project itself: removing the entry does not delete its folder, source files or open editor documents.</p>
+<h2>Open a recent project</h2>
+<ol><li>Start Umicom Studio and look for <strong>Recent Work</strong> on Welcome.</li><li>Check the displayed path. Different projects can have the same folder name.</li><li>Select an available project to open its folder through Studio’s normal workspace workflow.</li><li>If the row says <strong>Folder not found</strong>, choose <strong>Browse for a Workspace</strong> to locate the folder, or remove the old history entry.</li></ol>
+<p>A recorded path is not permission to execute its build commands. Review project trust and build settings separately before configuring, building or debugging.</p>
+<h2>Pin a project you return to often</h2>
+<ol><li>Find the project under <strong>Recent Work</strong> and check its full path.</li><li>Choose <strong>Pin project</strong>. Studio saves this preference before putting the entry ahead of unpinned history.</li><li>The button changes to <strong>Unpin project</strong>. Choose it when you want normal recent-use ordering again.</li><li>If the folder is temporarily unavailable, its history can still be pinned. Pinning does not recreate the folder or enable its Open button.</li></ol>
+<p>A pin is a preference, not a file lock, a backup or a grant of trust. It does not open the project, change its files, update its last-opened time or start a build. The list still shows at most five entries; use the project browser when a project is not visible.</p>
+<h2>Remove an entry</h2>
+<ol><li>Find the entry and check its full path.</li><li>Choose <strong>Remove from recent projects</strong> below that entry.</li><li>Studio saves the updated local history before replacing the visible list. A successful operation shows a message confirming that project files and open documents were kept.</li><li>To add the project again, open its folder normally. Removing an entry is not a permanent ban on recording it.</li></ol>
+<p>Pinned entries can also be removed explicitly. Pinning affects ordering and automatic trimming; it does not prevent the owner from removing their own history entry.</p>
+<h2>Refresh the list</h2>
+<p>Choose <strong>Refresh recent projects</strong> to show the current in-memory history. This is useful after opening another project while Welcome remained available. Refresh does not fetch a repository, open a project, reload another process’s preferences file or run a build. The list shows up to five workspaces with pinned entries first.</p>
+<h2>When an operation is refused</h2>
+<table><thead><tr><th>Situation</th><th>What to do</th></tr></thead><tbody>
+<tr><td>The entry changed after the row was displayed.</td><td>Review the refreshed list and choose the intended entry again. Studio does not silently apply an old selection to a changed entry.</td></tr>
+<tr><td>The history change could not be saved.</td><td>The live entry remains. Check that the local state directory is writable and not blocked by another process. Correct the storage problem, then retry.</td></tr>
+<tr><td>The history file was damaged when Studio started.</td><td>Studio preserves that file and uses an in-memory fallback. Durable history changes are unavailable for that session. Keep the damaged file for diagnosis before restoring a reviewed backup and restarting Studio.</td></tr>
+<tr><td>The project folder is missing.</td><td>History removal still works because it changes metadata, not the project directory. Locate the folder separately if you need to resume work.</td></tr>
+</tbody></table>
+<h2>Where history belongs</h2>
+<p>Studio keeps the existing <code>.umicom/studio-recent-items</code> location, resolved against the startup working directory once when its services are created. Later changes to the process’s working directory do not redirect history writes. This metadata can contain local project paths; keep it in local application state, outside public commits.</p>
+<p>Run one writer for a particular history file. The saved format does not provide cross-process conflict resolution, and atomic replacement is not a guarantee against power loss. Local file operations can also wait for the operating system or antivirus software; this action is not an asynchronous file manager.</p>
+<p>Continue with <a href="learning-in-studio.html">learning in Studio</a>, <a href="EDITING_FILES.html">editing and saving files</a> and <a href="READING_BUILD_ERRORS.html">reading build errors</a>.</p>
+</main><footer><p>Sammy Hegab · Umicom Foundation · MIT</p></footer></body></html>

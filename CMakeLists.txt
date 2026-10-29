@@ -1162,7 +1162,7 @@ if(BUILD_TESTING)
     add_executable(umicom-studio-services-test
         tests/test_services.c
     )
-    target_link_libraries(umicom-studio-services-test PRIVATE Umicom::StudioCore)
+    target_link_libraries(umicom-studio-services-test PRIVATE Umicom::StudioCore PkgConfig::GLIB)
     umicom_apply_warnings(umicom-studio-services-test)
     add_test(NAME studio.services COMMAND umicom-studio-services-test)
 
@@ -3514,3 +3514,6 @@ include(cmake/UmicomStudioSearchPages.cmake)
 
 # Session navigation uses Framework selection and native ownership.
 include(cmake/UmicomStudioBookmarkPanel.cmake)
+
+# Each migrated test owns its state even when launched directly.
+include("cmake/UmicomStudioTestIsolation.cmake")

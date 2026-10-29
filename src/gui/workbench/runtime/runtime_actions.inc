@@ -294,7 +294,14 @@ static void runtime_on_command_button(GtkButton *button, gpointer user_data)
     UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request, &window);
     const char *command = g_object_get_data(G_OBJECT(button), "umicom-command-id");
     const char *argument = g_object_get_data(G_OBJECT(button), "umicom-command-argument");
+    /* Retain the former global-only gate; row availability also applies to
+     * explicitly emitted signals while a missing project remains displayed. */
+#if 0
     if (runtime != NULL && command != NULL)
+        (void)runtime_execute_command(runtime, command, argument);
+#endif
+    if (runtime != NULL && command != NULL &&
+        g_object_get_data(G_OBJECT(button), "studio-command-unavailable") == NULL)
         (void)runtime_execute_command(runtime, command, argument);
     g_clear_object(&window);
 }
@@ -715,8 +722,16 @@ static void runtime_refresh_command_sensitivity(UmiStudioGtkRuntimeChrome *runti
         if ((gpointer)gtk_widget_get_root(button) != (gpointer)window ||
             (button != container && !gtk_widget_is_ancestor(button, container))) continue;
         const char *command = g_object_get_data(G_OBJECT(button), "umicom-command-id");
+        /* Preserve the old policy for review. Refresh must not re-enable a
+         * row whose captured resource is unavailable. A list refresh rechecks it. */
+#if 0
         gboolean enabled = command != NULL &&
             g_object_get_data(G_OBJECT(button), "studio-command-binding-failed") == NULL &&
+            runtime_command_enabled(runtime, command);
+#endif
+        gboolean enabled = command != NULL &&
+            g_object_get_data(G_OBJECT(button), "studio-command-binding-failed") == NULL &&
+            g_object_get_data(G_OBJECT(button), "studio-command-unavailable") == NULL &&
             runtime_command_enabled(runtime, command);
         if (gtk_widget_get_sensitive(button) != enabled)
             gtk_widget_set_sensitive(button, enabled);

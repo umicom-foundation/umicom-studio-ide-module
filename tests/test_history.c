@@ -12,6 +12,11 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+/* These assertions perform setup as well as checks, including in release builds. */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "studio_test_state.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/history.h"
 
@@ -24,6 +29,10 @@
  */
 int main(void)
 {
+    /* Isolate default preferences and data before starting shared services. */
+    StudioTestState test_state = {0};
+    if (!StudioTestStateBegin(&test_state)) return 1;
+
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioServices *services;
     UmiStudioHistoryRecord record;
@@ -37,5 +46,6 @@ int main(void)
     assert(strcmp(record.message, "Build completed") == 0);
     assert(record.correlation_id == 55U);
     umi_studio_bootstrap_destroy(bootstrap);
+    if (!StudioTestStateEnd(&test_state)) return 1;
     return 0;
 }
