@@ -263,6 +263,12 @@ int main(int argc, char **argv)
             UmiLearningCatalogueGtkState state;
             CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
             CHECK(!state.busy && !state.retired && state.pack_count == 0U);
+            /* A second product action must reuse the same live catalogue,
+             * without creating a second empty learning window. */
+            guint catalogue_windows = g_list_model_get_n_items(gtk_window_get_toplevels());
+            g_signal_emit_by_name(catalogue_button, "clicked");
+            CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == catalogue_windows);
+            CHECK(gtk_window_get_child(catalogue_window) == catalogue_panel);
             CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
             CHECK(!workspace.graph.open);
             umi_studio_gtk_workbench_destroy(workbench);

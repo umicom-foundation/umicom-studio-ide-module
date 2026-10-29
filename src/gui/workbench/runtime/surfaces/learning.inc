@@ -36,7 +36,12 @@ static void RuntimeLearningCatalogue(GtkButton *button, gpointer context)
             UMICOM_FRAMEWORK_VERSION_MINOR,
             UMICOM_FRAMEWORK_VERSION_PATCH
         };
+        /* Reopening the learning surface retains this Studio window's shelf
+         * and reading history. Framework owns the shared window lifetime. */
+#if 0
         (void)UmiLearningCatalogueGtk4Present(runtime->owner->window, version);
+#endif
+        (void)UmiLearningCatalogueGtk4PresentShared(runtime->owner->window, version);
     }
     g_clear_object(&window);
 }
