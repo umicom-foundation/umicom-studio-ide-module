@@ -15,6 +15,9 @@
 #include "umicom/teacher/learning_library.h"
 #include "umicom/ui/gtk4/automation.h"
 #include "workbench_window.h"
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+#include "umicom/ui/gtk4/learning_catalogue.h"
+#endif
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <string.h>
@@ -49,6 +52,8 @@ int main(int argc, char **argv)
     GString *document_bytes = NULL;
     char library[UMI_PATH_CAPACITY] = {0};
     GtkApplication *application = NULL;
+    GtkWindow *catalogue_window = NULL;
+    GtkWidget *catalogue_button = NULL, *catalogue_panel = NULL;
     UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL;
     UmiSettings *settings = NULL;
@@ -220,6 +225,54 @@ int main(int argc, char **argv)
         CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
         CHECK(!workspace.graph.open);
     }
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    else if (strcmp(argv[1], "catalogue") == 0 || strcmp(argv[1], "catalogue-retained") == 0)
+    {
+        catalogue_button = umi_gtk4_automation_find_tagged_widget(root, "studio.learning.catalogue");
+        CHECK(GTK_IS_BUTTON(catalogue_button));
+        g_object_ref(catalogue_button);
+        if (strcmp(argv[1], "catalogue-retained") == 0)
+        {
+            umi_studio_gtk_workbench_destroy(workbench);
+            workbench = NULL;
+            umi_studio_bootstrap_destroy(bootstrap);
+            bootstrap = NULL;
+            guint before = g_list_model_get_n_items(gtk_window_get_toplevels());
+            g_signal_emit_by_name(catalogue_button, "clicked");
+            CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == before);
+        }
+        else
+        {
+            /* This case presents the real reader through the product action,
+             * but neither chooses a file nor starts a project or a command. */
+            g_signal_emit_by_name(catalogue_button, "clicked");
+            for (GList *item = gtk_application_get_windows(application); item != NULL; item = item->next)
+            {
+                GtkWindow *candidate = item->data;
+                GtkWidget *panel = umi_gtk4_automation_find_tagged_widget(
+                    GTK_WIDGET(candidate), "learning.catalogue");
+                if (panel != NULL)
+                {
+                    catalogue_window = g_object_ref(candidate);
+                    catalogue_panel = g_object_ref(panel);
+                    break;
+                }
+            }
+            CHECK(catalogue_window != NULL && catalogue_panel != NULL);
+            CHECK(gtk_window_get_transient_for(catalogue_window) == GTK_WINDOW(root));
+            UmiLearningCatalogueGtkState state;
+            CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
+            CHECK(!state.busy && !state.retired && state.pack_count == 0U);
+            CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
+            CHECK(!workspace.graph.open);
+            umi_studio_gtk_workbench_destroy(workbench);
+            workbench = NULL;
+            CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
+            CHECK(state.retired);
+            CHECK(UmiLearningCatalogueGtk4PendingReads() == 0U);
+        }
+    }
+#endif
     else if (strcmp(argv[1], "controls") == 0)
     {
         CHECK(!gtk_widget_get_visible(root));
@@ -257,6 +310,10 @@ int main(int argc, char **argv)
         failed = 2;
     }
 cleanup:
+    if (catalogue_window != NULL) gtk_window_destroy(catalogue_window);
+    g_clear_object(&catalogue_window);
+    g_clear_object(&catalogue_panel);
+    g_clear_object(&catalogue_button);
     for (size_t i = 0U; i < 4U; ++i)
         g_clear_object(&retained[i]);
     umi_studio_gtk_workbench_destroy(workbench);

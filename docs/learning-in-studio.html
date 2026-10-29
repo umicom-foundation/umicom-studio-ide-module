@@ -26,4 +26,59 @@ storage course additionally needs an installed Framework data SDK. Existing fold
 are never overwritten. If export fails, inspect any partial new folder and select
 another destination before retrying. Closing the practicum does not undo an accepted
 export; keep the application running if you want it to finish.</p>
+
+<h2>Read portable learning packs</h2>
+<p>Select <strong>Open local learning catalogue</strong> in Guided Learning.
+This opens the Framework catalogue without changing your project. Choose an
+absolute folder containing <code>learning-pack.json</code>, select
+<strong>Load learning pack</strong>, choose a result and select
+<strong>Open selected</strong>. Loading runs in the background. Its controls
+remain unavailable until that request finishes.</p>
+<p>Use <strong>Search catalogue</strong> to match titles, topics and identifiers.
+The current search accepts up to eight words, with ASCII case-insensitive
+matching. It searches metadata, not document bodies. The result summary reports
+when the displayed set is shortened. <strong>Back</strong> and
+<strong>Forward</strong> navigate resources opened within the current pack;
+opening another pack starts its own reading session.</p>
+<p>The catalogue verifies declared file bytes before display. HTML receives a
+plain-text preview, and images and binary files show limitation notices.
+It does not run a source example or grant workspace trust. The native reader
+limits each resource to 1 MiB. The existing documentation surface and practicum
+remain available for their separate workflows.</p>
+<p>The Framework <code>examples/learning_pack_inspector</code> project creates a
+sample pack during its configuration. Its <code>guide.html</code> explains SDK
+selection and example commands. Choose its generated <code>pack</code> directory,
+not the folder containing the <code>learning-pack.json.in</code> template.
+Studio supplies its compiled Framework version to this catalogue; the manifest's
+compatibility range must include that version.</p>
+<p>Loaded packs and reading history are local to this window and are not saved
+between sessions. To adopt an edited pack with the same identifier, close the
+catalogue, reopen it and load the revised folder. If verification fails,
+<strong>Reload and verify</strong> preserves the previous verified reading
+selection instead of silently accepting different bytes.</p>
+<p>Closing Studio closes its catalogue windows. An accepted file read finishes
+privately and its late result is discarded. A slow or unavailable mounted
+filesystem can delay orderly application exit until that read returns.
+<!-- The earlier path assumed an extra framework directory. The active path follows the Framework documentation install rule; retained for review.
+The full Framework guide is installed at
+<code>share/umicom/framework/docs/learning/using-learning-catalogue.html</code>
+when the learning documentation is included.
+-->
+The full Framework guide is installed at
+<code>share/umicom/docs/learning/using-learning-catalogue.html</code>
+when the Framework learning documentation is included.</p>
+
+<section id="catalogue-practice-copy">
+<h2>Copy a learning example into your practice folder</h2>
+<p>In the local learning catalogue, open the example and select
+<strong>Preview example details</strong>. Choose a new absolute destination filename in
+an existing folder, then select <strong>Copy example to new file</strong>.
+Expand <strong>Last example copy</strong> to inspect the exact path and result.
+Studio keeps the reading selection and its history unchanged.</p>
+<p>This copies one verified source file. It does not replace an existing file,
+open a project or run a command. Review the copied source and follow its guide
+before compiling it. If a write leaves a partial file, inspect that file; the
+catalogue does not silently delete it. Closing the catalogue does not undo an
+already accepted copy.</p>
+</section>
 </body></html>

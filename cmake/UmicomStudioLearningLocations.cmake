@@ -49,3 +49,18 @@ function(umicom_studio_link_learning_catalogue)
     endforeach()
 endfunction()
 cmake_language(DEFER CALL umicom_studio_link_learning_catalogue)
+
+if(BUILD_TESTING AND TARGET Umicom::learning_catalogue_gtk4
+        AND TARGET umicom-studio-learning-locations-test)
+    foreach(_case catalogue catalogue-retained)
+        add_test(NAME "studio.learning.locations.${_case}"
+            COMMAND umicom-studio-learning-locations-test "${_case}" "${_learning_framework_source}")
+        set_tests_properties("studio.learning.locations.${_case}" PROPERTIES
+            TIMEOUT 60 SKIP_RETURN_CODE 77
+            LABELS "studio;learning;gtk4;ownership;regression")
+        if(COMMAND umicom_test_impact_owners)
+            umicom_test_impact_owners("studio.learning.locations.${_case}"
+                TARGETS umicom-studio-learning-locations-test)
+        endif()
+    endforeach()
+endif()
