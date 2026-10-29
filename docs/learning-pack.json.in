@@ -5,7 +5,7 @@
   "title": "Learning with Umicom Studio IDE",
   "product": "studio",
   "locale": "en",
-  "revision": 1,
+  "revision": 3,
   "compatibility": {
     "minimum": [
       0,
@@ -26,6 +26,30 @@
       "kind": "guide",
       "path": "learning-in-studio.html",
       "sha256": "@_studio_learning_guide_sha256@"
+    },
+    {
+      "id": "editing-files",
+      "title": "Edit and save files in Studio",
+      "topic": "editing",
+      "kind": "guide",
+      "path": "EDITING_FILES.html",
+      "sha256": "@_studio_guide_EDITING_FILES_sha256@"
+    },
+    {
+      "id": "reading-build-errors",
+      "title": "Read compiler errors in Studio",
+      "topic": "build-errors",
+      "kind": "guide",
+      "path": "READING_BUILD_ERRORS.html",
+      "sha256": "@_studio_guide_READING_BUILD_ERRORS_sha256@"
+    },
+    {
+      "id": "running-tests",
+      "title": "Run and stop tests in Studio",
+      "topic": "testing",
+      "kind": "guide",
+      "path": "RUNNING_TESTS.html",
+      "sha256": "@_studio_guide_RUNNING_TESTS_sha256@"
     }
   ]
 }

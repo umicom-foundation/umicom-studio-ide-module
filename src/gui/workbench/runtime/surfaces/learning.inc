@@ -54,6 +54,9 @@ static void RuntimeLearningCatalogue(GtkButton *button, gpointer context)
 /* Framework owns the shared catalogue, copied help route and keyboard binding.
  * Studio supplies only its reviewed guide identity. Pack admission remains an
  * explicit user choice, independent of the active project and working folder. */
+/* Preserve the single-guide launcher for review. Explicit product routes now
+ * reuse its shared window and keep its original F1 binding unchanged. */
+#if 0
 static void RuntimeLearningCatalogueAction(gpointer context, int open_help)
 {
     GObject *owner_window = NULL;
@@ -84,6 +87,69 @@ static void RuntimeLearningCatalogueAction(gpointer context, int open_help)
     }
     g_clear_object(&owner_window);
 }
+#endif
+static void RuntimeLearningCatalogueRoute(gpointer context, int open_help,
+    const char *topic, const char *resource)
+{
+    GObject *owner_window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context, &owner_window);
+    if (runtime != NULL) {
+        UmiVersion version = { UMICOM_FRAMEWORK_VERSION_MAJOR,
+            UMICOM_FRAMEWORK_VERSION_MINOR, UMICOM_FRAMEWORK_VERSION_PATCH };
+        GtkWindow *window = UmiLearningCatalogueGtk4PresentShared(runtime->owner->window, version);
+        if (window != NULL) {
+            g_object_ref(window);
+            GtkWidget *panel = gtk_window_get_child(window);
+            if (panel != NULL) {
+                g_object_ref(panel);
+                UmiLearningHelpRoute route = {0};
+                (void)snprintf(route.request.product, sizeof(route.request.product), "studio");
+                (void)snprintf(route.request.locale, sizeof(route.request.locale), "en");
+                route.request.kind = UMI_LEARNING_HELP_TOPIC;
+                (void)snprintf(route.request.key, sizeof(route.request.key), "learning");
+                (void)snprintf(route.pack_id, sizeof(route.pack_id), "studio.learning-guide");
+                (void)snprintf(route.resource_id, sizeof(route.resource_id), "learning-in-studio");
+                UmiStatus status = UmiLearningHelpGtk4Bind(panel, panel, &route);
+                if (open_help && (status == UMI_STATUS_OK || status == UMI_STATUS_ALREADY_EXISTS)) {
+                    if (topic == NULL || resource == NULL)
+                        (void)UmiLearningHelpGtk4Open(panel);
+                    else {
+                        /* Product buttons select explicit identities without
+                         * replacing the catalogue's existing F1 help policy. */
+                        (void)snprintf(route.request.key,sizeof(route.request.key),"%s",topic);
+                        (void)snprintf(route.resource_id,sizeof(route.resource_id),"%s",resource);
+                        (void)UmiLearningHelpGtk4OpenRoute(panel,&route);
+                    }
+                }
+                g_object_unref(panel);
+            }
+            g_object_unref(window);
+        }
+    }
+    g_clear_object(&owner_window);
+}
+static void RuntimeLearningCatalogueAction(gpointer context,int open_help)
+{
+    RuntimeLearningCatalogueRoute(context,open_help,NULL,NULL);
+}
+typedef struct RuntimeLearningProductGuide {
+    const char *title,*topic,*resource,*tag;
+} RuntimeLearningProductGuide;
+static const RuntimeLearningProductGuide runtime_learning_product_guides[]={
+    {"Read the editing and saving guide","editing","editing-files","studio.learning.editing-guide"},
+    {"Read the compiler error guide","build-errors","reading-build-errors","studio.learning.errors-guide"},
+    {"Read the testing guide","testing","running-tests","studio.learning.tests-guide"}
+};
+static void RuntimeLearningOpenProductGuide(GtkButton *button,gpointer context)
+{
+    guint choice=GPOINTER_TO_UINT(g_object_get_data(G_OBJECT(button),"studio-learning-guide-choice"));
+    if(choice==0U || choice>sizeof(runtime_learning_product_guides)/sizeof(runtime_learning_product_guides[0]))return;
+    /* These compile-time route strings remain valid through window callbacks;
+     * no caller document text or transient widget data becomes guide policy. */
+    const RuntimeLearningProductGuide *guide=&runtime_learning_product_guides[choice-1U];
+    RuntimeLearningCatalogueRoute(context,1,guide->topic,guide->resource);
+}
+
 static void RuntimeLearningCatalogue(GtkButton *button, gpointer context)
 {
     (void)button;
@@ -574,6 +640,14 @@ static GtkWidget *runtime_build_surface_learning(
     (void)umi_gtk4_automation_tag_widget(guide, "studio.learning.guide");
     RuntimeLearningBind(guide, G_CALLBACK(RuntimeLearningGuide), runtime);
     gtk_box_append(GTK_BOX(panel), guide);
+    for(guint i=0U;i<sizeof(runtime_learning_product_guides)/sizeof(runtime_learning_product_guides[0]);++i) {
+        const RuntimeLearningProductGuide *entry=&runtime_learning_product_guides[i];
+        GtkWidget *product_guide=gtk_button_new_with_label(entry->title);
+        (void)umi_gtk4_automation_tag_widget(product_guide,entry->tag);
+        g_object_set_data(G_OBJECT(product_guide),"studio-learning-guide-choice",GUINT_TO_POINTER(i+1U));
+        RuntimeLearningBind(product_guide,G_CALLBACK(RuntimeLearningOpenProductGuide),runtime);
+        gtk_box_append(GTK_BOX(panel),product_guide);
+    }
 #endif
 #ifdef UMICOM_EDUCATION_WORKSPACE_GTK4
     /* Framework owns saved learning records and the practicum. This launcher

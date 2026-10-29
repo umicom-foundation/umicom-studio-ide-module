@@ -242,6 +242,65 @@ int main(int argc, char **argv)
         CHECK(!workspace.graph.open);
     }
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    else if (g_str_has_prefix(argv[1],"catalogue-topic-"))
+    {
+        const char *mode=argv[1];
+        const char *tag=strcmp(mode,"catalogue-topic-errors")==0?"studio.learning.errors-guide":
+            strcmp(mode,"catalogue-topic-tests")==0?"studio.learning.tests-guide":"studio.learning.editing-guide";
+        const char *resource=strcmp(mode,"catalogue-topic-errors")==0?"reading-build-errors":
+            strcmp(mode,"catalogue-topic-tests")==0?"running-tests":"editing-files";
+        CHECK(strcmp(mode,"catalogue-topic-editing")==0 || strcmp(mode,"catalogue-topic-errors")==0 ||
+            strcmp(mode,"catalogue-topic-tests")==0 || strcmp(mode,"catalogue-topic-switch")==0 ||
+            strcmp(mode,"catalogue-topic-busy")==0 || strcmp(mode,"catalogue-topic-retained")==0);
+        catalogue_button=umi_gtk4_automation_find_tagged_widget(root,tag);
+        CHECK(GTK_IS_BUTTON(catalogue_button));g_object_ref(catalogue_button);
+        if(strcmp(mode,"catalogue-topic-retained")==0) {
+            umi_studio_gtk_workbench_destroy(workbench);workbench=NULL;
+            umi_studio_bootstrap_destroy(bootstrap);bootstrap=NULL;
+            guint count=g_list_model_get_n_items(gtk_window_get_toplevels());
+            g_signal_emit_by_name(catalogue_button,"clicked");
+            CHECK(g_list_model_get_n_items(gtk_window_get_toplevels())==count);
+        } else {
+            g_signal_emit_by_name(catalogue_button,"clicked");
+            for(GList *item=gtk_application_get_windows(application);item!=NULL;item=item->next) {
+                GtkWindow *candidate=item->data;
+                GtkWidget *panel=umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(candidate),"learning.catalogue");
+                if(panel!=NULL) {
+                    catalogue_window=g_object_ref(candidate);catalogue_panel=g_object_ref(panel);break;
+                }
+            }
+            CHECK(catalogue_panel!=NULL && catalogue_window!=NULL);
+            UmiLearningCatalogueGtkState state;
+            CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel,&state)==UMI_STATUS_OK &&
+                state.last_status==UMI_STATUS_NOT_FOUND && !state.reader.has_document);
+            CHECK(UmiLearningCatalogueGtk4Load(catalogue_panel,argv[2])==UMI_STATUS_OK && FinishCatalogue());
+            g_signal_emit_by_name(catalogue_button,"clicked");
+            GtkWidget *errors=umi_gtk4_automation_find_tagged_widget(root,"studio.learning.errors-guide");
+            CHECK(GTK_IS_BUTTON(errors));
+            if(strcmp(mode,"catalogue-topic-busy")==0) {
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel,&state)==UMI_STATUS_OK && state.busy);
+                g_signal_emit_by_name(errors,"clicked");
+            }
+            CHECK(FinishCatalogue());
+            CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel,&state)==UMI_STATUS_OK &&
+                state.last_status==UMI_STATUS_OK && state.reader.has_document);
+            CHECK(strcmp(state.reader.selection.resource.id,resource)==0);
+            if(strcmp(mode,"catalogue-topic-switch")==0) {
+                guint count=g_list_model_get_n_items(gtk_window_get_toplevels());
+                g_signal_emit_by_name(errors,"clicked");CHECK(FinishCatalogue());
+                CHECK(g_list_model_get_n_items(gtk_window_get_toplevels())==count);
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel,&state)==UMI_STATUS_OK &&
+                    strcmp(state.reader.selection.resource.id,"reading-build-errors")==0);
+                CHECK(UmiLearningCatalogueGtk4Back(catalogue_panel)==UMI_STATUS_OK && FinishCatalogue());
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel,&state)==UMI_STATUS_OK &&
+                    strcmp(state.reader.selection.resource.id,"editing-files")==0);
+            }
+            UmiLearningHelpGtkState help;
+            CHECK(UmiLearningHelpGtk4CopyState(catalogue_panel,&help)==UMI_STATUS_OK &&
+                help.attempts==0U && strcmp(help.request.key,"learning")==0);
+            CHECK(umi_studio_workspace_snapshot(services,&workspace)==UMI_STATUS_OK && !workspace.graph.open);
+        }
+    }
     else if (strcmp(argv[1], "catalogue") == 0 || strcmp(argv[1], "catalogue-retained") == 0 ||
              strcmp(argv[1], "catalogue-guide") == 0 || strcmp(argv[1], "catalogue-guide-retained") == 0)
     {

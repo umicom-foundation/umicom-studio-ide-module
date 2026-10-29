@@ -40,11 +40,14 @@ matching. It searches metadata, not document bodies. The result summary reports
 when the displayed set is shortened. <strong>Back</strong> and
 <strong>Forward</strong> navigate resources opened within the current pack;
 opening another pack starts its own reading session.</p>
+<!-- Retain the initial text-only policy for review; the shared reader now supplies structured text and explicit PNG resources.
 <p>The catalogue verifies declared file bytes before display. HTML receives a
 plain-text preview, and images and binary files show limitation notices.
 It does not run a source example or grant workspace trust. The native reader
 limits each resource to 1 MiB. The existing documentation surface and practicum
 remain available for their separate workflows.</p>
+-->
+<p>The catalogue verifies declared bytes before display. Supported HTML presents headings, code, local links and section navigation; unsupported structure uses a labelled plain-text fallback. Inline images retain descriptions. Explicitly opening a declared image resource can show a static PNG when the optional decoder is available. Other images and binary files receive a limitation notice. Reading never runs a source example or grants workspace trust. Each source resource is limited to 1 MiB. PNG illustrations additionally allow at most 2,048 pixels per side and 1,048,576 pixels in total.</p>
 <p>The Framework <code>examples/learning_pack_inspector</code> project creates a
 sample pack during its configuration. Its <code>guide.html</code> explains SDK
 selection and example commands. Choose its generated <code>pack</code> directory,
@@ -82,7 +85,8 @@ This reads its verified source without copying or running it. Back returns to
 the guide. <strong>Open local link</strong> also accepts another declared filename
 relative to the current guide's folder, such as <code>example.c</code>.
 Web addresses and paths outside the pack are refused. An optional fragment is
-remembered in history; the text preview does not scroll to anchors.</p>
+<!-- Earlier fallback behaviour retained: remembered in history; the text preview does not scroll to anchors. -->
+remembered in history. Structured guides scroll to an admitted section identifier; plain-text fallback cannot provide structured anchors.</p>
 <h2>Copy a learning example into your practice folder</h2>
 <p>In the local learning catalogue, open the example and select
 <strong>Preview example details</strong>. Choose a new absolute destination filename in
@@ -134,4 +138,15 @@ the matching pack before retrying. Do not change its digest merely to silence a
 verification error. Closing Studio retires its catalogue; a retained button cannot
 reopen a disposed Studio workbench.</p></section>
 
+<section><h2>View a learning illustration</h2><ol><li>Load a pack whose manifest declares the PNG as an image resource. A file merely placed beside a guide is not admitted automatically.</li><li>Select the image in the search results and choose <strong>Open selected</strong>, or use an explicit local image link from the guide.</li><li>Wait for verification and decoding. A supported image appears in a bounded viewing area, with its resource title as an accessible description.</li><li>Use <strong>Back</strong> to return to the guide. A failed verification on reload keeps the previously verified reading selection.</li></ol><p>The Framework guide <code>docs/learning/view-learning-illustrations.html</code> explains authoring and troubleshooting. Animated images, SVG, JPEG and inline HTML pixel placement are not provided by this initial reader. The optional decoder does not establish that a package is from a trusted publisher.</p></section>
+<section id="product-guides"><h2>Read the editing, build-error and testing guides</h2>
+<p>Guided Learning also provides <strong>Read the editing and saving guide</strong>,
+<strong>Read the compiler error guide</strong> and <strong>Read the testing guide</strong>.
+These buttons reuse the current local catalogue and the same Studio guide pack.</p>
+<ol><li>Load the installed or generated <code>studio.learning-guide</code> pack as described above.</li>
+<li>Choose the relevant guide button. Reading begins in the background; wait for its result before requesting another guide.</li>
+<li>Use Back to return to a previously opened guide. The catalogue's F1 action still opens the Studio learning guide; choosing another topic does not replace that shortcut.</li>
+<li>Follow the guide's instructions in a separate practice project when you are ready. Merely opening the guide does not select a project, grant trust, save a file, compile or run a test.</li></ol>
+<p>This pack deliberately contains a small set of public guides. A link to another guide that is not declared in the pack is refused. You can read the wider documentation from its source checkout or a separately reviewed pack; the catalogue does not silently broaden the selected pack's file permissions.</p>
+<ul><li><a href="EDITING_FILES.html">Edit and save files in Studio</a></li><li><a href="READING_BUILD_ERRORS.html">Read compiler errors in Studio</a></li><li><a href="RUNNING_TESTS.html">Run and stop tests in Studio</a></li></ul></section>
 </body></html>

@@ -23,6 +23,14 @@ file(MAKE_DIRECTORY "${_studio_learning_pack_dir}")
 configure_file("${_studio_learning_source}/docs/learning-in-studio.html"
     "${_studio_learning_pack_dir}/learning-in-studio.html" COPYONLY)
 file(SHA256 "${_studio_learning_pack_dir}/learning-in-studio.html" _studio_learning_guide_sha256)
+# Deliberate public guide allowlist: private plans and unrelated documentation
+# are never swept into this pack by a directory glob. Existing guides remain
+# their own source files; the generated pack owns exact copied bytes and hashes.
+foreach(_guide EDITING_FILES READING_BUILD_ERRORS RUNNING_TESTS)
+    configure_file("${_studio_learning_source}/docs/${_guide}.html"
+        "${_studio_learning_pack_dir}/${_guide}.html" COPYONLY)
+    file(SHA256 "${_studio_learning_pack_dir}/${_guide}.html" "_studio_guide_${_guide}_sha256")
+endforeach()
 configure_file("${_studio_learning_source}/docs/learning-pack.json.in"
     "${_studio_learning_pack_dir}/learning-pack.json" @ONLY)
 install(FILES
@@ -32,7 +40,9 @@ install(FILES
 
 if(BUILD_TESTING AND TARGET Umicom::learning_catalogue_gtk4
         AND TARGET umicom-studio-learning-locations-test)
-    foreach(_case catalogue-guide catalogue-guide-retained)
+    foreach(_case catalogue-guide catalogue-guide-retained
+            catalogue-topic-editing catalogue-topic-errors catalogue-topic-tests
+            catalogue-topic-switch catalogue-topic-busy catalogue-topic-retained)
         add_test(NAME "studio.learning.locations.${_case}"
             COMMAND umicom-studio-learning-locations-test "${_case}" "${_studio_learning_pack_dir}")
         set_tests_properties("studio.learning.locations.${_case}" PROPERTIES
@@ -44,3 +54,9 @@ if(BUILD_TESTING AND TARGET Umicom::learning_catalogue_gtk4
         endif()
     endforeach()
 endif()
+
+install(FILES
+    "${_studio_learning_pack_dir}/EDITING_FILES.html"
+    "${_studio_learning_pack_dir}/READING_BUILD_ERRORS.html"
+    "${_studio_learning_pack_dir}/RUNNING_TESTS.html"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/umicom-studio/learning-pack")
