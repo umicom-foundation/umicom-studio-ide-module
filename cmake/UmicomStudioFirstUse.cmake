@@ -13,6 +13,35 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-first-use-test)
     endif()
+    # One catalogue supplies registration and native argument admission.
+    # Track it as a configure input so adding a scenario updates CTest too.
+    set(_first_use_catalogue "${CMAKE_CURRENT_LIST_DIR}/../tests/first_use_cases.inc")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_first_use_catalogue}")
+    file(STRINGS "${_first_use_catalogue}" _first_use_rows REGEX "^UMI_STUDIO_FIRST_USE_CASE")
+    set(_studio_first_use_native_cases)
+    set(_studio_first_use_toolchain_cases)
+    set(_studio_first_use_all_cases)
+    foreach(_row IN LISTS _first_use_rows)
+        if(NOT _row MATCHES [=[^UMI_STUDIO_FIRST_USE_CASE\("([a-z0-9-]+)", ([01])\)$]=])
+            message(FATAL_ERROR "Malformed first-use scenario: ${_row}")
+        endif()
+        set(_name "${CMAKE_MATCH_1}")
+        set(_toolchain "${CMAKE_MATCH_2}")
+        if(_name IN_LIST _studio_first_use_all_cases)
+            message(FATAL_ERROR "Duplicate first-use scenario: ${_name}")
+        endif()
+        list(APPEND _studio_first_use_all_cases "${_name}")
+        if(_toolchain STREQUAL "1")
+            list(APPEND _studio_first_use_toolchain_cases "${_name}")
+        else()
+            list(APPEND _studio_first_use_native_cases "${_name}")
+        endif()
+    endforeach()
+    if(NOT _studio_first_use_native_cases OR NOT _studio_first_use_toolchain_cases)
+        message(FATAL_ERROR "First-use catalogue must retain native and toolchain coverage")
+    endif()
+    # Earlier duplicated registration names are retained for review.
+    #[=[
     foreach(case new-file hidden-new open-edit-save hidden-open unicode-path missing-file reopen-dirty project-folder tab-switch build-guidance close-during-open build-unsaved repository-switch close-during-feedback debug-unsaved debug-canonical-unsaved
         project-create-hidden project-create-existing close-during-create workspace-refresh-edit
         project-prompt-retired project-prompt-retained-window
@@ -41,6 +70,8 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
         line-hidden line-keyboard line-argument line-focus-close line-toolbar
         evidence-selected-close evidence-results-close evidence-coverage-close evidence-output-close evidence-locations-close evidence-row-close evidence-selection evidence-invalid-bytes evidence-clipboard-close evidence-reenter evidence-reselect
         explorer-row-close explorer-summary-close explorer-status-close explorer-filter-during-refresh explorer-workspace-during-refresh explorer-reenter explorer-unchanged explorer-same-root-reopen explorer-retained-old-row)
+    ]=]
+    foreach(case IN LISTS _studio_first_use_native_cases)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
         add_test(NAME studio.first_use.gtk4.${case} COMMAND umicom-studio-first-use-test ${case}
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
@@ -49,8 +80,12 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     endforeach()
     # These cases use the generated C23 project and installed native toolchain.
     # Missing compilers are failures with captured output, not passing skips.
+    # Toolchain cases keep their existing timeout and labels.
+    #[=[
     foreach(case real-build-run real-build-repair discovery-relative discovery-absolute discovery-run-relative
         discovery-feedback-close discovery-run-feedback-close)
+    ]=]
+    foreach(case IN LISTS _studio_first_use_toolchain_cases)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
         add_test(NAME studio.first_use.gtk4.${case} COMMAND umicom-studio-first-use-test ${case}
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")

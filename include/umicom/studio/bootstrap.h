@@ -51,12 +51,24 @@ UmiStatus umi_studio_bootstrap_start(UmiStudioBootstrap *bootstrap);
  * Provide the studio bootstrap stop operation used by this module and its client
  * applications.
  */
+/* A failed close checkpoint remains pending after module shutdown. Retry stop
+ * before starting another session; successful repeated stops are no-ops. */
 UmiStatus umi_studio_bootstrap_stop(UmiStudioBootstrap *bootstrap);
 /**
  * Release or reset state held by studio bootstrap so the same storage can be reused
  * safely.
  */
 void umi_studio_bootstrap_destroy(UmiStudioBootstrap *bootstrap);
+
+/** Stop and release an exclusively owned composition, clearing it on success.
+ * A child stop/release failure keeps the pointer for retry; earlier successful
+ * stop/release steps remain complete. Do not resume a partially closing graph.
+ * The controller must exclude all UI, command and registry aliases. This is a
+ * blocking operation; the void destroy wrapper remains for compatibility. */
+/* Once checked release begins, a retained bootstrap may be stopped or released
+ * again but cannot restart. Lifecycle callbacks cannot reenter start, stop or
+ * release. Refused self-release from a worker/destructor changes no state. */
+UmiStatus UmiStudioBootstrapRelease(UmiStudioBootstrap **inOutBootstrap);
 
 /**
  * Provide the studio bootstrap application name operation used by this module and its

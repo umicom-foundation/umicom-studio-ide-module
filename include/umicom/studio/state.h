@@ -64,6 +64,11 @@ UmiStatus umi_studio_state_format(const UmiStudioStateReport *report,
                                   char *out_text,
                                   size_t text_capacity);
 
+/* Copy stable service metadata for diagnostic views. Capacity and count semantics
+ * follow UmiServiceRegistryCopySnapshots; the caller owns the output storage. */
+UmiStatus UmiStudioStateCopyServices(UmiStudioBootstrap *bootstrap,
+    UmiServiceSnapshot *out_services, size_t capacity, size_t *out_total);
+
 #ifdef __cplusplus
 }
 #endif

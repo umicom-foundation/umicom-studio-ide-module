@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Close Studio background services safely</title>
+<style>body{max-width:56rem;margin:2rem auto;padding:0 1rem;font:1rem/1.65 system-ui;color:#162130}pre{white-space:pre-wrap;background:#eef2f6;padding:1rem}code{overflow-wrap:anywhere}a{color:#075a82}</style></head><body>
+<h1>Close Studio background services safely</h1>
+<p>Studio uses shared Framework services to watch project files, run processes
+and execute background tasks. Those services can still refer to documents,
+settings, diagnostics and workspace models while the user is closing a window.
+The lifecycle controller must finish background work before releasing the
+models that work can access.</p>
+<h2>Understand ownership</h2>
+<p>The Studio bootstrap owns the application composition. Its service graph owns
+the watcher, process supervisor and task queue. Getter functions return
+<em>borrowed</em> pointers: they let a component use an existing object, but do
+not transfer permission to destroy it. A component must not release the service
+graph merely because it can obtain a pointer to it.</p>
+<p>The API <code>UmiStudioServicesStopBackground</code> stops the watcher,
+shuts down supervised processes, then closes the task queue. It preserves the
+queue's existing policy: cancel pending tasks and wait for running tasks.
+Running tasks must cooperate and eventually return. This API does not forcibly
+terminate a callback and does not promise a bounded shutdown duration.</p>
+<h2>Use checked release at the ownership boundary</h2>
+<ol>
+<li>Close admission to new UI actions and arrange for outstanding commands to
+finish or cancel according to their own contract.</li>
+<li>Exclude other UI, registry and service users. Checked release is not a
+replacement for that application-level ownership discipline.</li>
+<li>From an external controller, call
+<code>UmiStudioBootstrapRelease(&amp;bootstrap)</code>.</li>
+<li>On success the bootstrap pointer is cleared. On failure retain the pointer
+and report the returned status; do not resume ordinary work on a partially
+closing graph.</li>
+<li>Retry release after the cause can be addressed. Successful steps may already
+have stopped children or released models, so a retry continues with the retained
+state rather than constructing a replacement over it.</li>
+</ol>
+<pre><code>UmiStatus close_status = UmiStudioBootstrapRelease(&amp;bootstrap);
+if (close_status != UMI_STATUS_OK) {
+    /* Keep the owner and report close_status. Do not free it manually. */
+    return close_status;
+}</code></pre>
+<p>For a service graph owned without a bootstrap, use
+<code>UmiStudioServicesRelease(&amp;services)</code>. Do not independently
+release a graph borrowed from a live bootstrap. Both release functions accept
+an empty owner as a successful no-op; passing NULL instead of pointer storage
+is an invalid argument.</p>
+<h2>A task cannot destroy the graph executing it</h2>
+<p>Waiting for the current task queue from one of its own workers would wait on
+that same worker. Framework exposes <code>UmiTaskQueueIsCurrentWorker</code>
+so Studio can refuse such a request before stopping unrelated services.
+Checked Studio release returns <code>UMI_STATUS_INVALID_STATE</code> in this
+case. Request shutdown through the application's controller and let the callback
+return normally.</p>
+<p>The older void destroy functions remain compatible entry points. They retain
+the graph when checked shutdown fails, but cannot return the error to a caller.
+New ownership code should use checked release. A void return is not evidence
+that the graph was freed.</p>
+<h2>Keep a failed close checkpoint pending</h2>
+<p>Stopping modules and recording a clean recovery checkpoint are distinct
+operations. Studio records a pending session-close obligation when a session
+starts. If checkpoint creation fails after modules stop, another stop call
+retries the checkpoint. Starting another session is refused until the pending
+close succeeds.</p>
+<p>The recovery checkpoint discussed here is the Framework session model.
+Its clean flag is not proof that every separate document, recent-items file,
+external process or disk write was saved. Each persistence owner still has its
+own save and error-handling contract.</p>
+<h2>Retain Framework cleanup after failed startup</h2>
+<p>A failed Framework startup may still have rollback work to finish. Studio checks <code>UmiMasterControllerNeedsStop</code> even when its own started flag was never set. Checked master release also reports failure before the service graph can be freed. Module stop errors and service shutdown errors remain separate results.</p>
+<h2>Read the regression examples</h2>
+<p><code>tests/test_service_lifecycle.c</code> creates a service graph with
+repository discovery disabled. Each CTest case has its own working directory,
+so session data does not belong to an editor's project or another test.
+The ordinary cases cover empty owners, service release, bootstrap release,
+repeated session cycles and self-release attempts from queue workers.</p>
+<p>Build <code>umicom-studio-service-lifecycle-test</code> in an Applications
+build with Studio and testing enabled. Run CTest with
+<code>-R "^studio[.]services[.]lifecycle[.]" --output-on-failure --no-tests=error</code>.
+The Linux GNU/Clang target
+<code>umicom-studio-service-lifecycle-fault-test</code> adds selected stop,
+release, Framework controller and checkpoint errors. Its tests use the
+<code>studio.services.lifecycle-fault.</code> prefix. An error must retain the
+owner, and retry must complete the outstanding operation.</p>
+<p>These service tests do not qualify window-manager behaviour or all graphical
+close paths. Also exercise the normal Studio application: open a project,
+start an ordinary build, request cancellation where available, close Studio
+and inspect its runtime log. A reported background-service close error is a
+failed shutdown requiring investigation, even if the window has disappeared.</p>
+<p>The shared contracts live in Framework's
+<code>include/umicom/platform/task_queue.h</code>,
+<code>include/umicom/platform/watcher.h</code> and
+<code>include/umicom/platform/process_supervisor.h</code>.
+Studio keeps composition policy in
+<code>src/app/services_lifecycle.inc</code> and
+<code>src/app/bootstrap.c</code>.</p>
+<p>Bootstrap release also refuses reentry from a Framework owned-service destructor before touching UI or background services. Run <code>studio.services.lifecycle.service-destructor</code> to check this parent-ownership boundary. After partial release, retry closure rather than restarting the retained bootstrap.</p>
+</body></html>

@@ -850,6 +850,13 @@ UmiStatus UmiStudioDebuggerPollNative(UmiStudioDebuggerService *service, UmiStud
         service->launchPending = 0;
         UmiBuildProjectSessionSnapshot progress;
         status = UmiStudioBuildProgress(build, &progress);
+        /* Framework owns the complete automatic qualification plan. Its first
+         * run may publish Configure/Build/Test, while a configured driver can
+         * publish one Test result covering all three operations. Gate launch on
+         * that operation's successful terminal result, never on a fixed number
+         * of stages or an older executable. Keep the former build-only guard
+         * below for review of the transition to automatic qualification. */
+#if 0
         if (status != UMI_STATUS_OK || progress.operation_id != service->launchOperation ||
             progress.requested_phase != UMI_BUILD_PHASE_BUILD || progress.status != UMI_STATUS_OK ||
             progress.completed_phase_count < 2U) {
@@ -861,6 +868,25 @@ UmiStatus UmiStudioDebuggerPollNative(UmiStudioDebuggerService *service, UmiStud
         if (status != UMI_STATUS_OK) return status;
         status = umi_build_history_latest(umi_studio_build_service_history(build), result);
         if (status == UMI_STATUS_OK && (result->phase != UMI_BUILD_PHASE_BUILD ||
+            result->status != UMI_STATUS_OK || result->exit_code != 0 ||
+            strcmp(result->profile_id, service->launchProfile.profile_id) != 0))
+            status = UMI_STATUS_INVALID_STATE;
+        umi_build_result_destroy(result);
+#endif
+        const UmiBuildPhase terminalPhase = service->launchProfile.build_testing
+            ? UMI_BUILD_PHASE_TEST : UMI_BUILD_PHASE_BUILD;
+        if (status != UMI_STATUS_OK || progress.operation_id != service->launchOperation ||
+            progress.requested_phase != UMI_BUILD_PHASE_BUILD || progress.status != UMI_STATUS_OK ||
+            progress.active || progress.cancellation_requested ||
+            progress.completed_phase_count == 0U || progress.current_phase != terminalPhase) {
+            service->nativeStatus = status != UMI_STATUS_OK ? status : UMI_STATUS_INVALID_STATE;
+            return service->nativeStatus;
+        }
+        UmiBuildResult *result = NULL;
+        status = umi_build_result_create(&result);
+        if (status != UMI_STATUS_OK) return status;
+        status = umi_build_history_latest(umi_studio_build_service_history(build), result);
+        if (status == UMI_STATUS_OK && (result->phase != terminalPhase ||
             result->status != UMI_STATUS_OK || result->exit_code != 0 ||
             strcmp(result->profile_id, service->launchProfile.profile_id) != 0))
             status = UMI_STATUS_INVALID_STATE;

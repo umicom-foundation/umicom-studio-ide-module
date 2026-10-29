@@ -83,6 +83,18 @@ UmiStatus umi_studio_services_create(
  */
 void umi_studio_services_destroy(UmiStudioServices *services);
 
+/** Stop background owners without freeing the service graph. This is blocking;
+ * only an external lifecycle controller may call it. A queue worker is refused
+ * before other services are stopped. Failure may leave some children stopped;
+ * retain the graph and retry shutdown instead of resuming normal commands. */
+UmiStatus UmiStudioServicesStopBackground(UmiStudioServices *services);
+
+/** Release an exclusively owned service graph and clear its pointer on success.
+ * Stop/join/handle-release failures retain the pointer for investigation and retry.
+ * Exclude UI models, registry aliases and all concurrent callers before release.
+ * An empty owner is an OK no-op; NULL owner storage is invalid. */
+UmiStatus UmiStudioServicesRelease(UmiStudioServices **inOutServices);
+
 /**
  * Provide the studio services publish operation used by this module and its client
  * applications.

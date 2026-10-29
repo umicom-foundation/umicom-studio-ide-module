@@ -616,6 +616,45 @@ cleanup:
     return failed;
 }
 
+/* Paging counts indexed files, while folder headings remain visible native
+ * rows. Check every file's identity so headings cannot hide duplicates, missing
+ * files or an overfull page. This fixture places every file at workspace root. */
+static GtkWidget *ExplorerFileAt(GtkWidget *list, size_t wanted)
+{
+    size_t index = 0U;
+    for (GtkWidget *row = gtk_widget_get_first_child(list); row != NULL;
+         row = gtk_widget_get_next_sibling(row)) {
+        if (!GTK_IS_LIST_BOX_ROW(row)) continue;
+        GtkWidget *child = gtk_list_box_row_get_child(GTK_LIST_BOX_ROW(row));
+        if (child == NULL || g_object_get_data(G_OBJECT(child), "umicom-file-path") == NULL) continue;
+        if (index++ == wanted) return child;
+    }
+    return NULL;
+}
+static int ExplorerPageMatches(GtkWidget *list, size_t first, size_t expected)
+{
+    size_t files = 0U, headings = 0U;
+    if (!GTK_IS_LIST_BOX(list)) return 0;
+    for (GtkWidget *row = gtk_widget_get_first_child(list); row != NULL;
+         row = gtk_widget_get_next_sibling(row)) {
+        if (!GTK_IS_LIST_BOX_ROW(row)) return 0;
+        GtkWidget *child = gtk_list_box_row_get_child(GTK_LIST_BOX_ROW(row));
+        if (child == NULL) return 0;
+        const char *relative = g_object_get_data(G_OBJECT(child), "umicom-file-relative-path");
+        if (relative == NULL) {
+            if (!gtk_widget_has_css_class(child, "umicom-runtime-section-title")) return 0;
+            ++headings;
+            continue;
+        }
+        char name[40];
+        (void)snprintf(name, sizeof(name), "file-%04zu.c", first + files);
+        if (!GTK_IS_BUTTON(child) || files >= expected || strcmp(relative, name) != 0 ||
+            g_object_get_data(G_OBJECT(child), "umicom-file-path") == NULL) return 0;
+        ++files;
+    }
+    return files == expected && headings == 1U;
+}
+
 /* Exercise the real Explorer body without opening a personal workspace or
  * mapping a window. This native test must run with GTK and a usable display. */
 static int VerifyProjectExplorer(GtkApplication *application, const char *fixture)
@@ -682,6 +721,10 @@ static int VerifyProjectExplorer(GtkApplication *application, const char *fixtur
     REQUIRE(strstr(gtk_label_get_text(GTK_LABEL(refreshLabel)), "Refresh complete") != NULL);
     REQUIRE(gtk_widget_get_sensitive(oldRefresh) && !gtk_widget_get_sensitive(oldCancel));
     oldNext = g_object_ref(next); oldCreate = g_object_ref(create);
+    /* The former positional assertions assumed file rows had no headings.
+     * Retain them for review; identity-based checks preserve the same paging,
+     * filtering, focus and stale-control requirements with grouped rows. */
+#if 0
     REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 599) != NULL);
     REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 600) == NULL);
     row = GTK_WIDGET(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 0));
@@ -706,6 +749,28 @@ static int VerifyProjectExplorer(GtkApplication *application, const char *fixtur
     REQUIRE(drain_context());
     REQUIRE(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 0) != NULL &&
         gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), 1) == NULL);
+#endif
+    REQUIRE(ExplorerPageMatches(list, 0U, 600U));
+    row = ExplorerFileAt(list, 0U);
+    REQUIRE(GTK_IS_BUTTON(row));
+    oldRow = g_object_ref(row);
+    REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK && drain_context());
+    REQUIRE(ExplorerFileAt(list, 0U) == oldRow);
+    documents = umi_ui_workbench_documents(umi_studio_ui_workbench(umi_studio_bootstrap_ui(bootstrap)));
+    size_t count = umi_ui_document_view_model_count(documents);
+    g_signal_emit_by_name(oldNext, "clicked");
+    REQUIRE(drain_context());
+    REQUIRE(ExplorerPageMatches(list, 600U, 5U));
+    g_signal_emit_by_name(oldRow, "clicked");
+    REQUIRE(drain_context() && umi_ui_document_view_model_count(documents) == count);
+    row = ExplorerFileAt(list, 0U);
+    REQUIRE(GTK_IS_BUTTON(row));
+    g_signal_emit_by_name(row, "clicked");
+    REQUIRE(drain_context() && umi_ui_document_view_model_count(documents) == count + 1U);
+    gtk_editable_set_text(GTK_EDITABLE(filter), "file-0604.c");
+    g_signal_emit_by_name(filter, "search-changed");
+    REQUIRE(drain_context());
+    REQUIRE(ExplorerPageMatches(list, 604U, 1U));
     REQUIRE(!gtk_widget_get_sensitive(oldNext));
     umi_studio_gtk_workbench_destroy(workbench); workbench = NULL;
     /* Retained controls must not resurrect dialogs or access the freed owner. */

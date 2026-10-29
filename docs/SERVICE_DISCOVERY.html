@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspect Studio services</title><style>body{max-width:56rem;margin:2rem auto;padding:0 1rem;font:1rem/1.65 system-ui;color:#162130}pre{white-space:pre-wrap;background:#eef2f6;padding:1rem}code{overflow-wrap:anywhere}td,th{padding:.5rem;border:1px solid #bbc}table{border-collapse:collapse}</style></head><body>
+<h1>Inspect Studio services</h1>
+<p>The native Studio state tool reports the Framework services available to a
+Studio process. A service is a shared object used by application components,
+such as a document store or task queue. The tool starts its own composition.
+It does not attach to an already running IDE, inspect another user's session,
+or prove that a GUI workflow works.</p>
+<h2>Show the operational summary</h2>
+<ol><li>Build the <code>umicom-studio-state</code> target using your configured
+Applications build.</li><li>Open PowerShell in the directory whose Studio state
+you want to inspect. Startup can create normal local Studio session files there.</li>
+<li>Add the UCRT64 runtime directory to the process path and run the tool.</li></ol>
+<pre><code>Set-Location "C:\umicom\Umicom-Applications"
+$env:Path = "C:\msys64\ucrt64\bin;$env:Path"
+&amp; ".\build\windows-ucrt64-all-debug\bin\umicom-studio-state.exe"</code></pre>
+<p>The existing summary includes counts of modules, services, commands, documents
+and other operational state. It observes this process; it is not a transaction
+covering every subsystem at one instant.</p>
+<h2>List service providers</h2>
+<pre><code>New-Item -ItemType Directory -Force "C:\umicom\_local\logs\studio-services"
+&amp; "C:\umicom\Umicom-Applications\build\windows-ucrt64-all-debug\bin\umicom-studio-state.exe" --services 2&gt;&amp;1 | Tee-Object "C:\umicom\_local\logs\studio-services\inventory.log"</code></pre>
+<p>The report begins with <code>Registered services:</code> and a count. Each row
+contains a service identifier, provider identifier, three-part version and
+hexadecimal flags. Diagnostic messages also use the error stream, which the
+command above saves in the same log.</p>
+<table><thead><tr><th>Value</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>0x1</code></td><td>One provider is permitted for that service identifier.</td></tr>
+<tr><td><code>0x2</code></td><td>The registry owns the service's destruction responsibility.</td></tr>
+<tr><td><code>0x4</code></td><td>The provider declares the service object thread-safe.</td></tr>
+<tr><td><code>0x8</code></td><td>The existing registration permits replacement.</td></tr>
+</tbody></table>
+<p>A combined value such as <code>0x3</code> means singleton plus owned. These are
+registration policies, not proof of health or correct implementation. Consult the
+operational summary and service diagnostics too. Control characters in identifiers
+are printed as hexadecimal escape sequences to keep each record on one line.</p>
+<h2>List and filter commands</h2>
+<p>A command is a named action, such as saving documents or reporting tasks.
+Discovery copies its description; it does not execute the action or call its
+enablement callback. Normal Studio startup still takes place.</p>
+<pre><code>&amp; "C:\umicom\Umicom-Applications\build\windows-ucrt64-all-debug\bin\umicom-studio-state.exe" --commands
+&amp; "C:\umicom\Umicom-Applications\build\windows-ucrt64-all-debug\bin\umicom-studio-state.exe" --commands "studio."</code></pre>
+<p>The first form lists every registered command. The second selects identifiers
+beginning with <code>studio.</code>; this is a case-sensitive prefix, not a wildcard
+or search in the title. A prefix with no matches produces a successful empty
+report. Each row contains the identifier, title, category and policy flags.</p>
+<table><thead><tr><th>Command flag</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>0x1</code></td><td>The command declares that it changes state.</td></tr>
+<tr><td><code>0x2</code></td><td>The command declares background work.</td></tr>
+<tr><td><code>0x4</code></td><td>The command declares an audit requirement.</td></tr>
+<tr><td><code>0x8</code></td><td>The command requires a trusted context.</td></tr>
+</tbody></table>
+<p>A declaration is not a permission grant or a health check. An action can be
+registered yet unavailable in the current context. Review the command's contract
+before using <code>--execute</code>. Service flags and command flags describe
+different policies even when their numeric values happen to match.</p>
+<p>Framework supplies <code>umi_command_registry_find_prefix</code> for copied
+rows and <code>UmiCommandRegistryCopySummary</code> for allocation-free policy
+totals. Both observe one command registry while it is locked. Reports combining
+several registries do not become one cross-registry transaction.</p>
+<h2>Understand why reports use copies</h2>
+<p>A borrowed registry descriptor points into registry-owned storage. Removing or
+replacing an entry can invalidate it. Studio asks Framework to copy metadata into
+its own array instead. The array contains no service object addresses or
+destructor pointers. It remains readable until the tool frees it, even if the
+registry changes after capture.</p>
+<p>The public API is <code>UmiServiceRegistryCopySnapshots</code>. Studio's
+<code>UmiStudioStateCopyServices</code> wrapper supplies the bootstrap's registry.
+Other applications can use Framework's operation without copying Studio logic.</p>
+<h2>Investigate a problem</h2>
+<ol><li>If the executable is missing, build the state target in the same configured
+tree as Studio. Do not mix a newer executable with unrelated older runtime files.</li>
+<li>If discovery reports an error, keep its exact status and startup diagnostics.
+An empty report after failed startup is not a healthy running IDE.</li>
+<li>If a provider is unexpected, compare its identifier with the module and
+service descriptors. Do not infer health from its name.</li>
+<li>A cleanup error produces a nonzero exit status and a retained-owner message.
+Keep the log and investigate the failed phase. Printing an inventory does not
+prove that shutdown succeeded.</li></ol>
+<p>The existing <code>--execute &lt;command-id&gt; [argument]</code> interface remains
+available. It can change application state; request only intended commands.
+<code>--services</code> reports registered metadata after normal startup.</p>
+<p>For focused qualification, build <code>umicom-studio-service-discovery-test</code>
+and <code>umicom-studio-state</code>, then select
+<code>^studio[.]services[.]discovery[.]</code> in CTest. Cases use separate working
+directories and include a console check comparing the count with printed rows.
+Collect compiler and runtime evidence before treating a new build as verified.</p>
+<p>The companion CTest selection <code>^studio[.]commands[.]discovery[.]</code>
+checks complete, filtered and empty command inventories. It uses the same state
+executable and compares the reported count with the physical output rows.</p>
+</body></html>

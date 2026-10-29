@@ -166,16 +166,19 @@ static void studio_watch_sink(const UmiWatchEvent *event, void *user_data)
 }
 
 /* Provide the destroy partial operation used by this module and its client applications. */
-static void destroy_partial(UmiStudioServices *services)
+static UmiStatus destroy_partial_checked(UmiStudioServices *services)
 {
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
     if (services == NULL) {
-        return;
+        return UMI_STATUS_OK;
     }
 
+    /* Preserve the former unchecked stop sequence. The checked boundary
+     * retains the graph if any background owner cannot finish shutdown. */
+#if 0
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
@@ -197,6 +200,9 @@ static void destroy_partial(UmiStudioServices *services)
     if (services->task_queue != NULL) {
         (void)umi_task_queue_shutdown(services->task_queue, 1);
     }
+#endif
+    UmiStatus status = UmiStudioServicesStopBackground(services);
+    if (status != UMI_STATUS_OK) return status;
     umi_studio_product_centre_destroy(services->product_centre);
     services->product_centre = NULL;
     umi_studio_compatibility_platform_destroy(services->compatibility_platform);
@@ -221,7 +227,12 @@ static void destroy_partial(UmiStudioServices *services)
     services->developer_platform = NULL;
     umi_studio_operations_destroy(services->operations);
     services->operations = NULL;
+    /* Keep the former void release visible; checked release retains errors. */
+#if 0
     umi_watcher_destroy(services->watcher);
+#endif
+    status = UmiWatcherRelease(&services->watcher);
+    if (status != UMI_STATUS_OK) return status;
     services->watcher = NULL;
     umi_file_index_destroy(services->file_index);
     services->file_index = NULL;
@@ -246,7 +257,12 @@ static void destroy_partial(UmiStudioServices *services)
     services->schemas = NULL;
     umi_data_server_destroy(services->data_server);
     services->data_server = NULL;
+    /* Keep the former void release visible; checked release retains errors. */
+#if 0
     umi_process_supervisor_destroy(services->process_supervisor);
+#endif
+    status = UmiProcessSupervisorRelease(&services->process_supervisor);
+    if (status != UMI_STATUS_OK) return status;
     services->process_supervisor = NULL;
     umi_recovery_manager_destroy(services->recovery);
     services->recovery = NULL;
@@ -266,7 +282,12 @@ static void destroy_partial(UmiStudioServices *services)
     services->session = NULL;
     umi_document_store_destroy(services->documents);
     services->documents = NULL;
+    /* Keep the former void release visible; checked release retains errors. */
+#if 0
     umi_task_queue_destroy(services->task_queue);
+#endif
+    status = UmiTaskQueueReleaseStopped(&services->task_queue);
+    if (status != UMI_STATUS_OK) return status;
     services->task_queue = NULL;
     umi_diagnostic_pipeline_destroy(services->diagnostic_pipeline);
     services->diagnostic_pipeline = NULL;
@@ -276,7 +297,10 @@ static void destroy_partial(UmiStudioServices *services)
     services->settings = NULL;
     umi_clock_dispose(&services->clock);
     free(services);
+    return UMI_STATUS_OK;
 }
+
+#include "services_lifecycle.inc"
 
 /*
  * Initialise studio services from caller-provided values so later operations receive a

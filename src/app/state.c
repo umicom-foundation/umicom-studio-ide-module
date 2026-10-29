@@ -57,8 +57,15 @@ UmiStatus umi_studio_state_capture(UmiStudioBootstrap *bootstrap,
 
     (void)memset(out_report, 0, sizeof(*out_report));
     out_report->module_count = umi_studio_bootstrap_module_count(bootstrap);
+    /* Retain the former direct count for review. Framework now locks copied
+     * metadata discovery so reporting and registration share one boundary. */
+#if 0
     out_report->service_count =
         umi_service_registry_count(service_registry);
+#endif
+    UmiStatus service_status = UmiServiceRegistryCopySnapshots(
+        service_registry, NULL, 0U, &out_report->service_count);
+    if (service_status != UMI_STATUS_OK) return service_status;
     out_report->command_count =
         umi_command_registry_count(command_registry);
     out_report->health_count =
@@ -189,4 +196,16 @@ UmiStatus umi_studio_state_format(const UmiStudioStateReport *report,
     return written < 0 || (size_t)written >= text_capacity
         ? UMI_STATUS_CAPACITY_EXCEEDED
         : UMI_STATUS_OK;
+}
+
+/* Studio exposes Framework's copied metadata so reports never retain registry
+ * entry pointers. Keep the bootstrap owned and serialized for the whole call. */
+UmiStatus UmiStudioStateCopyServices(UmiStudioBootstrap *bootstrap,
+    UmiServiceSnapshot *out_services, size_t capacity, size_t *out_total)
+{
+    if (out_total != NULL) *out_total = 0U;
+    if (bootstrap == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    UmiServiceRegistry *registry = umi_studio_bootstrap_service_registry(bootstrap);
+    if (registry == NULL) return UMI_STATUS_INVALID_STATE;
+    return UmiServiceRegistryCopySnapshots(registry, out_services, capacity, out_total);
 }

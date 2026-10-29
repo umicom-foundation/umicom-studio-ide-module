@@ -5,6 +5,14 @@
 </head><body><main><h1>Restart a debug session</h1>
 <p>Restart asks the active debugger to run the same program again with the launch settings it already holds.
 It does not compile changed source or load a different project. To compile your edits, use Stop and then Debug.</p>
+<h2>Build before a new debug session</h2>
+<p><strong>Debug</strong> first asks Framework to qualify the saved project. Qualification means completing its build and, when testing is enabled in the project profile, the selected tests. A compiler success alone is not enough when a later test fails. Studio waits for the entire operation before starting the adapter.</p>
+<p>The output can show Configure, Build and Test separately. A previously configured project can instead use one automatic driver that performs those operations together. Both paths must finish successfully. Studio also checks that the selected launch profile is still the one you reviewed; changing the program, arguments or configuration while the operation runs requires another Debug request.</p>
+<ol><li>Save your source files and review the program and working directory in the project settings.</li>
+<li>Choose Debug and read the build output. If a test fails, open its failure output, fix the saved source or test setup, and choose Debug again.</li>
+<li>If you cancel the build, wait for cancellation to complete before trying again. An executable left from an earlier build does not authorize a new launch.</li>
+<li>When testing is disabled in the profile, Debug requires a successful build but does not invent test results. Enable project tests when you want them to qualify each debug build.</li></ol>
+<p>For a worked explanation of compiler diagnostics and test results, see <a href="READING_BUILD_ERRORS.html#qualification">reading build and test failures</a>. Restart below reuses an already active session and does not repeat this qualification.</p>
 <h2>Use Restart</h2><ol>
 <li>Open a project you trust and select its program, arguments and working folder in the build settings.</li>
 <li>Choose an installed GDB with DAP support or LLDB DAP, then choose Debug. Wait for the build and debugger startup to finish.</li>

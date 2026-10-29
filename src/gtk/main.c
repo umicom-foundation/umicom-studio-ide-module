@@ -744,7 +744,19 @@ int main(int argc, char **argv)
     flush_startup_presentation();
 
     result = run_studio(bootstrap, splash, argc, argv);
+    /* Preserve the void cleanup for comparison. The main lifecycle now
+     * reports an incomplete close instead of presenting it as a clean exit. */
+#if 0
     umi_studio_bootstrap_destroy(bootstrap);
+#endif
+    UmiStatus closeStatus = UmiStudioBootstrapRelease(&bootstrap);
+    if (closeStatus != UMI_STATUS_OK) {
+        (void)fprintf(stderr, "[USIDE] Background services did not close: %s\n",
+                      umi_status_text(closeStatus));
+        /* The retained graph must not be freed underneath a live callback.
+         * The process exit ends this session; do not resume work on this graph. */
+        if (result == 0) result = 1;
+    }
     /* Release the startup path after all Studio windows have closed. */
     umi_icon_clear_brand_path();
     return result;

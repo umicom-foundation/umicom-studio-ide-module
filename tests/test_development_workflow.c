@@ -18,6 +18,44 @@
 #include <time.h>
 #define CHECK(c) do { if(!(c)){fprintf(stderr,"%s:%d: %s\n",__FILE__,__LINE__,#c);result=1;goto done;} }while(0)
 #define OK(c) do{UmiStatus st_=(c);if(st_!=UMI_STATUS_OK){fprintf(stderr,"%s: %s\n",#c,umi_status_text(st_));result=1;goto done;}}while(0)
+/* This disposable project's driver performs real configure, build and tests.
+ * It models the supported single worker stage without returning a fabricated
+ * success. Production automatic selection remains owned by Framework. */
+static UmiStatus PrepareQualificationDriver(const UmiBuildProfile *profile)
+{
+    char source[UMI_BUILD_PATH_CAPACITY], build[UMI_BUILD_PATH_CAPACITY];
+    char directory[UMI_BUILD_PATH_CAPACITY], file[UMI_BUILD_PATH_CAPACITY], name[160];
+    UmiStatus status = UmiBuildProfileSourceDirectory(profile, source, sizeof(source));
+    if (status == UMI_STATUS_OK)
+        status = UmiBuildProfileBuildDirectory(profile, source, build, sizeof(build));
+    if (status == UMI_STATUS_OK)
+        status = umi_fs_join(directory, sizeof(directory), build, "umicom");
+    if (status == UMI_STATUS_OK) status = umi_fs_make_directories(directory);
+    int length = snprintf(name, sizeof(name), "automatic-tests-%s.cmake", profile->configuration);
+    if (length < 0 || (size_t)length >= sizeof(name)) return UMI_STATUS_CAPACITY_EXCEEDED;
+    if (status == UMI_STATUS_OK) status = umi_fs_join(file, sizeof(file), directory, name);
+    static const char driver[] =
+        "cmake_minimum_required(VERSION 3.24)\n"
+        "get_filename_component(_build \"${CMAKE_CURRENT_LIST_DIR}\" DIRECTORY)\n"
+        "load_cache(\"${_build}\" READ_WITH_PREFIX _project_ CMAKE_HOME_DIRECTORY)\n"
+        "if(NOT IS_DIRECTORY \"${_project_CMAKE_HOME_DIRECTORY}\")\n"
+        "  message(FATAL_ERROR \"Fixture project source was not recorded\")\n"
+        "endif()\n"
+        "find_program(_ctest NAMES ctest REQUIRED)\n"
+        "execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${_project_CMAKE_HOME_DIRECTORY}\" -B \"${_build}\" RESULT_VARIABLE _result)\n"
+        "if(NOT _result EQUAL 0)\n"
+        "  message(FATAL_ERROR \"Fixture configure failed: ${_result}\")\n"
+        "endif()\n"
+        "execute_process(COMMAND \"${CMAKE_COMMAND}\" --build \"${_build}\" --config \"${UMICOM_AUTOMATIC_CONFIGURATION}\" RESULT_VARIABLE _result)\n"
+        "if(NOT _result EQUAL 0)\n"
+        "  message(FATAL_ERROR \"Fixture build failed: ${_result}\")\n"
+        "endif()\n"
+        "execute_process(COMMAND \"${_ctest}\" --test-dir \"${_build}\" -C \"${UMICOM_AUTOMATIC_CONFIGURATION}\" --output-on-failure --no-tests=error RESULT_VARIABLE _result)\n"
+        "if(NOT _result EQUAL 0)\n"
+        "  message(FATAL_ERROR \"Fixture test failed: ${_result}\")\n"
+        "endif()\n";
+    return status == UMI_STATUS_OK ? umi_fs_write_text(file, driver) : status;
+}
 int main(int argc,char **argv)
 {
     if(argc!=3) return 2;
@@ -37,6 +75,8 @@ int main(int argc,char **argv)
     OK(UmiDeveloperProjectCreateNew(projects,&request,&report,&model,&profile));created=1;
     OK(umi_fs_join(source,sizeof(source),root,"src/main.c"));
     OK(umi_fs_write_text(source,"#include <stdio.h>\nint main(void){unsigned savedNotes=2;printf(\"Umicom Notes: %u\\n\",savedNotes);return 0;}\n"));
+    /* Build-only profiles still debug without inventing a test requirement. */
+    if(strcmp(mode,"testing-disabled")==0)profile.build_testing=false;
     OK(umi_studio_bootstrap_create_with_options(&options,&bootstrap));OK(umi_studio_bootstrap_start(bootstrap));
     UmiStudioServices *services=umi_studio_bootstrap_services(bootstrap);
     UmiStudioBuildService *build=umi_studio_services_build(services);
@@ -80,6 +120,15 @@ int main(int argc,char **argv)
         CHECK(poll!=UMI_STATUS_OK);CHECK(!UmiStudioDebuggerNativeBusy(debugger));goto done;
     }
     if(strcmp(mode,"cancel-building")==0){CHECK(!UmiStudioDebuggerNativeBusy(debugger));goto done;}
+    /* Automatic Build normally finishes with Test, not Build. Require the
+     * terminal evidence before inspecting the fake adapter's stopped frame. */
+    UmiBuildProjectSessionSnapshot qualification;
+    OK(UmiStudioBuildProgress(build,&qualification));
+    CHECK(!qualification.active && !qualification.cancellation_requested);
+    CHECK(qualification.requested_phase==UMI_BUILD_PHASE_BUILD);
+    CHECK(qualification.status==UMI_STATUS_OK);
+    CHECK(buildResult->phase==(profile.build_testing?UMI_BUILD_PHASE_TEST:UMI_BUILD_PHASE_BUILD));
+    CHECK(buildResult->status==UMI_STATUS_OK && buildResult->exit_code==0);
     CHECK(poll==UMI_STATUS_OK);
     UmiStudioDebuggerSnapshot snapshot;OK(umi_studio_debugger_service_snapshot(debugger,&snapshot));
     CHECK(snapshot.thread_count==1U && snapshot.stack_frame_count==1U && snapshot.variable_count==1U);
@@ -97,6 +146,45 @@ int main(int argc,char **argv)
     CHECK(strcmp(variable.value,"5")==0);
     OK(umi_command_registry_execute(commands,UMI_STUDIO_COMMAND_DEBUG_STOP,NULL,message,sizeof(message)));
     CHECK(!UmiStudioDebuggerNativeBusy(debugger));
+    if(strcmp(mode,"automatic-driver")==0 || strcmp(mode,"driver-test-failure")==0){
+        /* The next request resolves one driver stage. A failing test must still
+         * stop launch, even though the driver successfully compiles a program. */
+        int rejected = strcmp(mode,"driver-test-failure")==0;
+        OK(PrepareQualificationDriver(&profile));
+        if(rejected)OK(umi_fs_write_text(source,"int main(void) { return 1; }\n"));
+        OK(umi_command_registry_execute(commands,UMI_STUDIO_COMMAND_DEBUG_START,NULL,message,sizeof(message)));
+        for(unsigned attempt=0;attempt<15000U;++attempt){
+            while(UmiStudioBuildCollect(build,buildResult)==UMI_STATUS_OK)printf("%s\n",buildResult->output);
+            if(!UmiStudioBuildBusy(build))break;
+            umi_thread_sleep_ms(10U);
+        }
+        CHECK(!UmiStudioBuildBusy(build));
+        OK(UmiStudioBuildProgress(build,&qualification));
+        CHECK(qualification.completed_phase_count==1U);
+        CHECK(qualification.current_phase==UMI_BUILD_PHASE_TEST);
+        poll=UmiStudioDebuggerPollNative(debugger,build);
+        if(rejected){
+            CHECK(qualification.status!=UMI_STATUS_OK);
+            CHECK(poll!=UMI_STATUS_OK && !UmiStudioDebuggerNativeBusy(debugger));
+        }else{
+            CHECK(qualification.status==UMI_STATUS_OK && poll==UMI_STATUS_OK);
+            for(unsigned attempt=0;attempt<100U;++attempt){
+                OK(UmiStudioDebuggerPollNative(debugger,build));
+                OK(umi_studio_debugger_service_snapshot(debugger,&snapshot));
+                if(snapshot.variable_count!=0U)break;
+                umi_thread_sleep_ms(5U);
+            }
+            CHECK(snapshot.thread_count==1U && snapshot.stack_frame_count==1U && snapshot.variable_count==1U);
+            CHECK(strcmp(snapshot.controller_state,"paused")==0);
+            OK(umi_command_registry_execute(commands,UMI_STUDIO_COMMAND_DEBUG_STOP,NULL,message,sizeof(message)));
+            CHECK(!UmiStudioDebuggerNativeBusy(debugger));
+        }
+        goto done;
+    }
+    /* Preserve the original compile-only rejection check. The replacement
+     * also proves a successfully compiled but failing test cannot launch the
+     * debugger or reuse the previous executable's successful qualification. */
+#if 0
     if(strcmp(mode,"compile-failure")==0){
         /* The older executable remains on disk. A failed new build must not launch it. */
         OK(umi_fs_write_text(source,"int main(void) { broken source }\n"));
@@ -108,7 +196,26 @@ int main(int argc,char **argv)
         }
         CHECK(UmiStudioDebuggerPollNative(debugger,build)!=UMI_STATUS_OK);
         CHECK(!UmiStudioDebuggerNativeBusy(debugger));
-    } else {
+    }
+#endif
+    if(strcmp(mode,"compile-failure")==0 || strcmp(mode,"test-failure")==0){
+        /* The older executable remains on disk. A failed new build must not launch it. */
+        if(strcmp(mode,"test-failure")==0)
+            OK(umi_fs_write_text(source,"int main(void) { return 1; }\n"));
+        else
+            OK(umi_fs_write_text(source,"int main(void) { broken source }\n"));
+        OK(umi_command_registry_execute(commands,UMI_STUDIO_COMMAND_DEBUG_START,NULL,message,sizeof(message)));
+        for(unsigned attempt=0;attempt<10000U;++attempt){
+            while(UmiStudioBuildCollect(build,buildResult)==UMI_STATUS_OK)printf("%s\n",buildResult->output);
+            if(!UmiStudioBuildBusy(build)) break;
+            umi_thread_sleep_ms(5U);
+        }
+        CHECK(!UmiStudioBuildBusy(build));
+        CHECK(buildResult->status!=UMI_STATUS_OK || buildResult->exit_code!=0);
+        if(strcmp(mode,"test-failure")==0)CHECK(buildResult->phase==UMI_BUILD_PHASE_TEST);
+        CHECK(UmiStudioDebuggerPollNative(debugger,build)!=UMI_STATUS_OK);
+        CHECK(!UmiStudioDebuggerNativeBusy(debugger));
+    } else if(profile.build_testing) {
         OK(umi_command_registry_execute(commands,UMI_STUDIO_COMMAND_BUILD_PACKAGE,"background",message,sizeof(message)));
         for(unsigned attempt=0;attempt<15000U;++attempt){
             while(UmiStudioBuildCollect(build,buildResult)==UMI_STATUS_OK)printf("%s\n",buildResult->output);

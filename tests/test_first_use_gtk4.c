@@ -2364,14 +2364,39 @@ cleanup:
 
 int main(int argc, char **argv)
 {
+    /* Report argument admission failures before GTK is initialized. */
+#if 0
     if (argc != 3) return 2;
+#endif
+    if (argc != 3) {
+        fprintf(stderr, "Expected a registered scenario and a qualification directory.\n");
+        return 2;
+    }
     const char *name = argv[1];
+    /* CTest and this native fixture now consume one catalogue. The former
+     * table is retained because it omitted registered menu scenarios, causing
+     * exit before any native behavior was exercised. */
+#if 0
     const char *cases[] = {"new-file", "hidden-new", "open-edit-save", "hidden-open",
         "unicode-path", "missing-file", "reopen-dirty", "project-folder", "tab-switch", "build-guidance", "close-during-open", "build-unsaved", "real-build-run", "real-build-repair", "repository-switch", "close-during-feedback", "debug-unsaved", "debug-canonical-unsaved", "project-create-hidden", "project-create-existing", "close-during-create", "workspace-refresh-edit", "project-prompt-retired", "project-prompt-retained-window", "wizard-edit-settings", "wizard-hidden-editor", "wizard-close-during-adoption", "project-open-failure-draft", "settings-present-complete", "settings-present-close", "settings-present-replace", "problem-next-stale", "problem-previous-stale", "keyboard-new", "keyboard-save", "keyboard-modifiers", "keyboard-retired", "search-keyboard", "search-options", "search-retired", "search-feedback-close", "search-location", "run-untrusted", "run-unconfigured", "run-missing", "run-working-folder", "run-feedback-close", "replace-keyboard", "replace-options", "replace-retired", "replace-feedback-close", "discovery-relative", "discovery-absolute", "discovery-run-relative", "discovery-feedback-close", "discovery-run-feedback-close", "close-dialog-cancel", "close-dialog-confirm", "close-dialog-retained-dialog", "close-dialog-retained-button", "close-dialog-retired-owner", "close-dialog-reparented-cancel", "batch-save", "batch-save-start-close", "batch-save-completion-close", "batch-save-cancel", "batch-close", "batch-close-start-close", "batch-close-completion-close", "batch-close-cancel", "history-reopen-hidden", "history-reopen-missing", "history-reopen-focus-close", "history-back-hidden", "history-forward-hidden", "button-new", "button-open", "button-retired-command", "button-retired-argument", "button-retired-palette", "button-retired-layout", "build-denied-closed", "build-denied-untrusted", "build-denied-other-project", "build-denied-feedback-close", "navigation-document-next", "navigation-document-previous", "navigation-bookmark-next", "navigation-bookmark-previous", "navigation-bookmark-empty", "navigation-bookmark-focus-close", "location-direct-hidden", "location-invalid", "location-prompt-hidden", "location-prompt-cancel", "location-focus-close", "reload-menu", "reload-toolbar", "reload-canonical", "reload-cancel", "reload-disk-changed", "reload-focus-close", "reload-undo", "external-changed", "external-missing", "external-feedback-close", "form-project-open", "form-application-open", "form-project-create-close", "form-application-create-close", "form-project-create-reenter", "form-application-create-reenter", "form-project-present-close", "form-application-present-close", "form-project-present-reenter", "form-application-present-reenter", "form-project-replace-close", "form-application-replace-close", "line-hidden", "line-keyboard", "line-argument", "line-focus-close", "line-toolbar", "evidence-selected-close", "evidence-results-close", "evidence-coverage-close", "evidence-output-close", "evidence-locations-close", "evidence-row-close", "evidence-selection", "evidence-invalid-bytes", "evidence-clipboard-close", "evidence-reenter", "evidence-reselect", "explorer-row-close", "explorer-summary-close", "explorer-status-close", "explorer-filter-during-refresh", "explorer-workspace-during-refresh", "explorer-reenter", "explorer-unchanged", "explorer-same-root-reopen", "explorer-retained-old-row"};
+#endif
+    const char *cases[] = {
+#define UMI_STUDIO_FIRST_USE_CASE(name, toolchain) name,
+#include "first_use_cases.inc"
+#undef UMI_STUDIO_FIRST_USE_CASE
+    };
     int known = 0;
     for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i)
         if (strcmp(name, cases[i]) == 0) known = 1;
+    /* Retain the old silent refusal for review; diagnostics identify a stale
+     * or mistyped case without weakening the exact-name admission boundary. */
+#if 0
     if (!known) return 2;
+#endif
+    if (!known) {
+        fprintf(stderr, "Unknown first-use scenario: %s\n", name);
+        return 2;
+    }
     if (!gtk_init_check()) return 77;
     int failed = 0, changedDirectory = 0;
     char *original = g_get_current_dir(), *directory = NULL, *source = NULL, *disk = NULL;

@@ -33,6 +33,9 @@ struct UmiStudioBootstrap {
     UmiStudioUi *ui;
     UmiModuleDescriptor studio_shell_module;
     int started;
+    int lifecycle_busy; /* Serial lifecycle and callback reentry guard. */
+    int release_pending; /* Destruction is a one-way transition; retry release. */
+    int session_close_pending; /* Cleared only after a successful close checkpoint. */
 };
 
 /*
@@ -336,9 +339,11 @@ UmiStatus umi_studio_bootstrap_start(UmiStudioBootstrap *bootstrap)
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     /* Apply this branch only when its contract condition is satisfied. */
-    if (bootstrap->started) {
+    if (bootstrap->started || bootstrap->session_close_pending ||
+        bootstrap->release_pending || bootstrap->lifecycle_busy) {
         return UMI_STATUS_INVALID_STATE;
     }
+    bootstrap->lifecycle_busy = 1;
     status = umi_master_controller_start(bootstrap->master);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status == UMI_STATUS_OK) {
@@ -350,10 +355,12 @@ UmiStatus umi_studio_bootstrap_start(UmiStudioBootstrap *bootstrap)
         /* Preserve the original failure result so the caller can respond to the correct cause. */
         if (status == UMI_STATUS_OK) {
             bootstrap->started = 1;
+            bootstrap->session_close_pending = 1;
         } /* Use this fallback path when the earlier condition does not apply. */ else {
             (void)umi_master_controller_stop(bootstrap->master);
         }
     }
+    bootstrap->lifecycle_busy = 0;
     return status;
 }
 
@@ -361,6 +368,9 @@ UmiStatus umi_studio_bootstrap_start(UmiStudioBootstrap *bootstrap)
  * Provide the studio bootstrap stop operation used by this module and its client
  * applications.
  */
+/* Retain the former stop sequence for review. A module stop no longer
+ * hides a failed recovery checkpoint on the next close attempt. */
+#if 0
 UmiStatus umi_studio_bootstrap_stop(UmiStudioBootstrap *bootstrap)
 {
     UmiStatus status;
@@ -385,11 +395,74 @@ UmiStatus umi_studio_bootstrap_stop(UmiStudioBootstrap *bootstrap)
     }
     return status;
 }
+#endif
+
+/* Preserve the earlier checked stop body for review. The owner wrapper now
+ * guards the complete operation while release reuses its private stop phase. */
+#if 0
+UmiStatus umi_studio_bootstrap_stop(UmiStudioBootstrap *bootstrap)
+{
+    UmiStatus status;
+    if (bootstrap == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Failed Framework startup can leave rollback work even when Studio
+     * never reached its own started flag. Complete that work before release. */
+    if (bootstrap->started || UmiMasterControllerNeedsStop(bootstrap->master)) {
+        status = umi_master_controller_stop(bootstrap->master);
+        if (status != UMI_STATUS_OK) return status;
+        bootstrap->started = 0;
+    }
+    /* Controller shutdown and the recovery checkpoint are separate obligations.
+     * A failed checkpoint must remain pending even after modules have stopped. */
+    if (bootstrap->session_close_pending) {
+        status = umi_studio_federated_workspace_session_end(
+            umi_master_controller_desktop_session_recovery(bootstrap->master));
+        if (status != UMI_STATUS_OK) return status;
+        bootstrap->session_close_pending = 0;
+    }
+    return UMI_STATUS_OK;
+}
+#endif
+static UmiStatus StudioStopOwned(UmiStudioBootstrap *bootstrap)
+{
+    UmiStatus status;
+    if (bootstrap == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Failed Framework startup can leave rollback work even when Studio
+     * never reached its own started flag. Complete that work before release. */
+    if (bootstrap->started || UmiMasterControllerNeedsStop(bootstrap->master)) {
+        status = umi_master_controller_stop(bootstrap->master);
+        if (status != UMI_STATUS_OK) return status;
+        bootstrap->started = 0;
+    }
+    /* Controller shutdown and the recovery checkpoint are separate obligations.
+     * A failed checkpoint must remain pending even after modules have stopped. */
+    if (bootstrap->session_close_pending) {
+        status = umi_studio_federated_workspace_session_end(
+            umi_master_controller_desktop_session_recovery(bootstrap->master));
+        if (status != UMI_STATUS_OK) return status;
+        bootstrap->session_close_pending = 0;
+    }
+    return UMI_STATUS_OK;
+}
+UmiStatus umi_studio_bootstrap_stop(UmiStudioBootstrap *bootstrap)
+{
+    if (bootstrap == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (bootstrap->lifecycle_busy || UmiServiceRegistryIsInCallback(
+            umi_master_controller_services(bootstrap->master)))
+        return UMI_STATUS_INVALID_STATE;
+    bootstrap->lifecycle_busy = 1;
+    UmiStatus status = StudioStopOwned(bootstrap);
+    bootstrap->lifecycle_busy = 0;
+    return status;
+}
+
 
 /*
  * Release or reset state held by studio bootstrap so the same storage can be reused
  * safely.
  */
+/* Retain the former teardown for comparison. Checked release now stops
+ * background owners before freeing the models they can still access. */
+#if 0
 void umi_studio_bootstrap_destroy(UmiStudioBootstrap *bootstrap)
 {
     /*
@@ -407,6 +480,100 @@ void umi_studio_bootstrap_destroy(UmiStudioBootstrap *bootstrap)
     umi_studio_services_destroy(bootstrap->services);
     bootstrap->services = NULL;
     free(bootstrap);
+}
+#endif
+
+/* Preserve the first checked release for comparison. The bootstrap now keeps
+ * an explicit release-only state after partial closure and refuses callback
+ * reentry throughout the enclosing operation. */
+#if 0
+UmiStatus UmiStudioBootstrapRelease(UmiStudioBootstrap **inOutBootstrap)
+{
+    UmiStudioBootstrap *bootstrap;
+    UmiStatus status;
+    if (inOutBootstrap == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    bootstrap = *inOutBootstrap;
+    if (bootstrap == NULL) return UMI_STATUS_OK;
+    /* An owned Framework service destructor may still be using the enclosing
+     * Studio graph. Refuse release before UI or background-owner side effects. */
+    if (UmiServiceRegistryIsInCallback(umi_master_controller_services(bootstrap->master)))
+        return UMI_STATUS_INVALID_STATE;
+    if (bootstrap->services != NULL &&
+        UmiTaskQueueIsCurrentWorker(umi_studio_services_task_queue(bootstrap->services)))
+        return UMI_STATUS_INVALID_STATE;
+    status = umi_studio_bootstrap_stop(bootstrap);
+    if (status != UMI_STATUS_OK) return status;
+    if (bootstrap->services != NULL) {
+        status = UmiStudioServicesStopBackground(bootstrap->services);
+        if (status != UMI_STATUS_OK) return status;
+    }
+    /* Background callbacks have finished before their UI and service graph
+     * can be released. NULL fields retain progress across a later failure. */
+    umi_studio_ui_destroy(bootstrap->ui);
+    bootstrap->ui = NULL;
+    /* Preserve the former void release. A retained Framework controller
+     * still owns references to this service graph after a cleanup failure. */
+#if 0
+    umi_master_controller_destroy(bootstrap->master);
+    bootstrap->master = NULL;
+#endif
+    status = UmiMasterControllerRelease(&bootstrap->master);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiStudioServicesRelease(&bootstrap->services);
+    if (status != UMI_STATUS_OK) return status;
+    free(bootstrap);
+    *inOutBootstrap = NULL;
+    return UMI_STATUS_OK;
+}
+#endif
+UmiStatus UmiStudioBootstrapRelease(UmiStudioBootstrap **inOutBootstrap)
+{
+    UmiStudioBootstrap *bootstrap;
+    UmiStatus status;
+    if (inOutBootstrap == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    bootstrap = *inOutBootstrap;
+    if (bootstrap == NULL) return UMI_STATUS_OK;
+    if (bootstrap->lifecycle_busy) return UMI_STATUS_INVALID_STATE;
+    /* An owned Framework service destructor may still be using the enclosing
+     * Studio graph. Refuse release before UI or background-owner side effects. */
+    if (UmiServiceRegistryIsInCallback(umi_master_controller_services(bootstrap->master)))
+        return UMI_STATUS_INVALID_STATE;
+    if (bootstrap->services != NULL &&
+        UmiTaskQueueIsCurrentWorker(umi_studio_services_task_queue(bootstrap->services)))
+        return UMI_STATUS_INVALID_STATE;
+    bootstrap->lifecycle_busy = 1;
+    bootstrap->release_pending = 1;
+    status = StudioStopOwned(bootstrap);
+    if (status != UMI_STATUS_OK) goto retained;
+    if (bootstrap->services != NULL) {
+        status = UmiStudioServicesStopBackground(bootstrap->services);
+        if (status != UMI_STATUS_OK) goto retained;
+    }
+    /* Background callbacks have finished before their UI and service graph
+     * can be released. NULL fields retain progress across a later failure. */
+    umi_studio_ui_destroy(bootstrap->ui);
+    bootstrap->ui = NULL;
+    /* Preserve the former void release. A retained Framework controller
+     * still owns references to this service graph after a cleanup failure. */
+#if 0
+    umi_master_controller_destroy(bootstrap->master);
+    bootstrap->master = NULL;
+#endif
+    status = UmiMasterControllerRelease(&bootstrap->master);
+    if (status != UMI_STATUS_OK) goto retained;
+    status = UmiStudioServicesRelease(&bootstrap->services);
+    if (status != UMI_STATUS_OK) goto retained;
+    free(bootstrap);
+    *inOutBootstrap = NULL;
+    return UMI_STATUS_OK;
+retained:
+    bootstrap->lifecycle_busy = 0;
+    return status;
+}
+
+void umi_studio_bootstrap_destroy(UmiStudioBootstrap *bootstrap)
+{
+    (void)UmiStudioBootstrapRelease(&bootstrap);
 }
 
 /*

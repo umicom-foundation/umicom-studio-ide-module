@@ -280,6 +280,11 @@ add_library(umicom_studio_core STATIC
     src/experience_acceptance.c
 )
 add_library(Umicom::StudioCore ALIAS umicom_studio_core)
+# Keep implementation includes visible to scoped source qualification.
+if(COMMAND umicom_target_qualification_inputs)
+    umicom_target_qualification_inputs(umicom_studio_core FILES
+        src/app/services_lifecycle.inc)
+endif()
 
 target_include_directories(umicom_studio_core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -1161,6 +1166,54 @@ if(BUILD_TESTING)
     umicom_apply_warnings(umicom-studio-services-test)
     add_test(NAME studio.services COMMAND umicom-studio-services-test)
 
+    # Lifecycle cases own separate state directories, so they neither discover
+    # a checkout nor share the session files used by ordinary integration tests.
+    add_executable(umicom-studio-service-lifecycle-test tests/test_service_lifecycle.c)
+    target_link_libraries(umicom-studio-service-lifecycle-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-service-lifecycle-test)
+    umicom_apply_sanitizers(umicom-studio-service-lifecycle-test)
+    foreach(_case empty services bootstrap bootstrap-session worker-services worker-bootstrap service-destructor)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lifecycle/${_case}")
+        add_test(NAME "studio.services.lifecycle.${_case}"
+            COMMAND umicom-studio-service-lifecycle-test "${_case}")
+        set_tests_properties("studio.services.lifecycle.${_case}" PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lifecycle/${_case}"
+            TIMEOUT 90)
+        if(COMMAND umicom_test_impact_owners)
+            umicom_test_impact_owners("studio.services.lifecycle.${_case}"
+                TARGETS umicom-studio-service-lifecycle-test)
+        endif()
+    endforeach()
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        add_executable(umicom-studio-service-lifecycle-fault-test tests/test_service_lifecycle.c)
+        target_compile_definitions(umicom-studio-service-lifecycle-fault-test PRIVATE
+            UMICOM_STUDIO_LIFECYCLE_FAULTS=1)
+        target_link_libraries(umicom-studio-service-lifecycle-fault-test PRIVATE Umicom::StudioCore)
+        target_link_options(umicom-studio-service-lifecycle-fault-test PRIVATE
+            "-Wl,--wrap=umi_watcher_stop"
+            "-Wl,--wrap=umi_process_supervisor_shutdown"
+            "-Wl,--wrap=umi_task_queue_shutdown"
+            "-Wl,--wrap=UmiProcessSupervisorRelease"
+            "-Wl,--wrap=umi_studio_federated_workspace_session_end"
+            "-Wl,--wrap=umi_master_controller_stop"
+            "-Wl,--wrap=UmiMasterControllerRelease")
+        umicom_apply_warnings(umicom-studio-service-lifecycle-fault-test)
+        umicom_apply_sanitizers(umicom-studio-service-lifecycle-fault-test)
+        foreach(_case watcher-stop supervisor-stop queue-stop supervisor-release session-close session-release master-stop master-release)
+            file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lifecycle-fault/${_case}")
+            add_test(NAME "studio.services.lifecycle-fault.${_case}"
+                COMMAND umicom-studio-service-lifecycle-fault-test "${_case}")
+            set_tests_properties("studio.services.lifecycle-fault.${_case}" PROPERTIES
+                WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lifecycle-fault/${_case}"
+                TIMEOUT 90)
+            if(COMMAND umicom_test_impact_owners)
+                umicom_test_impact_owners("studio.services.lifecycle-fault.${_case}"
+                    TARGETS umicom-studio-service-lifecycle-fault-test)
+            endif()
+        endforeach()
+    endif()
+
+
     add_executable(umicom-studio-doctor-test
         tests/test_doctor.c
     )
@@ -1244,6 +1297,56 @@ if(BUILD_TESTING)
     # their cost before a tighter per-command timeout is appropriate.
     if(FALSE)
         set_tests_properties(studio.commands PROPERTIES TIMEOUT 180)
+    endif()
+
+    # Each discovery case owns a working directory; state inspection may create
+    # the same local session files as a normal Studio startup.
+    add_executable(umicom-studio-service-discovery-test tests/test_service_discovery.c)
+    target_link_libraries(umicom-studio-service-discovery-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-service-discovery-test)
+    umicom_apply_sanitizers(umicom-studio-service-discovery-test)
+    foreach(_case created invalid-arguments started-report short-list after-release)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/service-discovery/${_case}")
+        add_test(NAME "studio.services.discovery.${_case}"
+            COMMAND umicom-studio-service-discovery-test "${_case}")
+        set_tests_properties("studio.services.discovery.${_case}" PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/service-discovery/${_case}"
+            TIMEOUT 90)
+        if(COMMAND umicom_test_impact_owners)
+            umicom_test_impact_owners("studio.services.discovery.${_case}"
+                TARGETS umicom-studio-service-discovery-test)
+        endif()
+    endforeach()
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/service-discovery/console")
+    add_test(NAME studio.services.discovery.console
+        COMMAND "${CMAKE_COMMAND}" "-DPROGRAM=$<TARGET_FILE:umicom-studio-state>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/check_service_inventory.cmake")
+    set_tests_properties(studio.services.discovery.console PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/service-discovery/console"
+        TIMEOUT 120)
+    if(COMMAND umicom_test_impact_owners)
+        umicom_test_impact_owners("studio.services.discovery.console"
+            TARGETS umicom-studio-state)
+    endif()
+    if(COMMAND umicom_target_qualification_inputs)
+        umicom_target_qualification_inputs(umicom-studio-state
+            FILES tests/check_service_inventory.cmake)
+    endif()
+
+    foreach(_case all studio empty)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/command-discovery/${_case}")
+        add_test(NAME "studio.commands.discovery.${_case}"
+            COMMAND "${CMAKE_COMMAND}" "-DPROGRAM=$<TARGET_FILE:umicom-studio-state>"
+                "-DCASE=${_case}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/check_command_inventory.cmake")
+        set_tests_properties("studio.commands.discovery.${_case}" PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/command-discovery/${_case}"
+            TIMEOUT 120)
+        if(COMMAND umicom_test_impact_owners)
+            umicom_test_impact_owners("studio.commands.discovery.${_case}" TARGETS umicom-studio-state)
+        endif()
+    endforeach()
+    if(COMMAND umicom_target_qualification_inputs)
+        umicom_target_qualification_inputs(umicom-studio-state FILES tests/check_command_inventory.cmake)
     endif()
 
     add_executable(umicom-studio-state-test
@@ -2430,7 +2533,9 @@ if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
     umicom_apply_warnings(umicom-studio-development-workflow-test)
     umicom_apply_sanitizers(umicom-studio-development-workflow-test)
     add_dependencies(umicom-studio-development-workflow-test umicom-dap-protocol-fixture)
-    foreach(case complete compile-failure cancel-building profile-changed untrusted adapter-missing no-build-submitted)
+    # Preserve the original case list for review of automatic qualification coverage.
+    # foreach(case complete compile-failure cancel-building profile-changed untrusted adapter-missing no-build-submitted)
+    foreach(case complete compile-failure test-failure testing-disabled automatic-driver driver-test-failure cancel-building profile-changed untrusted adapter-missing no-build-submitted)
         add_test(NAME studio.development_workflow.${case}
             COMMAND umicom-studio-development-workflow-test "$<TARGET_FILE:umicom-dap-protocol-fixture>" "${case}")
         set_tests_properties(studio.development_workflow.${case} PROPERTIES TIMEOUT 180 RUN_SERIAL TRUE
