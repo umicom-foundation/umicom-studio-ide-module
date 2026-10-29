@@ -64,3 +64,6 @@ if(BUILD_TESTING AND TARGET Umicom::learning_catalogue_gtk4
         endif()
     endforeach()
 endif()
+
+# The guide pack is independent of the project and contains reviewed public content.
+include("${CMAKE_CURRENT_LIST_DIR}/UmicomStudioLearningPack.cmake")

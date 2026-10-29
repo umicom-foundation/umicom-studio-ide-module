@@ -22,9 +22,13 @@
 
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
 #include "umicom/ui/gtk4/learning_catalogue.h"
+#include "umicom/ui/gtk4/learning_help_binding.h"
 /* Studio supplies a weak owner and the shared Framework compatibility version.
  * Catalogue storage, verification, searching and reading remain Framework
  * responsibilities; this action neither changes the project nor grants trust. */
+/* The original shared-window launcher is retained for review. The replacement
+ * adds a copied contextual-help policy while retaining catalogue reuse. */
+#if 0
 static void RuntimeLearningCatalogue(GtkButton *button, gpointer context)
 {
     (void)button;
@@ -45,6 +49,52 @@ static void RuntimeLearningCatalogue(GtkButton *button, gpointer context)
     }
     g_clear_object(&window);
 }
+#endif
+
+/* Framework owns the shared catalogue, copied help route and keyboard binding.
+ * Studio supplies only its reviewed guide identity. Pack admission remains an
+ * explicit user choice, independent of the active project and working folder. */
+static void RuntimeLearningCatalogueAction(gpointer context, int open_help)
+{
+    GObject *owner_window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context, &owner_window);
+    if (runtime != NULL) {
+        UmiVersion version = { UMICOM_FRAMEWORK_VERSION_MAJOR,
+            UMICOM_FRAMEWORK_VERSION_MINOR, UMICOM_FRAMEWORK_VERSION_PATCH };
+        GtkWindow *window = UmiLearningCatalogueGtk4PresentShared(runtime->owner->window, version);
+        if (window != NULL) {
+            g_object_ref(window);
+            GtkWidget *panel = gtk_window_get_child(window);
+            if (panel != NULL) {
+                g_object_ref(panel);
+                UmiLearningHelpRoute route = {0};
+                (void)snprintf(route.request.product, sizeof(route.request.product), "studio");
+                (void)snprintf(route.request.locale, sizeof(route.request.locale), "en");
+                route.request.kind = UMI_LEARNING_HELP_TOPIC;
+                (void)snprintf(route.request.key, sizeof(route.request.key), "learning");
+                (void)snprintf(route.pack_id, sizeof(route.pack_id), "studio.learning-guide");
+                (void)snprintf(route.resource_id, sizeof(route.resource_id), "learning-in-studio");
+                UmiStatus status = UmiLearningHelpGtk4Bind(panel, panel, &route);
+                if (open_help && (status == UMI_STATUS_OK || status == UMI_STATUS_ALREADY_EXISTS))
+                    (void)UmiLearningHelpGtk4Open(panel);
+                g_object_unref(panel);
+            }
+            g_object_unref(window);
+        }
+    }
+    g_clear_object(&owner_window);
+}
+static void RuntimeLearningCatalogue(GtkButton *button, gpointer context)
+{
+    (void)button;
+    RuntimeLearningCatalogueAction(context, 0);
+}
+static void RuntimeLearningGuide(GtkButton *button, gpointer context)
+{
+    (void)button;
+    RuntimeLearningCatalogueAction(context, 1);
+}
+
 #endif
 
 #ifdef UMICOM_EDUCATION_WORKSPACE_GTK4
@@ -520,6 +570,10 @@ static GtkWidget *runtime_build_surface_learning(
     (void)umi_gtk4_automation_tag_widget(catalogue, "studio.learning.catalogue");
     RuntimeLearningBind(catalogue, G_CALLBACK(RuntimeLearningCatalogue), runtime);
     gtk_box_append(GTK_BOX(panel), catalogue);
+    GtkWidget *guide = gtk_button_new_with_label("Read Studio learning guide");
+    (void)umi_gtk4_automation_tag_widget(guide, "studio.learning.guide");
+    RuntimeLearningBind(guide, G_CALLBACK(RuntimeLearningGuide), runtime);
+    gtk_box_append(GTK_BOX(panel), guide);
 #endif
 #ifdef UMICOM_EDUCATION_WORKSPACE_GTK4
     /* Framework owns saved learning records and the practicum. This launcher

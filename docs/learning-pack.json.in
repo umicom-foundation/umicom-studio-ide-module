@@ -1,0 +1,31 @@
+{
+  "schema": "umicom.learning.pack",
+  "version": 1,
+  "id": "studio.learning-guide",
+  "title": "Learning with Umicom Studio IDE",
+  "product": "studio",
+  "locale": "en",
+  "revision": 1,
+  "compatibility": {
+    "minimum": [
+      0,
+      9,
+      0
+    ],
+    "maximum": [
+      0,
+      9,
+      0
+    ]
+  },
+  "resources": [
+    {
+      "id": "learning-in-studio",
+      "title": "Use lessons and guides in Studio",
+      "topic": "learning",
+      "kind": "guide",
+      "path": "learning-in-studio.html",
+      "sha256": "@_studio_learning_guide_sha256@"
+    }
+  ]
+}

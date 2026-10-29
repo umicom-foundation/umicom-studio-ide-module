@@ -52,8 +52,15 @@ not the folder containing the <code>learning-pack.json.in</code> template.
 Studio supplies its compiled Framework version to this catalogue; the manifest's
 compatibility range must include that version.</p>
 <p>Loaded packs and reading history are local to this window and are not saved
-between sessions. To adopt an edited pack with the same identifier, close the
-catalogue, reopen it and load the revised folder. If verification fails,
+between sessions. <!-- Earlier manual replacement is retained as a supported alternative.
+To adopt an edited pack with the same identifier, close the catalogue, reopen it and load the revised folder.
+-->
+To adopt a newer edition of the same pack, choose its folder, expand
+<strong>Replace a learning pack</strong>, and select <strong>Review replacement</strong>.
+Check the identity and old/new revision, then select <strong>Accept reviewed replacement</strong>.
+<strong>Discard replacement</strong> abandons only the pending candidate.
+The existing reader, its links and its examples retain their old revision until
+you explicitly open a new catalogue result. A changed shelf requires another review. If verification fails,
 <strong>Reload and verify</strong> preserves the previous verified reading
 selection instead of silently accepting different bytes.</p>
 <p>Closing Studio closes its catalogue windows. An accepted file read finishes
@@ -88,4 +95,10 @@ before compiling it. If a write leaves a partial file, inspect that file; the
 catalogue does not silently delete it. Closing the catalogue does not undo an
 already accepted copy.</p>
 </section>
+<p>The detailed replacement guide is installed at <code>share/umicom/docs/learning/updating-learning-packs.html</code>. Keep older pack folders available while reading their editions; acceptance does not copy or overwrite their source files.</p>
+<h2>Keep private learning checkpoints</h2>
+<p>In the local learning catalogue, open a lesson or guide and expand <strong>Private learning checkpoints</strong>. Choose an absolute database filename outside course folders and public repositories, then enter a local learner ID and checkpoint. <strong>Inspect checkpoint</strong> reads an existing database without creating it. <strong>Record checkpoint</strong> also needs a short evidence reference and may create the chosen database. Opening a lesson alone never records progress.</p>
+<p>Check the captured result after the background operation finishes. It identifies the exact lesson revision, content hash, database and learner. An identical event is not added twice. A storage uncertainty blocks further records until you inspect the same database and learner. Accepted writes may finish after closing; inspect saved records before retrying. These are plaintext private self-recorded actions, not grades or authenticated completion.</p>
+<p>The complete walkthrough is installed at <code>share/umicom/docs/learning/record-private-checkpoints.html</code>. The controls require the learning-progress service and SQLite storage; a missing backend is reported without a temporary fallback.</p>
+<section><h2>Remember library folders</h2><p>In the local learning catalogue, expand <strong>Remembered learning libraries</strong>. Remember the displayed library, then save its folder choices to a new private file. Loading a saved list does not open its folders: choose <strong>Reopen selected library</strong> explicitly. Changed identities or revisions require review. Existing reading history is kept, and examples never run automatically. The Framework guide <code>docs/learning/remember-learning-libraries.html</code> explains the workflow and refusal cases.</p></section>
 </body></html>
