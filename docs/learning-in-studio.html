@@ -101,4 +101,37 @@ already accepted copy.</p>
 <p>Check the captured result after the background operation finishes. It identifies the exact lesson revision, content hash, database and learner. An identical event is not added twice. A storage uncertainty blocks further records until you inspect the same database and learner. Accepted writes may finish after closing; inspect saved records before retrying. These are plaintext private self-recorded actions, not grades or authenticated completion.</p>
 <p>The complete walkthrough is installed at <code>share/umicom/docs/learning/record-private-checkpoints.html</code>. The controls require the learning-progress service and SQLite storage; a missing backend is reported without a temporary fallback.</p>
 <section><h2>Remember library folders</h2><p>In the local learning catalogue, expand <strong>Remembered learning libraries</strong>. Remember the displayed library, then save its folder choices to a new private file. Loading a saved list does not open its folders: choose <strong>Reopen selected library</strong> explicitly. Changed identities or revisions require review. Existing reading history is kept, and examples never run automatically. The Framework guide <code>docs/learning/remember-learning-libraries.html</code> explains the workflow and refusal cases.</p></section>
+
+<section id="studio-learning-guide"><h2>Read this guide through Help</h2>
+<p>When the native catalogue is included, Guided Learning offers
+<strong>Read Studio learning guide</strong>. Studio installs a separate local
+guide pack under <code>share/umicom-studio/learning-pack</code> inside your
+installation directory. This pack contains this public guide and a manifest
+describing its identity, supported Framework version and content hash.</p>
+<ol><li>Open Guided Learning and choose <strong>Read Studio learning guide</strong>.
+The shared catalogue opens. If the pack is not loaded yet, its notice explains
+that the matching local pack is missing.</li>
+<li>Enter the full path to the installed pack folder and use the catalogue's
+load action. For an installation at <code>C:\umicom\installed\applications</code>,
+the folder is
+<code>C:\umicom\installed\applications\share\umicom-studio\learning-pack</code>.
+For a source build, the Studio CMake build directory contains the generated
+<code>learning-pack</code> folder. Choose the generated folder, not the
+<code>docs</code> source folder.</li>
+<li>Wait for loading to finish, then choose <strong>Read Studio learning guide</strong>
+again. The guide should appear. F1 while focus is inside this catalogue uses
+the same guide identity.</li>
+<li>Browse another resource or adjust the reading text size. Help returns to
+this guide through the shared verified reader; it does not change the active
+project or run a build.</li></ol>
+<p>The guide's pack ID is <code>studio.learning-guide</code> and its resource ID is
+<code>learning-in-studio</code>. They are stable program identities, not search
+titles. A different locale or missing resource produces a clear refusal instead
+of an unrelated fallback. This F1 binding applies to the catalogue opened by
+Studio; it does not replace every editor or debugger shortcut.</p>
+<p>If the installed guide has been edited after packaging, reinstall or regenerate
+the matching pack before retrying. Do not change its digest merely to silence a
+verification error. Closing Studio retires its catalogue; a retained button cannot
+reopen a disposed Studio workbench.</p></section>
+
 </body></html>

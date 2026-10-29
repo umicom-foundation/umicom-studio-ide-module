@@ -17,6 +17,7 @@
 #include "workbench_window.h"
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
 #include "umicom/ui/gtk4/learning_catalogue.h"
+#include "umicom/ui/gtk4/learning_help_binding.h"
 #endif
 #include <glib/gstdio.h>
 #include <stdio.h>
@@ -32,6 +33,21 @@
             goto cleanup;                                                                          \
         }                                                                                          \
     } while (0)
+
+
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+/* Wait for accepted catalogue jobs, including completion after a host closes.
+ * A test deadline is failure evidence, never a reason to skip the assertion. */
+static int FinishCatalogue(void)
+{
+    gint64 deadline = g_get_monotonic_time() + 15 * G_TIME_SPAN_SECOND;
+    while (UmiLearningCatalogueGtk4PendingReads() != 0U && g_get_monotonic_time() < deadline) {
+        while (g_main_context_iteration(NULL, FALSE)) {}
+        g_usleep(1000U);
+    }
+    return UmiLearningCatalogueGtk4PendingReads() == 0U;
+}
+#endif
 
 /* Construct the real product without presenting a window, starting tools,
  * restoring personal sessions or granting a temporary folder workspace trust. */
@@ -226,12 +242,14 @@ int main(int argc, char **argv)
         CHECK(!workspace.graph.open);
     }
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
-    else if (strcmp(argv[1], "catalogue") == 0 || strcmp(argv[1], "catalogue-retained") == 0)
+    else if (strcmp(argv[1], "catalogue") == 0 || strcmp(argv[1], "catalogue-retained") == 0 ||
+             strcmp(argv[1], "catalogue-guide") == 0 || strcmp(argv[1], "catalogue-guide-retained") == 0)
     {
-        catalogue_button = umi_gtk4_automation_find_tagged_widget(root, "studio.learning.catalogue");
+        catalogue_button = umi_gtk4_automation_find_tagged_widget(root,
+            g_str_has_prefix(argv[1], "catalogue-guide") ? "studio.learning.guide" : "studio.learning.catalogue");
         CHECK(GTK_IS_BUTTON(catalogue_button));
         g_object_ref(catalogue_button);
-        if (strcmp(argv[1], "catalogue-retained") == 0)
+        if (strcmp(argv[1], "catalogue-retained") == 0 || strcmp(argv[1], "catalogue-guide-retained") == 0)
         {
             umi_studio_gtk_workbench_destroy(workbench);
             workbench = NULL;
@@ -263,12 +281,35 @@ int main(int argc, char **argv)
             UmiLearningCatalogueGtkState state;
             CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
             CHECK(!state.busy && !state.retired && state.pack_count == 0U);
+            if (strcmp(argv[1], "catalogue-guide") == 0) {
+                CHECK(state.last_status == UMI_STATUS_NOT_FOUND);
+                GtkWidget *notice = umi_gtk4_automation_find_tagged_widget(
+                    catalogue_panel, "learning.catalogue.status");
+                CHECK(GTK_IS_LABEL(notice));
+                CHECK(strstr(gtk_label_get_text(GTK_LABEL(notice)), "matching local learning pack") != NULL);
+                UmiLearningHelpGtkState help;
+                CHECK(UmiLearningHelpGtk4CopyState(catalogue_panel, &help) == UMI_STATUS_OK);
+                CHECK(strcmp(help.request.product, "studio") == 0 &&
+                    strcmp(help.request.key, "learning") == 0 && help.attempts == 1U);
+                CHECK(UmiLearningCatalogueGtk4Load(catalogue_panel, argv[2]) == UMI_STATUS_OK);
+                CHECK(FinishCatalogue());
+                g_signal_emit_by_name(catalogue_button, "clicked");
+                CHECK(FinishCatalogue());
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
+                CHECK(state.last_status == UMI_STATUS_OK && state.reader.has_document);
+                CHECK(strcmp(state.reader.pack.id, "studio.learning-guide") == 0);
+                CHECK(strcmp(state.reader.selection.resource.id, "learning-in-studio") == 0);
+                CHECK(UmiLearningHelpGtk4CopyState(catalogue_panel, &help) == UMI_STATUS_OK &&
+                    help.attempts == 2U && !help.dispatching);
+            }
+
             /* A second product action must reuse the same live catalogue,
              * without creating a second empty learning window. */
             guint catalogue_windows = g_list_model_get_n_items(gtk_window_get_toplevels());
             g_signal_emit_by_name(catalogue_button, "clicked");
             CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == catalogue_windows);
             CHECK(gtk_window_get_child(catalogue_window) == catalogue_panel);
+            CHECK(FinishCatalogue());
             CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK);
             CHECK(!workspace.graph.open);
             umi_studio_gtk_workbench_destroy(workbench);
@@ -316,6 +357,10 @@ int main(int argc, char **argv)
         failed = 2;
     }
 cleanup:
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    if (catalogue_panel != NULL) UmiLearningCatalogueGtk4Retire(catalogue_panel);
+    if (!FinishCatalogue()) failed = 1;
+#endif
     if (catalogue_window != NULL) gtk_window_destroy(catalogue_window);
     g_clear_object(&catalogue_window);
     g_clear_object(&catalogue_panel);
