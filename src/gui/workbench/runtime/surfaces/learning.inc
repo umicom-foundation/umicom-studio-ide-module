@@ -20,6 +20,28 @@
 
 #include "learning_location.inc"
 
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+#include "umicom/ui/gtk4/learning_catalogue.h"
+/* Studio supplies a weak owner and the shared Framework compatibility version.
+ * Catalogue storage, verification, searching and reading remain Framework
+ * responsibilities; this action neither changes the project nor grants trust. */
+static void RuntimeLearningCatalogue(GtkButton *button, gpointer context)
+{
+    (void)button;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(context, &window);
+    if (runtime != NULL) {
+        UmiVersion version = {
+            UMICOM_FRAMEWORK_VERSION_MAJOR,
+            UMICOM_FRAMEWORK_VERSION_MINOR,
+            UMICOM_FRAMEWORK_VERSION_PATCH
+        };
+        (void)UmiLearningCatalogueGtk4Present(runtime->owner->window, version);
+    }
+    g_clear_object(&window);
+}
+#endif
+
 #ifdef UMICOM_EDUCATION_WORKSPACE_GTK4
 /* Education can remain open after Studio closes. Resolve a weak owner at the
  * explicit adoption action; the practicum never keeps a raw runtime pointer. */
@@ -486,6 +508,14 @@ static GtkWidget *runtime_build_surface_learning(
 
     if (panel == NULL || runtime == NULL) return panel;
     RuntimeLearningLocations(runtime, panel);
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    /* Keep existing curriculum and practicum controls while exposing portable
+     * verified packs through the common native reader. */
+    GtkWidget *catalogue = gtk_button_new_with_label("Open local learning catalogue");
+    (void)umi_gtk4_automation_tag_widget(catalogue, "studio.learning.catalogue");
+    RuntimeLearningBind(catalogue, G_CALLBACK(RuntimeLearningCatalogue), runtime);
+    gtk_box_append(GTK_BOX(panel), catalogue);
+#endif
 #ifdef UMICOM_EDUCATION_WORKSPACE_GTK4
     /* Framework owns saved learning records and the practicum. This launcher
      * adds that capability without replacing the existing lesson cards, wiki,
