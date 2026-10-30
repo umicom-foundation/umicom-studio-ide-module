@@ -171,3 +171,6 @@ UMI_STUDIO_FIRST_USE_CASE("tab-retired-owner", 0)
 UMI_STUDIO_FIRST_USE_CASE("tab-overflow", 0)
 UMI_STUDIO_FIRST_USE_CASE("visible-build-run", 1)
 UMI_STUDIO_FIRST_USE_CASE("visible-build-repair", 1)
+
+UMI_STUDIO_FIRST_USE_CASE("visible-test-repair", 1)
+UMI_STUDIO_FIRST_USE_CASE("visible-run-current", 1)

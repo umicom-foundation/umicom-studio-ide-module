@@ -75,6 +75,9 @@ static void runtime_panel_add_stat(
  * Provide the runtime panel add commands operation used by this module and its client
  * applications.
  */
+/* The horizontal row forced every action into the minimum panel width.
+ * Framework now owns adaptive wrapping; the former layout remains for review. */
+#if 0
 static void runtime_panel_add_commands(
     UmiStudioGtkRuntimeChrome *runtime,
     GtkWidget *panel,
@@ -113,6 +116,59 @@ static void runtime_panel_add_commands(
          * used.
          */
         if (button != NULL) gtk_box_append(GTK_BOX(row), button);
+    }
+
+    gtk_box_append(GTK_BOX(panel), row);
+}
+#endif
+
+#include "umicom/ui/gtk4/workstation/action_group.h"
+
+/* Existing checked command bindings remain the only activation endpoints. */
+static void runtime_panel_add_commands(
+    UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *panel,
+    const char *const *labels,
+    const char *const *commands,
+    size_t count)
+{
+    GtkWidget *row;
+    size_t index;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime == NULL || panel == NULL ||
+        labels == NULL || commands == NULL) {
+        return;
+    }
+
+    row = UmiGtk4ActionGroupCreate();
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (row == NULL) return;
+
+    /* Visit each bounded item once so every record receives the same rule. */
+    for (index = 0U; index < count; ++index) {
+        GtkWidget *button = runtime_make_command_button(
+            runtime,
+            labels[index],
+            commands[index],
+            commands[index]);
+        /*
+         * Protect caller-owned memory by checking that required state is available before it is
+         * used.
+         */
+        if (button != NULL) {
+            /* A rejected unattached control must not retain an owner binding. */
+            if (UmiGtk4ActionGroupAppend(row, button) != UMI_STATUS_OK) {
+                g_object_ref_sink(button);
+                g_object_unref(button);
+            }
+        }
     }
 
     gtk_box_append(GTK_BOX(panel), row);

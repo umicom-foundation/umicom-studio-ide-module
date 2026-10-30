@@ -180,6 +180,19 @@ static GtkWidget *FirstUseVisibleAction(GtkWidget *root, const char *command)
     }
     return NULL;
 }
+/* A toolbar alias must not stand in for the actual adaptive Build panel. */
+static GtkWidget *FirstUseBuildPanelAction(GtkWidget *root, const char *command)
+{
+    if (!gtk_widget_get_mapped(root)) return NULL;
+    if (gtk_widget_has_css_class(root,"umicom-action-group"))
+        return FirstUseVisibleAction(root,command);
+    for (GtkWidget *child=gtk_widget_get_first_child(root);child!=NULL;
+         child=gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found=FirstUseBuildPanelAction(child,command);
+        if (found!=NULL) return found;
+    }
+    return NULL;
+}
 static UmiStatus FirstUseBuildCommand(UmiStudioGtkWorkbench *workbench, const char *command)
 {
     GtkWidget *window=GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
@@ -190,7 +203,11 @@ static UmiStatus FirstUseBuildCommand(UmiStudioGtkWorkbench *workbench, const ch
     status=umi_studio_gtk_workbench_workspace_synchronise(workbench);
     if(status!=UMI_STATUS_OK)return status;
     TabJourneyPump();
+    /* Preserve the broader lookup for review; panel wiring is now mandatory. */
+#if 0
     GtkWidget *button=FirstUseVisibleAction(window,command);
+#endif
+    GtkWidget *button=FirstUseBuildPanelAction(window,command);
     if(!GTK_IS_BUTTON(button) || !gtk_widget_get_mapped(button) || !gtk_widget_is_sensitive(button)) {
         fprintf(stderr,"Visible build control is unavailable: %s\n",command);
         return UMI_STATUS_UNAVAILABLE;
@@ -2425,6 +2442,7 @@ cleanup:
 }
 
 #include "first_use_tabs.inc"
+#include "first_use_project_controls.inc"
 
 int main(int argc, char **argv)
 {
@@ -2463,8 +2481,15 @@ int main(int argc, char **argv)
     }
     if (!gtk_init_check()) return 77;
     int failed = 0, changedDirectory = 0;
+    /* Retain the earlier visible-case list. Project controls now also keep
+     * their isolated source, process evidence and native image checkpoints. */
+#if 0
     const int retainImages = !strcmp(name,"tab-visible-workflow") || !strcmp(name,"tab-overflow") ||
         !strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair");
+#endif
+    const int retainImages = !strcmp(name,"tab-visible-workflow") || !strcmp(name,"tab-overflow") ||
+        !strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair") ||
+        FirstUseProjectControlsScenario(name);
     char *original = g_get_current_dir(), *directory = NULL, *source = NULL, *disk = NULL;
     char *oldData = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
     UmiSettings *settings = NULL;
@@ -2511,12 +2536,24 @@ int main(int argc, char **argv)
     UmiStudioGtkWorkbenchOptions options = {0};
     /* Visible tab journeys exercise the same recurring refresh as normal startup.
      * Persistent sessions and saved user preferences remain disabled. */
+    /* All visible acceptance journeys use normal timed refresh. */
+#if 0
     options.automatic_refresh = !strcmp(name,"tab-visible-workflow") || !strcmp(name,"tab-overflow") ||
         !strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair");
+#endif
+    options.automatic_refresh = retainImages;
     CHECK(umi_studio_gtk_workbench_create_with_options(application, ui,
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     CHECK(umi_document_coordinator_count(documents) == 0U);
+    if (FirstUseProjectControlsScenario(name)) {
+        g_object_set_data(G_OBJECT(window),"studio-test-visible-build",GINT_TO_POINTER(1));
+        gtk_window_present(GTK_WINDOW(window));
+        TabJourneyPump();
+        CHECK(gtk_widget_get_mapped(window));
+        failed=ExerciseNativeProjectControls(workbench,services,documents,directory,name);
+        goto cleanup;
+    }
     if (!strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair")) {
         g_object_set_data(G_OBJECT(window),"studio-test-visible-build",GINT_TO_POINTER(1));
         gtk_window_present(GTK_WINDOW(window));

@@ -117,6 +117,9 @@ static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime
      * must not keep displaying the previous build configuration. */
 
     {
+        /* Keep the old action set for comparison. The additional button uses
+         * the existing launch-only Framework path and leaves editor drafts alone. */
+#if 0
         static const char *const labels[] = {
             "Project Settings", "Configure", "Build", "Test", "Run", "Install", "Cancel", "Clean", "Package"
         };
@@ -125,6 +128,15 @@ static GtkWidget *runtime_build_surface_build(UmiStudioGtkRuntimeChrome *runtime
             "build.install", "build.cancel", "build.clean", "build.package"
         };
         runtime_panel_add_commands(runtime, panel, labels, commands, 9U);
+#endif
+        static const char *const labels[] = {
+            "Project Settings", "Configure", "Build", "Test", "Build and Run", "Run current executable", "Install", "Cancel", "Clean", "Package"
+        };
+        static const char *const commands[] = {
+            "build.settings", "build.configure", "build.build", "build.test", "run.start",
+            UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT, "build.install", "build.cancel", "build.clean", "build.package"
+        };
+        runtime_panel_add_commands(runtime, panel, labels, commands, sizeof commands / sizeof commands[0]);
     }
     /* Keep every existing build action. Reviewing never submits another job. */
     GtkWidget *review_button = gtk_button_new_with_label("Review build history");
