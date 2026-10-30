@@ -2535,7 +2535,8 @@ if(BUILD_TESTING AND TARGET umicom-dap-protocol-fixture)
     add_dependencies(umicom-studio-development-workflow-test umicom-dap-protocol-fixture)
     # Preserve the original case list for review of automatic qualification coverage.
     # foreach(case complete compile-failure cancel-building profile-changed untrusted adapter-missing no-build-submitted)
-    foreach(case complete compile-failure test-failure testing-disabled automatic-driver driver-test-failure cancel-building profile-changed untrusted adapter-missing no-build-submitted)
+    # Explicit presets must keep their own three-phase path even when a driver exists.
+    foreach(case complete compile-failure test-failure testing-disabled automatic-driver driver-test-failure driver-presets cancel-building profile-changed untrusted adapter-missing no-build-submitted)
         add_test(NAME studio.development_workflow.${case}
             COMMAND umicom-studio-development-workflow-test "$<TARGET_FILE:umicom-dap-protocol-fixture>" "${case}")
         set_tests_properties(studio.development_workflow.${case} PROPERTIES TIMEOUT 180 RUN_SERIAL TRUE

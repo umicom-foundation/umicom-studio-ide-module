@@ -1,16 +1,24 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
- * File: applications/studio/tests/test_development_workflow.c
- * PURPOSE: Exercise production commands, compiler gating and the process-backed
- * debugger host. The child DAP peer is a protocol fixture, not an actual debugger.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ * File: tests/test_development_workflow.c
+ *
+ * PURPOSE:
+ *   Exercise production commands, compiler gating and the process-backed debugger
+ *   host. The child DAP peer is a protocol fixture, not an actual debugger.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/workspace.h"
 #include "umicom/studio/commands.h"
 #include "umicom/studio/debugger.h"
 #include "umicom/developer_project/new_project.h"
+#include "umicom/build/ctest_provider.h"
 #include "umicom/platform/threading.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,6 +63,23 @@ static UmiStatus PrepareQualificationDriver(const UmiBuildProfile *profile)
         "  message(FATAL_ERROR \"Fixture test failed: ${_result}\")\n"
         "endif()\n";
     return status == UMI_STATUS_OK ? umi_fs_write_text(file, driver) : status;
+}
+/* The generated console project gives its smoke check a separate executable.
+ * Change that test input so a test rejection cannot be confused with a program
+ * exit code that CTest never ran. The old application mutations remain below. */
+static UmiStatus RejectSmokeTest(const char *root)
+{
+    char test_source[UMI_PATH_CAPACITY];
+    UmiStatus status = umi_fs_join(test_source, sizeof(test_source), root, "tests/test_main.c");
+    static const char text[] =
+        "/*-----------------------------------------------------------------------------\n"
+        " * Umicom Studio IDE\n * File: tests/test_main.c\n *\n * PURPOSE:\n"
+        " *   Reject this disposable smoke test to verify debugger launch gating.\n *\n"
+        " * AUTHOR AND ORGANISATION:\n * Sammy Hegab\n * Umicom Foundation\n *\n"
+        " * LICENCE:\n * MIT\n *---------------------------------------------------------------------------*/\n"
+        "#include <stdio.h>\n"
+        "int main(void) { fputs(\"Intentional smoke-test failure\\n\", stderr); return 1; }\n";
+    return status == UMI_STATUS_OK ? umi_fs_write_text(test_source, text) : status;
 }
 int main(int argc,char **argv)
 {
@@ -146,12 +171,33 @@ int main(int argc,char **argv)
     CHECK(strcmp(variable.value,"5")==0);
     OK(umi_command_registry_execute(commands,UMI_STUDIO_COMMAND_DEBUG_STOP,NULL,message,sizeof(message)));
     CHECK(!UmiStudioDebuggerNativeBusy(debugger));
-    if(strcmp(mode,"automatic-driver")==0 || strcmp(mode,"driver-test-failure")==0){
+    if(strcmp(mode,"automatic-driver")==0 || strcmp(mode,"driver-test-failure")==0 ||
+        strcmp(mode,"driver-presets")==0){
         /* The next request resolves one driver stage. A failing test must still
          * stop launch, even though the driver successfully compiles a program. */
         int rejected = strcmp(mode,"driver-test-failure")==0;
+        int preset_case = strcmp(mode,"driver-presets")==0;
+        /* Framework intentionally preserves explicit preset semantics. Only the
+         * dedicated plain-profile cases select the disposable generated driver;
+         * the preset case proves that a nearby driver cannot override a preset. */
+        if (!preset_case) {
+            profile.preset[0] = '\0';
+            profile.configure_preset[0] = '\0';
+            profile.build_preset[0] = '\0';
+            profile.test_preset[0] = '\0';
+        } else CHECK(profile.preset[0] || profile.configure_preset[0] ||
+            profile.build_preset[0] || profile.test_preset[0]);
+        OK(umi_studio_build_service_set_profile(build,&profile));
         OK(PrepareQualificationDriver(&profile));
+        char driver_path[UMI_BUILD_PATH_CAPACITY];
+        CHECK(UmiBuildAutomaticTestDriver(&profile, driver_path, sizeof(driver_path)) ==
+            (preset_case ? UMI_STATUS_NOT_FOUND : UMI_STATUS_OK));
+        /* Previously only the application entry point was changed, leaving the
+         * independent smoke-test executable successful. Retain that fixture for review. */
+#if 0
         if(rejected)OK(umi_fs_write_text(source,"int main(void) { return 1; }\n"));
+#endif
+        if(rejected)OK(RejectSmokeTest(root));
         OK(umi_command_registry_execute(commands,UMI_STUDIO_COMMAND_DEBUG_START,NULL,message,sizeof(message)));
         for(unsigned attempt=0;attempt<15000U;++attempt){
             while(UmiStudioBuildCollect(build,buildResult)==UMI_STATUS_OK)printf("%s\n",buildResult->output);
@@ -160,11 +206,13 @@ int main(int argc,char **argv)
         }
         CHECK(!UmiStudioBuildBusy(build));
         OK(UmiStudioBuildProgress(build,&qualification));
-        CHECK(qualification.completed_phase_count==1U);
+        if (preset_case) CHECK(qualification.completed_phase_count==3U);
+        else CHECK(qualification.completed_phase_count==1U);
         CHECK(qualification.current_phase==UMI_BUILD_PHASE_TEST);
         poll=UmiStudioDebuggerPollNative(debugger,build);
         if(rejected){
             CHECK(qualification.status!=UMI_STATUS_OK);
+            CHECK(strstr(buildResult->output,"Intentional smoke-test failure")!=NULL);
             CHECK(poll!=UMI_STATUS_OK && !UmiStudioDebuggerNativeBusy(debugger));
         }else{
             CHECK(qualification.status==UMI_STATUS_OK && poll==UMI_STATUS_OK);
@@ -200,8 +248,16 @@ int main(int argc,char **argv)
 #endif
     if(strcmp(mode,"compile-failure")==0 || strcmp(mode,"test-failure")==0){
         /* The older executable remains on disk. A failed new build must not launch it. */
+        /* Preserve the former mutation for review. CTest owns tests/test_main.c,
+         * while compile-failure continues exercising the real application source. */
+#if 0
         if(strcmp(mode,"test-failure")==0)
             OK(umi_fs_write_text(source,"int main(void) { return 1; }\n"));
+        else
+            OK(umi_fs_write_text(source,"int main(void) { broken source }\n"));
+#endif
+        if(strcmp(mode,"test-failure")==0)
+            OK(RejectSmokeTest(root));
         else
             OK(umi_fs_write_text(source,"int main(void) { broken source }\n"));
         OK(umi_command_registry_execute(commands,UMI_STUDIO_COMMAND_DEBUG_START,NULL,message,sizeof(message)));
@@ -212,7 +268,10 @@ int main(int argc,char **argv)
         }
         CHECK(!UmiStudioBuildBusy(build));
         CHECK(buildResult->status!=UMI_STATUS_OK || buildResult->exit_code!=0);
-        if(strcmp(mode,"test-failure")==0)CHECK(buildResult->phase==UMI_BUILD_PHASE_TEST);
+        if(strcmp(mode,"test-failure")==0){
+            CHECK(buildResult->phase==UMI_BUILD_PHASE_TEST);
+            CHECK(strstr(buildResult->output,"Intentional smoke-test failure")!=NULL);
+        }
         CHECK(UmiStudioDebuggerPollNative(debugger,build)!=UMI_STATUS_OK);
         CHECK(!UmiStudioDebuggerNativeBusy(debugger));
     } else if(profile.build_testing) {
