@@ -50,7 +50,15 @@ static UmiStatus runtime_build_shell(UmiStudioGtkRuntimeChrome *runtime)
     gtk_widget_set_vexpand(runtime->centre_stack, TRUE);
     status = RuntimeAttachFileDrop(runtime);
     if (status != UMI_STATUS_OK) return status;
+    /* Framework retains keyed tab buttons during refresh and owns horizontal
+     * overflow. The former bare row is retained for layout review. */
+#if 0
     runtime->document_tabs = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+#endif
+    UmiStudioFileDialogRequest *tabRequest = runtime_file_dialog_request_new(runtime, 0U);
+    if (tabRequest == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    runtime->document_tabs = UmiGtk4TabStripCreate(RuntimeActivateDocumentTab,
+        tabRequest, RuntimeTabRequestFree);
     runtime->status_bar = runtime_build_status_bar(runtime);
     runtime->editor_command_bar = runtime_build_editor_command_bar(runtime);
     workbench = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);

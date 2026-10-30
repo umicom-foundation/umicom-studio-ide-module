@@ -13,6 +13,13 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
+#include "umicom/ui/gtk4/workstation/tab_strip.h"
+
+/* The previous full row rebuild interrupted pointer gestures and keyboard focus
+ * on the periodic refresh. Framework now retains keyed controls and scrolls
+ * overflow. Keep the old rendering and activation paths for engineering review. */
+#if 0
+
 
 /* Selecting a source tab now returns typing focus to its retained editor and reveals a hidden panel. Preserve the prior activation-only route for review. */
 #if 0
@@ -142,4 +149,64 @@ static UmiStatus runtime_update_document_tabs(
     }
 
     return UMI_STATUS_OK;
+}
+
+#endif
+
+/* The strip owns a weak window/generation request, not the runtime address.
+ * An old retained tab therefore cannot activate a replacement or closed host. */
+static void RuntimeTabRequestFree(gpointer data)
+{
+    runtime_file_dialog_request_free(data);
+}
+static void RuntimeActivateDocumentTab(const char *viewId, void *context)
+{
+    UmiStudioFileDialogRequest *request = context;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime != NULL && runtime->owner != NULL && runtime->owner->ui != NULL) {
+        UmiStatus status = umi_ui_workbench_activate_document(
+            umi_studio_ui_workbench(runtime->owner->ui), viewId);
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime != NULL && status == UMI_STATUS_OK)
+            (void)RuntimePresentActiveSource(runtime);
+    }
+    g_clear_object(&window);
+}
+static UmiStatus runtime_update_document_tabs(void *context,
+    const UmiStudioRuntimeDocumentTabs *tabs)
+{
+    UmiStudioGtkRuntimeChrome *runtime = context;
+    if (runtime == NULL || tabs == NULL || runtime->document_tabs == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    if (tabs->count > UMI_STUDIO_DOCUMENT_TAB_CAPACITY || tabs->count > UMI_GTK4_TAB_STRIP_MAX)
+        return UMI_STATUS_CAPACITY_EXCEEDED;
+    const size_t count = tabs->count;
+    UmiGtk4TabStripItem *items = g_new0(UmiGtk4TabStripItem, count);
+    for (size_t index = 0U; index < count; ++index) {
+        const UmiStudioRuntimeDocumentTab *tab = &tabs->tabs[index];
+        items[index] = (UmiGtk4TabStripItem){g_strdup(tab->view_id),
+            g_strdup_printf("%s%s", tab->display_name, tab->dirty ? " ●" : ""),
+            g_strdup(tab->path[0] != '\0' ? tab->path : tab->display_name), tab->active};
+    }
+    /* Sync owns its native lifetime across notifications. Do not access runtime
+     * afterwards: a host observer can close Studio during reconciliation.
+     * Keep identifiers and count independent of the caller snapshot as well. */
+    GtkWidget *strip = g_object_ref(runtime->document_tabs);
+    UmiStatus status = UmiGtk4TabStripSync(strip, items, count);
+    if (status == UMI_STATUS_OK) {
+        for (size_t index = 0U; index < count; ++index) {
+            GtkWidget *button = UmiGtk4TabStripFind(strip, items[index].id);
+            if (button != NULL && g_object_get_data(G_OBJECT(button), "umicom-view-id") == NULL)
+                g_object_set_data_full(G_OBJECT(button), "umicom-view-id", g_strdup(items[index].id), g_free);
+        }
+    }
+    for (size_t index = 0U; index < count; ++index) {
+        g_free((void *)items[index].id);
+        g_free((void *)items[index].title);
+        g_free((void *)items[index].tooltip);
+    }
+    g_free(items);
+    g_object_unref(strip);
+    return status;
 }

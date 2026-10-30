@@ -521,6 +521,8 @@ static void runtime_destroy_framework(
      * used.
      */
     if (runtime == NULL) return;
+    /* Retained tab controls must stop dispatch before any service teardown. */
+    if (runtime->document_tabs != NULL) UmiGtk4TabStripInvalidate(runtime->document_tabs);
     /* Cancel clipboard, navigation and Save All callbacks before the Studio
      * runtime/context is released. Framework retains only invalidatable tokens. */
     if (runtime->owner != NULL && runtime->owner->adapter != NULL)

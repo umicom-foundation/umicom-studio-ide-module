@@ -161,6 +161,44 @@ static GtkWindow *FindSettingsWindow(GtkWindow *parent)
     return NULL;
 }
 
+/* Visible build cases use native buttons and keep screenshots from an isolated
+ * generated project. Existing unpresented service journeys retain their route. */
+static void TabJourneyPump(void);
+static int TabJourneyCapture(GtkWidget *window, const char *directory, const char *name);
+/* Toolbars and menus may expose the same command. Require an actually mapped
+ * control so a hidden legacy button cannot stand in for the user's Build panel. */
+static GtkWidget *FirstUseVisibleAction(GtkWidget *root, const char *command)
+{
+    if (!gtk_widget_get_mapped(root)) return NULL;
+    const char *id=g_object_get_data(G_OBJECT(root),"umicom-command-id");
+    if (GTK_IS_BUTTON(root) && id!=NULL && !strcmp(id,command) && gtk_widget_is_sensitive(root))
+        return root;
+    for (GtkWidget *child=gtk_widget_get_first_child(root);child!=NULL;
+         child=gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found=FirstUseVisibleAction(child,command);
+        if(found!=NULL)return found;
+    }
+    return NULL;
+}
+static UmiStatus FirstUseBuildCommand(UmiStudioGtkWorkbench *workbench, const char *command)
+{
+    GtkWidget *window=GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    if(g_object_get_data(G_OBJECT(window),"studio-test-visible-build")==NULL)
+        return umi_studio_gtk_workbench_execute_command(workbench,command,NULL);
+    UmiStatus status=umi_studio_gtk_workbench_workspace_open_surface(workbench,UMI_STUDIO_SURFACE_BUILD,NULL);
+    if(status!=UMI_STATUS_OK)return status;
+    status=umi_studio_gtk_workbench_workspace_synchronise(workbench);
+    if(status!=UMI_STATUS_OK)return status;
+    TabJourneyPump();
+    GtkWidget *button=FirstUseVisibleAction(window,command);
+    if(!GTK_IS_BUTTON(button) || !gtk_widget_get_mapped(button) || !gtk_widget_is_sensitive(button)) {
+        fprintf(stderr,"Visible build control is unavailable: %s\n",command);
+        return UMI_STATUS_UNAVAILABLE;
+    }
+    g_signal_emit_by_name(button,"clicked");
+    return UMI_STATUS_OK; /* Result and output are checked after the worker completes. */
+}
+
 static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     UmiStudioServices *services, UmiDocumentCoordinator *documents,
     const char *fixture, int repairFailure)
@@ -177,6 +215,7 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     UmiBuildProfile profile;
     UmiStudioBuildService *build = umi_studio_services_build(services);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    int visible = g_object_get_data(G_OBJECT(window), "studio-test-visible-build") != NULL;
     CHECK(umi_developer_project_service_create(&projects) == UMI_STATUS_OK);
     umi_developer_project_generation_request_init(&request);
     g_strlcpy(request.template_id, "developer.template.c23-console", sizeof request.template_id);
@@ -222,15 +261,25 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
         ? "#error deliberate_studio_compile_failure\nint main(void) { return 0; }\n" : validSource, -1);
     gtk_text_buffer_end_user_action(buffer);
     CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && active.dirty);
+    /* Retain direct command qualification; visible cases additionally require the native control. */
+#if 0
     CHECK(umi_studio_gtk_workbench_execute_command(workbench, "build.configure", NULL) == UMI_STATUS_OK);
+#endif
+    CHECK(FirstUseBuildCommand(workbench, "build.configure") == UMI_STATUS_OK);
     CHECK(WaitForWorkbenchBuild(workbench, build, result));
     CHECK(result->phase == UMI_BUILD_PHASE_CONFIGURE && result->status == UMI_STATUS_OK && result->exit_code == 0);
+    if (visible) CHECK(TabJourneyCapture(window,fixture,"build-configured.png"));
     CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && !active.dirty);
+    /* Retain direct command qualification; visible cases additionally require the native control. */
+#if 0
     CHECK(umi_studio_gtk_workbench_execute_command(workbench, "build.build", NULL) == UMI_STATUS_OK);
+#endif
+    CHECK(FirstUseBuildCommand(workbench, "build.build") == UMI_STATUS_OK);
     CHECK(WaitForWorkbenchBuild(workbench, build, result));
     if (repairFailure) {
         CHECK(result->status != UMI_STATUS_OK && result->exit_code != 0);
         CHECK(strstr(result->output, "deliberate_studio_compile_failure") != NULL);
+        if (visible) CHECK(TabJourneyCapture(window,fixture,"build-rejected.png"));
         /* The failed compiler must leave a navigable source location even when
          * the user has hidden the editor before opening the diagnostic. */
 /* Canvas creation requires a qualified Studio layout identity; the earlier short-ID fixture is retained. Retained for engineering review. */
@@ -250,14 +299,27 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
         gtk_text_buffer_begin_user_action(buffer);
         gtk_text_buffer_set_text(buffer, validSource, -1);
         gtk_text_buffer_end_user_action(buffer);
+        /* Retain direct command qualification; visible cases additionally require the native control. */
+#if 0
         CHECK(umi_studio_gtk_workbench_execute_command(workbench, "build.build", NULL) == UMI_STATUS_OK);
+#endif
+        CHECK(FirstUseBuildCommand(workbench, "build.build") == UMI_STATUS_OK);
         CHECK(WaitForWorkbenchBuild(workbench, build, result));
     }
     CHECK(result->status == UMI_STATUS_OK && result->exit_code == 0);
+    if (visible) CHECK(TabJourneyCapture(window,fixture,"build-complete.png"));
+    /* Retain direct command qualification; visible cases additionally require the native control. */
+#if 0
     CHECK(umi_studio_gtk_workbench_execute_command(workbench, "run.start", NULL) == UMI_STATUS_OK);
+#endif
+    CHECK(FirstUseBuildCommand(workbench, "run.start") == UMI_STATUS_OK);
     CHECK(WaitForWorkbenchBuild(workbench, build, result));
     CHECK(result->phase == UMI_BUILD_PHASE_RUN && result->status == UMI_STATUS_OK && result->exit_code == 0);
     CHECK(strstr(result->output, "Studio native workflow complete") != NULL);
+    if (visible) {
+        CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench,UMI_STUDIO_SURFACE_OUTPUT,NULL)==UMI_STATUS_OK);
+        CHECK(TabJourneyCapture(window,fixture,"program-complete.png"));
+    }
 cleanup:
     if (failed && build != NULL) umi_studio_build_service_cancel(build);
     g_clear_object(&settingsWindow);
@@ -2362,6 +2424,8 @@ cleanup:
     return failed;
 }
 
+#include "first_use_tabs.inc"
+
 int main(int argc, char **argv)
 {
     /* Report argument admission failures before GTK is initialized. */
@@ -2399,6 +2463,8 @@ int main(int argc, char **argv)
     }
     if (!gtk_init_check()) return 77;
     int failed = 0, changedDirectory = 0;
+    const int retainImages = !strcmp(name,"tab-visible-workflow") || !strcmp(name,"tab-overflow") ||
+        !strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair");
     char *original = g_get_current_dir(), *directory = NULL, *source = NULL, *disk = NULL;
     char *oldData = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
     UmiSettings *settings = NULL;
@@ -2443,10 +2509,27 @@ int main(int argc, char **argv)
     application = gtk_application_new("org.umicom.studio.first-use-test", G_APPLICATION_NON_UNIQUE);
     CHECK(application != NULL && g_application_register(G_APPLICATION(application), NULL, &error));
     UmiStudioGtkWorkbenchOptions options = {0};
+    /* Visible tab journeys exercise the same recurring refresh as normal startup.
+     * Persistent sessions and saved user preferences remain disabled. */
+    options.automatic_refresh = !strcmp(name,"tab-visible-workflow") || !strcmp(name,"tab-overflow") ||
+        !strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair");
     CHECK(umi_studio_gtk_workbench_create_with_options(application, ui,
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     CHECK(umi_document_coordinator_count(documents) == 0U);
+    if (!strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair")) {
+        g_object_set_data(G_OBJECT(window),"studio-test-visible-build",GINT_TO_POINTER(1));
+        gtk_window_present(GTK_WINDOW(window));
+        TabJourneyPump();
+        CHECK(gtk_widget_get_mapped(window));
+        failed=ExerciseNativeBuild(workbench,services,documents,directory,!strcmp(name,"visible-build-repair"));
+        goto cleanup;
+    }
+    if (!strcmp(name,"tab-refresh-stable") || !strcmp(name,"tab-visible-workflow") ||
+        !strcmp(name,"tab-retired-owner") || !strcmp(name,"tab-overflow")) {
+        failed = ExerciseStableTabs(&workbench, ui, directory, name);
+        goto cleanup;
+    }
     if (strncmp(name, "button-", 7U) == 0) {
         failed = ExerciseCommandButtons(&workbench, documents, directory, name);
         goto cleanup;
@@ -2793,6 +2876,13 @@ int main(int argc, char **argv)
         }
     }
 cleanup:
+    /* Capture an assertion failure while the actual isolated window still
+     * exists. A crash or a failure before mapping may leave only textual logs. */
+    if (failed && retainImages && workbench != NULL && directory != NULL) {
+        GtkWidget *failedWindow = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+        if (gtk_widget_get_mapped(failedWindow))
+            (void)TabJourneyCapture(failedWindow,directory,"workflow-failed.png");
+    }
     UmiUiDocumentViewModelFreeText(draft);
     if (workbench != NULL) umi_studio_gtk_workbench_destroy(workbench);
     if (bootstrap != NULL) umi_studio_bootstrap_destroy(bootstrap);
@@ -2803,7 +2893,13 @@ cleanup:
     if (oldData != NULL) (void)g_setenv("UMICOM_STUDIO_DATA_PATH", oldData, TRUE);
     else g_unsetenv("UMICOM_STUDIO_DATA_PATH");
     /* Preserve failed fixtures for diagnosis; only remove our created tree. */
+    /* Visible journeys retain screenshots and generated project evidence even
+     * when they pass. Preserve the former success cleanup rule for review. */
+#if 0
     if (!failed && directory != NULL) (void)umi_fs_remove_tree(directory);
+#endif
+    if (!failed && !retainImages && directory != NULL) (void)umi_fs_remove_tree(directory);
+    else if (directory != NULL) fprintf(stdout,"Retained workflow evidence: %s\n",directory);
     g_free(oldData); g_free(disk); g_free(source); g_free(directory); g_free(original);
     return failed;
 }

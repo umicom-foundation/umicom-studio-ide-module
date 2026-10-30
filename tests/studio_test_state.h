@@ -48,6 +48,16 @@ static inline int StudioTestStateBegin(StudioTestState *state)
         (void)StudioTestStateEnd(state);return 0;
     }
     state->changed=1;
+    /* g_dir_make_tmp may combine a forward-slash TMPDIR with a native Windows
+     * separator. Record the operating system's spelling after chdir so nested
+     * fixture ownership and restoration use the same absolute identity. The
+     * created directory and its contents are retained; no path is deleted. */
+    char *entered_directory = g_get_current_dir();
+    if (entered_directory == NULL) {
+        (void)StudioTestStateEnd(state);return 0;
+    }
+    g_free(state->directory);
+    state->directory = entered_directory;
     g_unsetenv("UMICOM_STUDIO_DATA_PATH");
     if(g_mkdir_with_parents("config",0700)!=0 || g_mkdir_with_parents(".umicom",0700)!=0) {
         (void)StudioTestStateEnd(state);return 0;
