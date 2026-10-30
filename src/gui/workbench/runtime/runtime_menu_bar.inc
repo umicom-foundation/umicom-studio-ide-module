@@ -168,7 +168,12 @@ static int runtime_contribution_has_prefix(
      */
     if (contribution_id == NULL || prefix == NULL) return 0;
     prefix_length = strlen(prefix);
+    /* Exact namespace boundary avoids including another menu with a shared prefix. */
+#if 0
     return strncmp(contribution_id, prefix, prefix_length) == 0;
+#endif
+    return strncmp(contribution_id, prefix, prefix_length) == 0 &&
+           contribution_id[prefix_length] == '.';
 }
 
 /*
@@ -238,24 +243,38 @@ static GtkWidget *runtime_build_single_menu(
         root->contribution_id);
     gtk_widget_add_css_class(menu_button, "flat");
 
+    /* Registry traversal is retained below for comparison with the ordered view. */
+#if 0
     /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_application_shell_registry_count(
              bindings->shell_registry);
          ++index) {
+#endif
+    /* Framework owns presentation order; insertion order still supports identity lookups. */
+    size_t ordered_count = umi_application_shell_registry_count(bindings->shell_registry);
+    size_t *ordered = g_new(size_t, ordered_count);
+    if (umi_application_shell_registry_ordered_indices(bindings->shell_registry,
+            ordered, ordered_count, &ordered_count) != UMI_STATUS_OK) {
+        g_free(ordered);
+        ordered = NULL;
+        ordered_count = 0U;
+    }
+    for (index = 0U; index < ordered_count; ++index) {
         UmiApplicationShellContribution contribution;
         GtkWidget *button;
 
         /* Apply this branch only when its contract condition is satisfied. */
         if (umi_application_shell_registry_at(
                 bindings->shell_registry,
-                index,
+                ordered[index],
                 &contribution) != UMI_STATUS_OK) {
             continue;
         }
 
         /* Apply this branch only when its contract condition is satisfied. */
         if (contribution.role != UMI_APPLICATION_SHELL_ROLE_MENU_ITEM ||
+            (contribution.flags & UMI_APPLICATION_SHELL_VISIBLE) == 0U ||
             !runtime_contribution_has_prefix(
                 contribution.contribution_id,
                 prefix)) {
@@ -270,6 +289,9 @@ static GtkWidget *runtime_build_single_menu(
         if (button == NULL) continue;
 
         gtk_widget_set_halign(button, GTK_ALIGN_FILL);
+        /* Labels align to the reading edge; buttons keep their full hit area. */
+        GtkWidget *caption = gtk_button_get_child(GTK_BUTTON(button));
+        if (GTK_IS_LABEL(caption)) gtk_label_set_xalign(GTK_LABEL(caption), 0.0F);
         gtk_widget_add_css_class(button, "flat");
         gtk_widget_set_tooltip_text(button, contribution.description);
         gtk_widget_set_sensitive(
@@ -304,11 +326,23 @@ static GtkWidget *runtime_build_single_menu(
         gtk_box_append(GTK_BOX(items), button);
     }
 
+    g_free(ordered);
     gtk_widget_set_margin_top(items, 5);
     gtk_widget_set_margin_bottom(items, 5);
     gtk_widget_set_margin_start(items, 5);
     gtk_widget_set_margin_end(items, 5);
+    /* The previous unbounded list could place essential actions outside a small
+     * display. Native scrolling preserves every command and keyboard focus. */
+#if 0
     gtk_popover_set_child(GTK_POPOVER(popover), items);
+#endif
+    GtkWidget *scroll = gtk_scrolled_window_new();
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(scroll), 480);
+    gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scroll), TRUE);
+    gtk_widget_set_size_request(scroll, 260, -1);
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), items);
+    gtk_popover_set_child(GTK_POPOVER(popover), scroll);
     gtk_menu_button_set_popover(GTK_MENU_BUTTON(menu_button), popover);
     return menu_button;
 }
@@ -345,24 +379,43 @@ static GtkWidget *runtime_build_menu_bar(
      */
     if (bar == NULL) return NULL;
 
+    /* Registry traversal is retained below for comparison with the ordered view. */
+#if 0
     /* Visit each bounded item once so every record receives the same rule. */
     for (index = 0U;
          index < umi_application_shell_registry_count(
              bindings->shell_registry);
          ++index) {
+#endif
+    /* Framework owns presentation order; insertion order still supports identity lookups. */
+    size_t ordered_count = umi_application_shell_registry_count(bindings->shell_registry);
+    size_t *ordered = g_new(size_t, ordered_count);
+    if (umi_application_shell_registry_ordered_indices(bindings->shell_registry,
+            ordered, ordered_count, &ordered_count) != UMI_STATUS_OK) {
+        g_free(ordered);
+        ordered = NULL;
+        ordered_count = 0U;
+    }
+    for (index = 0U; index < ordered_count; ++index) {
         UmiApplicationShellContribution contribution;
         GtkWidget *menu;
 
         /* Apply this branch only when its contract condition is satisfied. */
         if (umi_application_shell_registry_at(
                 bindings->shell_registry,
-                index,
+                ordered[index],
                 &contribution) != UMI_STATUS_OK) {
             continue;
         }
 
         /* Apply this branch only when its contract condition is satisfied. */
+        /* Respect extension visibility for root menus as well as their rows. */
+#if 0
         if (contribution.role != UMI_APPLICATION_SHELL_ROLE_MENU ||
+            contribution.region != UMI_APPLICATION_SHELL_REGION_MENU_BAR) {
+#endif
+        if (contribution.role != UMI_APPLICATION_SHELL_ROLE_MENU ||
+            (contribution.flags & UMI_APPLICATION_SHELL_VISIBLE) == 0U ||
             contribution.region != UMI_APPLICATION_SHELL_REGION_MENU_BAR) {
             continue;
         }
@@ -375,5 +428,6 @@ static GtkWidget *runtime_build_menu_bar(
         if (menu != NULL) gtk_box_append(GTK_BOX(bar), menu);
     }
 
+    g_free(ordered);
     return bar;
 }

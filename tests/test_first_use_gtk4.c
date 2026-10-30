@@ -193,9 +193,43 @@ static GtkWidget *FirstUseBuildPanelAction(GtkWidget *root, const char *command)
     }
     return NULL;
 }
+/* Exercise the actual popover command path independently of toolbar aliases.
+ * A visible menu action must start the same Framework job and produce real
+ * compiler/process evidence, not merely report that a click was accepted. */
+static UmiStatus FirstUseMenuBuildCommand(UmiStudioGtkWorkbench *workbench, const char *command)
+{
+    GtkWidget *window=GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    const char *menuId=!strncmp(command,"run.",4U)
+        ? "umicom.shell.run-menu.root" : "umicom.shell.build-menu.root";
+    GtkWidget *menu=umi_gtk4_automation_find_tagged_widget(window,menuId);
+    if (!GTK_IS_MENU_BUTTON(menu)) return UMI_STATUS_NOT_FOUND;
+    UmiStatus status=umi_studio_gtk_workbench_workspace_synchronise(workbench);
+    if (status!=UMI_STATUS_OK) return status;
+    gtk_menu_button_popup(GTK_MENU_BUTTON(menu));
+    TabJourneyPump();
+    GtkWidget *popover=GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(menu)));
+    if (!GTK_IS_POPOVER(popover)) return UMI_STATUS_UNAVAILABLE;
+    GtkWidget *button=FirstUseVisibleAction(popover,command);
+    if (!GTK_IS_BUTTON(button)) {
+        fprintf(stderr,"Mapped menu command is unavailable: %s\n",command);
+        gtk_menu_button_popdown(GTK_MENU_BUTTON(menu));
+        return UMI_STATUS_UNAVAILABLE;
+    }
+    const char *evidence=g_object_get_data(G_OBJECT(window),"studio-test-menu-evidence");
+    if (evidence!=NULL) {
+        char *image=g_strdup_printf("menu-%s.png",command);
+        int captured=TabJourneyCapture(window,evidence,image);
+        g_free(image);
+        if (!captured) return UMI_STATUS_IO_ERROR;
+    }
+    g_signal_emit_by_name(button,"clicked");
+    return UMI_STATUS_OK;
+}
 static UmiStatus FirstUseBuildCommand(UmiStudioGtkWorkbench *workbench, const char *command)
 {
     GtkWidget *window=GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    if(g_object_get_data(G_OBJECT(window),"studio-test-menu-build")!=NULL)
+        return FirstUseMenuBuildCommand(workbench,command);
     if(g_object_get_data(G_OBJECT(window),"studio-test-visible-build")==NULL)
         return umi_studio_gtk_workbench_execute_command(workbench,command,NULL);
     UmiStatus status=umi_studio_gtk_workbench_workspace_open_surface(workbench,UMI_STUDIO_SURFACE_BUILD,NULL);
@@ -293,6 +327,7 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
 #endif
     CHECK(FirstUseBuildCommand(workbench, "build.build") == UMI_STATUS_OK);
     CHECK(WaitForWorkbenchBuild(workbench, build, result));
+    CHECK(result->phase == UMI_BUILD_PHASE_BUILD);
     if (repairFailure) {
         CHECK(result->status != UMI_STATUS_OK && result->exit_code != 0);
         CHECK(strstr(result->output, "deliberate_studio_compile_failure") != NULL);
@@ -322,6 +357,7 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
 #endif
         CHECK(FirstUseBuildCommand(workbench, "build.build") == UMI_STATUS_OK);
         CHECK(WaitForWorkbenchBuild(workbench, build, result));
+        CHECK(result->phase == UMI_BUILD_PHASE_BUILD);
     }
     CHECK(result->status == UMI_STATUS_OK && result->exit_code == 0);
     if (visible) CHECK(TabJourneyCapture(window,fixture,"build-complete.png"));
@@ -2444,6 +2480,8 @@ cleanup:
 #include "first_use_tabs.inc"
 #include "first_use_project_controls.inc"
 
+#include "test_first_use_menu.inc"
+
 int main(int argc, char **argv)
 {
     /* Report argument admission failures before GTK is initialized. */
@@ -2489,7 +2527,7 @@ int main(int argc, char **argv)
 #endif
     const int retainImages = !strcmp(name,"tab-visible-workflow") || !strcmp(name,"tab-overflow") ||
         !strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair") ||
-        FirstUseProjectControlsScenario(name);
+        FirstUseProjectControlsScenario(name) || !strcmp(name,"menu-build-run") || !strcmp(name,"menu-build-repair");
     char *original = g_get_current_dir(), *directory = NULL, *source = NULL, *disk = NULL;
     char *oldData = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
     UmiSettings *settings = NULL;
@@ -2546,12 +2584,26 @@ int main(int argc, char **argv)
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     CHECK(umi_document_coordinator_count(documents) == 0U);
+    if (strcmp(name, "menu-presentation") == 0) {
+        failed = ExerciseMenuPresentation(workbench, documents);
+        goto cleanup;
+    }
     if (FirstUseProjectControlsScenario(name)) {
         g_object_set_data(G_OBJECT(window),"studio-test-visible-build",GINT_TO_POINTER(1));
         gtk_window_present(GTK_WINDOW(window));
         TabJourneyPump();
         CHECK(gtk_widget_get_mapped(window));
         failed=ExerciseNativeProjectControls(workbench,services,documents,directory,name);
+        goto cleanup;
+    }
+    if (!strcmp(name,"menu-build-run") || !strcmp(name,"menu-build-repair")) {
+        g_object_set_data(G_OBJECT(window),"studio-test-visible-build",GINT_TO_POINTER(1));
+        g_object_set_data(G_OBJECT(window),"studio-test-menu-build",GINT_TO_POINTER(1));
+        g_object_set_data(G_OBJECT(window),"studio-test-menu-evidence",directory);
+        gtk_window_present(GTK_WINDOW(window));
+        TabJourneyPump();
+        CHECK(gtk_widget_get_mapped(window));
+        failed=ExerciseNativeBuild(workbench,services,documents,directory,!strcmp(name,"menu-build-repair"));
         goto cleanup;
     }
     if (!strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair")) {
