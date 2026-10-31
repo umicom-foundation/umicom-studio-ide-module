@@ -180,3 +180,6 @@ UMI_STUDIO_FIRST_USE_CASE("menu-presentation", 0)
 /* Menu routing uses real compile, repair and launch results. */
 UMI_STUDIO_FIRST_USE_CASE("menu-build-run", 1)
 UMI_STUDIO_FIRST_USE_CASE("menu-build-repair", 1)
+
+UMI_STUDIO_FIRST_USE_CASE("menu-task-groups", 0)
+UMI_STUDIO_FIRST_USE_CASE("menu-shortcuts", 0)

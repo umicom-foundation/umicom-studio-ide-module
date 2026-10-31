@@ -649,6 +649,21 @@ static int ExerciseSettingsPresentation(UmiStudioGtkWorkbench **slot,
     handler = g_signal_connect(windows, "items-changed", G_CALLBACK(SettingsWindowAdded), &probe);
     UmiStatus status = umi_studio_gtk_workbench_execute_command(*slot, "build.settings", NULL);
     CHECK(probe.observed == 1U && probe.complete);
+    /* The application consumes Framework's prepared sections; optional saved
+     * configuration controls must be in their section before presentation. */
+    for (guint i = 0U; i < probe.windows->len; ++i) {
+        GtkWindow *prepared = g_ptr_array_index(probe.windows, i);
+        GtkWidget *sections = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(prepared),
+            "developer.settings.sections");
+        if (sections == NULL) continue;
+        CHECK(GTK_IS_STACK(sections));
+        GtkWidget *configurations = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(prepared),
+            "developer.settings.section.configurations");
+        GtkWidget *refresh = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(prepared),
+            "developer.configurations.refresh");
+        CHECK(configurations != NULL && refresh != NULL);
+        CHECK(gtk_widget_is_ancestor(refresh, configurations));
+    }
     CHECK(umi_document_coordinator_count(documents) == 1U);
     UmiStudioWorkspaceSnapshot workspace;
     CHECK(umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK && !workspace.graph.trusted);
@@ -2584,6 +2599,10 @@ int main(int argc, char **argv)
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     CHECK(umi_document_coordinator_count(documents) == 0U);
+    if (strcmp(name, "menu-task-groups") == 0 || strcmp(name, "menu-shortcuts") == 0) {
+        failed = ExerciseMenuDetails(workbench, documents, name);
+        goto cleanup;
+    }
     if (strcmp(name, "menu-presentation") == 0) {
         failed = ExerciseMenuPresentation(workbench, documents);
         goto cleanup;

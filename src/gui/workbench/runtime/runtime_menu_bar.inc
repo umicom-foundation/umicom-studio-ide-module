@@ -19,6 +19,8 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+#include "umicom/ui/gtk4/action_menu.h"
+
 /* Menu signals now use the same weak owner as toolbar commands, preserve
  * explicit arguments, and reacquire authority after dismissing the popover.
  * The former borrowed-runtime, chooser-only implementation is kept for review. */
@@ -192,6 +194,8 @@ static GtkWidget *runtime_build_single_menu(
     const char *root_suffix;
     size_t prefix_length;
     size_t index;
+    char previous_group[UMI_APPLICATION_SHELL_ID_CAPACITY] = {0};
+    int have_row = 0;
 
     /*
      * Protect caller-owned memory by checking that required state is available before it is
@@ -281,7 +285,23 @@ static GtkWidget *runtime_build_single_menu(
             continue;
         }
 
+        /* Framework draws the caption and shortcut. The exact keyboard
+         * catalogue supplies the binding; no guessed or inactive shortcut is
+         * advertised and the menu keeps its existing command callback. */
+#if 0
         button = gtk_button_new_with_label(contribution.title);
+#endif
+        guint keyval = 0U;
+        GdkModifierType modifiers = 0;
+        for (size_t key = 0U; key < sizeof RUNTIME_KEY_PROFILES / sizeof RUNTIME_KEY_PROFILES[0]; ++key) {
+            if (strcmp(RUNTIME_KEY_PROFILES[key].command_id, contribution.command_id) == 0) {
+                keyval = RUNTIME_KEY_PROFILES[key].key_lower;
+                modifiers = RUNTIME_KEY_PROFILES[key].modifiers;
+                break;
+            }
+        }
+        if (UmiGtk4ActionMenuButtonCreate(contribution.title, keyval, modifiers,
+                &button) != UMI_STATUS_OK) continue;
         /*
          * Protect caller-owned memory by checking that required state is available before it is
          * used.
@@ -323,6 +343,15 @@ static GtkWidget *runtime_build_single_menu(
                 G_CALLBACK(runtime_on_menu_item_clicked)))
             gtk_widget_set_sensitive(button, FALSE);
 
+        /* The Framework profile owns task grouping. Separators depend on the
+         * previous visible row, so hidden entries cannot leave empty sections. */
+        if (have_row && strcmp(previous_group, contribution.group_id) != 0) {
+            GtkWidget *separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+            gtk_widget_set_name(separator, "studio-menu-section");
+            gtk_box_append(GTK_BOX(items), separator);
+        }
+        g_strlcpy(previous_group, contribution.group_id, sizeof previous_group);
+        have_row = 1;
         gtk_box_append(GTK_BOX(items), button);
     }
 
