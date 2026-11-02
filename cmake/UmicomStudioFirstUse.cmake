@@ -1,4 +1,17 @@
-# Umicom Studio IDE | Sammy Hegab, Umicom Foundation | MIT
+# -----------------------------------------------------------------------------
+# Umicom Studio IDE
+# File: cmake/UmicomStudioFirstUse.cmake
+#
+# PURPOSE:
+#   Register native first-use and document workflows with isolated evidence folders.
+#
+# AUTHOR AND ORGANISATION:
+# Sammy Hegab
+# Umicom Foundation
+#
+# LICENCE:
+# MIT
+# -----------------------------------------------------------------------------
 include_guard(GLOBAL)
 # Use the actual workbench so model-only success cannot hide unreachable editors.
 if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
@@ -71,10 +84,24 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
         evidence-selected-close evidence-results-close evidence-coverage-close evidence-output-close evidence-locations-close evidence-row-close evidence-selection evidence-invalid-bytes evidence-clipboard-close evidence-reenter evidence-reselect
         explorer-row-close explorer-summary-close explorer-status-close explorer-filter-during-refresh explorer-workspace-during-refresh explorer-reenter explorer-unchanged explorer-same-root-reopen explorer-retained-old-row)
     ]=]
+    # Nested sample projects and CMake compiler probes need space within the
+    # Windows object-path limit. Use the top-level build root rather than the
+    # application subdirectory, and allow an explicit shorter evidence root.
+    # Each scenario still owns a separate directory and retains its artifacts.
+    set(UMICOM_STUDIO_QUALIFICATION_ROOT "${CMAKE_BINARY_DIR}/qualification/studio"
+        CACHE PATH "Directory for isolated Studio first-use projects and evidence")
+    get_filename_component(_studio_first_use_root "${UMICOM_STUDIO_QUALIFICATION_ROOT}"
+        ABSOLUTE BASE_DIR "${CMAKE_BINARY_DIR}")
     foreach(case IN LISTS _studio_first_use_native_cases)
+        # The former nested evidence location is retained for review.
+        #[=[
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
         add_test(NAME studio.first_use.gtk4.${case} COMMAND umicom-studio-first-use-test ${case}
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
+        ]=]
+        file(MAKE_DIRECTORY "${_studio_first_use_root}/${case}")
+        add_test(NAME studio.first_use.gtk4.${case} COMMAND umicom-studio-first-use-test ${case}
+            "${_studio_first_use_root}/${case}")
         set_tests_properties(studio.first_use.gtk4.${case} PROPERTIES
             TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;document;first-use;acceptance")
     endforeach()
@@ -86,9 +113,15 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
         discovery-feedback-close discovery-run-feedback-close)
     ]=]
     foreach(case IN LISTS _studio_first_use_toolchain_cases)
+        # The former nested evidence location is retained for review.
+        #[=[
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
         add_test(NAME studio.first_use.gtk4.${case} COMMAND umicom-studio-first-use-test ${case}
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/first-use-${case}")
+        ]=]
+        file(MAKE_DIRECTORY "${_studio_first_use_root}/${case}")
+        add_test(NAME studio.first_use.gtk4.${case} COMMAND umicom-studio-first-use-test ${case}
+            "${_studio_first_use_root}/${case}")
         set_tests_properties(studio.first_use.gtk4.${case} PROPERTIES
             TIMEOUT 600 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;first-use;acceptance;toolchain")
     endforeach()
@@ -189,7 +222,8 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     foreach(case open-create-close save-create-close folder-create-close
         open-seed-close save-seed-close folder-seed-close open-present-close save-present-close folder-present-close
         open-cancel save-cancel folder-cancel open-choose save-choose folder-choose
-        open-late-reply save-late-reply folder-late-reply save-other-tab open-switch-project)
+        open-late-reply save-late-reply folder-late-reply save-other-tab open-switch-project
+        open-menu-choose open-menu-cancel open-menu-retry-choose)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/chooser-${case}")
         add_test(NAME studio.document_chooser.gtk4.${case} COMMAND umicom-studio-document-chooser-test ${case}
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/chooser-${case}")

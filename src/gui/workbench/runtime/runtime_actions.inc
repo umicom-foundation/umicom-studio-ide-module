@@ -236,7 +236,9 @@ static UmiStatus runtime_execute_command(
     char *command = g_strdup(command_id);
     char *copiedArgument = g_strdup(argument);
     uint64_t feedbackRevision = runtime->notification_revision;
+    RuntimeTraceAction("command.dispatch", command, UMI_STATUS_OK);
     UmiStatus status = runtime_route_command(runtime, command, copiedArgument);
+    RuntimeTraceAction("command.return", command, status);
     GObject *window = NULL;
     runtime = runtime_file_dialog_owner(request, &window);
     if (runtime != NULL && status != UMI_STATUS_OK && !completedByBinding &&
@@ -293,6 +295,7 @@ static void runtime_on_command_button(GtkButton *button, gpointer user_data)
     GObject *window = NULL;
     UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request, &window);
     const char *command = g_object_get_data(G_OBJECT(button), "umicom-command-id");
+    RuntimeTraceAction("button.clicked", command, runtime != NULL ? UMI_STATUS_OK : UMI_STATUS_CANCELLED);
     const char *argument = g_object_get_data(G_OBJECT(button), "umicom-command-argument");
     /* Retain the former global-only gate; row availability also applies to
      * explicitly emitted signals while a missing project remains displayed. */

@@ -19,6 +19,22 @@
 #include "umicom/ui/gtk4/path_picker.h"
 #include "umicom/ui/gtk4/window_lifecycle.h"
 
+/* Opt-in action tracing records native dispatch boundaries, not user content.
+ * Only these built-in command names are emitted: arguments, paths, document text
+ * and native error messages never enter this trace. Millisecond timestamps let
+ * a support log distinguish a missing click from a missing chooser completion. */
+static void RuntimeTraceAction(const char *stage, const char *command, UmiStatus status)
+{
+    if (g_strcmp0(g_getenv("UMICOM_STUDIO_TRACE_ACTIONS"), "1") != 0) return;
+    const char *known[] = {"file.open", "file.new", "file.save", "file.save-as",
+        "workspace.open-folder", "build.settings", "build.build", "build.test", "build.run"};
+    const char *name = "other";
+    for (size_t i = 0U; i < sizeof known / sizeof known[0]; ++i)
+        if (g_strcmp0(command, known[i]) == 0) { name = known[i]; break; }
+    g_printerr("[studio.action] time_ms=%" G_GINT64_FORMAT " stage=%s command=%s status=%d\n",
+        g_get_real_time() / 1000, stage, name, (int)status);
+}
+
 /* Native requests can complete after a tab change or after Studio closes.
  * The window stores a non-owning runtime binding which teardown clears. */
 typedef struct UmiStudioFileDialogRequest {
@@ -635,6 +651,9 @@ static UmiStatus RuntimePresentDocumentChooser(UmiStudioGtkRuntimeChrome *runtim
     UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime,
         mode == UMI_PATH_PICKER_NEW_FILE && active != NULL ? active->document_id : 0U);
     if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    const char *command = mode == UMI_PATH_PICKER_NEW_FILE ? "file.save-as"
+        : mode == UMI_PATH_PICKER_DIRECTORY ? "workspace.open-folder" : "file.open";
+    RuntimeTraceAction("chooser.prepare", command, UMI_STATUS_OK);
     UmiStudioWorkspaceSnapshot workspace;
     UmiStatus workspaceStatus = umi_studio_workspace_snapshot(
         umi_studio_ui_services(runtime->owner->ui), &workspace);
@@ -653,6 +672,7 @@ static UmiStatus RuntimePresentDocumentChooser(UmiStudioGtkRuntimeChrome *runtim
         g_clear_object(&window);
         runtime = runtime_file_dialog_owner(request, &window);
         if (runtime != NULL && UmiGtk4WindowIsOpen(GTK_WINDOW(window))) {
+            RuntimeTraceAction("chooser.launch", command, UMI_STATUS_OK);
             /* Only retained native objects and the transferred request are used
              * after launch. A synchronous completion may destroy the host. */
             if (mode == UMI_PATH_PICKER_NEW_FILE)
@@ -673,6 +693,7 @@ static UmiStatus RuntimePresentDocumentChooser(UmiStudioGtkRuntimeChrome *runtim
     g_clear_object(&window);
     g_object_unref(dialog);
     runtime_file_dialog_request_free(request);
+    RuntimeTraceAction("chooser.dispatched", command, status);
     return status;
 }
 

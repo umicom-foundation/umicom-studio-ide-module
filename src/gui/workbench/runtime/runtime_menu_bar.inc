@@ -101,9 +101,11 @@ static void runtime_on_menu_item_clicked(
 static void runtime_on_menu_item_clicked(GtkButton *button, gpointer user_data)
 {
     UmiStudioFileDialogRequest *binding = user_data;
+    RuntimeTraceAction("menu.clicked", g_object_get_data(G_OBJECT(button), "umicom-command-id"), UMI_STATUS_OK);
     GObject *window = NULL;
     UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(binding, &window);
     if (runtime == NULL) {
+        RuntimeTraceAction("menu.owner-unavailable", NULL, UMI_STATUS_CANCELLED);
         g_clear_object(&window);
         return;
     }
@@ -126,6 +128,7 @@ static void runtime_on_menu_item_clicked(GtkButton *button, gpointer user_data)
         }
     }
     if (command[0] == '\0') {
+        RuntimeTraceAction("menu.command-missing", NULL, UMI_STATUS_NOT_FOUND);
         runtime_show_notification(runtime, "Menu contribution was not found.");
         g_clear_object(&window);
         return;

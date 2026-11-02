@@ -34,6 +34,39 @@
 #include <string.h>
 #define CHECK(c) do { if (!(c)) { fprintf(stderr, "line %d: %s\n", __LINE__, #c); failed = 1; goto cleanup; } } while (0)
 
+/* Model Select All followed by typing. set_text() is an irreversible buffer
+ * replacement and is not legal inside GTK's undoable user-action boundary. */
+static void FirstUseReplaceText(GtkTextBuffer *buffer, const char *text)
+{
+    GtkTextIter first, last;
+    gtk_text_buffer_begin_user_action(buffer);
+    gtk_text_buffer_get_bounds(buffer, &first, &last);
+    gtk_text_buffer_delete(buffer, &first, &last);
+    gtk_text_buffer_get_start_iter(buffer, &first);
+    gtk_text_buffer_insert(buffer, &first, text, -1);
+    gtk_text_buffer_end_user_action(buffer);
+}
+/* Automatic qualification finishes with TEST. Require the preceding BUILD
+ * evidence as well, so a passing test against stale binaries cannot suffice. */
+static int FirstUseBuildAndTestCompleted(UmiStudioBuildService *service,
+    const UmiBuildResult *latest)
+{
+    UmiBuildProjectSessionSnapshot progress;
+    if (UmiStudioBuildProgress(service, &progress) != UMI_STATUS_OK ||
+        progress.active || progress.requested_phase != UMI_BUILD_PHASE_BUILD ||
+        progress.completed_phase_count != 2U || latest->phase != UMI_BUILD_PHASE_TEST ||
+        latest->status != UMI_STATUS_OK || latest->exit_code != 0) return 0;
+    UmiBuildHistory *history = umi_studio_build_service_history(service);
+    size_t count = umi_build_history_count(history);
+    UmiBuildResult *compiled = NULL;
+    if (count < 2U || umi_build_result_create(&compiled) != UMI_STATUS_OK) return 0;
+    int passed = umi_build_history_at(history, count - 2U, compiled) == UMI_STATUS_OK &&
+        compiled->phase == UMI_BUILD_PHASE_BUILD && compiled->status == UMI_STATUS_OK &&
+        compiled->exit_code == 0;
+    umi_build_result_destroy(compiled);
+    return passed;
+}
+
 /* Match the real coordinator-owned page; a welcome or Output text view is not
  * sufficient evidence that the source editor is reachable. */
 static GtkWidget *FindEditor(GtkWidget *root, const char *viewId)
@@ -217,7 +250,19 @@ static UmiStatus FirstUseMenuBuildCommand(UmiStudioGtkWorkbench *workbench, cons
     }
     const char *evidence=g_object_get_data(G_OBJECT(window),"studio-test-menu-evidence");
     if (evidence!=NULL) {
+        /* A repair journey invokes Build twice. Keep both native screenshots:
+         * evidence capture refuses replacement, so a repeated command needs a
+         * new path before it can dispatch the second build. The counter belongs
+         * to this isolated window rather than to a process-wide test run. */
+#if 0
         char *image=g_strdup_printf("menu-%s.png",command);
+#endif
+        guint capture = GPOINTER_TO_UINT(g_object_get_data(G_OBJECT(window),
+            "studio-test-menu-capture"));
+        if (capture == G_MAXUINT) return UMI_STATUS_IO_ERROR;
+        ++capture;
+        g_object_set_data(G_OBJECT(window), "studio-test-menu-capture", GUINT_TO_POINTER(capture));
+        char *image=g_strdup_printf("menu-%s-%u.png",command,capture);
         int captured=TabJourneyCapture(window,evidence,image);
         g_free(image);
         if (!captured) return UMI_STATUS_IO_ERROR;
@@ -307,10 +352,15 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     CHECK(GTK_IS_TEXT_VIEW(editor));
     const char *validSource = "#include <stdio.h>\nint main(void) { puts(\"Studio native workflow complete\"); return 0; }\n";
     GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor));
+    /* Keep the former irreversible edit fixture for review. */
+#if 0
     gtk_text_buffer_begin_user_action(buffer);
     gtk_text_buffer_set_text(buffer, repairFailure
         ? "#error deliberate_studio_compile_failure\nint main(void) { return 0; }\n" : validSource, -1);
     gtk_text_buffer_end_user_action(buffer);
+#endif
+    FirstUseReplaceText(buffer, repairFailure
+        ? "#error deliberate_studio_compile_failure\nint main(void) { return 0; }\n" : validSource);
     CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && active.dirty);
     /* Retain direct command qualification; visible cases additionally require the native control. */
 #if 0
@@ -327,8 +377,12 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
 #endif
     CHECK(FirstUseBuildCommand(workbench, "build.build") == UMI_STATUS_OK);
     CHECK(WaitForWorkbenchBuild(workbench, build, result));
+    /* Retain the old one-phase expectation; qualification now includes tests. */
+#if 0
     CHECK(result->phase == UMI_BUILD_PHASE_BUILD);
+#endif
     if (repairFailure) {
+        CHECK(result->phase == UMI_BUILD_PHASE_BUILD);
         CHECK(result->status != UMI_STATUS_OK && result->exit_code != 0);
         CHECK(strstr(result->output, "deliberate_studio_compile_failure") != NULL);
         if (visible) CHECK(TabJourneyCapture(window,fixture,"build-rejected.png"));
@@ -348,17 +402,25 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
         editor = FindEditor(window, active.view_id);
         CHECK(Reachable(editor, window));
         buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor));
+        /* The repair must travel through ordinary editable-buffer signals. */
+#if 0
         gtk_text_buffer_begin_user_action(buffer);
         gtk_text_buffer_set_text(buffer, validSource, -1);
         gtk_text_buffer_end_user_action(buffer);
+#endif
+        FirstUseReplaceText(buffer, validSource);
         /* Retain direct command qualification; visible cases additionally require the native control. */
 #if 0
         CHECK(umi_studio_gtk_workbench_execute_command(workbench, "build.build", NULL) == UMI_STATUS_OK);
 #endif
         CHECK(FirstUseBuildCommand(workbench, "build.build") == UMI_STATUS_OK);
         CHECK(WaitForWorkbenchBuild(workbench, build, result));
+        /* Successful repair includes the automatic test phase. */
+#if 0
         CHECK(result->phase == UMI_BUILD_PHASE_BUILD);
+#endif
     }
+    CHECK(FirstUseBuildAndTestCompleted(build, result));
     CHECK(result->status == UMI_STATUS_OK && result->exit_code == 0);
     if (visible) CHECK(TabJourneyCapture(window,fixture,"build-complete.png"));
     /* Retain direct command qualification; visible cases additionally require the native control. */
@@ -2553,7 +2615,13 @@ int main(int argc, char **argv)
     char *draft = NULL;
     size_t draftLength = 0U;
     /* Keep fixtures under the explicitly supplied build qualification folder. */
+    /* The scenario already names its parent directory. A short, unique leaf
+     * leaves room for generated projects and nested compiler probes on Windows.
+     * Retain the former longer name for comparison; no earlier fixture is moved. */
+#if 0
     directory = g_build_filename(argv[2], "umicom-first-use-XXXXXX", NULL);
+#endif
+    directory = g_build_filename(argv[2], "s-XXXXXX", NULL);
     CHECK(g_mkdtemp(directory) != NULL);
     CHECK(directory != NULL && g_chdir(directory) == 0);
     changedDirectory = 1;

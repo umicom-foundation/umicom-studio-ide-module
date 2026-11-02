@@ -83,9 +83,13 @@ static int ExerciseNativeProjectControls(UmiStudioGtkWorkbench *workbench,
         "\n"
         "#error launch_only_must_not_compile_or_save_this_draft\n";
     const char *replacement=runCurrent ? unsavedSource : rejectedSource;
+    /* Preserve the old fixture; user edits require reversible delete/insert. */
+#if 0
     gtk_text_buffer_begin_user_action(buffer);
     gtk_text_buffer_set_text(buffer,replacement,-1);
     gtk_text_buffer_end_user_action(buffer);
+#endif
+    FirstUseReplaceText(buffer,replacement);
     CHECK(umi_document_coordinator_active_snapshot(documents,&active)==UMI_STATUS_OK && active.dirty);
     CHECK(UmiStudioBuildProgress(build,&before)==UMI_STATUS_OK && !before.active);
     CHECK(FirstUseBuildCommand(workbench,runCurrent ? UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT : "build.test")==UMI_STATUS_OK);
@@ -115,9 +119,13 @@ static int ExerciseNativeProjectControls(UmiStudioGtkWorkbench *workbench,
         CHECK(GTK_IS_TEXT_VIEW(editor) && gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor))==buffer);
         /* Repair the exact test input in the visible editor; no shell-side
          * replacement or fabricated success can stand in for the user journey. */
+        /* Preserve the old fixture; user edits require reversible delete/insert. */
+#if 0
         gtk_text_buffer_begin_user_action(buffer);
         gtk_text_buffer_set_text(buffer,saved,-1);
         gtk_text_buffer_end_user_action(buffer);
+#endif
+        FirstUseReplaceText(buffer,saved);
         CHECK(FirstUseBuildCommand(workbench,"build.test")==UMI_STATUS_OK);
         CHECK(WaitForWorkbenchBuild(workbench,build,result));
         CHECK(UmiStudioBuildProgress(build,&after)==UMI_STATUS_OK && after.operation_id>before.operation_id);

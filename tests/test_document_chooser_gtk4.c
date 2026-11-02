@@ -30,6 +30,7 @@ static const char *chooserScenario, *chooserNextProject;
 static UmiStatus chooserNestedStatus;
 static int chooserArmed, chooserClosed;
 static unsigned chooserStarts;
+static GtkWindow *chooserParent;
 static int chooserMultiple;
 static GTask *chooserTask;
 static GAsyncReadyCallback chooserCallback;
@@ -87,7 +88,7 @@ static void ChooserReply(GFile *file)
 static void ChooserPresent(GtkFileDialog *dialog, GtkWindow *parent, GCancellable *cancel,
     GAsyncReadyCallback callback, gpointer context)
 {
-    (void)parent;
+    g_set_object(&chooserParent, parent);
     ++chooserStarts;
     g_set_object(&chooserFolder, gtk_file_dialog_get_initial_folder(dialog));
     g_free(chooserName); chooserName = g_strdup(gtk_file_dialog_get_initial_name(dialog));
@@ -134,6 +135,22 @@ static GListModel *ChooserFinishMultiple(GtkFileDialog *dialog, GAsyncResult *re
 #undef gtk_file_dialog_save_finish
 #undef gtk_file_dialog_select_folder_finish
 
+/* Menu coverage must leave the filename argument unset. Supplying a path
+ * takes the direct-open route and cannot detect missing chooser dispatch. */
+static GtkWidget *ChooserMenuOpen(GtkWidget *root)
+{
+    const char *command = g_object_get_data(G_OBJECT(root), "umicom-command-id");
+    if (GTK_IS_BUTTON(root) && g_strcmp0(command, "file.open") == 0 &&
+        g_object_get_data(G_OBJECT(root), "umicom-contribution-id") != NULL)
+        return root;
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = ChooserMenuOpen(child);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "%d: %s\n", __LINE__, #x); failed = 1; goto cleanup; } } while (0)
 int main(int argc, char **argv)
 {
@@ -143,7 +160,8 @@ int main(int argc, char **argv)
         "open-seed-close", "save-seed-close", "folder-seed-close", "open-present-close",
         "save-present-close", "folder-present-close", "open-cancel", "save-cancel", "folder-cancel",
         "open-choose", "save-choose", "folder-choose", "open-late-reply", "save-late-reply",
-        "folder-late-reply", "save-other-tab", "open-switch-project"};
+        "folder-late-reply", "save-other-tab", "open-switch-project",
+        "open-menu-choose", "open-menu-cancel", "open-menu-retry-choose"};
     int known = 0;
     for (size_t i = 0U; i < sizeof cases / sizeof cases[0]; ++i) if (strcmp(mode, cases[i]) == 0) known = 1;
     if (!known) return 2;
@@ -155,6 +173,7 @@ int main(int argc, char **argv)
     UmiSettings *settings = NULL; UmiStudioBootstrap *bootstrap = NULL;
     UmiStudioGtkWorkbench *workbench = NULL; GtkApplication *application = NULL;
     GFile *expectedFolder = NULL;
+    GtkWidget *menuOpen = NULL;
     size_t initialCount = 0U, initialBytes = 0U;
     char *initialText = NULL, *retainedText = NULL;
     UmiDocumentWorkingCopySnapshot initialDocument = {0};
@@ -183,6 +202,7 @@ int main(int argc, char **argv)
     application = gtk_application_new("org.umicom.studio.chooser-test", G_APPLICATION_NON_UNIQUE);
     CHECK(g_application_register(G_APPLICATION(application), NULL, NULL));
     UmiStudioGtkWorkbenchOptions options = {0};
+    options.present_window = strstr(mode, "-menu-") != NULL;
     CHECK(umi_studio_gtk_workbench_create_with_options(application, ui,
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workspace.open-folder", project) == UMI_STATUS_OK);
@@ -206,8 +226,38 @@ int main(int argc, char **argv)
         CHECK(UmiUiDocumentViewModelCopyText(views, initialDocument.view_id, &initialText, &initialBytes) == UMI_STATUS_OK);
     expectedFolder = g_file_new_for_path(project);
     chooserHost = &workbench; chooserScenario = mode; chooserNextProject = secondProject; chooserArmed = 1;
-    UmiStatus status = umi_studio_gtk_workbench_execute_command(workbench,
+    /* Preserve direct command coverage and add the actual menu signal path. */
+    UmiStatus status = UMI_STATUS_OK;
+    if (strstr(mode, "-menu-") != NULL) {
+        GtkWindow *host = umi_studio_gtk_workbench_window(workbench);
+        for (unsigned attempt = 0U; attempt < 1000U && !gtk_widget_get_mapped(GTK_WIDGET(host)); ++attempt) {
+            for (unsigned event = 0U; event < 32U && g_main_context_pending(NULL); ++event)
+                (void)g_main_context_iteration(NULL, FALSE);
+            if (!gtk_widget_get_mapped(GTK_WIDGET(host))) g_usleep(1000U);
+        }
+        CHECK(gtk_widget_get_mapped(GTK_WIDGET(host)));
+        GtkWidget *found = ChooserMenuOpen(GTK_WIDGET(host));
+        CHECK(GTK_IS_BUTTON(found) && gtk_widget_is_sensitive(found));
+        menuOpen = g_object_ref(found);
+        CHECK(g_object_get_data(G_OBJECT(menuOpen), "umicom-command-argument") == NULL);
+        GtkWidget *popover = gtk_widget_get_ancestor(menuOpen, GTK_TYPE_POPOVER);
+        CHECK(GTK_IS_POPOVER(popover));
+        gtk_popover_popup(GTK_POPOVER(popover));
+        g_signal_emit_by_name(menuOpen, "clicked");
+        CHECK(chooserStarts == 1U && chooserTask != NULL && chooserParent == host);
+        CHECK(!gtk_widget_get_visible(popover));
+        if (strcmp(mode, "open-menu-retry-choose") == 0) {
+            ChooserReply(NULL);
+            CHECK(chooserTask == NULL && umi_document_coordinator_count(documents) == initialCount);
+            gtk_popover_popup(GTK_POPOVER(popover));
+            g_signal_emit_by_name(menuOpen, "clicked");
+            CHECK(chooserStarts == 2U && chooserTask != NULL && chooserParent == host);
+            CHECK(!gtk_widget_get_visible(popover));
+        }
+    } else {
+        status = umi_studio_gtk_workbench_execute_command(workbench,
         save ? "file.save-as" : folder ? "workspace.open-folder" : "file.open", NULL);
+    }
     chooserArmed = 0;
     if (strstr(mode, "create-close") != NULL || strstr(mode, "seed-close") != NULL) {
         CHECK(status == UMI_STATUS_CANCELLED && workbench == NULL && chooserClosed && chooserStarts == 0U);
@@ -217,7 +267,8 @@ int main(int argc, char **argv)
         CHECK(workbench == NULL && chooserClosed && chooserStarts == 1U && chooserTask == NULL);
         CHECK(status == UMI_STATUS_OK); goto verify;
     }
-    CHECK(status == UMI_STATUS_OK && chooserTask != NULL && chooserStarts == 1U);
+    CHECK(status == UMI_STATUS_OK && chooserTask != NULL &&
+        chooserStarts == (strcmp(mode, "open-menu-retry-choose") == 0 ? 2U : 1U));
     CHECK(chooserFolder != NULL && g_file_equal(chooserFolder, expectedFolder));
     if (strcmp(mode, "open-switch-project") == 0) CHECK(chooserNestedStatus == UMI_STATUS_OK);
     /* The current chooser accepts multiple files; keep its earlier caption for review. */
@@ -294,6 +345,7 @@ cleanup:
     if (workbench != NULL) umi_studio_gtk_workbench_destroy(workbench);
     if (bootstrap != NULL) umi_studio_bootstrap_destroy(bootstrap);
     if (settings != NULL) umi_settings_destroy(settings);
+    g_clear_object(&menuOpen); g_clear_object(&chooserParent);
     g_clear_object(&application); g_clear_object(&expectedFolder); g_clear_object(&chooserFolder);
     if (changedDirectory) (void)g_chdir(original);
     if (oldData != NULL) (void)g_setenv("UMICOM_STUDIO_DATA_PATH", oldData, TRUE); else g_unsetenv("UMICOM_STUDIO_DATA_PATH");

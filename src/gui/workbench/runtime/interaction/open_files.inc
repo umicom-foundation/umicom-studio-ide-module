@@ -210,6 +210,9 @@ static void runtime_open_files_complete(GObject *source, GAsyncResult *result, g
   UmiStudioFileDialogRequest *request = data;
   GError *error = NULL;
   GListModel *files = gtk_file_dialog_open_multiple_finish(GTK_FILE_DIALOG(source), result, &error);
+  RuntimeTraceAction(files != NULL ? "chooser.selected" : runtime_file_dialog_cancelled(error)
+      ? "chooser.cancelled" : "chooser.failed", "file.open", files != NULL
+      ? UMI_STATUS_OK : runtime_file_dialog_cancelled(error) ? UMI_STATUS_CANCELLED : UMI_STATUS_INVALID_STATE);
   GObject *window = NULL;
   UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request, &window);
   if (runtime != NULL && files == NULL && error != NULL && !runtime_file_dialog_cancelled(error))
@@ -229,6 +232,7 @@ static void runtime_open_files_complete(GObject *source, GAsyncResult *result, g
       status = runtime != NULL ? RuntimeStartOpenFiles(runtime, (const char *const *)paths, count)
                                : UMI_STATUS_CANCELLED;
     }
+    RuntimeTraceAction("documents.open-requested", "file.open", status);
     for (size_t i = 0U; i < UMI_DOCUMENT_OPEN_BATCH_MAXIMUM; ++i)
       g_free(paths[i]);
     runtime = RuntimeResolveOwner(request, &window);
