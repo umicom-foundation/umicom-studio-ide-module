@@ -23,6 +23,58 @@
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
 #include "umicom/ui/gtk4/learning_catalogue.h"
 #include "umicom/ui/gtk4/learning_help_binding.h"
+#include "umicom/teacher/learning_module.h"
+#include "umicom/platform/filesystem.h"
+
+/* Applications declare content identities; Framework owns path composition,
+ * admission, verified reads and window lifetime. Moving the installation or
+ * choosing another project does not change where bundled guides are found. */
+typedef struct RuntimeLearningModule {
+    const char *folder, *pack, *product, *entry, *title, *description;
+} RuntimeLearningModule;
+static const RuntimeLearningModule runtime_learning_modules[] = {
+    {"studio-guide", "studio.learning-guide", "studio", "learning-in-studio",
+     "Studio user guides", "Opening, editing, building and learning in Studio."},
+    {"bits2banking", "bits2banking.framework-finance", "bits2banking", "index",
+     "Bits2Banking courses", "Follow modules, worked examples and practice exercises."},
+    {"framework-wiki", "framework.studio-wiki", "framework", "index",
+     "Framework learning wiki", "Learn C, GTK4, project tools and Framework extension contracts."}
+};
+static UmiStatus RuntimeLearningModuleDirectory(const RuntimeLearningModule *module,
+    char *directory, size_t capacity)
+{
+    char executable[UMI_PATH_CAPACITY];
+    UmiStatus status = umi_fs_executable_path(executable, sizeof(executable));
+    if (status == UMI_STATUS_OK)
+        status = UmiLearningModuleRoot(executable, module->folder, directory, capacity);
+    return status;
+}
+static void RuntimeLearningOfferModules(GtkWidget *panel)
+{
+    for (size_t i = 0U; i < sizeof(runtime_learning_modules) / sizeof(runtime_learning_modules[0]); ++i) {
+        const RuntimeLearningModule *module = &runtime_learning_modules[i];
+        char directory[UMI_PATH_CAPACITY];
+        if (RuntimeLearningModuleDirectory(module, directory, sizeof(directory)) == UMI_STATUS_OK)
+            (void)UmiLearningCatalogueGtk4OfferModule(panel, module->title, module->description,
+                directory, module->pack, module->product, module->entry);
+    }
+}
+static UmiStatus RuntimeLearningOpenBundled(GtkWidget *panel, const UmiLearningHelpRoute *route)
+{
+    for (size_t i = 0U; i < sizeof(runtime_learning_modules) / sizeof(runtime_learning_modules[0]); ++i) {
+        const RuntimeLearningModule *module = &runtime_learning_modules[i];
+        if (strcmp(module->pack, route->pack_id) == 0 &&
+            strcmp(module->product, route->request.product) == 0) {
+            char directory[UMI_PATH_CAPACITY];
+            UmiStatus status = RuntimeLearningModuleDirectory(module, directory, sizeof(directory));
+            if (status != UMI_STATUS_OK) return status;
+            return UmiLearningCatalogueGtk4OpenModule(panel, directory, module->pack,
+                module->product, route->resource_id);
+        }
+    }
+    return UMI_STATUS_NOT_FOUND;
+}
+
 /* Studio supplies a weak owner and the shared Framework compatibility version.
  * Catalogue storage, verification, searching and reading remain Framework
  * responsibilities; this action neither changes the project nor grants trust. */
@@ -133,7 +185,7 @@ static void RuntimeLearningCatalogueRoute(gpointer context, int open_help,
 }
 #endif
 static UmiStatus RuntimeLearningCatalogueRouteChecked(gpointer context, int open_help,
-    const char *topic, const char *resource)
+    const char *topic, const char *resource, const char *product, const char *pack)
 {
     UmiStatus result = UMI_STATUS_UNAVAILABLE;
     GObject *owner_window = NULL;
@@ -147,6 +199,7 @@ static UmiStatus RuntimeLearningCatalogueRouteChecked(gpointer context, int open
             GtkWidget *panel = gtk_window_get_child(window);
             if (panel != NULL) {
                 g_object_ref(panel);
+                RuntimeLearningOfferModules(panel);
                 UmiLearningHelpRoute route = {0};
                 (void)snprintf(route.request.product, sizeof(route.request.product), "studio");
                 (void)snprintf(route.request.locale, sizeof(route.request.locale), "en");
@@ -157,6 +210,10 @@ static UmiStatus RuntimeLearningCatalogueRouteChecked(gpointer context, int open
                 UmiStatus status = UmiLearningHelpGtk4Bind(panel, panel, &route);
                 result = status == UMI_STATUS_ALREADY_EXISTS ? UMI_STATUS_OK : status;
                 if (open_help && result == UMI_STATUS_OK) {
+                    /* Preserve the loaded-library-only dispatch for review.
+                     * Bundled modules now provide a first-open path while the
+                     * existing shelf and contextual help remain authoritative. */
+#if 0
                     if (topic == NULL || resource == NULL)
                         result = UmiLearningHelpGtk4Open(panel);
                     else {
@@ -164,8 +221,26 @@ static UmiStatus RuntimeLearningCatalogueRouteChecked(gpointer context, int open
                          * replacing the catalogue's existing F1 help policy. */
                         (void)snprintf(route.request.key,sizeof(route.request.key),"%s",topic);
                         (void)snprintf(route.resource_id,sizeof(route.resource_id),"%s",resource);
+                        /* The catalogue owns discovery and verification. A product
+                         * action selects an identity, never a hard-coded library path. */
+                        if (product != NULL)
+                            (void)snprintf(route.request.product, sizeof(route.request.product), "%s", product);
+                        if (pack != NULL)
+                            (void)snprintf(route.pack_id, sizeof(route.pack_id), "%s", pack);
                         result = UmiLearningHelpGtk4OpenRoute(panel,&route);
                     }
+#endif
+                    if (topic != NULL && resource != NULL) {
+                        (void)snprintf(route.request.key, sizeof(route.request.key), "%s", topic);
+                        (void)snprintf(route.resource_id, sizeof(route.resource_id), "%s", resource);
+                        if (product != NULL)
+                            (void)snprintf(route.request.product, sizeof(route.request.product), "%s", product);
+                        if (pack != NULL)
+                            (void)snprintf(route.pack_id, sizeof(route.pack_id), "%s", pack);
+                    }
+                    result = UmiLearningHelpGtk4OpenRoute(panel, &route);
+                    if (result == UMI_STATUS_NOT_FOUND)
+                        result = RuntimeLearningOpenBundled(panel, &route);
                 }
                 g_object_unref(panel);
             }
@@ -178,7 +253,7 @@ static UmiStatus RuntimeLearningCatalogueRouteChecked(gpointer context, int open
 static void RuntimeLearningCatalogueRoute(gpointer context, int open_help,
     const char *topic, const char *resource)
 {
-    (void)RuntimeLearningCatalogueRouteChecked(context, open_help, topic, resource);
+    (void)RuntimeLearningCatalogueRouteChecked(context, open_help, topic, resource, NULL, NULL);
 }
 
 static UmiStatus RuntimeLearningDispatch(UmiStudioGtkRuntimeChrome *runtime, const char *command)
@@ -192,7 +267,8 @@ static UmiStatus RuntimeLearningDispatch(UmiStudioGtkRuntimeChrome *runtime, con
      * to close Studio. No runtime pointer is reused after the shared dispatch. */
     UmiStatus status = RuntimeLearningCatalogueRouteChecked(binding,
         strcmp(command, "help.learning.catalogue") != 0,
-        guide != NULL ? guide->topic : NULL, guide != NULL ? guide->resource : NULL);
+        guide != NULL ? guide->topic : NULL, guide != NULL ? guide->resource : NULL,
+        guide != NULL ? guide->product : NULL, guide != NULL ? guide->pack : NULL);
     runtime_file_dialog_request_free(binding);
     return status;
 }
@@ -220,7 +296,13 @@ static void RuntimeLearningOpenProductGuide(GtkButton *button,gpointer context)
     /* These compile-time route strings remain valid through window callbacks;
      * no caller document text or transient widget data becomes guide policy. */
     const RuntimeLearningProductGuide *guide=&runtime_learning_product_guides[choice-1U];
+    /* Keep the previous Studio-only callback for comparison. Guided Learning
+     * and Welcome now pass the same product/pack identity to Framework. */
+#if 0
     RuntimeLearningCatalogueRoute(context,1,guide->topic,guide->resource);
+#endif
+    (void)RuntimeLearningCatalogueRouteChecked(context, 1, guide->topic,
+        guide->resource, guide->product, guide->pack);
 }
 
 static void RuntimeLearningCatalogue(GtkButton *button, gpointer context)

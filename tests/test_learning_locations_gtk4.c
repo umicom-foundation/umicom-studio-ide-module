@@ -308,12 +308,14 @@ int main(int argc, char **argv)
             CHECK(umi_studio_workspace_snapshot(services,&workspace)==UMI_STATUS_OK && !workspace.graph.open);
         }
     }
-    else if (g_str_has_prefix(argv[1], "welcome-") || !strcmp(argv[1], "menu-user-guide"))
+    else if (g_str_has_prefix(argv[1], "welcome-") || !strcmp(argv[1], "menu-user-guide") ||
+             !strcmp(argv[1], "guided-bits2banking"))
     {
         const char *mode = argv[1];
         const char *command = "help.learning.editing", *resource = "editing-files";
         if (strcmp(mode, "welcome-library") == 0) { command = "help.learning.catalogue"; resource = NULL; }
         else if (strcmp(mode, "welcome-guide") == 0) { command = "help.learning.guide"; resource = "learning-in-studio"; }
+        else if (strcmp(mode, "welcome-bits2banking") == 0 || strcmp(mode, "guided-bits2banking") == 0) { command = "help.learning.bits2banking"; resource = "index"; }
         else if (strcmp(mode, "welcome-errors") == 0) { command = "help.learning.errors"; resource = "reading-build-errors"; }
         else if (strcmp(mode, "welcome-recent") == 0) { command = "help.learning.recent"; resource = "recent-projects"; }
         else if (strcmp(mode, "welcome-tests") == 0) { command = "help.learning.tests"; resource = "running-tests"; }
@@ -326,7 +328,8 @@ int main(int argc, char **argv)
         /* Exercise both actual entry points; the menu must not be confused
          * with a matching Welcome-page button sharing the same command. */
         const char *tag = !strcmp(mode, "menu-user-guide")
-            ? "umicom.shell.help-menu.user-guide" : command;
+            ? "umicom.shell.help-menu.user-guide" :
+            !strcmp(mode, "guided-bits2banking") ? "studio.learning.bits2banking" : command;
         catalogue_button = umi_gtk4_automation_find_tagged_widget(root, tag);
         CHECK(GTK_IS_BUTTON(catalogue_button) && gtk_widget_get_sensitive(catalogue_button));
         g_object_ref(catalogue_button);
@@ -370,6 +373,11 @@ int main(int argc, char **argv)
                 if (resource != NULL) CHECK(state.last_status == UMI_STATUS_OK && state.reader.has_document &&
                     strcmp(state.reader.selection.resource.id, resource) == 0);
                 else CHECK(!state.reader.has_document);
+                /* A matching resource ID in the Studio guide is insufficient:
+                 * the course action must select the independent product pack. */
+                if (strcmp(mode, "welcome-bits2banking") == 0 || strcmp(mode, "guided-bits2banking") == 0)
+                    CHECK(strcmp(state.reader.pack.id, "bits2banking.framework-finance") == 0 &&
+                        strcmp(state.reader.pack.product, "bits2banking") == 0);
                 if (strcmp(mode, "welcome-repeat") == 0) {
                     g_signal_emit_by_name(catalogue_button, "clicked"); CHECK(FinishCatalogue());
                     CHECK(g_list_model_get_n_items(gtk_window_get_toplevels()) == before);

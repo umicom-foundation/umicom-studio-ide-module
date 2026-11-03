@@ -1,0 +1,31 @@
+{
+  "schema": "umicom.learning.pack",
+  "version": 1,
+  "id": "bits2banking.framework-finance",
+  "title": "Bits2Banking route fixture",
+  "product": "bits2banking",
+  "locale": "en",
+  "revision": 1,
+  "compatibility": {
+    "minimum": [
+      0,
+      9,
+      0
+    ],
+    "maximum": [
+      0,
+      9,
+      0
+    ]
+  },
+  "resources": [
+    {
+      "id": "index",
+      "title": "Course route fixture",
+      "topic": "getting-started",
+      "kind": "guide",
+      "path": "index.html",
+      "sha256": "@_studio_bits_learning_sha256@"
+    }
+  ]
+}

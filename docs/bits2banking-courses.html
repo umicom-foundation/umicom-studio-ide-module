@@ -1,0 +1,27 @@
+<!doctype html>
+<!--
+Umicom Studio IDE
+File: docs/bits2banking-courses.html
+PURPOSE:
+Guide learners through selecting, reading and recording progress in local Bits2Banking courses.
+AUTHOR AND ORGANISATION:
+Sammy Hegab
+Umicom Foundation
+LICENCE:
+MIT
+-->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Follow Bits2Banking courses in Studio</title></head><body>
+<h1>Follow Bits2Banking courses in Studio</h1>
+<p>Bits2Banking contains learning material. Studio uses the Framework learning catalogue to read a selected pack without copying the lessons into your source project or running their examples.</p>
+<h2>Open the connected courses</h2><ol>
+<li>On Studio’s welcome page, select <strong>Follow Bits2Banking courses</strong>. The same action is available in Guided Learning. It opens the shared catalogue and requests the collection overview.</li>
+<li>If the collection has not been loaded, the catalogue reports that the matching local pack is missing. Choose the folder containing its <code>learning-pack.json</code>: normally <code>C:\umicom\Umicom-Bits2Banking\content\courses\framework-and-finance</code>. Use your own checkout location when different.</li>
+<li>Select <strong>Load learning pack</strong>. Wait for loading to finish, then select <strong>Follow Bits2Banking courses</strong> again, or select the overview in the results and choose <strong>Open selected</strong>.</li>
+<li>Choose a module and its first lesson. Use its Previous, Next and Course overview links. Back and Forward preserve the current reading sequence.</li>
+<li>Read the worked example, try its exercise and compare your explanation with the worked answer. Source-reading sections identify actual Framework files.</li></ol>
+<p>This collection has twelve introductory modules and twenty-four lessons. It connects software architecture, Studio documents, data, security, banking, payments, treasury, accounting, trading, delivery, AI and integration. It does not include every longer course in the browser library.</p>
+<h2>Record progress deliberately</h2><ol><li>Expand <strong>Private learning checkpoints</strong>.</li><li>Enter an absolute database filename in a folder you choose. Keep it separate from shared course content.</li><li>Enter a <strong>Local learner ID</strong>, a <strong>Checkpoint ID</strong> and an <strong>Evidence reference</strong>. For example, use <code>learner-1</code>, <code>reviewed</code> and <code>exercise-1</code>. These short identifiers are not a place for personal notes or file paths.</li><li>Use <strong>Inspect checkpoint</strong> to read an existing record, or <strong>Record checkpoint</strong> to append an activity you completed. Inspect does not create a missing database. The parent folder must exist. These controls require a build with learning progress storage enabled.</li></ol><p>Progress is local and optional. Opening a page does not automatically mark it completed. No trading or banking credentials are needed.</p>
+<h2>Keep practice work separate</h2><p>Create a practice project in a folder you choose. A lesson’s source reference is for reading; do not edit your main Framework checkout to complete a paper exercise. Review project trust and build settings before running any example. Reading a pack grants no execution permission.</p>
+<h2>Use the full browser library</h2><p>Open <code>content/courses/index.html</code> inside your Bits2Banking checkout in a browser. It links the existing programming, Framework, OS, Kernel and LLM courses. The native reader admits only resources declared inside its selected pack; it does not open arbitrary outside paths.</p>
+<h2>Troubleshooting</h2><ul><li><strong>Matching pack missing:</strong> load the collection folder, then repeat the course action.</li><li><strong>Changed file or checksum error:</strong> use a consistent published collection. A maintainer must review changes and regenerate the manifest; do not disable verification.</li><li><strong>Version refused:</strong> the collection declares Framework 0.9.0 compatibility. A different host needs a reviewed range update.</li><li><strong>Parent-folder link refused:</strong> the old reader accepted sibling links only. Use the updated Framework navigation or continue reading in a browser.</li><li><strong>Studio action does not respond:</strong> record the action and observed result. The browser route remains available while that runtime issue is investigated.</li></ul>
+</body></html>

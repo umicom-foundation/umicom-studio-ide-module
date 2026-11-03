@@ -5,7 +5,7 @@
   "title": "Learning with Umicom Studio IDE",
   "product": "studio",
   "locale": "en",
-  "revision": 8,
+  "revision": 9,
   "compatibility": {
     "minimum": [
       0,
@@ -74,6 +74,14 @@
       "kind": "guide",
       "path": "studio-menu-acceptance.html",
       "sha256": "@_studio_guide_studio-menu-acceptance_sha256@"
+    },
+    {
+      "id": "bits2banking-courses",
+      "title": "Follow Bits2Banking courses in Studio",
+      "topic": "learning",
+      "kind": "guide",
+      "path": "bits2banking-courses.html",
+      "sha256": "@_studio_guide_bits2banking-courses_sha256@"
     }
   ]
 }

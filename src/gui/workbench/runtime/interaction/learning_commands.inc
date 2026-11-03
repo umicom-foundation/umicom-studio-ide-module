@@ -15,9 +15,14 @@
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
 typedef struct RuntimeLearningProductGuide {
     const char *title, *topic, *resource, *tag, *command;
+    const char *product, *pack;
 } RuntimeLearningProductGuide;
 /* Only reviewed product identities belong here. Framework owns pack admission,
  * verified reads and history; a guide command cannot adopt or trust a project. */
+/* Retain the Studio-only guide table for review. Explicit product and pack
+ * identities let the same shared reader route to an independently chosen
+ * course library without embedding a machine-specific folder in Studio. */
+#if 0
 static const RuntimeLearningProductGuide runtime_learning_product_guides[] = {
     {"Read the Studio user guide", "studio-workflows", "studio-user-guide",
      "studio.learning.user-guide", "help.learning.user-guide"},
@@ -29,6 +34,25 @@ static const RuntimeLearningProductGuide runtime_learning_product_guides[] = {
      "studio.learning.tests-guide", "help.learning.tests"},
     {"Read the recent projects guide", "recent-projects", "recent-projects",
      "studio.learning.recent-guide", "help.learning.recent"}
+};
+#endif
+static const RuntimeLearningProductGuide runtime_learning_product_guides[] = {
+    {"Read the Studio user guide", "studio-workflows", "studio-user-guide",
+     "studio.learning.user-guide", "help.learning.user-guide", "studio", "studio.learning-guide"},
+    {"Read the editing and saving guide", "editing", "editing-files",
+     "studio.learning.editing-guide", "help.learning.editing", "studio", "studio.learning-guide"},
+    {"Read the compiler error guide", "build-errors", "reading-build-errors",
+     "studio.learning.errors-guide", "help.learning.errors", "studio", "studio.learning-guide"},
+    {"Read the testing guide", "testing", "running-tests",
+     "studio.learning.tests-guide", "help.learning.tests", "studio", "studio.learning-guide"},
+    {"Read the recent projects guide", "recent-projects", "recent-projects",
+     "studio.learning.recent-guide", "help.learning.recent", "studio", "studio.learning-guide"},
+    {"Follow Bits2Banking courses", "getting-started", "index",
+     "studio.learning.bits2banking", "help.learning.bits2banking",
+     "bits2banking", "bits2banking.framework-finance"},
+    {"Open the Framework learning wiki", "framework-wiki", "index",
+     "studio.learning.framework-wiki", "help.learning.framework-wiki",
+     "framework", "framework.studio-wiki"}
 };
 static const RuntimeLearningProductGuide *RuntimeLearningGuideForCommand(const char *command)
 {
