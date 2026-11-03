@@ -14,16 +14,17 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
-/* Umicom Studio IDE | Sammy Hegab, Umicom Foundation | MIT
- * The native host schedules Framework's captured open plan on the owner thread.
- * Each idle step keeps the application responsive between individual reads. */
 #include "umicom/document/open_batch.h"
 typedef struct StudioOpenFilesJob {
   UmiStudioFileDialogRequest *owner;
   UmiDocumentOpenBatch *batch;
+  /* Loading bytes and presenting an editable page are separate outcomes. */
+  UmiStatus presentation[UMI_DOCUMENT_OPEN_BATCH_MAXIMUM];
+  size_t presentationFailures;
 } StudioOpenFilesJob;
 #define STUDIO_OPEN_FILES_JOB "umicom-studio-open-files-job"
 #define STUDIO_OPEN_FILES_RESULT "umicom-studio-open-files-result"
+#define STUDIO_OPEN_FILES_REPORT "umicom-studio-open-files-report"
 static void RuntimeOpenFilesResultFree(gpointer data) { UmiDocumentOpenBatchDestroy(data); }
 static void RuntimeOpenFilesFree(gpointer data) {
   StudioOpenFilesJob *job = data;
@@ -120,12 +121,31 @@ static void RuntimeOpenFilesReport(GtkWindow *parent, const char *text) {
   }
   g_object_unref(dialog);
 }
+/* Keep presentation failures alongside the immutable load report. A successful
+ * document read must never be mistaken for a usable native editor. The text
+ * stays in this window and is not written to a log or a default directory. */
+static char *RuntimeOpenFilesCompletedText(StudioOpenFilesJob *job) {
+  char *loaded = RuntimeOpenFilesText(job->batch);
+  GString *text = g_string_new(loaded);
+  g_free(loaded);
+  for (size_t i = 0U; i < UMI_DOCUMENT_OPEN_BATCH_MAXIMUM; ++i) {
+    if (job->presentation[i] != UMI_STATUS_OK)
+      g_string_append_printf(text, "File %zu was loaded, but its editor could not be displayed: %s.\n",
+          i + 1U, umi_status_text(job->presentation[i]));
+  }
+  if (job->presentationFailures != 0U)
+    g_string_append(text, "\nThe loaded documents and any unsaved changes are retained. "
+        "Use the editor document tabs to select a source, or restore an editor layout.\n");
+  return g_string_free(text, FALSE);
+}
 static gboolean RuntimeOpenFilesTick(gpointer data) {
   StudioOpenFilesJob *job = data;
+  RuntimeTraceAction("documents.step", "file.open", UMI_STATUS_OK);
   GObject *window = NULL;
   UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(job->owner, &window);
   if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(window))) {
     (void)UmiDocumentOpenBatchCancel(job->batch);
+    RuntimeTraceAction("documents.owner-retired", "file.open", UMI_STATUS_CANCELLED);
     g_clear_object(&window);
     return G_SOURCE_REMOVE;
   }
@@ -134,16 +154,27 @@ static gboolean RuntimeOpenFilesTick(gpointer data) {
       UmiDocumentOpenBatchStep(job->batch, umi_studio_ui_documents(runtime->owner->ui), &index);
   if (step == UMI_STATUS_OK) {
     UmiDocumentOpenItem item;
-    if (UmiDocumentOpenBatchAt(job->batch, index, &item) == UMI_STATUS_OK &&
+    UmiStatus itemStatus = UmiDocumentOpenBatchAt(job->batch, index, &item);
+    RuntimeTraceAction("documents.read", "file.open", itemStatus == UMI_STATUS_OK ? item.status : itemStatus);
+    if (itemStatus == UMI_STATUS_OK &&
         item.state == UMI_DOCUMENT_OPEN_SUCCEEDED) {
       runtime = RuntimeResolveOwner(job->owner, &window);
       if (runtime != NULL) {
         runtime_copy_selection(runtime->selected_file_path, sizeof runtime->selected_file_path,
                                item.path);
+        /* The old path discarded presentation failure after a successful read.
+         * Retain it for review; reporting now distinguishes both operations. */
+#if 0
         (void)RuntimePresentActiveSource(runtime);
+#endif
+        UmiStatus presentation = RuntimePresentActiveSource(runtime);
+        RuntimeTraceAction("documents.present", "file.open", presentation);
+        if (index < UMI_DOCUMENT_OPEN_BATCH_MAXIMUM) job->presentation[index] = presentation;
+        if (presentation != UMI_STATUS_OK) ++job->presentationFailures;
       }
     }
   } else if (step != UMI_STATUS_NOT_FOUND) {
+    RuntimeTraceAction("documents.step-failed", "file.open", step);
     (void)UmiDocumentOpenBatchCancel(job->batch);
   }
   runtime = RuntimeResolveOwner(job->owner, &window);
@@ -158,10 +189,24 @@ static gboolean RuntimeOpenFilesTick(gpointer data) {
     g_clear_object(&window);
     return G_SOURCE_CONTINUE;
   }
+  /* Retain the former load-only success message for review. Native display
+   * failures are now visible and remain available in Opening Results. */
+#if 0
   char *details = summary.failed != 0U ? RuntimeOpenFilesText(job->batch) : NULL;
   char message[160];
   (void)snprintf(message, sizeof message, "%zu selected file(s) opened; %zu failed; %zu cancelled.",
                  summary.succeeded, summary.failed, summary.cancelled);
+#endif
+  char *report = RuntimeOpenFilesCompletedText(job);
+  char *details = summary.failed != 0U || job->presentationFailures != 0U ? g_strdup(report) : NULL;
+  char message[192];
+  (void)snprintf(message, sizeof message,
+      "%zu file(s) loaded; %zu could not be displayed; %zu failed to load; %zu cancelled.",
+      summary.succeeded, job->presentationFailures, summary.failed, summary.cancelled);
+  RuntimeTraceAction("documents.complete", "file.open",
+      summary.failed != 0U || job->presentationFailures != 0U ? UMI_STATUS_UNAVAILABLE :
+      summary.cancelled != 0U ? UMI_STATUS_CANCELLED : UMI_STATUS_OK);
+  g_object_set_data_full(window, STUDIO_OPEN_FILES_REPORT, report, g_free);
   /* Transfer the immutable completed report before notifications. It remains
    * inspectable until another batch completes or the native window is freed. */
   g_object_set_data(window, STUDIO_OPEN_FILES_JOB, NULL);
@@ -262,7 +307,9 @@ static UmiStatus RuntimeReviewOpenFiles(UmiStudioGtkRuntimeChrome *runtime)
     UmiDocumentOpenBatch *batch = g_object_get_data(G_OBJECT(window), STUDIO_OPEN_FILES_RESULT);
     if (batch == NULL) return UMI_STATUS_NOT_FOUND;
     g_object_ref(window);
-    char *text = RuntimeOpenFilesText(batch);
+    /* The detailed presentation report supplements Framework load outcomes. */
+    const char *report = g_object_get_data(G_OBJECT(window), STUDIO_OPEN_FILES_REPORT);
+    char *text = report != NULL ? g_strdup(report) : RuntimeOpenFilesText(batch);
     RuntimeOpenFilesReport(window, text);
     g_free(text);
     g_object_unref(window);

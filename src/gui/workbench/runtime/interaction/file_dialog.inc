@@ -27,7 +27,10 @@ static void RuntimeTraceAction(const char *stage, const char *command, UmiStatus
 {
     if (g_strcmp0(g_getenv("UMICOM_STUDIO_TRACE_ACTIONS"), "1") != 0) return;
     const char *known[] = {"file.open", "file.new", "file.save", "file.save-as",
-        "workspace.open-folder", "build.settings", "build.build", "build.test", "build.run"};
+        "workspace.open-folder", "project.new", "project.new-application",
+        "workspace.save", "file.save-all", "build.settings", "build.build", "build.test", "build.run",
+        "build.configure", "build.compile", "build.clean", "run.start", "run.stop",
+        "editor.undo", "editor.redo", "workspace.layout.lock", "workspace.layout.edit"};
     const char *name = "other";
     for (size_t i = 0U; i < sizeof known / sizeof known[0]; ++i)
         if (g_strcmp0(command, known[i]) == 0) { name = known[i]; break; }
@@ -107,18 +110,24 @@ static int runtime_file_dialog_cancelled(const GError *error)
 /* Opening a source is an explicit request to edit. Reveal the retained editor
  * even when a saved layout hid it; periodic refresh never makes this decision.
  * Resolve the lifetime token after operations which can notify native observers. */
+/* Generic panel focus can activate a previously rendered source. Preserve the
+ * former reveal-first sequence for review; prepare the Framework document
+ * widgets first, then reveal the host and focus that same captured document. */
+#if 0
 static UmiStatus RuntimePresentActiveSource(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
     if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
     GObject *window = NULL;
     UmiStatus status = runtime_workspace_open_surface(runtime, UMI_STUDIO_SURFACE_EDITOR, NULL);
+    RuntimeTraceAction("editor.reveal", "file.open", status);
     runtime = runtime_file_dialog_owner(request, &window);
     if (runtime == NULL) status = UMI_STATUS_CANCELLED;
     else if (status == UMI_STATUS_OK) {
         /* Status panels are independent of document availability. Refresh them
          * normally, then ask Framework to render and focus the exact document. */
-        (void)runtime_refresh_services(runtime);
+        UmiStatus refreshStatus = runtime_refresh_services(runtime);
+        RuntimeTraceAction("editor.refresh", "file.open", refreshStatus);
         g_clear_object(&window);
         runtime = runtime_file_dialog_owner(request, &window);
         if (runtime == NULL) status = UMI_STATUS_CANCELLED;
@@ -132,6 +141,64 @@ static UmiStatus RuntimePresentActiveSource(UmiStudioGtkRuntimeChrome *runtime)
     }
     g_clear_object(&window);
     runtime_file_dialog_request_free(request);
+    RuntimeTraceAction("editor.focus", "file.open", status);
+    return status;
+}
+#endif
+static UmiStatus RuntimeSourceIdentity(UmiStudioGtkRuntimeChrome *runtime,
+    const UmiDocumentWorkingCopySnapshot *expected)
+{
+    if (runtime == NULL) return UMI_STATUS_CANCELLED;
+    UmiDocumentWorkingCopySnapshot current;
+    UmiStatus status = umi_document_coordinator_active_snapshot(
+        umi_studio_ui_documents(runtime->owner->ui), &current);
+    if (status != UMI_STATUS_OK) return status;
+    return current.document_id == expected->document_id &&
+        strcmp(current.view_id, expected->view_id) == 0 ? UMI_STATUS_OK : UMI_STATUS_INVALID_STATE;
+}
+
+static UmiStatus RuntimePresentActiveSource(UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL;
+    UmiDocumentWorkingCopySnapshot expected;
+    UmiStatus status = umi_document_coordinator_active_snapshot(
+        umi_studio_ui_documents(runtime->owner->ui), &expected);
+    if (status != UMI_STATUS_OK) goto present_done;
+    status = UmiGtk4AdapterRefreshActiveDocument(runtime->owner->adapter);
+    RuntimeTraceAction("editor.prepare", "file.open", status);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    if (status != UMI_STATUS_OK) goto present_done;
+    status = RuntimeSourceIdentity(runtime, &expected);
+    if (status != UMI_STATUS_OK) goto present_done;
+    runtime_welcome_update_mode(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    status = RuntimeSourceIdentity(runtime, &expected);
+    if (status != UMI_STATUS_OK) goto present_done;
+    status = runtime_workspace_open_surface(runtime, UMI_STUDIO_SURFACE_EDITOR, NULL);
+    RuntimeTraceAction("editor.reveal", "file.open", status);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    if (status != UMI_STATUS_OK) goto present_done;
+    status = RuntimeSourceIdentity(runtime, &expected);
+    if (status != UMI_STATUS_OK) goto present_done;
+    /* Status services can fail independently. Preserve their diagnostic and
+     * still attempt the editor, provided no observer changed its identity. */
+    UmiStatus refreshStatus = runtime_refresh_services(runtime);
+    RuntimeTraceAction("editor.refresh", "file.open", refreshStatus);
+    runtime = RuntimeResolveOwner(request, &window);
+    status = RuntimeSourceIdentity(runtime, &expected);
+    if (status != UMI_STATUS_OK) goto present_done;
+    status = UmiGtk4AdapterFocusActiveDocument(runtime->owner->adapter);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) status = UMI_STATUS_CANCELLED;
+    else if (status == UMI_STATUS_OK) status = RuntimeSourceIdentity(runtime, &expected);
+present_done:
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    RuntimeTraceAction("editor.focus", "file.open", status);
     return status;
 }
 
@@ -149,6 +216,7 @@ static UmiStatus RuntimeOpenSourcePath(UmiStudioGtkRuntimeChrome *runtime, const
     char viewId[UMI_UI_ID_CAPACITY];
     UmiStatus status = umi_document_coordinator_open(
         umi_studio_ui_documents(runtime->owner->ui), selectedPath, viewId, sizeof viewId);
+    RuntimeTraceAction("documents.read", "file.open", status);
     GObject *window = NULL;
     runtime = runtime_file_dialog_owner(request, &window);
     if (runtime == NULL) status = UMI_STATUS_CANCELLED;

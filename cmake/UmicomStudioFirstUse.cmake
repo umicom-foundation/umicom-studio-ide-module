@@ -223,7 +223,8 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
         open-seed-close save-seed-close folder-seed-close open-present-close save-present-close folder-present-close
         open-cancel save-cancel folder-cancel open-choose save-choose folder-choose
         open-late-reply save-late-reply folder-late-reply save-other-tab open-switch-project
-        open-menu-choose open-menu-cancel open-menu-retry-choose)
+        open-menu-choose open-menu-cancel open-menu-retry-choose
+        open-menu-choose-edit open-menu-choose-second-edit open-menu-choose-display-failure refresh-native-close)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/chooser-${case}")
         add_test(NAME studio.document_chooser.gtk4.${case} COMMAND umicom-studio-document-chooser-test ${case}
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/chooser-${case}")

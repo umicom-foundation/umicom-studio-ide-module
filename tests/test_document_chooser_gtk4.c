@@ -16,6 +16,7 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio/workspace.h"
+#include "umicom/ui/gtk4/document_commands.h"
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>
 #include <stdio.h>
@@ -115,6 +116,15 @@ static GListModel *ChooserFinishMultiple(GtkFileDialog *dialog, GAsyncResult *re
     (void)dialog;
     return g_task_propagate_pointer(G_TASK(result), error);
 }
+/* Inject a native presentation refusal only in the result-report case. Other
+ * cases render and focus the real Framework editor, including its text buffer. */
+static UmiStatus ChooserFocusActiveDocument(UmiGtk4Adapter *adapter)
+{
+    if (g_strcmp0(chooserScenario, "open-menu-choose-display-failure") == 0)
+        return UMI_STATUS_UNAVAILABLE;
+    return UmiGtk4AdapterFocusActiveDocument(adapter);
+}
+#define UmiGtk4AdapterFocusActiveDocument ChooserFocusActiveDocument
 #define gtk_file_dialog_open_multiple ChooserPresentMultiple
 #define gtk_file_dialog_open_multiple_finish ChooserFinishMultiple
 #define gtk_file_dialog_new ChooserNew
@@ -125,6 +135,7 @@ static GListModel *ChooserFinishMultiple(GtkFileDialog *dialog, GAsyncResult *re
 #define gtk_file_dialog_save_finish ChooserFinish
 #define gtk_file_dialog_select_folder_finish ChooserFinish
 #include "../src/gui/workbench/workbench_window.c"
+#undef UmiGtk4AdapterFocusActiveDocument
 #undef gtk_file_dialog_open_multiple
 #undef gtk_file_dialog_open_multiple_finish
 #undef gtk_file_dialog_new
@@ -151,6 +162,27 @@ static GtkWidget *ChooserMenuOpen(GtkWidget *root)
     return NULL;
 }
 
+/* Find the coordinator-owned source page, not a welcome/output text control. */
+static GtkWidget *ChooserEditor(GtkWidget *root, const char *viewId)
+{
+    if (g_strcmp0(g_object_get_data(G_OBJECT(root), "umicom-view-id"), viewId) == 0) {
+        GtkWidget *editor = g_object_get_data(G_OBJECT(root), "umicom-editor-view");
+        if (GTK_IS_TEXT_VIEW(editor)) return editor;
+    }
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+         child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = ChooserEditor(child, viewId);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+static void ChooserPump(void)
+{
+    /* A refresh timer or active renderer may continually enqueue more work. */
+    for (unsigned event = 0U; event < 32U && g_main_context_pending(NULL); ++event)
+        (void)g_main_context_iteration(NULL, FALSE);
+}
+
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "%d: %s\n", __LINE__, #x); failed = 1; goto cleanup; } } while (0)
 int main(int argc, char **argv)
 {
@@ -161,7 +193,9 @@ int main(int argc, char **argv)
         "save-present-close", "folder-present-close", "open-cancel", "save-cancel", "folder-cancel",
         "open-choose", "save-choose", "folder-choose", "open-late-reply", "save-late-reply",
         "folder-late-reply", "save-other-tab", "open-switch-project",
-        "open-menu-choose", "open-menu-cancel", "open-menu-retry-choose"};
+        "open-menu-choose", "open-menu-cancel", "open-menu-retry-choose",
+        "open-menu-choose-edit", "open-menu-choose-second-edit",
+        "open-menu-choose-display-failure", "refresh-native-close"};
     int known = 0;
     for (size_t i = 0U; i < sizeof cases / sizeof cases[0]; ++i) if (strcmp(mode, cases[i]) == 0) known = 1;
     if (!known) return 2;
@@ -202,13 +236,39 @@ int main(int argc, char **argv)
     application = gtk_application_new("org.umicom.studio.chooser-test", G_APPLICATION_NON_UNIQUE);
     CHECK(g_application_register(G_APPLICATION(application), NULL, NULL));
     UmiStudioGtkWorkbenchOptions options = {0};
-    options.present_window = strstr(mode, "-menu-") != NULL;
+    options.present_window = strstr(mode, "-menu-") != NULL || strcmp(mode, "refresh-native-close") == 0;
+    options.automatic_refresh = strstr(mode, "-edit") != NULL || strcmp(mode, "refresh-native-close") == 0;
     CHECK(umi_studio_gtk_workbench_create_with_options(application, ui,
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workspace.open-folder", project) == UMI_STATUS_OK);
     /* Folder adoption intentionally refuses an unfinished index task. Wait for
      * this fixture setup before exercising chooser-driven project changes. */
     CHECK(UmiFileIndexRefreshWait(umi_studio_services_file_index(services), 10000U) == UMI_STATUS_OK);
+    if (strcmp(mode, "refresh-native-close") == 0) {
+        GtkWindow *host = umi_studio_gtk_workbench_window(workbench);
+        guint sourceId = workbench->runtime_chrome->refresh_source;
+        GSource *source = g_main_context_find_source_by_id(NULL, sourceId);
+        CHECK(sourceId != 0U && source != NULL);
+        /* Native destruction precedes application teardown in the real main
+         * loop. Force its next timer tick without waiting on wall-clock time. */
+        gtk_window_destroy(host);
+        g_source_set_ready_time(source, 0);
+        for (unsigned attempt = 0U; attempt < 1000U &&
+             g_main_context_find_source_by_id(NULL, sourceId) != NULL; ++attempt) {
+            ChooserPump(); g_usleep(1000U);
+        }
+        CHECK(g_main_context_find_source_by_id(NULL, sourceId) == NULL);
+        CHECK(workbench->runtime_chrome->refresh_source == 0U);
+        goto cleanup;
+    }
+    if (strcmp(mode, "open-menu-choose-second-edit") == 0) {
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "file.new", NULL) == UMI_STATUS_OK);
+        UmiDocumentWorkingCopySnapshot draft;
+        CHECK(umi_document_coordinator_active_snapshot(documents, &draft) == UMI_STATUS_OK);
+        GtkWidget *editor = ChooserEditor(GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), draft.view_id);
+        CHECK(GTK_IS_TEXT_VIEW(editor) && gtk_widget_grab_focus(editor));
+        g_signal_emit_by_name(editor, "insert-at-cursor", "retained draft");
+    }
     UmiDocumentWorkingCopySnapshot captured = {0};
     if (save) {
         CHECK(umi_studio_gtk_workbench_execute_command(workbench, "file.new", NULL) == UMI_STATUS_OK);
@@ -293,7 +353,12 @@ int main(int argc, char **argv)
         int running = 1;
         UmiDocumentOpenBatchSummary summary;
         for (unsigned attempt = 0U; attempt < 10000U && running; ++attempt) {
+            /* Retain the old unbounded drain for review; rendering can keep
+             * scheduling events and must not prevent this timeout check. */
+#if 0
             while (g_main_context_iteration(NULL, FALSE)) {}
+#endif
+            ChooserPump();
             CHECK(umi_studio_gtk_workbench_open_files_snapshot(workbench, &summary, &running) == UMI_STATUS_OK);
             if (running) g_usleep(1000UL);
         }
@@ -312,6 +377,40 @@ int main(int argc, char **argv)
         } else {
             UmiDocumentWorkingCopySnapshot active;
             CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && umi_path_equal(active.path, destination));
+            GtkWindow *host = umi_studio_gtk_workbench_window(workbench);
+            const char *report = g_object_get_data(G_OBJECT(host), STUDIO_OPEN_FILES_REPORT);
+            CHECK(report != NULL);
+            if (strcmp(mode, "open-menu-choose-display-failure") == 0) {
+                CHECK(strstr(report, "editor could not be displayed") != NULL);
+                CHECK(g_file_get_contents(destination, &disk, NULL, NULL) && strcmp(disk, "opened source\n") == 0);
+            } else if (strstr(mode, "-edit") != NULL) {
+                CHECK(strstr(report, "editor could not be displayed") == NULL);
+                /* Cover at least two normal refresh intervals. An assertion
+                 * before the first timer tick would miss focus being stolen
+                 * as soon as Studio resumes its ordinary periodic updates. */
+                gint64 settle = g_get_monotonic_time() +
+                    2 * (gint64)UMI_STUDIO_GTK_RUNTIME_REFRESH_MS * 1000;
+                while (g_get_monotonic_time() < settle) { ChooserPump(); g_usleep(1000U); }
+                GtkWidget *editor = ChooserEditor(GTK_WIDGET(host), active.view_id);
+                CHECK(GTK_IS_TEXT_VIEW(editor) && gtk_text_view_get_editable(GTK_TEXT_VIEW(editor)));
+                CHECK(gtk_widget_get_mapped(editor) && gtk_widget_is_sensitive(editor));
+                GtkWidget *focus = gtk_window_get_focus(host);
+                CHECK(focus == editor || (focus != NULL && gtk_widget_is_ancestor(focus, editor)));
+                GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor));
+                GtkTextIter end;
+                gtk_text_buffer_get_end_iter(buffer, &end);
+                gtk_text_buffer_place_cursor(buffer, &end);
+                g_signal_emit_by_name(editor, "insert-at-cursor", "// chooser edit\n");
+                CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && active.dirty);
+                CHECK(umi_studio_gtk_workbench_execute_command(workbench, "file.save", NULL) == UMI_STATUS_OK);
+                CHECK(g_file_get_contents(destination, &disk, NULL, NULL));
+                CHECK(strcmp(disk, "opened source\n// chooser edit\n") == 0);
+                if (strcmp(mode, "open-menu-choose-second-edit") == 0) {
+                    size_t bytes = 0U;
+                    CHECK(UmiUiDocumentViewModelCopyText(views, initialDocument.view_id, &retainedText, &bytes) == UMI_STATUS_OK);
+                    CHECK(bytes == initialBytes && memcmp(initialText, retainedText, bytes) == 0);
+                }
+            }
         }
         goto cleanup;
     }

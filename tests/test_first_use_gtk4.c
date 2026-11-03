@@ -23,6 +23,7 @@
 #include "umicom/studio/test_execution.h"
 #include "umicom/ui/gtk4/window_lifecycle.h"
 #include "umicom/developer_project/new_project.h"
+#include "umicom/build/ctest_provider.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
 #include "umicom/ui/gtk4/automation.h"
 #include "umicom/diagnostics/pipeline.h"
@@ -46,6 +47,11 @@ static void FirstUseReplaceText(GtkTextBuffer *buffer, const char *text)
     gtk_text_buffer_insert(buffer, &first, text, -1);
     gtk_text_buffer_end_user_action(buffer);
 }
+/* The earlier assertion omitted Configure. Keep it for review: generated
+ * console projects without an automatic driver execute Configure, Build and
+ * Test. Check exactly the results added by this request, so old successful
+ * commands cannot make a failed or incomplete request appear qualified. */
+#if 0
 /* Automatic qualification finishes with TEST. Require the preceding BUILD
  * evidence as well, so a passing test against stale binaries cannot suffice. */
 static int FirstUseBuildAndTestCompleted(UmiStudioBuildService *service,
@@ -64,6 +70,37 @@ static int FirstUseBuildAndTestCompleted(UmiStudioBuildService *service,
         compiled->phase == UMI_BUILD_PHASE_BUILD && compiled->status == UMI_STATUS_OK &&
         compiled->exit_code == 0;
     umi_build_result_destroy(compiled);
+    return passed;
+}
+#endif
+static int FirstUseBuildAndTestCompleted(UmiStudioBuildService *service,
+    const UmiBuildResult *latest, size_t historyStart)
+{
+    UmiBuildProjectSessionSnapshot progress;
+    const UmiBuildPhase expected[] = {UMI_BUILD_PHASE_CONFIGURE,
+        UMI_BUILD_PHASE_BUILD, UMI_BUILD_PHASE_TEST};
+    const size_t phases = sizeof expected / sizeof expected[0];
+    if (UmiStudioBuildProgress(service, &progress) != UMI_STATUS_OK ||
+        progress.active || progress.cancellation_requested || progress.status != UMI_STATUS_OK ||
+        progress.requested_phase != UMI_BUILD_PHASE_BUILD ||
+        progress.completed_phase_count != phases || latest->phase != UMI_BUILD_PHASE_TEST ||
+        latest->status != UMI_STATUS_OK || latest->exit_code != 0) return 0;
+    UmiBuildHistory *history = umi_studio_build_service_history(service);
+    size_t count = umi_build_history_count(history);
+    UmiBuildResult *result = NULL;
+    if (count < historyStart || count - historyStart != phases ||
+        umi_build_result_create(&result) != UMI_STATUS_OK) return 0;
+    int passed = 1;
+    uint64_t previous = 0U;
+    for (size_t index = 0U; index < phases; ++index) {
+        if (umi_build_history_at(history, historyStart + index, result) != UMI_STATUS_OK ||
+            result->phase != expected[index] || result->status != UMI_STATUS_OK ||
+            result->exit_code != 0 || result->operation_id <= previous ||
+            strcmp(result->profile_id, latest->profile_id) != 0) { passed = 0; break; }
+        previous = result->operation_id;
+    }
+    passed = passed && previous == latest->operation_id;
+    umi_build_result_destroy(result);
     return passed;
 }
 
@@ -370,6 +407,12 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     CHECK(WaitForWorkbenchBuild(workbench, build, result));
     CHECK(result->phase == UMI_BUILD_PHASE_CONFIGURE && result->status == UMI_STATUS_OK && result->exit_code == 0);
     if (visible) CHECK(TabJourneyCapture(window,fixture,"build-configured.png"));
+    /* This generated console fixture has no Framework automatic driver.
+     * Make that admission explicit before asserting the three-stage plan. */
+    char driver[UMI_BUILD_PATH_CAPACITY];
+    CHECK(UmiBuildAutomaticTestDriver(umi_studio_build_service_profile(build),
+        driver, sizeof driver) == UMI_STATUS_NOT_FOUND);
+    size_t historyStart = umi_build_history_count(umi_studio_build_service_history(build));
     CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK && !active.dirty);
     /* Retain direct command qualification; visible cases additionally require the native control. */
 #if 0
@@ -413,6 +456,7 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
 #if 0
         CHECK(umi_studio_gtk_workbench_execute_command(workbench, "build.build", NULL) == UMI_STATUS_OK);
 #endif
+        historyStart = umi_build_history_count(umi_studio_build_service_history(build));
         CHECK(FirstUseBuildCommand(workbench, "build.build") == UMI_STATUS_OK);
         CHECK(WaitForWorkbenchBuild(workbench, build, result));
         /* Successful repair includes the automatic test phase. */
@@ -420,7 +464,11 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
         CHECK(result->phase == UMI_BUILD_PHASE_BUILD);
 #endif
     }
+    /* Retain the former assertion; the current check scopes evidence to this request. */
+#if 0
     CHECK(FirstUseBuildAndTestCompleted(build, result));
+#endif
+    CHECK(FirstUseBuildAndTestCompleted(build, result, historyStart));
     CHECK(result->status == UMI_STATUS_OK && result->exit_code == 0);
     if (visible) CHECK(TabJourneyCapture(window,fixture,"build-complete.png"));
     /* Retain direct command qualification; visible cases additionally require the native control. */

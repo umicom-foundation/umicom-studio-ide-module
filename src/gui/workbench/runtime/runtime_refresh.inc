@@ -681,6 +681,10 @@ static gboolean runtime_refresh_timer(gpointer user_data)
 }
 
 #endif
+/* A source which returns REMOVE no longer owns an ID usable by teardown.
+ * Retain this earlier callback for review; the replacement clears ownership
+ * before native notifications, which can destroy the workbench reentrantly. */
+#if 0
 static gboolean runtime_refresh_timer(gpointer user_data)
 {
     UmiStudioGtkRuntimeChrome *runtime = user_data;
@@ -694,5 +698,33 @@ static gboolean runtime_refresh_timer(gpointer user_data)
     runtime = RuntimeResolveOwner(request, &window);
     gboolean keep = runtime != NULL && runtime->runtime_ready;
     g_clear_object(&window); runtime_file_dialog_request_free(request);
+    return keep ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
+}
+#endif
+static gboolean runtime_refresh_timer(gpointer user_data)
+{
+    UmiStudioGtkRuntimeChrome *runtime = user_data;
+    if (runtime == NULL) return G_SOURCE_REMOVE;
+    if (!runtime->runtime_ready) {
+        runtime->refresh_source = 0U;
+        return G_SOURCE_REMOVE;
+    }
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return G_SOURCE_CONTINUE;
+    GSource *source = g_main_current_source();
+    guint sourceId = runtime->refresh_source;
+    runtime->refresh_source = 0U;
+    GObject *window = NULL;
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime != NULL) runtime_update_application_bar_width(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime != NULL) (void)runtime_refresh_services(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    gboolean keep = runtime != NULL && runtime->runtime_ready &&
+        source != NULL && !g_source_is_destroyed(source);
+    if (keep && runtime->refresh_source == 0U) runtime->refresh_source = sourceId;
+    else keep = FALSE;
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
     return keep ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
 }

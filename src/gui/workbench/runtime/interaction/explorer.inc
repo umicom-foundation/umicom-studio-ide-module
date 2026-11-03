@@ -64,7 +64,9 @@ static void runtime_explorer_open_path(UmiStudioGtkRuntimeChrome *runtime, const
     if (runtime == NULL || runtime->owner == NULL || path == NULL || path[0] == '\0') return;
     UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
     if (request == NULL) return;
+    RuntimeTraceAction("explorer.open", "file.open", UMI_STATUS_OK);
     UmiStatus status = RuntimeOpenSourcePath(runtime, path);
+    RuntimeTraceAction("explorer.result", "file.open", status);
     GObject *window = NULL;
     runtime = runtime_file_dialog_owner(request, &window);
     if (runtime != NULL && status != UMI_STATUS_OK)
