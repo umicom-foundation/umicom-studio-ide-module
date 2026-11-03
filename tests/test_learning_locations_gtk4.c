@@ -308,7 +308,7 @@ int main(int argc, char **argv)
             CHECK(umi_studio_workspace_snapshot(services,&workspace)==UMI_STATUS_OK && !workspace.graph.open);
         }
     }
-    else if (g_str_has_prefix(argv[1], "welcome-"))
+    else if (g_str_has_prefix(argv[1], "welcome-") || !strcmp(argv[1], "menu-user-guide"))
     {
         const char *mode = argv[1];
         const char *command = "help.learning.editing", *resource = "editing-files";
@@ -317,10 +317,17 @@ int main(int argc, char **argv)
         else if (strcmp(mode, "welcome-errors") == 0) { command = "help.learning.errors"; resource = "reading-build-errors"; }
         else if (strcmp(mode, "welcome-recent") == 0) { command = "help.learning.recent"; resource = "recent-projects"; }
         else if (strcmp(mode, "welcome-tests") == 0) { command = "help.learning.tests"; resource = "running-tests"; }
+        else if (!strcmp(mode, "welcome-user-guide") || !strcmp(mode, "menu-user-guide")) {
+            command = "help.learning.user-guide"; resource = "studio-user-guide";
+        }
         else CHECK(strcmp(mode, "welcome-editing") == 0 || strcmp(mode, "welcome-repeat") == 0 ||
             strcmp(mode, "welcome-busy") == 0 || strcmp(mode, "welcome-retained") == 0 ||
             strcmp(mode, "welcome-close-pending") == 0);
-        catalogue_button = umi_gtk4_automation_find_tagged_widget(root, command);
+        /* Exercise both actual entry points; the menu must not be confused
+         * with a matching Welcome-page button sharing the same command. */
+        const char *tag = !strcmp(mode, "menu-user-guide")
+            ? "umicom.shell.help-menu.user-guide" : command;
+        catalogue_button = umi_gtk4_automation_find_tagged_widget(root, tag);
         CHECK(GTK_IS_BUTTON(catalogue_button) && gtk_widget_get_sensitive(catalogue_button));
         g_object_ref(catalogue_button);
         if (strcmp(mode, "welcome-retained") == 0) {

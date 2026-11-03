@@ -1,9 +1,17 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: tests/test_quick_open_gtk4.c
- * PURPOSE: Verify indexed file opening through the production Studio toolbar and workspace owner.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Verify indexed file opening through the production Studio toolbar,
+ *   menus and workspace owner.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
@@ -135,7 +143,7 @@ int main(int argc, char **argv)
                                             "workspace-return",
                                             "retained-control",
                                             "repeated-open",
-                                            "no-workspace",
+                                            "no-workspace", "menu-view", "menu-navigate",
         "position-line", "position-column", "position-unicode", "position-clamp", "position-dirty", "position-missing-line", "position-invalid", "position-history",
         "constructor-close", "constructor-reenter", "constructor-workspace", "title-close", "child-close", "present-close", "present-reenter", "replacement-close", "replacement-workspace"};
     int known = 0;
@@ -227,6 +235,33 @@ int main(int argc, char **argv)
     Pump();
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     GtkWidget *button = Find(root, "studio.editor.quick-open");
+    /* Menu aliases must open a real picker and reveal its file. Reuse the
+     * existing fixture so all entry points have the same preservation checks. */
+    if (!strcmp(name, "menu-view") || !strcmp(name, "menu-navigate")) {
+        const char *command = !strcmp(name, "menu-view")
+            ? "workbench.quick-open" : "navigate.file";
+        const char *rootId = !strcmp(name, "menu-view")
+            ? "umicom.shell.view-menu.root" : "umicom.shell.navigate-menu.root";
+        GtkWidget *menu = Find(root, rootId);
+        CHECK(GTK_IS_MENU_BUTTON(menu));
+        GtkWidget *popover = GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(menu)));
+        CHECK(GTK_IS_POPOVER(popover));
+        button = NULL;
+        GQueue pending = G_QUEUE_INIT;
+        g_queue_push_tail(&pending, popover);
+        while (!g_queue_is_empty(&pending)) {
+            GtkWidget *candidate = g_queue_pop_head(&pending);
+            if (GTK_IS_BUTTON(candidate) &&
+                !g_strcmp0(g_object_get_data(G_OBJECT(candidate), "umicom-command-id"), command)) {
+                button = candidate;
+                break;
+            }
+            for (GtkWidget *child = gtk_widget_get_first_child(candidate); child != NULL;
+                 child = gtk_widget_get_next_sibling(child)) g_queue_push_tail(&pending, child);
+        }
+        g_queue_clear(&pending);
+        CHECK(button != NULL && gtk_widget_get_sensitive(button));
+    }
     CHECK(GTK_IS_BUTTON(button));
     retainedOwner = g_object_ref(GTK_WINDOW(root));
     openingButton = g_object_ref(button);
@@ -355,7 +390,10 @@ int main(int argc, char **argv)
         Pump();
         CHECK(gtk_widget_get_sensitive(open) == (strcmp(name, "empty") != 0));
     }
-    if (strcmp(name, "open") == 0 || strcmp(name, "dirty-existing") == 0)
+    /* Menu selection requires the same visible editor and preserved scratch
+     * draft as the existing toolbar selection scenarios. */
+    if (strcmp(name, "open") == 0 || strcmp(name, "dirty-existing") == 0 ||
+        !strcmp(name, "menu-view") || !strcmp(name, "menu-navigate"))
     {
         /* An open picker must still reveal its source after a layout hides the
          * editor. Model selection by itself is insufficient for typing. */

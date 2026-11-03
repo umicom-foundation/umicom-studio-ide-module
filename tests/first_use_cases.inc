@@ -183,3 +183,13 @@ UMI_STUDIO_FIRST_USE_CASE("menu-build-repair", 1)
 
 UMI_STUDIO_FIRST_USE_CASE("menu-task-groups", 0)
 UMI_STUDIO_FIRST_USE_CASE("menu-shortcuts", 0)
+
+UMI_STUDIO_FIRST_USE_CASE("menu-all-bindings", 0)
+UMI_STUDIO_FIRST_USE_CASE("menu-documentation-panel", 0)
+UMI_STUDIO_FIRST_USE_CASE("menu-learning-panel", 0)
+UMI_STUDIO_FIRST_USE_CASE("menu-search-panel", 0)
+UMI_STUDIO_FIRST_USE_CASE("menu-live-preview-panel", 0)
+
+UMI_STUDIO_FIRST_USE_CASE("menu-command-palette", 0)
+UMI_STUDIO_FIRST_USE_CASE("discovery-menu-run-selected", 1)
+UMI_STUDIO_FIRST_USE_CASE("discovery-menu-run-all", 1)

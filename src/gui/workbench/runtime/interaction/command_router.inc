@@ -881,6 +881,16 @@ static UmiStatus runtime_route_command(
         return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_RUN);
     }
 
+    /* Shell aliases use the same Framework-backed test service as the Test
+     * Explorer. The service remains responsible for selection, trust, project
+     * identity and adapter availability; the menu does not infer success. */
+    if (strcmp(command_id, "test.discover") == 0 ||
+        strcmp(command_id, "test.run-selected") == 0 ||
+        strcmp(command_id, "test.debug-selected") == 0 ||
+        strcmp(command_id, "test.coverage-all") == 0)
+        return runtime_execute_registered_command(runtime,
+            runtime_mapped_studio_command(command_id), argument);
+
     /* Professional Test Explorer operations. */
     if (strcmp(command_id, "test.run-all") == 0) {
         return runtime_execute_registered_command(
@@ -964,7 +974,23 @@ static UmiStatus runtime_route_command(
     }
 
     /* Local UI entry points are deliberately not phantom registry commands. */
+    /* Retain the keyboard-only spelling for compatibility. The shell uses
+     * workbench.command-palette and must reach this same native window. */
+#if 0
     if (strcmp(command_id, "studio.command.search") == 0) {
+        runtime_show_command_palette(runtime);
+        return UMI_STATUS_OK;
+    }
+#endif
+    /* Navigate and View share the Framework indexed-file picker and its
+     * captured workspace ownership; no second document-opening path is needed. */
+    if (strcmp(command_id, "workbench.quick-open") == 0 ||
+        strcmp(command_id, "navigate.file") == 0) {
+        RuntimeShowQuickOpen(runtime);
+        return UMI_STATUS_OK;
+    }
+    if (strcmp(command_id, "studio.command.search") == 0 ||
+        strcmp(command_id, "workbench.command-palette") == 0) {
         runtime_show_command_palette(runtime);
         return UMI_STATUS_OK;
     }
@@ -993,28 +1019,63 @@ static UmiStatus runtime_route_command(
 
     /* Mode commands select an already registered central authoring surface.
      * The same surfaces remain available through the Window catalogue. */
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
     if (strcmp(command_id, "designer.code") == 0) {
         runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_CODE;
         runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_CODE);
         return UMI_STATUS_OK;
     }
+#endif
+    if (strcmp(command_id, "designer.code") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_CODE);
+    }
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
     if (strcmp(command_id, "designer.mixed") == 0) {
         runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_MIXED;
         runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_MIXED);
         return UMI_STATUS_OK;
     }
+#endif
+    if (strcmp(command_id, "designer.mixed") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_MIXED);
+    }
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
     if (strcmp(command_id, "designer.preview") == 0) {
         runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_PREVIEW;
         runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_PREVIEW);
         return UMI_STATUS_OK;
     }
+#endif
+    if (strcmp(command_id, "designer.preview") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_PREVIEW);
+    }
 
     /* Live Preview follows the ordinary editor document and remains separate
      * from the declarative visual designer's Preview mode. */
+    /* Preview used to refresh a possibly retired owner and discard both results.
+     * Presentation and rendering now share a checked weak owner boundary. */
+#if 0
     if (strcmp(command_id, "view.live-preview") == 0) {
         runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
         (void)runtime_live_preview_refresh(runtime, 1);
         return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "view.live-preview") == 0) {
+        UmiStudioFileDialogRequest *binding = runtime_file_dialog_request_new(runtime, 0U);
+        if (binding == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+        UmiStatus status = runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
+        GObject *window = NULL;
+        runtime = runtime_file_dialog_owner(binding, &window);
+        if (status == UMI_STATUS_OK)
+            status = runtime != NULL ? runtime_live_preview_refresh(runtime, 1)
+                                     : UMI_STATUS_CANCELLED;
+        g_clear_object(&window);
+        runtime_file_dialog_request_free(binding);
+        return status;
     }
 
     /* Help actions reveal operational workbench panels rather than sending
@@ -1023,13 +1084,25 @@ static UmiStatus runtime_route_command(
     if (RuntimeLearningCommandKnown(command_id))
         return RuntimeLearningDispatch(runtime, command_id);
 #endif
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
     if (strcmp(command_id, "help.ai-teacher") == 0) {
         runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LEARNING);
         return UMI_STATUS_OK;
     }
+#endif
+    if (strcmp(command_id, "help.ai-teacher") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LEARNING);
+    }
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
     if (strcmp(command_id, "help.documentation") == 0) {
         runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DOCUMENTATION);
         return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "help.documentation") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DOCUMENTATION);
     }
 
     /* View/activity navigation opens a canonical singleton through the same

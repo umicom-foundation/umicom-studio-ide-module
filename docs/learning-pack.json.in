@@ -5,7 +5,7 @@
   "title": "Learning with Umicom Studio IDE",
   "product": "studio",
   "locale": "en",
-  "revision": 7,
+  "revision": 8,
   "compatibility": {
     "minimum": [
       0,
@@ -58,6 +58,22 @@
       "kind": "guide",
       "path": "recent-projects.html",
       "sha256": "@_studio_guide_recent-projects_sha256@"
+    },
+    {
+      "id": "studio-user-guide",
+      "title": "Umicom Studio IDE User Guide",
+      "topic": "studio-workflows",
+      "kind": "guide",
+      "path": "studio-user-guide.html",
+      "sha256": "@_studio_guide_studio-user-guide_sha256@"
+    },
+    {
+      "id": "studio-menu-acceptance",
+      "title": "Studio Menu Acceptance Guide",
+      "topic": "studio-workflows",
+      "kind": "guide",
+      "path": "studio-menu-acceptance.html",
+      "sha256": "@_studio_guide_studio-menu-acceptance_sha256@"
     }
   ]
 }

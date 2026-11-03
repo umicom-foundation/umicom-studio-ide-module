@@ -19,6 +19,8 @@ typedef struct RuntimeLearningProductGuide {
 /* Only reviewed product identities belong here. Framework owns pack admission,
  * verified reads and history; a guide command cannot adopt or trust a project. */
 static const RuntimeLearningProductGuide runtime_learning_product_guides[] = {
+    {"Read the Studio user guide", "studio-workflows", "studio-user-guide",
+     "studio.learning.user-guide", "help.learning.user-guide"},
     {"Read the editing and saving guide", "editing", "editing-files",
      "studio.learning.editing-guide", "help.learning.editing"},
     {"Read the compiler error guide", "build-errors", "reading-build-errors",

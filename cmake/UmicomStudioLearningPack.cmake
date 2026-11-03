@@ -26,7 +26,7 @@ file(SHA256 "${_studio_learning_pack_dir}/learning-in-studio.html" _studio_learn
 # Deliberate public guide allowlist: private plans and unrelated documentation
 # are never swept into this pack by a directory glob. Existing guides remain
 # their own source files; the generated pack owns exact copied bytes and hashes.
-foreach(_guide EDITING_FILES READING_BUILD_ERRORS RUNNING_TESTS recent-projects)
+foreach(_guide EDITING_FILES READING_BUILD_ERRORS RUNNING_TESTS recent-projects studio-user-guide studio-menu-acceptance)
     configure_file("${_studio_learning_source}/docs/${_guide}.html"
         "${_studio_learning_pack_dir}/${_guide}.html" COPYONLY)
     file(SHA256 "${_studio_learning_pack_dir}/${_guide}.html" "_studio_guide_${_guide}_sha256")
@@ -44,6 +44,7 @@ if(BUILD_TESTING AND TARGET Umicom::learning_catalogue_gtk4
             catalogue-topic-editing catalogue-topic-errors catalogue-topic-tests
             catalogue-topic-switch catalogue-topic-busy catalogue-topic-retained catalogue-topic-recent
             welcome-library welcome-guide welcome-editing welcome-errors welcome-tests welcome-recent
+            welcome-user-guide menu-user-guide
             welcome-repeat welcome-busy welcome-retained welcome-close-pending)
         add_test(NAME "studio.learning.locations.${_case}"
             COMMAND umicom-studio-learning-locations-test "${_case}" "${_studio_learning_pack_dir}")
@@ -62,4 +63,6 @@ install(FILES
     "${_studio_learning_pack_dir}/READING_BUILD_ERRORS.html"
     "${_studio_learning_pack_dir}/RUNNING_TESTS.html"
     "${_studio_learning_pack_dir}/recent-projects.html"
+    "${_studio_learning_pack_dir}/studio-user-guide.html"
+    "${_studio_learning_pack_dir}/studio-menu-acceptance.html"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/umicom-studio/learning-pack")

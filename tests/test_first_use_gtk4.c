@@ -13,6 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
+#include "umicom/application_shell/persona.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio/workspace.h"
@@ -1444,6 +1445,9 @@ static void CloseWhenDiscoveryCompleted(GObject *object, GParamSpec *spec, gpoin
     umi_studio_gtk_workbench_destroy(closing);
 }
 
+/* The discovery fixture invokes the same menu widgets as the user. */
+static GtkWidget *FindMenuCommand(GtkWidget *root, const char *command);
+
 static int ExerciseNativeDiscovery(UmiStudioGtkWorkbench **workbenchSlot,
     UmiStudioServices *services, const char *fixture, const char *scenario)
 {
@@ -1492,7 +1496,22 @@ notice = g_object_ref(G_OBJECT(label));
         closeHandler = g_signal_connect(notice, "notify::label",
             G_CALLBACK(CloseWhenDiscoveryCompleted), &feedback);
     }
+    /* Preserve direct service submission; native cases below also prove that
+     * the visible Test menu reaches discovery and updates its catalogue. */
+#if 0
     UmiStatus submitted = umi_studio_gtk_workbench_execute_command(
+        workbench, UMI_STUDIO_COMMAND_TESTS_DISCOVER, NULL);
+#endif
+    int nativeMenu = !strcmp(scenario, "discovery-menu-run-selected") ||
+        !strcmp(scenario, "discovery-menu-run-all");
+    UmiStatus submitted = UMI_STATUS_OK;
+    if (nativeMenu) {
+        CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+        GtkWidget *action = FindMenuCommand(GTK_WIDGET(
+            umi_studio_gtk_workbench_window(workbench)), "test.discover");
+        CHECK(GTK_IS_BUTTON(action) && gtk_widget_get_sensitive(action));
+        g_signal_emit_by_name(action, "clicked");
+    } else submitted = umi_studio_gtk_workbench_execute_command(
         workbench, UMI_STUDIO_COMMAND_TESTS_DISCOVER, NULL);
     CHECK(submitted == (*workbenchSlot != NULL ? UMI_STATUS_OK : UMI_STATUS_CANCELLED));
     gint64 deadline = g_get_monotonic_time() + 30000000;
@@ -1518,7 +1537,7 @@ notice = g_object_ref(G_OBJECT(label));
     CHECK(umi_studio_test_service_plan_all(tests, 1U, 0, &plan) == UMI_STATUS_OK && plan.selection.count == 1U);
     CHECK(umi_build_profile_equal(&profile, umi_studio_build_service_profile(build)));
     if (strcmp(scenario, "discovery-run-relative") == 0 ||
-        strcmp(scenario, "discovery-run-feedback-close") == 0) {
+        strcmp(scenario, "discovery-run-feedback-close") == 0 || nativeMenu) {
         /* Install completion observation before submission, as for discovery. */
 #if 0
         CHECK(umi_studio_gtk_workbench_execute_command(workbench, UMI_STUDIO_COMMAND_TESTS_RUN_ALL, NULL) == UMI_STATUS_OK);
@@ -1536,7 +1555,24 @@ notice = g_object_ref(G_OBJECT(label));
             closeHandler = g_signal_connect(notice, "notify::label",
                 G_CALLBACK(CloseWhenDiscoveryCompleted), &feedback);
         }
+        /* Keep the original direct runner for legacy scenarios. The native
+         * cases assert catalogue selection and the resulting execution, not
+         * merely the presence of a signal handler. */
+#if 0
         submitted = umi_studio_gtk_workbench_execute_command(workbench, UMI_STUDIO_COMMAND_TESTS_RUN_ALL, NULL);
+#endif
+        if (nativeMenu) {
+            CHECK(umi_test_workspace_select_item(umi_studio_test_service_workspace(tests),
+                plan.selection.item_ids[0]) == UMI_STATUS_OK);
+            CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+            const char *command = !strcmp(scenario, "discovery-menu-run-selected")
+                ? "test.run-selected" : "test.run-all";
+            GtkWidget *action = FindMenuCommand(GTK_WIDGET(
+                umi_studio_gtk_workbench_window(workbench)), command);
+            CHECK(GTK_IS_BUTTON(action) && gtk_widget_get_sensitive(action));
+            g_signal_emit_by_name(action, "clicked");
+        } else submitted = umi_studio_gtk_workbench_execute_command(workbench,
+            UMI_STUDIO_COMMAND_TESTS_RUN_ALL, NULL);
         CHECK(submitted == (*workbenchSlot != NULL ? UMI_STATUS_OK : UMI_STATUS_CANCELLED));
         deadline = g_get_monotonic_time() + 30000000;
         while (UmiStudioTestRunPending(tests) && g_get_monotonic_time() < deadline) {
@@ -2715,6 +2751,19 @@ int main(int argc, char **argv)
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     CHECK(umi_document_coordinator_count(documents) == 0U);
+    if (!strcmp(name, "menu-command-palette")) {
+        failed = ExerciseMenuPalette(workbench);
+        goto cleanup;
+    }
+    if (!strcmp(name, "menu-all-bindings")) {
+        failed = ExerciseAllMenuBindings(workbench);
+        goto cleanup;
+    }
+    if (!strcmp(name, "menu-documentation-panel") || !strcmp(name, "menu-learning-panel") ||
+        !strcmp(name, "menu-search-panel") || !strcmp(name, "menu-live-preview-panel")) {
+        failed = ExerciseMenuPanel(workbench, name);
+        goto cleanup;
+    }
     if (strcmp(name, "menu-task-groups") == 0 || strcmp(name, "menu-shortcuts") == 0) {
         failed = ExerciseMenuDetails(workbench, documents, name);
         goto cleanup;

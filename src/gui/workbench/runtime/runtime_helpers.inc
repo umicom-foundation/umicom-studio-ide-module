@@ -279,6 +279,12 @@ static const char *runtime_mapped_studio_command(const char *command_id)
         return UMI_STUDIO_COMMAND_BUILD_RUN;
     }
     /* Use the stable identifier comparison to choose the matching record or policy. */
+    /* Menu aliases share the registered service admission and execution path.
+     * A shell label must not bypass project trust or create a second runner. */
+    if (strcmp(command_id, "test.discover") == 0) return UMI_STUDIO_COMMAND_TESTS_DISCOVER;
+    if (strcmp(command_id, "test.run-selected") == 0) return UMI_STUDIO_COMMAND_TESTS_RUN_SELECTED;
+    if (strcmp(command_id, "test.debug-selected") == 0) return UMI_STUDIO_COMMAND_TESTS_DEBUG_SELECTED;
+    if (strcmp(command_id, "test.coverage-all") == 0) return UMI_STUDIO_COMMAND_TESTS_RUN_COVERAGE;
     if (strcmp(command_id, "test.run-all") == 0) {
         return UMI_STUDIO_COMMAND_TESTS_RUN_ALL;
     }
@@ -795,6 +801,10 @@ static int runtime_command_enabled(
 #endif
     if (strcmp(command_id, "file.new") == 0 || strcmp(command_id, "file.open") == 0 ||
         strcmp(command_id, "application.exit") == 0 ||
+        /* View and keyboard entries share the same native palette owner. */
+        strcmp(command_id, "workbench.command-palette") == 0 ||
+        strcmp(command_id, "workbench.quick-open") == 0 ||
+        strcmp(command_id, "navigate.file") == 0 ||
         strcmp(command_id, "studio.command.search") == 0 ||
         strcmp(command_id, "studio.layout.manager") == 0 ||
         strcmp(command_id, "help.ai-teacher") == 0 ||

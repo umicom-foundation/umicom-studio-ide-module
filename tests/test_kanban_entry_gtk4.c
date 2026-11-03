@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: tests/test_kanban_entry_gtk4.c
- * PURPOSE: Verify the welcome entry opens an independently owned Framework board window.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Verify project-board entry, native closing and independent Framework ownership.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/kanban/publication_plan_storage.h"
@@ -112,8 +119,20 @@ int main(int argc, char **argv) {
                                         strcmp(argv[1], "project-untrusted") != 0,
                                         0) == UMI_STATUS_OK);
     REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
-    UmiStatus status = umi_studio_gtk_workbench_execute_command(
-        workbench, "project.board", strcmp(argv[1], "project-argument") == 0 ? "unexpected" : NULL);
+    UmiStatus status;
+    int native_close = !strcmp(argv[1], "project-native-close") ||
+        !strcmp(argv[1], "project-native-close-with-editor");
+    if (native_close) {
+      /* Use the real project button, including its weak owner binding. */
+      GtkWidget *project_button = umi_gtk4_automation_find_tagged_widget(
+          GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), "studio.project-board");
+      REQUIRE(GTK_IS_BUTTON(project_button) && gtk_widget_get_sensitive(project_button));
+      g_signal_emit_by_name(project_button, "clicked");
+      status = FindBoard(application) != NULL ? UMI_STATUS_OK : UMI_STATUS_NOT_FOUND;
+    } else {
+      status = umi_studio_gtk_workbench_execute_command(
+          workbench, "project.board", strcmp(argv[1], "project-argument") == 0 ? "unexpected" : NULL);
+    }
     if (!strcmp(argv[1], "project-none") || !strcmp(argv[1], "project-argument")) {
       REQUIRE(status == (!strcmp(argv[1], "project-none") ? UMI_STATUS_PERMISSION_DENIED
                                                           : UMI_STATUS_INVALID_ARGUMENT));
@@ -270,7 +289,42 @@ int main(int argc, char **argv) {
         REQUIRE(gtk_window_get_application(board) == application);
         REQUIRE(UmiKanbanGtk4ProjectLocation(board, &captured) == UMI_STATUS_OK);
       }
-      gtk_window_close(board);
+      if (native_close) {
+        GtkWidget *studio_root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+        UmiDocumentCoordinator *documents = umi_studio_ui_documents(umi_studio_bootstrap_ui(bootstrap));
+        size_t original_count = umi_document_coordinator_count(documents);
+        GtkWidget *new_file = umi_gtk4_automation_find_tagged_widget(studio_root, "file.new");
+        REQUIRE(GTK_IS_BUTTON(new_file) && gtk_widget_get_sensitive(new_file));
+        if (!strcmp(argv[1], "project-native-close-with-editor")) {
+          g_signal_emit_by_name(new_file, "clicked");
+          REQUIRE(umi_document_coordinator_count(documents) == original_count + 1U);
+          ++original_count;
+        }
+        /* A clean board must actually leave the application window list.
+         * Merely requesting close did not detect the reported stuck window. */
+        gtk_window_close(board);
+        gint64 deadline = g_get_monotonic_time() + 3 * G_TIME_SPAN_SECOND;
+        while (FindBoard(application) != NULL && g_get_monotonic_time() < deadline) {
+          for (unsigned event = 0U; event < 32U && g_main_context_pending(NULL); ++event)
+            (void)g_main_context_iteration(NULL, FALSE);
+          g_usleep(1000U);
+        }
+        REQUIRE(FindBoard(application) == NULL);
+        REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+        new_file = umi_gtk4_automation_find_tagged_widget(studio_root, "file.new");
+        REQUIRE(GTK_IS_BUTTON(new_file) && gtk_widget_get_sensitive(new_file));
+        g_signal_emit_by_name(new_file, "clicked");
+        REQUIRE(umi_document_coordinator_count(documents) == original_count + 1U);
+        GtkWidget *project_button = umi_gtk4_automation_find_tagged_widget(studio_root, "studio.project-board");
+        REQUIRE(GTK_IS_BUTTON(project_button));
+        g_signal_emit_by_name(project_button, "clicked");
+        GtkWindow *reopened = FindBoard(application);
+        REQUIRE(reopened != NULL && reopened != board);
+        REQUIRE(UmiKanbanGtk4ProjectLocation(reopened, &captured) == UMI_STATUS_OK &&
+            umi_path_equal(captured.project_root, project));
+        gtk_window_close(reopened);
+        REQUIRE(FindBoard(application) == NULL);
+      } else gtk_window_close(board);
     }
     if (workbench != NULL) {
       umi_studio_gtk_workbench_destroy(workbench);

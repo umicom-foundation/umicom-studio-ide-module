@@ -1,4 +1,17 @@
-# Umicom Studio IDE | Sammy Hegab, Umicom Foundation | MIT
+#-----------------------------------------------------------------------------
+# Umicom Studio IDE
+# File: cmake/UmicomStudioQuickOpen.cmake
+#
+# PURPOSE:
+#   Register indexed-file navigation through native toolbar, menus and keyboard.
+#
+# AUTHOR AND ORGANISATION:
+# Sammy Hegab
+# Umicom Foundation
+#
+# LICENCE:
+# MIT
+#---------------------------------------------------------------------------
 include_guard(GLOBAL)
 # Exercise indexed-file Quick Open through the production editor toolbar.
 if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
@@ -19,6 +32,7 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     endif()
     foreach(case button keyboard capture-key filter empty open dirty-existing stale-index refresh-index workspace-switch workspace-return retained-control repeated-open no-workspace
         constructor-close constructor-reenter constructor-workspace title-close child-close present-close present-reenter replacement-close replacement-workspace
+        menu-view menu-navigate
         position-line position-column position-unicode position-clamp position-dirty position-missing-line position-invalid position-history)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/quick-open-${case}")
         add_test(NAME studio.editor.quick_open.gtk4.${case} COMMAND umicom-studio-quick-open-test ${case}

@@ -185,6 +185,10 @@ static UmiStudioRuntimeSurfaceKind runtime_active_surface_kind(
  * applications.
  */
 /* Navigation opens the canonical singleton, then focuses its retained body. */
+/* The void route reported failure but its command callers returned success.
+ * Retain it for comparison. The checked route preserves Framework status and
+ * reacquires the native owner after presentation callbacks before touching it. */
+#if 0
 static void runtime_show_surface(
     UmiStudioGtkRuntimeChrome *runtime, UmiStudioRuntimeSurfaceKind kind)
 {
@@ -195,6 +199,30 @@ static void runtime_show_surface(
         runtime->designer_active_surface = kind;
     if (status != UMI_STATUS_OK)
         runtime_show_notification(runtime, "The requested surface could not be opened.");
+}
+
+#endif
+static UmiStatus runtime_show_surface(
+    UmiStudioGtkRuntimeChrome *runtime, UmiStudioRuntimeSurfaceKind kind)
+{
+    if (runtime == NULL || runtime->owner == NULL) return UMI_STATUS_INVALID_STATE;
+    UmiStudioFileDialogRequest *binding = runtime_file_dialog_request_new(runtime, 0U);
+    if (binding == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiStatus status = runtime_workspace_open_surface(runtime, kind, NULL);
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(binding, &window);
+    if (runtime == NULL) {
+        if (status == UMI_STATUS_OK) status = UMI_STATUS_CANCELLED;
+    } else if (status == UMI_STATUS_OK) {
+        if (kind >= UMI_STUDIO_SURFACE_VISUAL_DESIGNER &&
+            kind <= UMI_STUDIO_SURFACE_DESIGN_PREVIEW)
+            runtime->designer_active_surface = kind;
+    } else {
+        runtime_show_notification(runtime, "The requested surface could not be opened.");
+    }
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(binding);
+    return status;
 }
 
 /* Explicit chrome rebuilds reuse the host's retained real surface bodies. */

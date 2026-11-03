@@ -1,4 +1,17 @@
-# Umicom Studio IDE | Sammy Hegab, Umicom Foundation | MIT
+#-----------------------------------------------------------------------------
+# Umicom Studio IDE
+# File: cmake/UmicomStudioKanban.cmake
+#
+# PURPOSE:
+#   Register native project board ownership and interaction regression cases.
+#
+# AUTHOR AND ORGANISATION:
+# Sammy Hegab
+# Umicom Foundation
+#
+# LICENCE:
+# MIT
+#---------------------------------------------------------------------------
 include_guard(GLOBAL)
 if(NOT TARGET Umicom::kanban_gtk4)
     return()
@@ -16,7 +29,7 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-kanban-entry-test)
     endif()
-    foreach(_case IN ITEMS entry retained project project-reuse project-switch project-independent project-public-plan project-public-plan-independent project-dock project-dock-reuse project-dock-return project-dock-independent project-dock-switch project-untrusted project-none project-argument)
+    foreach(_case IN ITEMS entry retained project project-reuse project-native-close project-native-close-with-editor project-switch project-independent project-public-plan project-public-plan-independent project-dock project-dock-reuse project-dock-return project-dock-independent project-dock-switch project-untrusted project-none project-argument)
         file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/kanban-${_case}")
         add_test(NAME studio.kanban.gtk4.${_case} COMMAND umicom-studio-kanban-entry-test "${_case}"
             "${CMAKE_CURRENT_BINARY_DIR}/qualification/kanban-${_case}")

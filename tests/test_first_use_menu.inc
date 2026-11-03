@@ -130,3 +130,135 @@ static int ExerciseMenuDetails(UmiStudioGtkWorkbench *workbench,
 cleanup:
     return failed;
 }
+
+
+/* Compare every rendered top-level menu against the Framework persona.
+ * This proves wiring and presentation, not that an external service succeeds.
+ * Destructive or credential-dependent commands need their own isolated fixture. */
+static int ExerciseAllMenuBindings(UmiStudioGtkWorkbench *workbench)
+{
+    int failed = 0;
+    UmiApplicationShellRegistry *registry = NULL;
+    GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    const UmiApplicationShellPersonaDefinition *persona =
+        umi_application_shell_persona_find("umicom.shell.persona.studio-ide");
+    CHECK(persona != NULL);
+    CHECK(umi_application_shell_registry_create(&registry) == UMI_STATUS_OK);
+    CHECK(umi_application_shell_persona_install(registry, persona) == UMI_STATUS_OK);
+    size_t roots = 0U, commands = 0U;
+    for (size_t i = 0U; i < umi_application_shell_registry_count(registry); ++i) {
+        UmiApplicationShellContribution menu;
+        CHECK(umi_application_shell_registry_at(registry, i, &menu) == UMI_STATUS_OK);
+        if (menu.role != UMI_APPLICATION_SHELL_ROLE_MENU ||
+            menu.region != UMI_APPLICATION_SHELL_REGION_MENU_BAR ||
+            !(menu.flags & UMI_APPLICATION_SHELL_VISIBLE)) continue;
+        ++roots;
+        GtkWidget *root = umi_gtk4_automation_find_tagged_widget(window, menu.contribution_id);
+        CHECK(GTK_IS_MENU_BUTTON(root));
+        GtkWidget *popover = GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(root)));
+        CHECK(GTK_IS_POPOVER(popover));
+        const char *suffix = strrchr(menu.contribution_id, '.');
+        CHECK(suffix != NULL);
+        size_t prefix = (size_t)(suffix - menu.contribution_id);
+        for (size_t j = 0U; j < umi_application_shell_registry_count(registry); ++j) {
+            UmiApplicationShellContribution item;
+            CHECK(umi_application_shell_registry_at(registry, j, &item) == UMI_STATUS_OK);
+            if (item.role != UMI_APPLICATION_SHELL_ROLE_MENU_ITEM ||
+                !(item.flags & UMI_APPLICATION_SHELL_VISIBLE) ||
+                strncmp(item.contribution_id, menu.contribution_id, prefix) != 0 ||
+                item.contribution_id[prefix] != '.') continue;
+            GtkWidget *button =
+                umi_gtk4_automation_find_tagged_widget(popover, item.contribution_id);
+            CHECK(GTK_IS_BUTTON(button));
+            CHECK(g_strcmp0(g_object_get_data(G_OBJECT(button), "umicom-command-id"),
+                item.command_id) == 0);
+            CHECK(g_strcmp0(g_object_get_data(G_OBJECT(button), "umicom-contribution-id"),
+                item.contribution_id) == 0);
+            CHECK(ContainsLabel(button, item.title));
+            CHECK(g_signal_has_handler_pending(button,
+                g_signal_lookup("clicked", GTK_TYPE_BUTTON), 0, TRUE));
+            /* Emit a compact coverage record, including deliberately unavailable
+             * actions. An unavailable command must not be counted as executed. */
+            fprintf(stdout, "menu-binding\t%s\t%s\t%s\n", menu.title, item.command_id,
+                gtk_widget_get_sensitive(button) ? "enabled" : "unavailable-in-empty-workspace");
+            ++commands;
+        }
+    }
+    CHECK(roots == 11U && commands >= 103U);
+cleanup:
+    umi_application_shell_registry_destroy(registry);
+    return failed;
+}
+
+/* A click must change the authoritative panel model. Each case begins on a
+ * blank canvas so an already visible default panel cannot mask a lost event. */
+static int ExerciseMenuPanel(UmiStudioGtkWorkbench *workbench, const char *name)
+{
+    int failed = 0;
+    UmiUiWorkspaceLayout *layout = g_new0(UmiUiWorkspaceLayout, 1);
+    const char *command = "help.documentation";
+    UmiStudioRuntimeSurfaceKind kind = UMI_STUDIO_SURFACE_DOCUMENTATION;
+    if (!strcmp(name, "menu-learning-panel")) {
+        command = "help.ai-teacher"; kind = UMI_STUDIO_SURFACE_LEARNING;
+    } else if (!strcmp(name, "menu-search-panel")) {
+        command = "view.search"; kind = UMI_STUDIO_SURFACE_SEARCH;
+    } else if (!strcmp(name, "menu-live-preview-panel")) {
+        command = "view.live-preview"; kind = UMI_STUDIO_SURFACE_LIVE_PREVIEW;
+    } else CHECK(!strcmp(name, "menu-documentation-panel"));
+    CHECK(umi_studio_gtk_workbench_workspace_create_blank(workbench,
+        "umicom.studio.layout.menu-check", "Menu check") == UMI_STATUS_OK);
+    CHECK(umi_studio_gtk_workbench_workspace_commit_edit(workbench) == UMI_STATUS_OK);
+    GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    GtkWidget *button = FindMenuCommand(window, command);
+    CHECK(GTK_IS_BUTTON(button) && gtk_widget_get_sensitive(button));
+    g_signal_emit_by_name(button, "clicked");
+    CHECK(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+    const char *id = umi_studio_runtime_workspace_surface_id(kind);
+    const UmiUiWorkspaceWindow *panel = umi_ui_workspace_layout_find_window(layout, id);
+    CHECK(panel != NULL && panel->visible);
+    /* Repeating an ordinary Open focuses the same singleton rather than
+     * producing duplicate panels or replacing the document model. */
+    size_t panelCount = layout->window_count;
+    g_signal_emit_by_name(button, "clicked");
+    CHECK(umi_studio_gtk_workbench_workspace_snapshot(workbench, layout) == UMI_STATUS_OK);
+    CHECK(layout->window_count == panelCount);
+    size_t matches = 0U;
+    for (size_t i = 0U; i < layout->window_count; ++i)
+        if (!strcmp(layout->windows[i].window_id, id)) ++matches;
+    CHECK(matches == 1U);
+cleanup:
+    g_free(layout);
+    return failed;
+}
+
+/* Menu activation must present the real owned palette. Closing and reopening
+ * it must leave the Studio owner available, rather than strand a modal window. */
+static int ExerciseMenuPalette(UmiStudioGtkWorkbench *workbench)
+{
+    int failed = 0;
+    GtkWindow *palette = NULL;
+    GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    GtkWidget *button = FindMenuCommand(window, "workbench.command-palette");
+    CHECK(GTK_IS_BUTTON(button) && gtk_widget_get_sensitive(button));
+    g_signal_emit_by_name(button, "clicked");
+    GListModel *windows = gtk_window_get_toplevels();
+    for (guint i = 0U; i < g_list_model_get_n_items(windows); ++i) {
+        GtkWindow *candidate = g_list_model_get_item(windows, i);
+        if (gtk_window_get_transient_for(candidate) == GTK_WINDOW(window) &&
+            !g_strcmp0(gtk_window_get_title(candidate), "Search Commands and Menus")) {
+            palette = candidate; break;
+        }
+        g_object_unref(candidate);
+    }
+    CHECK(palette != NULL && gtk_widget_get_visible(GTK_WIDGET(palette)));
+    CHECK(gtk_window_get_modal(palette));
+    gtk_window_close(palette);
+    CHECK(!gtk_widget_get_visible(GTK_WIDGET(palette)));
+    g_signal_emit_by_name(button, "clicked");
+    CHECK(gtk_widget_get_visible(GTK_WIDGET(palette)));
+    gtk_window_close(palette);
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+cleanup:
+    g_clear_object(&palette);
+    return failed;
+}

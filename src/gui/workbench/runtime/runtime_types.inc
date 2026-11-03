@@ -388,7 +388,8 @@ static void runtime_welcome_update_mode(
     UmiStudioGtkRuntimeChrome *runtime);
 
 /* Reveal a registered surface from local buttons such as lesson resources. */
-static void runtime_show_surface(
+/* The internal route returns the Framework presentation result. */
+static UmiStatus runtime_show_surface(
     UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioRuntimeSurfaceKind kind);
 

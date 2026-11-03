@@ -1,0 +1,136 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio Menu Acceptance Guide</title><style>body{font:17px/1.6 system-ui;background:#f7f9fc;color:#172a3b;margin:0}main{max-width:1100px;margin:auto;padding:32px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #bacbd8;text-align:left;vertical-align:top;padding:12px}code{font-size:.84em}a{color:#005ea8}h2{margin-top:2em}aside{border-left:4px solid #2678a3;padding:16px;background:#e4eef6}</style></head><body><main>
+<h1>Studio Menu Acceptance Guide</h1>
+<p><a href="studio-user-guide.html">Back to the Studio user guide</a></p>
+
+<p>These exercises specify expected outcomes; they are not a claim that each feature has passed. A visible entry may precede a complete integration. Record unavailable or incomplete features explicitly.</p>
+
+<h2>Prepare an isolated exercise</h2>
+<ol><li>Create a separate practice folder with two source files, a minimal CMake project, one passing test and one intentional failure.</li><li>Record the Studio executable, source revisions, operating system, GTK version, compiler and debugger adapter.</li><li>The native menu-binding test checks identifiers, captions and handlers for every menu item. It does not execute every command. Other native cases emit GTK signals; they test dispatch and outcomes but bypass physical pointer delivery.</li><li>Use a real mouse or keyboard to open each menu. Click Open File, select a fixture, type in its editor, save, switch tabs and close. Repeat after closing Kanban; a blocked pointer or hidden modal window fails this check even if signal-driven tests pass.</li><li>For every row below, activate the visible menu and record Pass, Fail, Unavailable or Not run. Skipped checks are not passes.</li><li>Capture screenshots and timestamped logs locally, excluding credentials and private contents from shared reports.</li></ol>
+
+<aside>Use disposable local repositories and a local bare remote for Git checks, exercise processes for debugging and disposable install/deploy destinations. Check both visible and persisted results: an inaccessible editor is a failure even if a service returned success.</aside>
+
+<h2>File</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>New Project<br><code>project.new</code></td><td>Choose a new destination and C project template. Verify generated source and build files. An existing destination must not be overwritten.</td></tr>
+<tr><td>New File<br><code>file.new</code></td><td>Create a new editable untitled file. Type a distinct sentence; only this document becomes dirty.</td></tr>
+<tr><td>Open...<br><code>file.open</code></td><td>Choose a source file with spaces and Unicode in its path. Verify exact editable contents. Cancel a second picker without changing the first file.</td></tr>
+<tr><td>Open Folder...<br><code>workspace.open-folder</code></td><td>Choose the exercise project. Explorer, build settings and run results must all refer to this folder.</td></tr>
+<tr><td>Cancel Opening Files<br><code>file.open.cancel</code></td><td>Cancel a pending multi-file open. Completed documents remain accessible; unfinished work stops.</td></tr>
+<tr><td>Opening Results<br><code>file.open.results</code></td><td>Inspect one successful and one failed open. Each path must have the correct outcome.</td></tr>
+<tr><td>Save<br><code>file.save</code></td><td>Choose a destination for an untitled draft. Compare disk bytes and dirty state. An unwritable destination retains the draft and reports failure.</td></tr>
+<tr><td>Save As...<br><code>file.save-as</code></td><td>Save to another path; verify content, active path and tab title. Cancelling preserves the original path and draft.</td></tr>
+<tr><td>Save All<br><code>file.save-all</code></td><td>Save two modified files, including an untitled one. Verify both disk files; failed saves remain dirty.</td></tr>
+<tr><td>Cancel Save All<br><code>file.save-all.cancel</code></td><td>Cancel pending saves. Completed saves remain valid; unfinished drafts remain unsaved.</td></tr>
+<tr><td>Reload from Disk...<br><code>file.reload</code></td><td>Change the file on disk, review Reload and accept it. Verify new contents. Cancel a second reload to preserve a draft.</td></tr>
+<tr><td>Save Copy...<br><code>file.save-copy</code></td><td>Save a separate copy. Active source path and dirty state remain unchanged. Existing destinations require refusal or explicit review.</td></tr>
+<tr><td>Close Editor<br><code>file.close</code></td><td>Close a saved file and then a dirty file. Verify tab selection and cancel/save/discard behaviour.</td></tr>
+<tr><td>Close All Source Documents<br><code>file.close-all</code></td><td>Close two dirty files. Test save, discard and cancel separately; cancellation preserves remaining drafts.</td></tr>
+<tr><td>Close Other Source Documents<br><code>file.close-others</code></td><td>Keep the active document while closing others. Verify dirty-file protection and active buffer identity.</td></tr>
+<tr><td>Cancel Closing Documents<br><code>file.close-all.cancel</code></td><td>Cancel a pending group close. Unclosed documents retain their drafts.</td></tr>
+<tr><td>Reopen Closed Document<br><code>file.reopen-closed</code></td><td>Close a saved file and reopen it. Verify path, exact contents and reachable editor.</td></tr>
+<tr><td>Forget Last Closed Document<br><code>file.forget-closed</code></td><td>Forget a closed fixture document. It is no longer offered for reopening; its disk file remains.</td></tr>
+<tr><td>Install<br><code>build.install</code></td><td>Install the fixture to a disposable prefix. Inspect installed files and actual tool results.</td></tr>
+<tr><td>Package<br><code>build.package</code></td><td>Package through the declared project rules. Verify the produced artifact and exit status.</td></tr>
+<tr><td>Exit<br><code>application.exit</code></td><td>Cancel exit with an unsaved file and continue editing. Then save and exit; reopen and verify contents.</td></tr></tbody></table>
+
+<h2>Edit</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Undo<br><code>edit.undo</code></td><td>Undo one of two changes. Verify exact text and independent history in a second tab.</td></tr>
+<tr><td>Redo<br><code>edit.redo</code></td><td>Redo the undone change; verify exact text and dirty state.</td></tr>
+<tr><td>Cut<br><code>edit.cut</code></td><td>Cut selected fixture text, paste it elsewhere, then undo. Verify original contents are restored.</td></tr>
+<tr><td>Copy<br><code>edit.copy</code></td><td>Copy selected text and paste into a second document. The source remains unchanged.</td></tr>
+<tr><td>Paste<br><code>edit.paste</code></td><td>Paste multiline Unicode text. Verify exact contents, cursor position and Undo.</td></tr>
+<tr><td>Select All<br><code>edit.select-all</code></td><td>Select all text in the active editor; other buffers remain unchanged.</td></tr>
+<tr><td>Delete Selection<br><code>edit.delete</code></td><td>Delete selected text, then undo; verify exact restoration.</td></tr>
+<tr><td>Find<br><code>search.find</code></td><td>Find a known word. Check next/previous match, case options and no-match feedback.</td></tr>
+<tr><td>Replace<br><code>search.replace</code></td><td>Replace a known match. Verify exact changed text and Undo before trying Replace All.</td></tr>
+<tr><td>Find in Files<br><code>search.workspace</code></td><td>Search a known word across the exercise project. Open a result at its real file and location.</td></tr></tbody></table>
+
+<h2>View</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Command Palette<br><code>workbench.command-palette</code></td><td>Open the palette, search for New File, activate it, close and reopen the palette. The new file remains usable.</td></tr>
+<tr><td>Quick Open<br><code>workbench.quick-open</code></td><td>Open an exercise project, search an indexed filename and select it. Verify editable contents. Cancel without changing files.</td></tr>
+<tr><td>Project Explorer<br><code>view.explorer</code></td><td>Start with Project Explorer hidden. Open it, verify usable controls, repeat without a duplicate, close and reopen. Preserve all source drafts.</td></tr>
+<tr><td>Search<br><code>view.search</code></td><td>Start with Search hidden. Open it, verify usable controls, repeat without a duplicate, close and reopen. Preserve all source drafts.</td></tr>
+<tr><td>Source Control<br><code>view.source-control</code></td><td>Start with Source Control hidden. Open it, verify usable controls, repeat without a duplicate, close and reopen. Preserve all source drafts.</td></tr>
+<tr><td>Test Explorer<br><code>view.test-explorer</code></td><td>Start with Test Explorer hidden. Open it, verify usable controls, repeat without a duplicate, close and reopen. Preserve all source drafts.</td></tr>
+<tr><td>Live Preview<br><code>view.live-preview</code></td><td>Start with Live Preview hidden. Open it, verify usable controls, repeat without a duplicate, close and reopen. Preserve all source drafts.</td></tr>
+<tr><td>Terminal<br><code>view.terminal</code></td><td>Start with Terminal hidden. Open it, verify usable controls, repeat without a duplicate, close and reopen. Preserve all source drafts.</td></tr>
+<tr><td>Problems<br><code>view.problems</code></td><td>Start with Problems hidden. Open it, verify usable controls, repeat without a duplicate, close and reopen. Preserve all source drafts.</td></tr>
+<tr><td>Output<br><code>view.output</code></td><td>Start with Output hidden. Open it, verify usable controls, repeat without a duplicate, close and reopen. Preserve all source drafts.</td></tr>
+<tr><td>Zen Mode<br><code>view.zen</code></td><td>Toggle twice. Restore the original arrangement with all drafts intact.</td></tr></tbody></table>
+
+<h2>Navigate</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Back<br><code>navigate.back</code></td><td>Visit two source locations, then go back to the earlier file and cursor location.</td></tr>
+<tr><td>Forward<br><code>navigate.forward</code></td><td>After Back, return to the later location.</td></tr>
+<tr><td>Go to File<br><code>navigate.file</code></td><td>Choose a known indexed file and verify its editable document.</td></tr>
+<tr><td>Go to Symbol<br><code>navigate.symbol</code></td><td>With a configured language provider, select a symbol and verify its real location. Missing providers require explicit feedback.</td></tr>
+<tr><td>Go to Line...<br><code>umicom.document.go-to-line</code></td><td>Enter a valid line, then invalid input. Only the valid request changes the cursor.</td></tr>
+<tr><td>Next Source Document<br><code>navigate.document.next</code></td><td>Cycle forward through three edited files. Tab and buffer identity must agree.</td></tr>
+<tr><td>Previous Source Document<br><code>navigate.document.previous</code></td><td>Cycle backward. Each draft remains attached to its original file.</td></tr>
+<tr><td>Go to Definition<br><code>navigate.definition</code></td><td>From a known reference, navigate to its definition and verify the exact path and range.</td></tr>
+<tr><td>Find References<br><code>navigate.references</code></td><td>Request references for a known symbol, inspect the list and open a result at its source range.</td></tr>
+<tr><td>Next Problem<br><code>navigate.problem.next</code></td><td>Create two compiler diagnostics. Navigate to the next file and line.</td></tr>
+<tr><td>Previous Problem<br><code>navigate.problem.previous</code></td><td>Navigate back through diagnostics. Stale paths must not overwrite drafts.</td></tr></tbody></table>
+
+<h2>Build</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Project Settings...<br><code>build.settings</code></td><td>Set project build directory and tool paths. Reopen and verify. Cancel preserves previous settings.</td></tr>
+<tr><td>Configure<br><code>build.configure</code></td><td>Configure the fixture project; inspect working directory, output and completed exit code. A missing tool reports failure.</td></tr>
+<tr><td>Build<br><code>build.build</code></td><td>Build valid source, introduce a compiler error, then repair it. Verify source-linked diagnostics and distinct completed results.</td></tr>
+<tr><td>Rebuild<br><code>build.rebuild</code></td><td>Rebuild the fixture; inspect the actual stages and final exit status.</td></tr>
+<tr><td>Clean<br><code>build.clean</code></td><td>Clean generated fixture outputs only. Source and drafts remain intact.</td></tr>
+<tr><td>Test Project<br><code>build.test</code></td><td>Run project tests. Distinguish discovery, execution, failures and skipped cases.</td></tr>
+<tr><td>Cancel Build<br><code>build.cancel</code></td><td>Cancel a long fixture build. Wait for cancellation, then start another build.</td></tr>
+<tr><td>Deploy<br><code>build.deploy</code></td><td>Use a deliberately configured disposable destination. Missing deployment support must be unavailable or explained.</td></tr>
+<tr><td>Install<br><code>build.install</code></td><td>Install the fixture to a disposable prefix. Inspect installed files and actual tool results.</td></tr>
+<tr><td>Package<br><code>build.package</code></td><td>Package through the declared project rules. Verify the produced artifact and exit status.</td></tr></tbody></table>
+
+<h2>Run</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Run<br><code>run.start</code></td><td>Build and run the exercise program. Inspect distinct output and exit status. Failed builds must not masquerade as a successful new run.</td></tr>
+<tr><td>Run With...<br><code>run.select-configuration</code></td><td>Select a fixture launch configuration. Verify executable, arguments and working directory.</td></tr>
+<tr><td>Stop<br><code>run.stop</code></td><td>Stop a long-running exercise process. Unrelated processes remain untouched.</td></tr>
+<tr><td>Restart<br><code>run.restart</code></td><td>Restart the fixture. Verify the old process ends and a new run begins.</td></tr>
+<tr><td>Debug<br><code>debug.start</code></td><td>Use a supported installed adapter. Stop at a verified breakpoint, inspect stack/variables, step, continue and stop.</td></tr>
+<tr><td>Attach to Process<br><code>debug.attach</code></td><td>Select an exercise process explicitly. Attach with a supported adapter, verify process identity and detach safely.</td></tr>
+<tr><td>Breakpoints<br><code>debug.breakpoints</code></td><td>Add, disable and remove a breakpoint. Distinguish requested from adapter-verified state.</td></tr></tbody></table>
+
+<h2>Test</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Discover Tests<br><code>test.discover</code></td><td>Discover configured fixture tests. Compare their names and count with the project catalogue.</td></tr>
+<tr><td>Run All Tests<br><code>test.run-all</code></td><td>Run a fixture with one pass and one intentional failure. Verify results, output and counts.</td></tr>
+<tr><td>Run Selected<br><code>test.run-selected</code></td><td>Select one discovered test. Only that test runs; no selection must not silently run all.</td></tr>
+<tr><td>Debug Selected<br><code>test.debug-selected</code></td><td>Use a provider supporting test debugging. Verify the selected test stops in the debugger; a normal run is not a debug pass.</td></tr>
+<tr><td>Rerun Failed<br><code>test.rerun-failed</code></td><td>After mixed results, rerun only failures. Previously passing unchanged tests are excluded.</td></tr>
+<tr><td>Run with Coverage<br><code>test.coverage-all</code></td><td>Use an instrumented fixture and coverage provider. Inspect the real coverage artifact; test success alone is insufficient.</td></tr>
+<tr><td>Stop Tests<br><code>test.stop</code></td><td>Cancel a long test. Keep completed results; distinguish cancelled or unexecuted cases from passes.</td></tr></tbody></table>
+
+<h2>source control</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Refresh Status<br><code>source-control.refresh</code></td><td>Modify a tracked file in a disposable repository. Refresh and verify path and status.</td></tr><tr><td>Stage All<br><code>source-control.stage-all</code></td><td>Stage fixture changes and inspect the real index.</td></tr><tr><td>Commit<br><code>source-control.commit</code></td><td>Review staged fixture files, commit and inspect the new tree and message.</td></tr><tr><td>Pull<br><code>source-control.pull</code></td><td>Use a disposable local bare remote and clean tracking branch. Pull a known update; divergence must preserve local work.</td></tr><tr><td>Push<br><code>source-control.push</code></td><td>Push only to the local fixture remote. Verify the remote branch; rejected pushes retain local commits.</td></tr><tr><td>Branches<br><code>source-control.branches</code></td><td>Inspect branch names and current branch. Opening the view does not switch branches.</td></tr><tr><td>Compare Changes<br><code>source-control.diff</code></td><td>Select a changed fixture file. Compare displayed changes with actual edited text.</td></tr></tbody></table>
+
+<h2>Tools</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Extensions<br><code>extensions.open</code></td><td>Inspect registered extensions and provider state. Unavailable installation must not report success.</td></tr>
+<tr><td>Settings<br><code>settings.open</code></td><td>Change a harmless preference: cancel first, then apply deliberately. Verify persistence.</td></tr>
+<tr><td>Toolchains<br><code>toolchains.open</code></td><td>Inspect compiler and debugger paths. Invalid paths require actionable feedback.</td></tr>
+<tr><td>CodeGuard<br><code>codeguard.scan</code></td><td>Scan a fixture with a supported known diagnostic; verify source-linked findings. Absent engines are unavailable.</td></tr>
+<tr><td>Visual Designer<br><code>designer.open</code></td><td>Open a design document, insert a supported component, edit a property, undo and save. Preserve code documents.</td></tr>
+<tr><td>AI Coding Assistant<br><code>ai.assistant.open</code></td><td>Open the assistant. Configure an approved provider before requesting output. Missing provider support must be explained.</td></tr></tbody></table>
+
+<h2>Window</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>New Window<br><code>window.new</code></td><td>Open a second Studio window. Verify independent focus; closing it leaves the first usable.</td></tr>
+<tr><td>Split Right<br><code>window.split-right</code></td><td>Split the editor horizontally; both views remain usable with correct document identity.</td></tr>
+<tr><td>Split Down<br><code>window.split-down</code></td><td>Split vertically and resize. Verify contents and cursor ownership.</td></tr>
+<tr><td>Float Panel<br><code>window.float</code></td><td>Float, resize and dock a selected panel. Preserve drafts and panel identity.</td></tr>
+<tr><td>Save Layout<br><code>layout.save</code></td><td>Rearrange a fixture layout and save it. Source files remain unchanged.</td></tr>
+<tr><td>Restore Layout<br><code>layout.restore</code></td><td>After moving a panel, restore the saved arrangement with drafts intact.</td></tr>
+<tr><td>Layout Manager<br><code>layout.manager</code></td><td>Choose a named layout, close and reopen the manager. Verify panel identity and persistence.</td></tr></tbody></table>
+
+<h2>Help</h2>
+<table><thead><tr><th>Option</th><th>Exercise and expected result</th></tr></thead><tbody><tr><td>Welcome<br><code>help.welcome</code></td><td>Open Welcome without losing active documents; return to the draft.</td></tr>
+<tr><td>Documentation<br><code>help.documentation</code></td><td>Open hidden Documentation. Verify a reachable panel; repeat without duplication.</td></tr>
+<tr><td>Studio User Guide<br><code>help.learning.user-guide</code></td><td>Load the local learning pack and open the user guide. Missing-pack feedback must preserve the project.</td></tr>
+<tr><td>AI Teacher<br><code>help.ai-teacher</code></td><td>Open the learning panel, select a local lesson and read it. Model-dependent assistance states its prerequisites.</td></tr>
+<tr><td>Keyboard Shortcuts<br><code>help.shortcuts</code></td><td>Inspect the shortcut reference and compare New/Open/Save bindings with actual behaviour.</td></tr>
+<tr><td>About Umicom<br><code>help.about</code></td><td>Inspect product identity and version. Close and continue editing.</td></tr></tbody></table>
+
+<h2>Components outside menus</h2>
+<ol><li>Exercise New/Open/Save from toolbar and Welcome, checking the same document result.</li><li>Edit three tabs, switch repeatedly, close one, save and reopen the others. Verify exact text and reachable editors.</li><li>Open Project board, add an exercise card, close the window, edit source and reopen the board. Repeat with a card editor open. No hidden modal window may block Studio.</li><li>Open a local lesson, close its reader and open a different lesson without changing the project or draft.</li><li>Exercise Explorer filter, refresh, rows and project switching. Verify each real selected path.</li><li>Resize and hide panels, restore layouts and repeat keyboard navigation at different display scales.</li></ol>
+
+<h2>Completion evidence</h2>
+<p>Name the command, prerequisite state, visible and persisted result, and evidence for each case. Real debugger qualification is separate from protocol fixtures. Retain failures and rerun them after a fix.</p>
+</main></body></html>
