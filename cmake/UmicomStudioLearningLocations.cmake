@@ -24,6 +24,13 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     umicom_apply_warnings(umicom-studio-learning-locations-test)
     umicom_apply_sanitizers(umicom-studio-learning-locations-test)
     get_target_property(_learning_framework_source umicom_developer SOURCE_DIR)
+    # Empty-catalogue cases must not discover the application's bundled courses
+    # from the shared bin directory. A separate packaged fixture below verifies
+    # executable-relative auto-discovery without changing production lookup.
+    set_target_properties(umicom-studio-learning-locations-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/learning-fixtures/empty/$<CONFIG>")
+    target_include_directories(umicom-studio-learning-locations-test PRIVATE
+        "${_learning_framework_source}/tests")
     foreach(case controls project-separation retained-controls first-lesson relative-without-project
                  document-utf8 document-overflow document-binary)
         add_test(NAME studio.learning.locations.${case} COMMAND umicom-studio-learning-locations-test "${case}" "${_learning_framework_source}")

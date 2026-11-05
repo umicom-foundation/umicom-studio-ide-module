@@ -83,3 +83,37 @@ install(FILES
 
 # Optional course modules use the same native catalogue as the user guides.
 include("${CMAKE_CURRENT_LIST_DIR}/UmicomStudioLearningModules.cmake")
+
+# A second executable directory models a delivered Studio guide. Keeping this
+# separate from empty-library cases prevents test order or an application build
+# from changing the meaning of the fixture.
+if(BUILD_TESTING AND TARGET umicom-studio-learning-locations-test
+        AND TARGET Umicom::learning_catalogue_gtk4)
+    add_executable(umicom-studio-learning-bundled-test
+        "${CMAKE_CURRENT_LIST_DIR}/../tests/test_learning_locations_gtk4.c"
+        "${CMAKE_CURRENT_LIST_DIR}/../src/gui/workbench/workbench_window.c")
+    target_include_directories(umicom-studio-learning-bundled-test PRIVATE
+        "${CMAKE_CURRENT_LIST_DIR}/../src/gui/workbench/include"
+        "${_learning_framework_source}/tests")
+    target_link_libraries(umicom-studio-learning-bundled-test PRIVATE
+        Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    set_target_properties(umicom-studio-learning-bundled-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/learning-fixtures/bundled/$<CONFIG>")
+    umicom_apply_warnings(umicom-studio-learning-bundled-test)
+    umicom_apply_sanitizers(umicom-studio-learning-bundled-test)
+    include("${_learning_framework_source}/cmake/UmicomLearningModuleBundle.cmake")
+    umicom_bundle_learning_module(TARGET umicom-studio-learning-bundled-test
+        NAME studio-guide SOURCE_DIR "${_studio_learning_pack_dir}"
+        PACK_ID studio.learning-guide PRODUCT studio NO_INSTALL)
+    add_test(NAME studio.learning.locations.bundled-guide
+        COMMAND umicom-studio-learning-bundled-test bundled-guide "${_studio_learning_pack_dir}")
+    set_tests_properties(studio.learning.locations.bundled-guide PROPERTIES
+        TIMEOUT 60 SKIP_RETURN_CODE 77 LABELS "studio;learning;gtk4;bundle;regression")
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-learning-bundled-test)
+    endif()
+    if(COMMAND umicom_test_impact_owners)
+        umicom_test_impact_owners(studio.learning.locations.bundled-guide
+            TARGETS umicom-studio-learning-bundled-test)
+    endif()
+endif()

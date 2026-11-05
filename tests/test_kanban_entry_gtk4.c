@@ -124,8 +124,15 @@ int main(int argc, char **argv) {
         !strcmp(argv[1], "project-native-close-with-editor");
     if (native_close) {
       /* Use the real project button, including its weak owner binding. */
+      /* The Explorer entry remains present after a project opens and Welcome
+       * disappears. Preserve the Welcome-only lookup for review; closing the
+       * board is now exercised through the persistent product command. */
+#if 0
       GtkWidget *project_button = umi_gtk4_automation_find_tagged_widget(
           GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), "studio.project-board");
+#endif
+      GtkWidget *project_button = umi_gtk4_automation_find_tagged_widget(
+          GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), "studio.explorer.project-board");
       REQUIRE(GTK_IS_BUTTON(project_button) && gtk_widget_get_sensitive(project_button));
       g_signal_emit_by_name(project_button, "clicked");
       status = FindBoard(application) != NULL ? UMI_STATUS_OK : UMI_STATUS_NOT_FOUND;

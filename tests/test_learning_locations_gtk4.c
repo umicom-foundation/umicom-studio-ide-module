@@ -26,6 +26,7 @@
 #include "umicom/ui/gtk4/learning_catalogue.h"
 #include "umicom/ui/gtk4/learning_help_binding.h"
 #endif
+#include "support/main_context.h"
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <string.h>
@@ -49,7 +50,13 @@ static int FinishCatalogue(void)
 {
     gint64 deadline = g_get_monotonic_time() + 15 * G_TIME_SPAN_SECOND;
     while (UmiLearningCatalogueGtk4PendingReads() != 0U && g_get_monotonic_time() < deadline) {
+        /* A permanently ready source must not prevent the deadline check.
+         * Preserve the unbounded drain for review; Framework's test slice
+         * limits each turn while still delivering asynchronous completion. */
+#if 0
         while (g_main_context_iteration(NULL, FALSE)) {}
+#endif
+        UmiTestDispatchSlice(NULL, deadline, 64U);
         g_usleep(1000U);
     }
     return UmiLearningCatalogueGtk4PendingReads() == 0U;
@@ -62,6 +69,7 @@ int main(int argc, char **argv)
 {
     if (argc != 3)
         return 2;
+    g_test_init(&argc, &argv, NULL);
     if (!gtk_init_check())
         return 77;
     int failed = 0, changed_directory = 0, isolated = 0;
@@ -392,10 +400,11 @@ int main(int argc, char **argv)
         }
     }
     else if (strcmp(argv[1], "catalogue") == 0 || strcmp(argv[1], "catalogue-retained") == 0 ||
-             strcmp(argv[1], "catalogue-guide") == 0 || strcmp(argv[1], "catalogue-guide-retained") == 0)
+             strcmp(argv[1], "catalogue-guide") == 0 || strcmp(argv[1], "catalogue-guide-retained") == 0 ||
+             strcmp(argv[1], "bundled-guide") == 0)
     {
         catalogue_button = umi_gtk4_automation_find_tagged_widget(root,
-            g_str_has_prefix(argv[1], "catalogue-guide") ? "studio.learning.guide" : "studio.learning.catalogue");
+            (g_str_has_prefix(argv[1], "catalogue-guide") || !strcmp(argv[1], "bundled-guide")) ? "studio.learning.guide" : "studio.learning.catalogue");
         CHECK(GTK_IS_BUTTON(catalogue_button));
         g_object_ref(catalogue_button);
         if (strcmp(argv[1], "catalogue-retained") == 0 || strcmp(argv[1], "catalogue-guide-retained") == 0)
@@ -428,8 +437,19 @@ int main(int argc, char **argv)
             CHECK(catalogue_window != NULL && catalogue_panel != NULL);
             CHECK(gtk_window_get_transient_for(catalogue_window) == GTK_WINDOW(root));
             UmiLearningCatalogueGtkState state;
-            CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
-            CHECK(!state.busy && !state.retired && state.pack_count == 0U);
+            if (!strcmp(argv[1], "bundled-guide")) {
+                /* The real Help action loads the module beside this executable
+                 * while the working directory is an unrelated temporary folder. */
+                CHECK(FinishCatalogue());
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
+                CHECK(!state.busy && !state.retired && state.pack_count == 1U);
+                CHECK(state.last_status == UMI_STATUS_OK && state.reader.has_document);
+                CHECK(strcmp(state.reader.pack.id, "studio.learning-guide") == 0);
+                CHECK(strcmp(state.reader.selection.resource.id, "learning-in-studio") == 0);
+            } else {
+                CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
+                CHECK(!state.busy && !state.retired && state.pack_count == 0U);
+            }
             if (strcmp(argv[1], "catalogue-guide") == 0) {
                 CHECK(state.last_status == UMI_STATUS_NOT_FOUND);
                 GtkWidget *notice = umi_gtk4_automation_find_tagged_widget(
