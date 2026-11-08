@@ -551,6 +551,8 @@ static UmiStatus runtime_execute_registered_command_capture(
          strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_TEST) == 0 ||
          strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_CLEAN) == 0 ||
          strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN) == 0 ||
+         /* Restart cannot acquire a second execution owner beside a console. */
+         strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_RESTART) == 0 ||
          strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT) == 0 ||
          strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_INSTALL) == 0 ||
          strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_PACKAGE) == 0 ||

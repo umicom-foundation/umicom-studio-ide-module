@@ -26,6 +26,23 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
     if(COMMAND umicom_register_validation_target)
         umicom_register_validation_target(umicom-studio-first-use-test)
     endif()
+    # A real bounded child makes Stop observable without compiling a sample project.
+    add_executable(umicom-studio-run-stop-peer tests/run_stop_peer.c)
+    target_link_libraries(umicom-studio-run-stop-peer PRIVATE PkgConfig::GLIB)
+    umicom_apply_warnings(umicom-studio-run-stop-peer)
+    umicom_apply_sanitizers(umicom-studio-run-stop-peer)
+    target_compile_definitions(umicom-studio-first-use-test PRIVATE
+        UMICOM_STUDIO_STOP_PEER="$<TARGET_FILE:umicom-studio-run-stop-peer>")
+    add_dependencies(umicom-studio-first-use-test umicom-studio-run-stop-peer)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-run-stop-peer)
+    endif()
+    if(COMMAND umicom_target_qualification_inputs)
+        umicom_target_qualification_inputs(umicom-studio-first-use-test FILES
+            "${CMAKE_CURRENT_LIST_DIR}/../tests/first_use_run_menu.inc"
+            "${CMAKE_CURRENT_LIST_DIR}/../tests/first_use_run_restart.inc"
+            "${CMAKE_CURRENT_LIST_DIR}/../tests/run_stop_peer.c")
+    endif()
     # One catalogue supplies registration and native argument admission.
     # Track it as a configure input so adding a scenario updates CTest too.
     set(_first_use_catalogue "${CMAKE_CURRENT_LIST_DIR}/../tests/first_use_cases.inc")

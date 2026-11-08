@@ -19,6 +19,7 @@
 #include "umicom/studio/ui.h"
 #include "umicom/studio/editor_settings.h"
 #include "umicom/studio/build.h"
+#include "umicom/studio/debugger.h"
 #include "umicom/studio/diagnostics.h"
 #include "umicom/diagnostic_ui/navigation.h"
 
@@ -243,6 +244,38 @@ UmiStatus umi_studio_ui_publish(UmiStudioUi *ui, UmiServiceRegistry *registry)
     return UMI_STATUS_OK;
 }
 
+/* Advance only after the ordinary result collector has retained the old job.
+ * A refusal is a one-shot notification, not an error that breaks every refresh. */
+static UmiStatus StudioUiAdvanceRestart(UmiStudioUi *ui)
+{
+    UmiStudioBuildService *build = umi_studio_services_build(ui->services);
+    UmiBuildRunRestartSnapshot intent;
+    UmiStatus status = UmiStudioBuildRestartRead(build, &intent);
+    if (status != UMI_STATUS_OK || !intent.pending) return status;
+    UmiStudioWorkspaceSnapshot workspace;
+    status = umi_studio_workspace_snapshot(ui->services, &workspace);
+    bool submitted = false;
+    if (status == UMI_STATUS_OK) {
+        bool permitted = workspace.graph.open && workspace.graph.trusted &&
+            !UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(ui->services));
+        status = UmiStudioBuildRestartAdvance(build, workspace.graph.root, permitted, &submitted);
+    } else {
+        umi_studio_build_service_cancel(build);
+    }
+    if (status == UMI_STATUS_BUSY || status == UMI_STATUS_NOT_FOUND) return UMI_STATUS_OK;
+    UmiUiNotification notification = {0};
+    notification.severity = submitted ? UMI_UI_SEVERITY_INFORMATION : UMI_UI_SEVERITY_WARNING;
+    strcpy(notification.title, "Run Restart");
+    if (submitted)
+        (void)snprintf(notification.message, sizeof notification.message,
+            "A new run was queued after the previous results were retained. See Output for its actual outcome.");
+    else
+        (void)snprintf(notification.message, sizeof notification.message,
+            "Restart stopped: %s. Review project trust, launch settings and the new transcript path before trying again.",
+            umi_status_text(status));
+    return umi_ui_notification_publish(umi_ui_workbench_notifications(ui->workbench), &notification, NULL);
+}
+
 /* Provide the studio ui refresh operation used by this module and its client applications. */
 UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui)
 {
@@ -271,6 +304,8 @@ UmiStatus umi_studio_ui_refresh(UmiStudioUi *ui)
             if (status != UMI_STATUS_NOT_FOUND && status != UMI_STATUS_OK) return status;
         }
     }
+    status = StudioUiAdvanceRestart(ui);
+    if (status != UMI_STATUS_OK) return status;
     status = umi_studio_view_models_refresh(ui->view_models);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
     if (status != UMI_STATUS_OK) return status;

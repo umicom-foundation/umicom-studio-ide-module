@@ -635,7 +635,14 @@ int UmiStudioBuildBusy(UmiStudioBuildService *service)
     if (service == NULL || service->project_session == NULL) return 0;
     if (umi_build_project_session_snapshot(service->project_session, &snapshot) != UMI_STATUS_OK)
         return 1;
+    /* A terminal worker may still have a deferred restart. Keep workspace and
+     * profile changes blocked until authority is rechecked or Stop revokes it. */
+#if 0
     return snapshot.active || snapshot.completed_phase_count > service->published_results;
+#endif
+    UmiBuildRunRestartSnapshot restart;
+    if (UmiBuildRunRestartRead(service->project_session, &restart) != UMI_STATUS_OK) return 1;
+    return restart.pending || snapshot.active || snapshot.completed_phase_count > service->published_results;
 }
 
 /* A zero snapshot describes a service that has not yet started background work. */
@@ -776,4 +783,42 @@ UmiStatus UmiStudioBuildReadDiagnosticPage(UmiStudioBuildService *service,
     }
     return UmiBuildProjectSessionReadDiagnosticPage(service->project_session,
         expected_operation, expected_phase_index, first_index, out);
+}
+
+/* Frontends do not reproduce the restart state machine. They provide current
+ * authority and their completed-result acknowledgement to the session owner. */
+UmiStatus UmiStudioBuildRestartReview(UmiStudioBuildService *service,
+    const char *project_root, int trusted)
+{
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->project_session == NULL) return UMI_STATUS_INVALID_STATE;
+    return UmiBuildRunRestartReview(service->project_session, &service->profile,
+        project_root, trusted != 0);
+}
+UmiStatus UmiStudioBuildRestartRequest(UmiStudioBuildService *service,
+    const char *project_root, int trusted)
+{
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->project_session == NULL) return UMI_STATUS_INVALID_STATE;
+    return UmiBuildRunRestartRequest(service->project_session, &service->profile,
+        project_root, trusted != 0);
+}
+UmiStatus UmiStudioBuildRestartAdvance(UmiStudioBuildService *service,
+    const char *project_root, int trusted, bool *submitted)
+{
+    if (submitted != NULL) *submitted = false;
+    if (service == NULL || submitted == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (service->project_session == NULL) return UMI_STATUS_NOT_FOUND;
+    UmiStatus status = UmiBuildRunRestartAdvance(service->project_session,
+        &service->profile, project_root, trusted != 0, service->published_results, submitted);
+    if (status == UMI_STATUS_OK && *submitted) service->published_results = 0U;
+    return status;
+}
+UmiStatus UmiStudioBuildRestartRead(UmiStudioBuildService *service,
+    UmiBuildRunRestartSnapshot *out_snapshot)
+{
+    if (service == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    memset(out_snapshot, 0, sizeof(*out_snapshot));
+    return service->project_session == NULL ? UMI_STATUS_OK :
+        UmiBuildRunRestartRead(service->project_session, out_snapshot);
 }

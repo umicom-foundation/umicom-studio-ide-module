@@ -952,6 +952,34 @@ static UmiStatus build_run_current_handler(void *user_data, const char *argument
 }
 
 
+/* Run Restart owns no debugger session and never saves or rebuilds documents.
+ * Framework retains the intent; normal UI refresh later rechecks authority. */
+static UmiStatus build_run_restart_handler(void *user_data, const char *argument,
+    char *out_message, size_t capacity)
+{
+    if (user_data == NULL || (argument != NULL && argument[0] != '\0'))
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioServices *services = user_data;
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status == UMI_STATUS_OK && !workspace.graph.open) status = UMI_STATUS_INVALID_STATE;
+    if (status == UMI_STATUS_OK && UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)))
+        status = UMI_STATUS_BUSY;
+    if (status == UMI_STATUS_OK)
+        status = UmiStudioBuildRestartRequest(umi_studio_services_build(services),
+            workspace.graph.root, workspace.graph.trusted);
+    if (out_message != NULL && capacity > 0U) {
+        if (status == UMI_STATUS_OK)
+            (void)snprintf(out_message, capacity,
+                "Restart requested. Waiting for the owned program and its results before a fresh launch.");
+        else
+            (void)snprintf(out_message, capacity,
+                "Restart refused: %s. It requires an active Run in the same trusted project and unchanged settings.",
+                umi_status_text(status));
+    }
+    return status;
+}
+
 /* Use the existing bounded build worker for the package sequence. */
 static UmiStatus build_package_handler(void *user_data, const char *argument,
     char *out_message, size_t capacity)
@@ -5219,6 +5247,13 @@ status = register_command(registry, services,
                                   UMI_COMMAND_AUDITED,
                               build_retry_handler);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+    status = register_command(registry, services,
+        UMI_STUDIO_COMMAND_BUILD_RUN_RESTART, "Restart Program", "Run",
+        "Stop the owned program, retain its results and recheck before a new launch.",
+        "studio.build.execute",
+        UMI_COMMAND_MUTATES_STATE | UMI_COMMAND_REQUIRES_TRUST | UMI_COMMAND_AUDITED,
+        build_run_restart_handler);
     if (status != UMI_STATUS_OK) return status;
     status = register_command(registry, services,
                               UMI_STUDIO_COMMAND_BUILD_CANCEL,

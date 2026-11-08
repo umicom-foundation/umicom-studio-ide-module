@@ -18,6 +18,7 @@
 
 #include <stddef.h>
 #include "umicom/build/project_session.h"
+#include "umicom/build/run_restart.h"
 #include "umicom/build/live_output.h"
 #include "umicom/build/live_diagnostics.h"
 #include "umicom/build/log_capture.h"
@@ -184,6 +185,16 @@ UmiStatus UmiStudioBuildSubmit(UmiStudioBuildService *service,
  * documents, configure or build. Framework captures explicit launch paths and
  * refuses unresolved program names. Existing busy/trust and log rules apply. */
 UmiStatus UmiStudioBuildRunCurrent(UmiStudioBuildService *service, int trusted);
+/** Thin owner-thread bridge: Framework owns restart decisions; Studio supplies
+ * current project authority and acknowledges the results it has retained. */
+UmiStatus UmiStudioBuildRestartReview(UmiStudioBuildService *service,
+    const char *project_root, int trusted);
+UmiStatus UmiStudioBuildRestartRequest(UmiStudioBuildService *service,
+    const char *project_root, int trusted);
+UmiStatus UmiStudioBuildRestartAdvance(UmiStudioBuildService *service,
+    const char *project_root, int trusted, bool *submitted);
+UmiStatus UmiStudioBuildRestartRead(UmiStudioBuildService *service,
+    UmiBuildRunRestartSnapshot *out_snapshot);
 /** Collect one completed phase on the owning thread into the existing history.
  * NOT_FOUND means there is no new result. No compiler wait occurs here. */
 UmiStatus UmiStudioBuildCollect(UmiStudioBuildService *service, UmiBuildResult *outResult);

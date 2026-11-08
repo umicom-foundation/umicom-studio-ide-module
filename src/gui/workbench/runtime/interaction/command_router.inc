@@ -543,6 +543,29 @@ static UmiStatus runtime_route_command(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
 
+    /* Run uses the existing project session, so Stop must cancel that same
+     * owner instead of falling through to an unrelated generic host command.
+     * Admission is repeated here for retained menu and command-search requests. */
+    if (strcmp(command_id, "run.stop") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        UmiStudioServices *services = runtime->owner != NULL && runtime->owner->ui != NULL
+            ? umi_studio_ui_services(runtime->owner->ui) : NULL;
+        if (services == NULL || !UmiStudioBuildBusy(umi_studio_services_build(services)))
+            return UMI_STATUS_INVALID_STATE;
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_BUILD_CANCEL, NULL);
+    }
+    if (strcmp(command_id, "run.restart") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_BUILD_RUN_RESTART, NULL);
+    }
+    /* Run With presents the established Framework settings/configuration form.
+     * Normalize before its existing busy and lifetime checks; opening the form
+     * does not apply a profile, grant trust, save source or launch a process. */
+    if (strcmp(command_id, "run.select-configuration") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        command_id = "build.settings";
+    }
+
     /* Repeat workspace/profile availability at execution: a stale menu must
      * not replace the workspace of a pending or active debug process. */
     if (runtime->owner != NULL && UmiStudioDebuggerNativeBusy(

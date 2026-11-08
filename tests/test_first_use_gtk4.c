@@ -2642,6 +2642,8 @@ cleanup:
 #include "first_use_project_controls.inc"
 
 #include "test_first_use_menu.inc"
+#include "first_use_run_menu.inc"
+#include "first_use_run_restart.inc"
 
 int main(int argc, char **argv)
 {
@@ -2751,6 +2753,18 @@ int main(int argc, char **argv)
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     CHECK(umi_document_coordinator_count(documents) == 0U);
+    if (FirstUseRunRestartScenario(name)) {
+        gtk_window_present(GTK_WINDOW(window));
+        TabJourneyPump();
+        failed = ExerciseRunRestart(workbench, ui, services, documents, directory, name);
+        goto cleanup;
+    }
+    if (FirstUseRunMenuScenario(name)) {
+        gtk_window_present(GTK_WINDOW(window));
+        TabJourneyPump();
+        failed = ExerciseRunMenu(workbench, services, documents, directory, name);
+        goto cleanup;
+    }
     if (!strcmp(name, "menu-command-palette")) {
         failed = ExerciseMenuPalette(workbench);
         goto cleanup;

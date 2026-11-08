@@ -580,6 +580,30 @@ static int runtime_command_enabled(
      */
     if (bindings == NULL || bindings->commands == NULL) return 0;
 
+    /* Presentation queries the same session that owns Run. Cancellation stays
+     * available after trust is revoked; permission to start another process is
+     * not a prerequisite for stopping an already owned operation. */
+    if (strcmp(command_id, "run.stop") == 0)
+        return UmiStudioBuildBusy(umi_studio_services_build(
+            umi_studio_ui_services(runtime->owner->ui))) &&
+            umi_command_registry_contains(umi_ui_workbench_commands(
+                umi_studio_ui_workbench(runtime->owner->ui)),
+                UMI_STUDIO_COMMAND_BUILD_CANCEL);
+    if (strcmp(command_id, "run.restart") == 0) {
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        UmiStudioWorkspaceSnapshot workspace;
+        return !RuntimeProgramConsoleBusy(runtime) &&
+            umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK &&
+            workspace.graph.open &&
+            !UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) &&
+            UmiStudioBuildRestartReview(umi_studio_services_build(services),
+                workspace.graph.root, workspace.graph.trusted) == UMI_STATUS_OK &&
+            umi_command_registry_contains(umi_ui_workbench_commands(
+                umi_studio_ui_workbench(runtime->owner->ui)), UMI_STUDIO_COMMAND_BUILD_RUN_RESTART);
+    }
+    if (strcmp(command_id, "run.select-configuration") == 0)
+        command_id = "build.settings";
+
     /* A replacement sequence must finish before another host-changing flow.
      * Dispatch repeats this check so a retained action cannot bypass it. */
     if (UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&

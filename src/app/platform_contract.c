@@ -64,6 +64,7 @@ static const char *const CORE_COMMAND_IDS[] = {
     /* These operations are registered by the core service layer. Include them
      * here so readiness reports check the same commands users can invoke. */
     UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT,
+    UMI_STUDIO_COMMAND_BUILD_RUN_RESTART,
     UMI_STUDIO_COMMAND_BUILD_PACKAGE,
     UMI_STUDIO_COMMAND_BUILD_REBUILD,
     UMI_STUDIO_COMMAND_BUILD_DEPLOY,

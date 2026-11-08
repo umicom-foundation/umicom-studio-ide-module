@@ -65,6 +65,7 @@ extern "C" {
 #define UMI_STUDIO_COMMAND_BUILD_CLEAN "studio.build.clean"
 #define UMI_STUDIO_COMMAND_BUILD_RUN "studio.build.run"
 #define UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT "studio.build.run-current"
+#define UMI_STUDIO_COMMAND_BUILD_RUN_RESTART "studio.build.run-restart"
 #define UMI_STUDIO_COMMAND_BUILD_INSTALL "studio.build.install"
 #define UMI_STUDIO_COMMAND_BUILD_PACKAGE "studio.build.package"
 #define UMI_STUDIO_COMMAND_BUILD_REBUILD "studio.build.rebuild"
