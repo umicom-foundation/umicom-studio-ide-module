@@ -238,7 +238,16 @@ static UmiStatus RuntimeLearningCatalogueRouteChecked(gpointer context, int open
                         if (pack != NULL)
                             (void)snprintf(route.pack_id, sizeof(route.pack_id), "%s", pack);
                     }
+                    /* Retain unconditional route dispatch for review. The bound default guide must keep its existing contextual-help state. */
+                    #if 0
                     result = UmiLearningHelpGtk4OpenRoute(panel, &route);
+                    #endif
+                    /* The default guide belongs to the bound F1 policy. Keep
+                     * its attempt state while explicit topic buttons use their
+                     * own copied routes without replacing that binding. */
+                    result = topic == NULL || resource == NULL ?
+                        UmiLearningHelpGtk4Open(panel) :
+                        UmiLearningHelpGtk4OpenRoute(panel, &route);
                     if (result == UMI_STATUS_NOT_FOUND)
                         result = RuntimeLearningOpenBundled(panel, &route);
                 }

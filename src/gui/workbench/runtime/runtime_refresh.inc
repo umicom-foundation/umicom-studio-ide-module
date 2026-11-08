@@ -620,6 +620,12 @@ static UmiStatus runtime_refresh_services(
     runtime_refresh_command_sensitivity(runtime, runtime->centre_stack);
     runtime = RuntimeResolveOwner(request, &window);
     if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    /* Explorer survives Welcome and workspace changes. Reuse the same command
+     * policy so its project actions enable and disable with the current root.
+     * Sensitivity notifications may close the host, just like other chrome. */
+    runtime_refresh_command_sensitivity(runtime, runtime->surface_panels[UMI_STUDIO_SURFACE_EXPLORER]);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
 
     RuntimeTestLiveOutputRefresh(runtime);
     runtime = RuntimeResolveOwner(request, &window);

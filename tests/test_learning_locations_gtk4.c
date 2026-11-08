@@ -285,6 +285,9 @@ int main(int argc, char **argv)
                 }
             }
             CHECK(catalogue_panel!=NULL && catalogue_window!=NULL);
+            /* Bundled fallback admission is asynchronous even when its folder
+             * is absent. Inspect the completed result, not the accepted job. */
+            CHECK(FinishCatalogue());
             UmiLearningCatalogueGtkState state;
             CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel,&state)==UMI_STATUS_OK &&
                 state.last_status==UMI_STATUS_NOT_FOUND && !state.reader.has_document);
@@ -357,6 +360,7 @@ int main(int argc, char **argv)
                 if (panel != NULL) { catalogue_window = g_object_ref(candidate); catalogue_panel = g_object_ref(panel); break; }
             }
             CHECK(catalogue_window != NULL && catalogue_panel != NULL);
+            CHECK(FinishCatalogue());
             UmiLearningCatalogueGtkState state;
             CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK &&
                 !state.busy && !state.reader.has_document && state.pack_count == 0U);
@@ -447,6 +451,7 @@ int main(int argc, char **argv)
                 CHECK(strcmp(state.reader.pack.id, "studio.learning-guide") == 0);
                 CHECK(strcmp(state.reader.selection.resource.id, "learning-in-studio") == 0);
             } else {
+                CHECK(FinishCatalogue());
                 CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel, &state) == UMI_STATUS_OK);
                 CHECK(!state.busy && !state.retired && state.pack_count == 0U);
             }
@@ -455,7 +460,11 @@ int main(int argc, char **argv)
                 GtkWidget *notice = umi_gtk4_automation_find_tagged_widget(
                     catalogue_panel, "learning.catalogue.status");
                 CHECK(GTK_IS_LABEL(notice));
+                /* The missing bundled module completes after the initial shelf lookup. Retain the lookup-only expectation; assert the completed recovery notice. */
+                #if 0
                 CHECK(strstr(gtk_label_get_text(GTK_LABEL(notice)), "matching local learning pack") != NULL);
+                #endif
+                CHECK(strstr(gtk_label_get_text(GTK_LABEL(notice)), "local learning module could not be opened") != NULL);
                 UmiLearningHelpGtkState help;
                 CHECK(UmiLearningHelpGtk4CopyState(catalogue_panel, &help) == UMI_STATUS_OK);
                 CHECK(strcmp(help.request.product, "studio") == 0 &&

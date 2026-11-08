@@ -17,6 +17,7 @@
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio/workspace.h"
+#include "umicom/studio_runtime/workspace_canvas.h"
 #include "umicom/ui/gtk4/automation.h"
 #include "umicom/ui/gtk4/kanban_dock.h"
 #include "umicom/ui/gtk4/kanban_project.h"
@@ -107,6 +108,7 @@ int main(int argc, char **argv) {
   REQUIRE(button != NULL);
   g_object_ref(button);
   GtkWindow *board = NULL;
+  GtkWidget *project_control = NULL;
 
   if (strncmp(argv[1], "project", 7U) == 0) {
     UmiStudioServices *project_services =
@@ -114,6 +116,16 @@ int main(int argc, char **argv) {
     char *project = g_build_filename(directory, "project", NULL);
     char *other = g_build_filename(directory, "other", NULL);
     REQUIRE(g_mkdir_with_parents(project, 0700) == 0 && g_mkdir_with_parents(other, 0700) == 0);
+    if (!strcmp(argv[1], "project-native-close") || !strcmp(argv[1], "project-native-close-with-editor")) {
+      /* Create the persistent Explorer before opening a project. The same
+       * control must follow the workspace rather than keep its initial denial. */
+      REQUIRE(umi_studio_gtk_workbench_workspace_open_surface(workbench,
+          UMI_STUDIO_SURFACE_EXPLORER, NULL) == UMI_STATUS_OK);
+      project_control = umi_gtk4_automation_find_tagged_widget(
+          GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), "studio.explorer.project-board");
+      REQUIRE(GTK_IS_BUTTON(project_control) && !gtk_widget_get_sensitive(project_control));
+      g_object_ref(project_control);
+    }
     if (strcmp(argv[1], "project-none") != 0)
       REQUIRE(umi_studio_workspace_open(project_services, project,
                                         strcmp(argv[1], "project-untrusted") != 0,
@@ -134,6 +146,7 @@ int main(int argc, char **argv) {
       GtkWidget *project_button = umi_gtk4_automation_find_tagged_widget(
           GTK_WIDGET(umi_studio_gtk_workbench_window(workbench)), "studio.explorer.project-board");
       REQUIRE(GTK_IS_BUTTON(project_button) && gtk_widget_get_sensitive(project_button));
+      REQUIRE(project_button == project_control);
       g_signal_emit_by_name(project_button, "clicked");
       status = FindBoard(application) != NULL ? UMI_STATUS_OK : UMI_STATUS_NOT_FOUND;
     } else {
@@ -322,7 +335,11 @@ int main(int argc, char **argv) {
         REQUIRE(GTK_IS_BUTTON(new_file) && gtk_widget_get_sensitive(new_file));
         g_signal_emit_by_name(new_file, "clicked");
         REQUIRE(umi_document_coordinator_count(documents) == original_count + 1U);
+        /* A newly opened document hides Welcome. Retain that lookup for review and reopen through the same persistent Explorer control. */
+        #if 0
         GtkWidget *project_button = umi_gtk4_automation_find_tagged_widget(studio_root, "studio.project-board");
+        #endif
+        GtkWidget *project_button = umi_gtk4_automation_find_tagged_widget(studio_root, "studio.explorer.project-board");
         REQUIRE(GTK_IS_BUTTON(project_button));
         g_signal_emit_by_name(project_button, "clicked");
         GtkWindow *reopened = FindBoard(application);
@@ -330,6 +347,22 @@ int main(int argc, char **argv) {
         REQUIRE(UmiKanbanGtk4ProjectLocation(reopened, &captured) == UMI_STATUS_OK &&
             umi_path_equal(captured.project_root, project));
         gtk_window_close(reopened);
+        REQUIRE(FindBoard(application) == NULL);
+        REQUIRE(umi_studio_workspace_close(project_services) == UMI_STATUS_OK);
+        REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+        REQUIRE(!gtk_widget_get_sensitive(project_control));
+        /* Forced stale activation must still obey command admission. */
+        g_signal_emit_by_name(project_control, "clicked");
+        REQUIRE(FindBoard(application) == NULL);
+        REQUIRE(umi_studio_workspace_open(project_services, other, 1, 0) == UMI_STATUS_OK);
+        REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+        REQUIRE(gtk_widget_get_sensitive(project_control));
+        g_signal_emit_by_name(project_control, "clicked");
+        GtkWindow *other_board = FindBoard(application);
+        REQUIRE(other_board != NULL);
+        REQUIRE(UmiKanbanGtk4ProjectLocation(other_board, &captured) == UMI_STATUS_OK &&
+            umi_path_equal(captured.project_root, other));
+        gtk_window_close(other_board);
         REQUIRE(FindBoard(application) == NULL);
       } else gtk_window_close(board);
     }
@@ -358,6 +391,7 @@ int main(int argc, char **argv) {
     REQUIRE(FindBoard(application) == NULL);
   }
   g_object_unref(button);
+  g_clear_object(&project_control);
   g_clear_object(&board);
   umi_studio_bootstrap_destroy(bootstrap);
   umi_settings_destroy(settings);
