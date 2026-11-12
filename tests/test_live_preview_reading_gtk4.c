@@ -101,7 +101,13 @@ int main(int argc,char **argv)
     CHECK(umi_document_coordinator_new(documents,filename,id,sizeof(id))==UMI_STATUS_OK);
     UmiUiDocumentViewSnapshot view;
     CHECK(umi_ui_document_view_model_find(views,id,&view)==UMI_STATUS_OK);
+    /* Hex escapes consume following hexadecimal characters. Retain the old
+     * fixture for review; separate literals preserve the intended code span. */
+#if 0
     const char *draft="# Reading\n\nA **strong** word and \x60code\x60.\n";
+#endif
+    const char *draft="# Reading\n\nA **strong** word and \x60" "code" "\x60.\n";
+    CHECK(strstr(draft, "`code`") != NULL);
     if(strcmp(name,"unicode")==0) draft="# \xc3\x85\xf0\x9f\x98\x80\n\nA **word**.\n";
     if(strcmp(name,"empty")==0) draft="";
     if(strcmp(name,"html")==0) draft="<h1>Reading</h1><p>HTML text</p>";
@@ -110,6 +116,9 @@ int main(int argc,char **argv)
     CHECK(umi_document_coordinator_sync_active(documents)==UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_execute_command(workbench,"view.live-preview",NULL)==UMI_STATUS_OK);
     GtkWidget *root=GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    /* Give the existing weak diagnostic observer the actual window. This does
+     * not retain the window or alter fatal-warning handling. */
+    UmiTestWidgetDiagnosticsRoot(root);
     GtkWidget *found=umi_gtk4_automation_find_tagged_widget(root,"studio.live-preview.refresh");
     CHECK(GTK_IS_BUTTON(found));refresh=g_object_ref(found);
     found=umi_gtk4_automation_find_tagged_widget(root,"studio.live-preview.text");
