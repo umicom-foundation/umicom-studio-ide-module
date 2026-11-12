@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Review Replace All before changing a document
 
 Replace All in Studio's editor opens a comparison before it changes your text.

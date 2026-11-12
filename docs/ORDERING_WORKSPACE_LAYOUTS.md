@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Arrange your Studio workspaces
 
 Keep the workspaces you use most near the top of the layout selector. For

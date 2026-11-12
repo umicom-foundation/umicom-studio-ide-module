@@ -1,4 +1,12 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><title>Review whitespace changes</title><body><main>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Review whitespace changes</title>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+<main>
 <h1>Review whitespace changes in Studio</h1><p>Whitespace is part of your source. A tab can be significant in a Makefile, and trailing spaces can create a Markdown line break. These commands prepare a comparison; they do not run automatically when you save.</p>
 <ol><li>Open a writable source document. Select a range if you want to work on selected lines. An empty selection means the current line for a selected-lines command.</li>
 <li>Open the <strong>Whitespace</strong> menu in the editor toolbar. Choose a whole-document or selected-lines command. Trim removes only trailing ASCII spaces and tabs. Expand replaces leading tabs with spaces. Compact uses tabs for complete indentation stops and spaces for the remainder.</li>

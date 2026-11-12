@@ -251,10 +251,77 @@ static UmiStatus RuntimeNewProject(UmiStudioGtkRuntimeChrome *runtime)
 /* The shared Framework constructs a hidden form. Studio keeps its callback
  * context alive only after reacquiring the original host and adopting that
  * handle. A reservation also rejects reentrant launches during native teardown. */
+/* Retain the active shared project form while a source write is pending; applications consume Framework activity rather than duplicating writer state. The previous implementation is retained for review. */
+#if 0
 static UmiStatus RuntimeNewProjectForm(UmiStudioGtkRuntimeChrome *runtime, int applicationMode)
 {
     if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
         return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||
+        RuntimeProgramConsoleBusy(runtime)) return UMI_STATUS_BUSY;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    UmiStatus status = UMI_STATUS_CANCELLED;
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(window))) goto done;
+    if (g_object_get_data(window, "studio-project-form-creating") != NULL) {
+        status = UMI_STATUS_BUSY; goto done;
+    }
+    /* The retained native window owns only the reservation, never the runtime. */
+    GObject *reservation = g_object_ref(window);
+    g_object_set_data(reservation, "studio-project-form-creating", GINT_TO_POINTER(1));
+    UmiGtk4DeveloperDialog *previous = runtime->project_dialog;
+    runtime->project_dialog = NULL;
+    UmiGtk4DeveloperDialogDestroy(previous);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(window))) goto reserved_done;
+    UmiGtk4DeveloperDialog *created = NULL;
+    status = applicationMode
+        ? UmiGtk4ApplicationModuleDialogPrepare(GTK_WINDOW(window), RuntimeProjectCreated, runtime, &created)
+        : UmiGtk4NewProjectDialogPrepare(GTK_WINDOW(window), RuntimeProjectCreated, runtime, &created);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || !UmiGtk4WindowIsOpen(GTK_WINDOW(window))) {
+        UmiGtk4DeveloperDialogDestroy(created);
+        status = UMI_STATUS_CANCELLED; goto reserved_done;
+    }
+    if (status != UMI_STATUS_OK) goto reserved_done;
+    services = umi_studio_ui_services(runtime->owner->ui);
+    if (runtime->project_dialog != NULL || UmiStudioBuildBusy(umi_studio_services_build(services)) ||
+        UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) || RuntimeProgramConsoleBusy(runtime)) {
+        UmiGtk4DeveloperDialogDestroy(created);
+        status = UMI_STATUS_BUSY; goto reserved_done;
+    }
+    runtime->project_dialog = created;
+    status = UmiGtk4DeveloperDialogPresent(created);
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL || runtime->project_dialog != created) status = UMI_STATUS_CANCELLED;
+    else if (status != UMI_STATUS_OK) {
+        runtime->project_dialog = NULL;
+        UmiGtk4DeveloperDialogDestroy(created);
+    }
+reserved_done:
+    g_object_set_data(reservation, "studio-project-form-creating", NULL);
+    g_object_unref(reservation);
+done:
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+#endif
+static UmiStatus RuntimeNewProjectForm(UmiStudioGtkRuntimeChrome *runtime, int applicationMode)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    /* Replacing a busy form would discard the only owner-visible completion
+     * state while its files continue writing. The Framework owns this guard. */
+    if (UmiGtk4DeveloperDialogWritePending(runtime->project_dialog)) return UMI_STATUS_BUSY;
     UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
     if (UmiStudioBuildBusy(umi_studio_services_build(services)) ||
         UmiStudioDebuggerNativeBusy(umi_studio_services_debugger(services)) ||

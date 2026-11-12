@@ -14,6 +14,8 @@ LICENCE:
 MIT
 ---------------------------------------------------------------------------- -->
 
+![Umicom](assets/umicom-logo.svg)
+
 # Professional Startup and Workspace Design
 
 This guide explains how Umicom Studio should look, behave and grow. It is

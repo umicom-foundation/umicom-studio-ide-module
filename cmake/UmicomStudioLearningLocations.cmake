@@ -94,3 +94,6 @@ include("${CMAKE_CURRENT_LIST_DIR}/UmicomStudioLearningPack.cmake")
 
 # The same deferred workbench wiring includes these Welcome consumers.
 include("${CMAKE_CURRENT_LIST_DIR}/UmicomStudioRecentWorkspace.cmake")
+
+# Reuse the same owner-aware presenter for lessons and live editor previews.
+include("${CMAKE_CURRENT_LIST_DIR}/UmicomStudioReadingPreview.cmake")

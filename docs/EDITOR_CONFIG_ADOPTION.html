@@ -1,5 +1,12 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Adopt project indentation</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Adopt project indentation</title>
 <style>body{font:17px/1.6 system-ui;max-width:900px;margin:3rem auto;padding:0 1.5rem;color:#172b3a}pre,code{background:#f1f4f7}pre{padding:1rem;overflow:auto}h1,h2{line-height:1.2}</style>
+
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
 <main><h1>Adopt project indentation for one document</h1>
 <p>An <code>.editorconfig</code> file describes editor preferences for matching files in a project. Umicom can inspect those preferences and propose indentation for an open saved document. Adoption is explicit and affects that working copy only.</p>
 <h2>Review and apply</h2><ol>
@@ -24,4 +31,4 @@ indent_size = 4
 <li><strong>Operation cancelled:</strong> no pending worker is allowed to apply after cancellation or editor retirement.</li>
 <li><strong>Applied, refresh interrupted:</strong> the policy mutation completed before a native display callback interrupted refresh. Refresh the editor display; this message does not mean the setting was rolled back.</li></ul>
 <h2>Embed the C23 service</h2><p>Load an inspection on a worker. On the document owner thread, create <code>UmiDocumentEditorConfigPlan</code>; success transfers inspection ownership to the plan. Show its summary. Before approval, re-read the same scope and call <code>UmiDocumentEditorConfigPlanApplyObserved</code> on the owner thread. Destroy the plan and the reinspection independently.</p>
-<p>The service compares supplied observations and performs no file I/O during application. Files can change after a re-read; there is no filesystem-wide transaction. Applications must keep the coordinator alive and serialize its document operations. A successfully applied plan is consumed and cannot be applied twice.</p></main></html>
+<p>The service compares supplied observations and performs no file I/O during application. Files can change after a re-read; there is no filesystem-wide transaction. Applications must keep the coordinator alive and serialize its document operations. A successfully applied plan is consumed and cannot be applied twice.</p></main></body></html>

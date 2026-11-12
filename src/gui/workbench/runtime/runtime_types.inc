@@ -178,6 +178,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *live_preview_summary_label;
     GtkWidget *live_preview_text_view;
     uint64_t live_preview_model_revision;
+    /* Preview styling follows the active appearance without changing editor state. */
+    uint64_t live_preview_appearance_revision;
+    int live_preview_busy;
     char live_preview_view_id[UMI_UI_ID_CAPACITY];
 
     GtkWidget *explorer_search_entry;

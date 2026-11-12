@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Opening source from the debugger
 
 The Call Stack lists the functions active when your program paused. Each row

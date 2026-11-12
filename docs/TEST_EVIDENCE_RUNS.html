@@ -1,5 +1,12 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspect one test run in Studio</title><style>body{font:17px/1.6 system-ui;max-width:900px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}</style></head><body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspect one test run in Studio</title><style>body{font:17px/1.6 system-ui;max-width:900px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+
 <h1>Inspect one test run</h1>
 <p>The Test Explorer can retain evidence from several executions of the same test. Choose a run to keep its report, source locations and exported CSV together.</p>
 <ol><li>Open Test Explorer and select a discovered test. Read <a href="RUNNING_TESTS.html">Running tests</a> if the project has not been configured and discovered.</li><li>Open the <strong>Selected test</strong> tab. The <strong>Evidence run</strong> control starts with <strong>All retained runs</strong>.</li><li>Choose a named run. Its label includes the number of retained result and output records. The report now displays only that exact test and run. A run with output but no result does not count as a pass.</li><li>Open the <strong>Source locations</strong> tab to inspect links from the same selected run. Read the location and working directory before opening it. Studio retains any unsaved draft already open for that source.</li><li>Return to <strong>Selected test</strong> and choose <strong>Copy selected evidence CSV</strong> to copy that same scope. Review the CSV before sharing it; process output may contain project paths or other private data.</li><li>Choose <strong>All retained runs</strong> to compare recorded executions again. Selecting another test resets the run choice to all runs for that test.</li></ol>

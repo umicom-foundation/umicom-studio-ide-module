@@ -1,5 +1,12 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Saved test reports in Studio</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Saved test reports in Studio</title>
 <style>body{max-width:60rem;margin:3rem auto;padding:0 1rem;font:18px/1.6 system-ui;color:#17212b}pre{padding:1rem;background:#f0f3f6;overflow:auto}</style>
+
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
 <h1>Saved test reports in Studio</h1>
 <p>Use the Test Explorer’s <strong>Open a saved CTest report</strong> section to review a previous test run. This review is separate from Studio’s live test execution and archive controls. You can open a saved report without opening a project.</p>
 <ol><li>Finish the build, then create XML and a console log with CTest from your build directory:
@@ -42,4 +49,4 @@ The first row declares a report. Each <code>require</code> row lists an exact te
 <h2>Keep the comparison tied to its saved input</h2>
 <p>The top of each comparison page now includes the accepted reports' byte counts and SHA-256 digests. Copy page includes them too. These content identifiers are computed during reading from the same bytes used for parsing. Paging never rereads the selected paths. Cancelled or failed replacements retain the previous pair and its identifiers.</p>
 <p>A filename can later contain a different report. Retain the original XML and console logs in your private evidence folder and compare content identifiers when reviewing another copy. Formatting changes, including line endings, change the digest even when outcomes are unchanged. Digests do not prove a source revision, authenticate the report's author, or establish passing tests.</p>
-</html>
+</body></html>

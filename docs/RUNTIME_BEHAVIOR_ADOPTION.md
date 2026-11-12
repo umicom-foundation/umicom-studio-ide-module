@@ -13,6 +13,8 @@ LICENCE:
 MIT
 -->
 
+![Umicom](assets/umicom-logo.svg)
+
 # Studio Runtime Behavior
 
 Studio uses the Framework standard recipe instead of inventing a second panel

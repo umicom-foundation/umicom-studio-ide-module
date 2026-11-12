@@ -267,3 +267,23 @@ if(BUILD_TESTING)
         endif()
     endforeach()
 endif()
+
+
+# Direct clients retain the same busy owner as menus and background submissions.
+if(BUILD_TESTING)
+    add_executable(umicom-studio-build-service-admission-test tests/test_build_service_admission.c)
+    target_link_libraries(umicom-studio-build-service-admission-test PRIVATE Umicom::StudioCore)
+    umicom_apply_warnings(umicom-studio-build-service-admission-test)
+    umicom_apply_sanitizers(umicom-studio-build-service-admission-test)
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-build-service-admission-test)
+    endif()
+    foreach(operation prepare run next all retry invalidate profile cancel)
+        foreach(state active uncollected restart snapshot-error restart-error idle)
+            add_test(NAME studio.build_service.admission.${operation}.${state}
+                COMMAND umicom-studio-build-service-admission-test "${operation}" "${state}")
+            set_tests_properties(studio.build_service.admission.${operation}.${state}
+                PROPERTIES TIMEOUT 30 LABELS "studio;build;ownership;regression")
+        endforeach()
+    endforeach()
+endif()

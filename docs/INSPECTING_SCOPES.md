@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Inspect a debugger scope
 
 A scope is a named group of variables in a function call. Debuggers commonly

@@ -1,8 +1,15 @@
 <!doctype html>
 <html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Source and Disassembly Navigation in Umicom Studio</title>
-<style>body{font:17px/1.65 system-ui,"Segoe UI",sans-serif;max-width:1050px;margin:auto;padding:28px;color:#183247}code,pre{font-family:Consolas,monospace}pre{background:#102638;color:#eef8ff;padding:18px;border-radius:8px;overflow:auto}h1,h2{color:#12415b}</style></head>
-<body><h1>Source and Disassembly Navigation in Umicom Studio</h1>
+<style>body{font:17px/1.65 system-ui,"Segoe UI",sans-serif;max-width:1050px;margin:auto;padding:28px;color:#183247}code,pre{font-family:Consolas,monospace}pre{background:#102638;color:#eef8ff;padding:18px;border-radius:8px;overflow:auto}h1,h2{color:#12415b}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head>
+<body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+<h1>Source and Disassembly Navigation in Umicom Studio</h1>
 <p>Studio can reuse Framework's debugger navigation snapshot when a frontend needs to keep a stack frame, source line and machine instruction in context.</p>
 <h2>Read the selected location</h2>
 <pre><code>UmiStudioDebugNavigationSnapshot location;

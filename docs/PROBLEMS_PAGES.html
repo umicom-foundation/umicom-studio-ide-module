@@ -1,5 +1,12 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Browse Problems pages in Studio</title><style>body{font:17px/1.6 system-ui;max-width:950px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}</style></head><body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Browse Problems pages in Studio</title><style>body{font:17px/1.6 system-ui;max-width:950px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+
 <h1>Browse Problems pages in Studio</h1>
 <p>The workspace Problems pane keeps compiler and runtime diagnostics in a shared Framework model. A page is a group of up to 300 matching records. Paging changes which records are displayed; it does not run a build or change a diagnostic.</p>
 <ol><li>Open Problems after a configure or build command reports messages. Read the summary to distinguish matching records from the model's active and resolved totals.</li><li>Read the page range below the filters. For example, <strong>Page 2 of 4 — rows 301–600 of 907 matching</strong> describes the current filtered list.</li><li>Choose <strong>Next page</strong> or <strong>Previous page</strong> to browse later or earlier results. A disabled button marks a boundary. The source-navigation buttons named Next and Previous remain separate actions.</li><li>Type a filter, change severity or sort order, or toggle Resolved. Studio restarts the new query on page one. Matching counts change with the filter; active and severity totals still describe the complete retained model.</li><li>Select a row and choose Open, or activate it, to open its source. A row on a later page works like one on the first page. Existing unsaved text for that source stays in its document.</li><li>Use Clear only when you want to remove retained records. Clearing the view does not repair the source; another build may report the same problem.</li></ol>

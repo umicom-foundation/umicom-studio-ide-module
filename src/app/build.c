@@ -237,6 +237,8 @@ UmiStatus umi_studio_build_service_set_profile(
  * Provide the studio build service prepare default graph operation used by this module and
  * its client applications.
  */
+/* Reuse the existing Framework session observation at the Studio service boundary. Active work, deferred restart and uncollected results retain their owner even when a caller bypasses menu command checks. The previous implementation is retained for review. */
+#if 0
 UmiStatus umi_studio_build_service_prepare_default_graph(
     UmiStudioBuildService *service,
     int include_run)
@@ -255,11 +257,33 @@ UmiStatus umi_studio_build_service_prepare_default_graph(
         service->profile.parallel_jobs, 0U, 0U);
     return umi_build_plan_populate_standard(graph, &policy, include_run);
 }
+#endif
+UmiStatus umi_studio_build_service_prepare_default_graph(
+    UmiStudioBuildService *service,
+    int include_run)
+{
+    UmiBuildGraph *graph;
+    UmiBuildExecutionPolicy policy;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    graph = umi_build_engine_graph(service->engine);
+    umi_build_execution_policy_init(&policy);
+    policy.default_timeout_ms = service->profile.timeout_ms;
+    policy.maximum_parallel_jobs = umi_build_policy_safe_parallel_jobs(
+        service->profile.parallel_jobs, 0U, 0U);
+    return umi_build_plan_populate_standard(graph, &policy, include_run);
+}
 
 /*
  * Provide the studio build service execute next operation used by this module and its
  * client applications.
  */
+/* Reuse the existing Framework session observation at the Studio service boundary. Active work, deferred restart and uncollected results retain their owner even when a caller bypasses menu command checks. The previous implementation is retained for review. */
+#if 0
 UmiStatus umi_studio_build_service_execute_next(
     UmiStudioBuildService *service,
     UmiBuildResult *out_result)
@@ -279,11 +303,34 @@ UmiStatus umi_studio_build_service_execute_next(
     }
     return status;
 }
+#endif
+UmiStatus umi_studio_build_service_execute_next(
+    UmiStudioBuildService *service,
+    UmiBuildResult *out_result)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (service == NULL || out_result == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    status = umi_build_engine_execute_next(service->engine, out_result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_NOT_FOUND) {
+        service->last_result = *out_result;
+        service->has_last_result = 1;
+        (void)umi_build_workspace_select_latest_operation(service->workspace);
+    }
+    return status;
+}
 
 /*
  * Provide the studio build service execute all operation used by this module and its
  * client applications.
  */
+/* Reuse the existing Framework session observation at the Studio service boundary. Active work, deferred restart and uncollected results retain their owner even when a caller bypasses menu command checks. The previous implementation is retained for review. */
+#if 0
 UmiStatus umi_studio_build_service_execute_all(
     UmiStudioBuildService *service,
     size_t maximum_nodes,
@@ -295,6 +342,29 @@ UmiStatus umi_studio_build_service_execute_all(
      * used.
      */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_build_engine_execute_all(service->engine, maximum_nodes,
+                                          out_executed_count);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (umi_build_history_latest(service->history, &service->last_result) ==
+        UMI_STATUS_OK) {
+        service->has_last_result = 1;
+        (void)umi_build_workspace_select_latest_operation(service->workspace);
+    }
+    return status;
+}
+#endif
+UmiStatus umi_studio_build_service_execute_all(
+    UmiStudioBuildService *service,
+    size_t maximum_nodes,
+    size_t *out_executed_count)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
     status = umi_build_engine_execute_all(service->engine, maximum_nodes,
                                           out_executed_count);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
@@ -326,6 +396,8 @@ void umi_studio_build_service_cancel(UmiStudioBuildService *service)
  * Provide the studio build service retry operation used by this module and its client
  * applications.
  */
+/* Reuse the existing Framework session observation at the Studio service boundary. Active work, deferred restart and uncollected results retain their owner even when a caller bypasses menu command checks. The previous implementation is retained for review. */
+#if 0
 UmiStatus umi_studio_build_service_retry(UmiStudioBuildService *service,
                                          const char *node_id)
 {
@@ -341,11 +413,30 @@ UmiStatus umi_studio_build_service_retry(UmiStudioBuildService *service,
         (void)umi_build_workspace_select_node(service->workspace, node_id);
     return status;
 }
+#endif
+UmiStatus umi_studio_build_service_retry(UmiStudioBuildService *service,
+                                         const char *node_id)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
+    status = umi_build_engine_retry(service->engine, node_id);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK)
+        (void)umi_build_workspace_select_node(service->workspace, node_id);
+    return status;
+}
 
 /*
  * Provide the studio build service invalidate operation used by this module and its client
  * applications.
  */
+/* Reuse the existing Framework session observation at the Studio service boundary. Active work, deferred restart and uncollected results retain their owner even when a caller bypasses menu command checks. The previous implementation is retained for review. */
+#if 0
 UmiStatus umi_studio_build_service_invalidate(UmiStudioBuildService *service,
                                               const char *node_id,
                                               uint64_t input_revision)
@@ -356,6 +447,25 @@ UmiStatus umi_studio_build_service_invalidate(UmiStudioBuildService *service,
      * used.
      */
     if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_build_engine_invalidate(service->engine, node_id,
+                                         input_revision);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK)
+        (void)umi_build_workspace_select_node(service->workspace, node_id);
+    return status;
+}
+#endif
+UmiStatus umi_studio_build_service_invalidate(UmiStudioBuildService *service,
+                                              const char *node_id,
+                                              uint64_t input_revision)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (service == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
     status = umi_build_engine_invalidate(service->engine, node_id,
                                          input_revision);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
@@ -400,6 +510,8 @@ UmiStatus umi_studio_build_service_record_artifact(
  * Perform studio build service through the module contract so client applications do not
  * duplicate its policy.
  */
+/* Reuse the existing Framework session observation at the Studio service boundary. Active work, deferred restart and uncollected results retain their owner even when a caller bypasses menu command checks. The previous implementation is retained for review. */
+#if 0
 UmiStatus umi_studio_build_service_run(UmiStudioBuildService *service,
                                        UmiBuildPhase phase,
                                        UmiBuildResult *out_result)
@@ -410,6 +522,24 @@ UmiStatus umi_studio_build_service_run(UmiStudioBuildService *service,
      * used.
      */
     if (service == NULL || out_result == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_build_engine_execute_phase(service->engine, phase, out_result);
+    service->last_result = *out_result;
+    service->has_last_result = 1;
+    (void)umi_build_workspace_select_latest_operation(service->workspace);
+    return status;
+}
+#endif
+UmiStatus umi_studio_build_service_run(UmiStudioBuildService *service,
+                                       UmiBuildPhase phase,
+                                       UmiBuildResult *out_result)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (service == NULL || out_result == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (UmiStudioBuildBusy(service)) return UMI_STATUS_BUSY;
     status = umi_build_engine_execute_phase(service->engine, phase, out_result);
     service->last_result = *out_result;
     service->has_last_result = 1;

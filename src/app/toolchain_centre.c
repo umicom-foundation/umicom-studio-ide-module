@@ -1,7 +1,10 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: applications/studio/src/app/toolchain_centre.c
- * PURPOSE: Implement Studio composition for Framework toolchain services.
+ *
+ * PURPOSE:
+ *   Implement Studio composition for Framework toolchain services.
+ *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
  * Umicom Foundation
@@ -29,6 +32,8 @@ struct UmiStudioToolchainCentre {
  * Provide the select profile internal operation used by this module and its client
  * applications.
  */
+/* Prepare the environment before replacing the selected profile and rebind its borrowed process entries after publication. The previous implementation is retained for review. */
+#if 0
 static UmiStatus select_profile_internal(UmiStudioToolchainCentre *centre,
                                          const UmiToolchainProfile *profile)
 {
@@ -47,6 +52,26 @@ static UmiStatus select_profile_internal(UmiStudioToolchainCentre *centre,
     centre->environment_ready = 1;
     centre->revision += 1U;
     return UMI_STATUS_OK;
+}
+#endif
+static UmiStatus select_profile_internal(UmiStudioToolchainCentre *centre,
+                                         const UmiToolchainProfile *profile)
+{
+    if (centre == NULL || profile == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    UmiEnvironmentPlan *candidate = malloc(sizeof(*candidate));
+    if (candidate == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiStatus status = umi_environment_plan_from_toolchain(profile,candidate);
+    if (status == UMI_STATUS_OK) {
+        centre->selected_profile = *profile;
+        centre->environment = *candidate;
+        (void)umi_environment_plan_variables(&centre->environment);
+        centre->has_selected_profile = 1;
+        centre->environment_ready = 1;
+        centre->revision += 1U;
+    }
+    free(candidate);
+    return status;
 }
 
 /*
@@ -142,6 +167,8 @@ UmiStatus umi_studio_toolchain_centre_discover(
  * Provide the studio toolchain centre select profile operation used by this module and its
  * client applications.
  */
+/* Framework now publishes explicit catalogue selection and its prepared child environment together. The previous implementation is retained for review. */
+#if 0
 UmiStatus umi_studio_toolchain_centre_select_profile(
     UmiStudioToolchainCentre *centre, const char *profile_id)
 {
@@ -160,6 +187,23 @@ UmiStatus umi_studio_toolchain_centre_select_profile(
         centre->catalogue, profile_id, &profile);
     return status == UMI_STATUS_OK
         ? select_profile_internal(centre, &profile) : status;
+}
+#endif
+UmiStatus umi_studio_toolchain_centre_select_profile(UmiStudioToolchainCentre *centre,
+                                                     const char *profile_id)
+{
+    if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    /* Shared publication keeps catalogue selection, profile and child environment
+     * coherent. The adapter changes only its presentation flags after success. */
+    UmiStatus status = umi_toolchain_catalogue_select_with_environment(centre->catalogue,
+        profile_id,&centre->selected_profile,&centre->environment);
+    if (status == UMI_STATUS_OK) {
+        centre->has_selected_profile = 1;
+        centre->environment_ready = 1;
+        centre->revision += 1U;
+    }
+    return status;
 }
 
 /*

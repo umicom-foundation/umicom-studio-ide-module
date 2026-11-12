@@ -1,4 +1,11 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Select an expression or enclosing block</title><style>body{font:17px/1.65 system-ui;max-width:980px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}</style></head><body><h1>Select an expression or enclosing block</h1>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Select an expression or enclosing block</title><style>body{font:17px/1.65 system-ui;max-width:980px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+<h1>Select an expression or enclosing block</h1>
 <p>A language server understands the structure of the programming language in your source file. Syntax selection asks it for a small range around the caret followed by larger enclosing ranges, such as an expression, statement and function. The exact choices depend on the server and language.</p>
 <ol><li>Open a source document and place the caret in the expression or block you want to select. Unsaved drafts and read-only documents are supported.</li><li>Choose <strong>Syntax selection…</strong> in the editor controls.</li><li>Enter the absolute path of your local language server and its arguments. Review the project folder before starting it: the local server receives the captured source text.</li><li>Choose <strong>Find selection ranges</strong>. Studio captures the current draft and caret, requests the server's enclosing ranges and closes the query session.</li><li>Choose a row in the returned list. The smallest reported range comes first; its enclosing ranges follow in server order. Positions are displayed starting at one.</li><li>Choose <strong>Select range</strong> to move the editor selection to that exact range. Changing the row alone leaves the editor unchanged.</li></ol>
 <h2>What stays in your document</h2>

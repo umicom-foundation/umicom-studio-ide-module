@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Umicom Studio IDE — STU-01 Stable Release Contract
 
 **Checked remote baseline**

@@ -174,3 +174,33 @@ UmiDeveloperRuntime *umi_studio_developer_run_centre_runtime(
 {
     return centre != NULL ? centre->runtime : NULL;
 }
+
+/* Studio owns presentation; Framework owns lookup, validation and canonical
+ * comparison. Keep this adapter free of a second profile equality algorithm. */
+UmiStatus umi_studio_developer_run_centre_compare_profile(
+    UmiStudioDeveloperRunCentre *centre,
+    const UmiProjectLaunchProfileSnapshot *expected,
+    void *workspace, size_t capacity,
+    UmiValueArchiveComparison *out_comparison)
+{
+    if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_developer_launch_plan_compare_profile(centre->runtime, expected,
+        workspace, capacity, out_comparison);
+}
+
+/* Keep review admission in Framework. Reserve the local change token before
+ * queue publication so a counter refusal cannot occur after work is queued. */
+UmiStatus umi_studio_developer_run_centre_submit_reviewed(
+    UmiStudioDeveloperRunCentre *centre,
+    const UmiDeveloperLaunchPlanRequest *request,
+    const UmiProjectLaunchProfileSnapshot *expected,
+    void *workspace, size_t capacity,
+    UmiDeveloperLaunchPlanSnapshot *out_plan)
+{
+    if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_CAPACITY_EXCEEDED;
+    UmiStatus status = umi_developer_launch_plan_submit_reviewed(centre->runtime,
+        request, expected, workspace, capacity, out_plan);
+    if (status == UMI_STATUS_OK) centre->revision += 1U;
+    return status;
+}

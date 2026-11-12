@@ -77,6 +77,11 @@ UmiStatus umi_studio_toolchain_centre_discover(
 UmiStatus umi_studio_toolchain_centre_select_profile(
     UmiStudioToolchainCentre *centre,
     const char *profile_id);
+/** Manual profile selection preserves the previous catalogue selection, adapter
+ * profile and child environment on failure. Callers serialize access; borrowed
+ * profile/environment views remain owned by this centre and may change on success.
+ * Project/discovery preparation also preserves the adapter pair on failure, but
+ * discovery may already have changed the separate catalogue and probe evidence. */
 /**
  * Provide the studio toolchain centre bind project operation used by this module and its
  * client applications.

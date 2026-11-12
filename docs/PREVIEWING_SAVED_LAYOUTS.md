@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Preview saved Studio layouts
 
 Use **Preview saved** to inspect the last saved layout list before deciding

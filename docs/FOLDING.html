@@ -1,4 +1,11 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fold selected code while keeping the complete source</title><style>body{font:17px/1.65 system-ui;max-width:960px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}</style></head><body><h1>Fold selected code while keeping the complete source</h1>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fold selected code while keeping the complete source</title><style>body{font:17px/1.65 system-ui;max-width:960px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+<h1>Fold selected code while keeping the complete source</h1>
 <p>The toolbar now groups these actions under <strong>Code tools</strong> or <strong>Navigate and view</strong>. See <a href="EDITOR_TOOLS.html">finding editor tools</a> for their locations and local filters.</p>
 <p>Folding hides part of a source draft so you can concentrate on nearby code. The hidden text stays in the document and is still included when Studio saves, searches, copies source for a language request, or applies an edit.</p>
 <ol><li>Open a document in the editor. Select at least two source lines. The first selected line will remain visible as a heading.</li><li>Choose <strong>Fold selection</strong> in the editor toolbar. Scroll the toolbar horizontally if the button is outside the visible area. The following selected lines are hidden and the caret moves to the first selected line.</li><li>Continue reading the visible code. You can fold separate selections, up to 64 ranges in one buffer. A read-only document can be folded too.</li><li>Choose <strong>Show all code</strong> to reveal every manual fold in the active editor. This does not change the document, mark it dirty, or add an Undo step.</li></ol>

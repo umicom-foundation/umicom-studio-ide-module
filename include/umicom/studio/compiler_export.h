@@ -25,4 +25,7 @@ UmiStatus umi_studio_compiler_export_summary(const UmiCompilerCentreSnapshot *sn
  * applications.
  */
 UmiStatus umi_studio_compiler_export_database(const UmiCompilerCentre *centre,char *out_json,size_t capacity);
+/** Summary formatting delegates to Framework, preserving destination bytes on
+ * malformed metadata, insufficient capacity or overlapping snapshot storage.
+ * A successful summary describes recorded metadata, not fresh tool qualification. */
 #endif

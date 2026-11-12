@@ -1,5 +1,13 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Program console</title>
-<style>body{max-width:64rem;margin:3rem auto;padding:0 1rem;font:17px/1.65 system-ui;color:#202b39}code,pre{background:#edf1f5}pre{padding:1rem;overflow:auto}</style></head><body>
+<style>body{max-width:64rem;margin:3rem auto;padding:0 1rem;font:17px/1.65 system-ui;color:#202b39}code,pre{background:#edf1f5}pre{padding:1rem;overflow:auto}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+
 <h1>Use the Studio program console</h1>
 <p>The program console connects a selected executable to input and output pipes. You can send text lines, finish the input stream and stop the program while its output remains visible. It is useful for console lessons that use functions such as <code>fgets</code>. A pipe carries bytes; it does not provide a full terminal screen.</p>
 <h2>Use it in Studio</h2><ol>

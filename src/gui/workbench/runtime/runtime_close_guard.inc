@@ -95,9 +95,53 @@ static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
     return 1;
 }
 #endif
+/* Source creation now participates in both normal close and Close Anyway checks. Keep the existing terminal/test retirement policy and defer host closure until the shared form completes. The previous implementation is retained for review. */
+#if 0
 static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
 {
     if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    UmiTerminalController *terminal = umi_studio_services_terminal_controller(
+        umi_studio_ui_services(runtime->owner->ui));
+    if (UmiTerminalControllerJobPending(terminal)) {
+        (void)UmiTerminalControllerStopJob(terminal);
+        runtime_show_notification(runtime,
+            "Stopping the terminal command. Close again after it finishes; your documents remain open.");
+        return 1;
+    }
+    UmiStudioTestService *tests = umi_studio_services_tests(
+        umi_studio_ui_services(runtime->owner->ui));
+    if (UmiStudioTestArchivePending(tests)) {
+        (void)UmiStudioTestArchiveCancel(tests);
+        (void)UmiStudioTestArchiveComparisonCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping test archive work. Close again when it finishes; saved evidence is retained.");
+        return 1;
+    }
+    if (UmiStudioTestRunPending(tests)) {
+        (void)UmiStudioTestRunCancel(tests);
+        runtime_show_notification(runtime,
+            "Stopping the test run. Close again after it finishes; your documents remain open.");
+        return 1;
+    }
+    if (!UmiStudioTestDiscoveryPending(tests)) return 0;
+    (void)umi_studio_test_service_stop(tests);
+    runtime_show_notification(runtime,
+        "Stopping test discovery. Close again after it finishes; your documents remain open.");
+    return 1;
+}
+
+#endif
+static int RuntimeStopDiscoveryBeforeClose(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL) return 0;
+    /* A source write cannot be undone by cancelling the host. Keep the main
+     * event loop alive until the Framework form publishes its result. */
+    if (UmiGtk4DeveloperDialogWritePending(runtime->project_dialog)) {
+        runtime->force_close = 0;
+        runtime_show_notification(runtime,
+            "Project source is being created. Wait for its result, then close Studio again. Files already written are retained.");
+        return 1;
+    }
     UmiTerminalController *terminal = umi_studio_services_terminal_controller(
         umi_studio_ui_services(runtime->owner->ui));
     if (UmiTerminalControllerJobPending(terminal)) {

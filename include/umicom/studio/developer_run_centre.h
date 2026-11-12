@@ -89,6 +89,32 @@ UmiStatus umi_studio_developer_run_centre_submit(
 UmiDeveloperRuntime *umi_studio_developer_run_centre_runtime(
     UmiStudioDeveloperRunCentre *centre);
 
+
+/* Observe whether a profile returned by at/find still has the same saved
+ * fields and revision. This delegates to Framework without submitting an
+ * operation. See umi_developer_launch_plan_compare_profile for workspace,
+ * aliasing, failure and serialization rules. A measured-only result is not
+ * equality, and equality does not grant launch authority. */
+UmiStatus umi_studio_developer_run_centre_compare_profile(
+    UmiStudioDeveloperRunCentre *centre,
+    const UmiProjectLaunchProfileSnapshot *expected,
+    void *workspace, size_t capacity,
+    UmiValueArchiveComparison *out_comparison);
+
+
+/** Submit the profile shown in a review only while its saved value is current.
+ * Delegates all profile admission and queue ownership to Framework. See
+ * umi_developer_launch_plan_submit_reviewed for scratch, overrides, aliasing
+ * and owner-thread rules. Refusal leaves the centre revision and out_plan
+ * unchanged. This adapter does not add a visible review dialog or launch a
+ * process; presentation and execution remain separate host responsibilities. */
+UmiStatus umi_studio_developer_run_centre_submit_reviewed(
+    UmiStudioDeveloperRunCentre *centre,
+    const UmiDeveloperLaunchPlanRequest *request,
+    const UmiProjectLaunchProfileSnapshot *expected,
+    void *workspace, size_t capacity,
+    UmiDeveloperLaunchPlanSnapshot *out_plan);
+
 #ifdef __cplusplus
 }
 #endif

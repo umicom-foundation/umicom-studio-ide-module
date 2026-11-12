@@ -1,0 +1,36 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: docs/assets/umicom-documentation.css
+ *
+ * PURPOSE:
+ *   Centralise approved Umicom documentation typography and preserve native guide layouts.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+
+/* Existing page layouts and historical declarations remain in their documents.
+ * Identity belongs to this shared sheet so later guides inherit the same local
+ * font fallbacks instead of depending on each author's operating-system theme. */
+body {
+    font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif !important;
+}
+pre, code, kbd, samp {
+    font-family: "Cascadia Code", Consolas, monospace !important;
+}
+.umicom-doc-brand {
+    margin: 1rem 0;
+}
+img.umicom-doc-logo, img.umicom-guide-logo {
+    display: inline-block;
+    width: 212px;
+    max-width: 100%;
+    height: auto !important;
+    object-fit: contain;
+    vertical-align: middle;
+}

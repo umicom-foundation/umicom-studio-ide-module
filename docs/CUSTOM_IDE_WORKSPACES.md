@@ -14,6 +14,8 @@ LICENCE:
 MIT
 -->
 
+![Umicom](assets/umicom-logo.svg)
+
 # Custom IDE Workspaces
 
 ## Title bar and side tools

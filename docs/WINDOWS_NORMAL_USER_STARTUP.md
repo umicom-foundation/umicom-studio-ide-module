@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Umicom Studio IDE normal-user startup
 
 Umicom Studio IDE should open by double-clicking `umicom-studio-ide.exe` or a Windows shortcut. It should not need **Run as administrator** and it should not treat `C:\Windows\System32` as a project merely because Windows supplied that process working directory.

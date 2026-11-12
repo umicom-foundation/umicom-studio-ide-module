@@ -309,6 +309,24 @@ target_link_libraries(umicom-studio-console PRIVATE
 umicom_apply_warnings(umicom-studio-console)
 umicom_apply_sanitizers(umicom-studio-console)
 
+# Console products use the same Framework-owned identity as their GUI host.
+# Retain console subsystem and existing runtime ownership; this adds only
+# canonical artwork and native executable metadata.
+if(NOT COMMAND umicom_apply_application_branding)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/../../framework/cmake/UmicomApplicationBranding.cmake")
+endif()
+if(WIN32)
+    enable_language(RC)
+endif()
+umicom_apply_application_branding(
+    TARGET umicom-studio-console
+    PRODUCT_NAME "Umicom Studio IDE Console" INTERNAL_NAME "umicom-studio-console"
+    VERSION_MAJOR ${PROJECT_VERSION_MAJOR}
+    VERSION_MINOR ${PROJECT_VERSION_MINOR}
+    VERSION_PATCH ${PROJECT_VERSION_PATCH}
+    RESOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/resources"
+    NO_RUNTIME_DEPLOYMENT)
+
 # Native project-health command.  This is intentionally implemented in C23 so
 # normal repository validation does not depend on Python.
 add_executable(umicom-studio-doctor
@@ -457,10 +475,30 @@ target_link_libraries(umicom-studio-compiler-centre PRIVATE Umicom::StudioCore)
 umicom_apply_warnings(umicom-studio-compiler-centre)
 umicom_apply_sanitizers(umicom-studio-compiler-centre)
 
+# Inspect complete native presentation output without running compiler drivers.
+if(BUILD_TESTING)
+    add_test(NAME studio.compiler_centre_output
+        COMMAND "${CMAKE_COMMAND}" "-DTOOL=$<TARGET_FILE:umicom-studio-compiler-centre>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/check_compiler_centre_output.cmake")
+    set_tests_properties(studio.compiler_centre_output PROPERTIES
+        TIMEOUT 100 LABELS "studio;compiler;presentation")
+endif()
+
+
 add_executable(umicom-studio-polyglot-compiler src/tools/polyglot_compiler_main.c)
 target_link_libraries(umicom-studio-polyglot-compiler PRIVATE Umicom::StudioCore)
 umicom_apply_warnings(umicom-studio-polyglot-compiler)
 umicom_apply_sanitizers(umicom-studio-polyglot-compiler)
+
+# Validate serialized preview metadata through the executable boundary.
+if(BUILD_TESTING)
+    add_test(NAME studio.polyglot_command_json
+        COMMAND "${CMAKE_COMMAND}" "-DTOOL=$<TARGET_FILE:umicom-studio-polyglot-compiler>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/check_polyglot_command_json.cmake")
+    set_tests_properties(studio.polyglot_command_json PROPERTIES
+        TIMEOUT 70 LABELS "studio;compiler;preview")
+endif()
+
 
 # Batch 59 native SDK, package, installer and distribution commands.
 add_executable(umicom-studio-distribution-centre
@@ -2310,6 +2348,10 @@ foreach(UMICOM_STUDIO_COMPILER_TEST
         compiler_diagnostics
         compiler_interop
         umicc_polyglot
+        polyglot_workspace_publication
+        polyglot_command_lifetime
+        compiler_synchronization
+        toolchain_selection_publication
         compiler_centre)
     string(REPLACE "_" "-" UMICOM_STUDIO_COMPILER_TEST_TARGET
         "${UMICOM_STUDIO_COMPILER_TEST}")

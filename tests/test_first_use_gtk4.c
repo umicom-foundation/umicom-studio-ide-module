@@ -602,6 +602,21 @@ static GtkWindow *FindProjectForm(GtkWindow *parent, const char *control)
     return NULL;
 }
 
+/* The Framework writer completes asynchronously. Hold the native form reference
+ * while pumping events; adoption may destroy both its controller and the host.
+ * Wait for the observable hidden/destroyed result, never for elapsed time alone.
+ * Failed test fixtures are retained by the surrounding first-use harness. */
+static int WaitForProjectFormCompletion(GtkWindow *form)
+{
+    const gint64 deadline = g_get_monotonic_time() + 20 * G_TIME_SPAN_SECOND;
+    while (UmiGtk4WindowIsOpen(form) && gtk_widget_get_visible(GTK_WIDGET(form))) {
+        if (g_get_monotonic_time() >= deadline) return 0;
+        (void)g_main_context_iteration(NULL, FALSE);
+        g_usleep(1000U);
+    }
+    return 1;
+}
+
 /* Drive the same New Project and Project Settings forms a first-time user sees.
  * The generated source is edited through its native text buffer and saved through
  * the command route. This case grants trust only after an explicit form action;
@@ -637,6 +652,27 @@ static int ExerciseProjectWizard(UmiStudioGtkWorkbench **slot, UmiStudioServices
     if (strcmp(name, "wizard-close-during-adoption") == 0)
         closeHandler = g_signal_connect(window, "notify::focus-widget", G_CALLBACK(CloseWhenEditorFocused), slot);
     g_signal_emit_by_name(accept, "clicked");
+    /* Completion cannot publish until this GTK thread yields. These checks
+     * deterministically exercise the pending-write guard even for a fast disk. */
+    if (strcmp(name, "wizard-close-during-write") == 0) {
+        gtk_window_close(window);
+        CHECK(*slot != NULL && UmiGtk4WindowIsOpen(window));
+        GtkWidget *notice = umi_gtk4_automation_find_tagged_widget(window, "studio.notification");
+        CHECK(GTK_IS_LABEL(notice));
+        CHECK(strstr(gtk_label_get_text(GTK_LABEL(notice)), "Project source is being created") != NULL);
+    }
+    if (strcmp(name, "wizard-replace-during-write") == 0 ||
+        strcmp(name, "wizard-application-during-write") == 0) {
+        const char *command = strcmp(name, "wizard-replace-during-write") == 0
+            ? "project.new" : "project.new-application";
+        CHECK(umi_studio_gtk_workbench_execute_command(*slot, command, NULL) == UMI_STATUS_BUSY);
+        GtkWindow *retained = FindProjectForm(window, "developer.project.folder");
+        CHECK(retained != NULL);
+        int unchanged = retained == form;
+        g_object_unref(retained);
+        CHECK(unchanged);
+    }
+    CHECK(WaitForProjectFormCompletion(form));
     CHECK(umi_fs_is_file(source));
     if (strcmp(name, "wizard-close-during-adoption") == 0) {
         CHECK(*slot == NULL && umi_document_coordinator_count(documents) == 1U);

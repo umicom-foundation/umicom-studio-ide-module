@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Edit and evaluate watches in Studio
 
 A watch lets you inspect an expression while debugging. For example, if your

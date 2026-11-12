@@ -1,7 +1,14 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Run commands in Umicom Studio</title>
 <style>body{font:17px/1.6 system-ui,sans-serif;max-width:940px;margin:3rem auto;padding:0 1.4rem;color:#202b36}code{background:#edf2f6;padding:.1rem .3rem}h1,h2{line-height:1.25}li{margin:.5rem 0}</style>
+
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
 <main><h1>Run commands in Umicom Studio</h1>
 <p>The Terminal panel runs a command while the editor remains available. Each session has its own folder and transcript. The summary shows the selected session and its actual folder.</p>
 <h2>Choose where to run</h2><ol><li>Open Terminal from Studio's window controls.</li>
@@ -31,4 +38,4 @@
 <p>Each refresh displays a captured session's output and summary together. If a session changes while the interface is updating, the next refresh displays the new selection. Unchanged output is not rewritten, so a text selection stays available for copying. The terminal keeps the same bounded output limits described above.</p>
 <h2>Keep the next command draft</h2>
 <p>An accepted command clears only the unchanged entry from which it was submitted. If the entry changes while command notifications are handled, Studio preserves that newer draft, including an edit that returns to the same text. A rejected command remains available for correction. An immediate nested Run action from the same entry is ignored until that dispatch finishes; starting another command still follows the terminal's existing pending-command checks.</p>
-</main></html>
+</main></body></html>

@@ -36,4 +36,10 @@ UmiStatus umi_studio_compiler_catalogue_project(const UmiCompilerRegistry *regis
  * this module.
  */
 const UmiStudioCompilerCatalogueRow *umi_studio_compiler_catalogue_find(const UmiStudioCompilerCatalogue *catalogue,const char *provider_id);
+/** Project all registry rows or preserve the complete destination on refusal.
+ * The optional selected provider may borrow destination text. Registry and output
+ * storage must be separate; callers serialize access. Availability is reported
+ * metadata, not a newly executed probe. Lookup admits all rows and returns a
+ * borrowed pointer only while the catalogue remains alive and unchanged. */
+bool umi_studio_compiler_catalogue_valid(const UmiStudioCompilerCatalogue *catalogue);
 #endif

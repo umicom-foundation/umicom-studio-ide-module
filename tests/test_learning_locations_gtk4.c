@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "umicom/platform/session_store.h"
+#include "umicom/platform/filesystem.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/learning_centre.h"
 #include "umicom/studio/settings.h"
@@ -25,8 +26,10 @@
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
 #include "umicom/ui/gtk4/learning_catalogue.h"
 #include "umicom/ui/gtk4/learning_help_binding.h"
+#include "umicom/teacher/learning_module.h"
 #endif
 #include "support/main_context.h"
+#include "support/widget_diagnostics.h"
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <string.h>
@@ -44,6 +47,44 @@
 
 
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+/* The same assertion can fail because of lifetime, pending work or unexpected
+ * content. Record each completed public snapshot without copying lesson text
+ * into a log. Keep the original assertions and fatal GTK policy unchanged. */
+static UmiStatus CatalogueStateAt(GtkWidget *panel, int line,
+    UmiLearningCatalogueGtkState *state)
+{
+    UmiStatus status = UmiLearningCatalogueGtk4CopyState(panel, state);
+    fprintf(stderr, "catalogue state line=%d copy-status=%d pending=%zu",
+        line, (int)status, UmiLearningCatalogueGtk4PendingReads());
+    if (status == UMI_STATUS_OK)
+        fprintf(stderr, " busy=%d retired=%d packs=%zu last-status=%d document=%d",
+            state->busy, state->retired, state->pack_count,
+            (int)state->last_status, state->reader.has_document);
+    fputc('\n', stderr);
+    fflush(stderr);
+    UmiTestWidgetDiagnosticsRoot(panel);
+    return status;
+}
+
+static void CatalogueModulePaths(void)
+{
+    char executable[UMI_PATH_CAPACITY];
+    UmiStatus status = umi_fs_executable_path(executable, sizeof(executable));
+    fprintf(stderr, "catalogue executable status=%d path=%s\n",
+        (int)status, status == UMI_STATUS_OK ? executable : "unavailable");
+    if (status == UMI_STATUS_OK) {
+        static const char *const names[] = {"studio-guide", "bits2banking", "framework-wiki"};
+        for (size_t i = 0U; i < G_N_ELEMENTS(names); ++i) {
+            char module[UMI_PATH_CAPACITY];
+            UmiStatus located = UmiLearningModuleRoot(executable, names[i], module, sizeof(module));
+            fprintf(stderr, "catalogue module=%s status=%d directory-present=%d\n",
+                names[i], (int)located,
+                located == UMI_STATUS_OK && g_file_test(module, G_FILE_TEST_IS_DIR));
+        }
+    }
+    fflush(stderr);
+}
+
 /* Wait for accepted catalogue jobs, including completion after a host closes.
  * A test deadline is failure evidence, never a reason to skip the assertion. */
 static int FinishCatalogue(void)
@@ -70,8 +111,15 @@ int main(int argc, char **argv)
     if (argc != 3)
         return 2;
     g_test_init(&argc, &argv, NULL);
+    UmiTestWidgetDiagnosticsInstall();
     if (!gtk_init_check())
         return 77;
+    fprintf(stderr, "learning locations mode=%s GTK headers=%u.%u.%u runtime=%u.%u.%u\n",
+        argv[1], GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION,
+        gtk_get_major_version(), gtk_get_minor_version(), gtk_get_micro_version());
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    CatalogueModulePaths();
+#endif
     int failed = 0, changed_directory = 0, isolated = 0;
     GError *error = NULL;
     char *original_directory = g_get_current_dir();
@@ -129,6 +177,7 @@ int main(int argc, char **argv)
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_LEARNING,
                                                           NULL) == UMI_STATUS_OK);
     GtkWidget *root = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
+    UmiTestWidgetDiagnosticsRoot(root);
     GtkWidget *label = umi_gtk4_automation_find_tagged_widget(root, "studio.learning.library");
     CHECK(GTK_IS_LABEL(label));
     if (strcmp(argv[1], "first-lesson") != 0)
@@ -289,7 +338,7 @@ int main(int argc, char **argv)
              * is absent. Inspect the completed result, not the accepted job. */
             CHECK(FinishCatalogue());
             UmiLearningCatalogueGtkState state;
-            CHECK(UmiLearningCatalogueGtk4CopyState(catalogue_panel,&state)==UMI_STATUS_OK &&
+            CHECK(CatalogueStateAt(catalogue_panel, __LINE__,&state)==UMI_STATUS_OK &&
                 state.last_status==UMI_STATUS_NOT_FOUND && !state.reader.has_document);
             CHECK(UmiLearningCatalogueGtk4Load(catalogue_panel,argv[2])==UMI_STATUS_OK && FinishCatalogue());
             g_signal_emit_by_name(catalogue_button,"clicked");
@@ -536,7 +585,13 @@ int main(int argc, char **argv)
     }
 cleanup:
 #ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
-    if (catalogue_panel != NULL) UmiLearningCatalogueGtk4Retire(catalogue_panel);
+    if (catalogue_panel != NULL) {
+        UmiLearningCatalogueGtkState closing_state;
+        (void)CatalogueStateAt(catalogue_panel, __LINE__, &closing_state);
+        fputs("learning locations phase=retire-catalogue\n", stderr); fflush(stderr);
+        UmiLearningCatalogueGtk4Retire(catalogue_panel);
+        fputs("learning locations phase=catalogue-retired\n", stderr); fflush(stderr);
+    }
     if (!FinishCatalogue()) failed = 1;
 #endif
     if (catalogue_window != NULL) gtk_window_destroy(catalogue_window);

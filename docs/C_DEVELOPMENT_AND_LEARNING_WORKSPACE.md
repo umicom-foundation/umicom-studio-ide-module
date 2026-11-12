@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # C Development and Learning Workspace
 
 Umicom Studio IDE brings the tools needed for C development into one customizable workspace. A developer can edit source files, configure and build a project, inspect compiler messages, run tests, debug a program, read local HTML documentation, and follow a sequence of lessons without leaving the workbench.

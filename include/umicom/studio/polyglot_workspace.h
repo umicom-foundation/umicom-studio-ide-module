@@ -35,4 +35,12 @@ UmiStatus umi_studio_polyglot_workspace_select_unit(UmiStudioPolyglotWorkspace *
  * changing their state.
  */
 size_t umi_studio_polyglot_workspace_language_count(const UmiStudioPolyglotWorkspace *workspace);
+/** Initialization admits complete manifest storage, including empty drafts, and
+ * replaces the inline workspace only after preparation. Failure preserves every
+ * receiving byte; identity and manifest may borrow the receiving owner.
+ * Selection consumes a valid manifest/mask/identity projection and refuses
+ * revision exhaustion. Every successful selection advances once, even if
+ * unchanged. language_count returns zero for malformed projection state.
+ * Caller serialization is required. This owns metadata, not compiler execution,
+ * and does not validate or run the independent interop/build graphs. */
 #endif

@@ -218,7 +218,13 @@ extern "C" {
 #if 0
 #define UMI_STUDIO_CORE_COMMAND_COUNT 146U
 #endif
+/* The launch command is also present in the canonical inventory. Retain the
+ * previous total for review; the platform contract's static assertion checks
+ * that this public count continues to describe every registered command. */
+#if 0
 #define UMI_STUDIO_CORE_COMMAND_COUNT 149U
+#endif
+#define UMI_STUDIO_CORE_COMMAND_COUNT 150U
 
 /**
  * Add studio commands only after its inputs and available capacity have been checked.

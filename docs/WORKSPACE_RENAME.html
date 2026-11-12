@@ -1,4 +1,11 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rename across open drafts</title><style>body{font:17px/1.65 system-ui;max-width:1000px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}pre{padding:16px;background:#eef3f5;overflow:auto}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rename across open drafts</title><style>body{font:17px/1.65 system-ui;max-width:1000px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}pre{padding:16px;background:#eef3f5;overflow:auto}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+
 <h1>Rename across open drafts</h1>
 <p>Studio can ask a local language server to rename a symbol while supplying other unsaved drafts of the same language. The returned changes open in a complete review window. Nothing is applied until you review all changed documents, confirm any required explanations and approve the complete edit.</p>
 <ol><li>Open every document that you expect the rename to change. Put the caret on the symbol in a writable source document. Leave unsaved changes open; their current text will be captured.</li>

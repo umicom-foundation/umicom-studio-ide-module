@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Inspect variables and their children in Studio
 
 The Variables panel shows data from the program you are debugging. A simple

@@ -1,5 +1,12 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Replace text across open drafts</title><style>body{font:17px/1.6 system-ui;max-width:950px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}</style></head><body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Replace text across open drafts</title><style>body{font:17px/1.6 system-ui;max-width:950px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+
 <h1>Replace text across open drafts</h1><p>Review Complete Set lets you inspect every proposed replacement before changing your open documents together. It uses literal text matching. For a language-aware symbol change, use <a href="SYMBOL_RENAME.html">Rename</a> and observe that tool's supported scope.</p>
 <ol><li>Open the documents to include. Pinned and untitled drafts are included; every captured draft must be writable. Close unrelated documents first.</li><li>Enter the search text in <strong>Find</strong> and the replacement in <strong>Replace with</strong>. An empty replacement deletes matches. Smart case ignores ASCII letter case unless the search contains an uppercase letter.</li><li>Choose <strong>Review Complete Set</strong> in the editor toolbar. Command search also offers <strong>Review Complete Replacement Set</strong>.</li><li>Read the full captured and proposed text. Use <strong>Previous</strong> and <strong>Next</strong> to move through the set, and choose <strong>Mark this draft reviewed</strong> for every changed draft.</li><li>Select <strong>I approve all reviewed draft changes</strong>, then choose <strong>Apply complete set</strong>. Until Apply succeeds, none of the proposed replacements changes a draft.</li><li>Inspect the results and save separately. Undo in each changed document restores its captured draft; there is no project-wide Undo operation.</li></ol>
 <p>Close an unapplied review to leave every draft unchanged. If a captured document changes, closes, is saved, moves to another path or becomes read-only, capture a fresh set. The same applies to changed caret, selection or language. Changing the Find or Replace field after capture does not rewrite the captured proposal.</p>

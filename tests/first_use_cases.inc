@@ -214,3 +214,8 @@ UMI_STUDIO_FIRST_USE_CASE("run-restart-duplicate", 0)
 UMI_STUDIO_FIRST_USE_CASE("run-restart-profile-blocked", 0)
 UMI_STUDIO_FIRST_USE_CASE("run-restart-log", 0)
 UMI_STUDIO_FIRST_USE_CASE("run-restart-log-collision", 0)
+
+/* Source-write activity must protect both host closure and form ownership. */
+UMI_STUDIO_FIRST_USE_CASE("wizard-close-during-write", 0)
+UMI_STUDIO_FIRST_USE_CASE("wizard-replace-during-write", 0)
+UMI_STUDIO_FIRST_USE_CASE("wizard-application-during-write", 0)

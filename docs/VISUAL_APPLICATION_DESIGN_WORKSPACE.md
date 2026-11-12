@@ -14,6 +14,8 @@ LICENCE:
 MIT
 -->
 
+![Umicom](assets/umicom-logo.svg)
+
 # Visual Application Design Workspace
 
 Select **Design** in the layout strip or **Visual Designer** from the Tools

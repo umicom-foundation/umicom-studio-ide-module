@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Edit source breakpoints
 
 A source breakpoint asks the debugger to stop at a line of your program.

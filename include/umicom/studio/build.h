@@ -86,6 +86,12 @@ UmiStatus umi_studio_build_service_bind_task_queue(
  * Perform studio build service through the module contract so client applications do not
  * duplicate its policy.
  */
+/* Direct execution and graph preparation/retry/invalidation below are owning-
+ * thread operations. They return BUSY while the project session is active,
+ * restart is pending, results remain uncollected, or busy state cannot be read.
+ * Refusal preserves output buffers, last-result presentation and model state.
+ * Cancellation and observation remain available. This does not grant workspace
+ * trust or replace frontend project admission, and is not a cross-thread lock. */
 UmiStatus umi_studio_build_service_run(UmiStudioBuildService *service,
                                        UmiBuildPhase phase,
                                        UmiBuildResult *out_result);

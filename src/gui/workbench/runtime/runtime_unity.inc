@@ -19,6 +19,11 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "runtime_types.inc"
+/* The helper fragment queries process activity before the interaction fragment
+ * defines its command handlers. Declare the shared state query at the unity
+ * boundary so every host sees the bool contract before its first call. The
+ * existing interaction declaration remains valid and is retained for review. */
+static bool RuntimeProgramConsoleBusy(UmiStudioGtkRuntimeChrome *runtime);
 /* Interaction fragments create command controls before runtime_actions.inc
  * supplies the implementation. Declare the shared factory here so every host
  * translation unit sees its actual pointer return type before the first use. */

@@ -13,6 +13,8 @@ LICENCE:
 MIT
 -->
 
+![Umicom](assets/umicom-logo.svg)
+
 # Experience Catalogue Include-Order Repair
 
 Studio's `workspace_layouts.c` needs the Framework application definition for

@@ -1,5 +1,12 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rename a symbol in Studio</title><style>body{font:17px/1.6 system-ui;max-width:900px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}</style></head><body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rename a symbol in Studio</title><style>body{font:17px/1.6 system-ui;max-width:900px;margin:32px auto;padding:0 24px;color:#183442}li{margin:10px 0}code{overflow-wrap:anywhere}</style>
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+
 <h1>Rename a symbol in Studio</h1>
 <p>This guide describes the single-draft mode. For the explicit additional-drafts workflow, see <a href="WORKSPACE_RENAME.html">Rename across open drafts</a>.</p>
 <p>Use a language server to propose a name change for a function or variable in the current writable draft. Studio reviews the complete returned change before applying it. It never turns this operation into a global text replacement.</p>

@@ -70,4 +70,17 @@ UmiStatus umi_studio_compiler_centre_snapshot(const UmiStudioCompilerCentre *cen
  * applications.
  */
 UmiCompilerCentre *umi_studio_compiler_centre_engine(UmiStudioCompilerCentre *centre);
+/** Plan using the caller's explicit intended working directory. Framework owns
+ * plan/database publication. No filesystem access or compiler execution occurs.
+ * The original plan_unit API keeps "." for compatibility. */
+UmiStatus umi_studio_compiler_centre_plan_unit_in_directory(UmiStudioCompilerCentre *centre,
+    const char *project_id,const char *unit_id,const char *working_directory,UmiCompilerPlan *out_plan);
+/** Default registration and selected-toolchain synchronization replace named
+ * providers/profiles coherently through Framework. Other records and historical
+ * plans remain intact. Engine borrowers keep a stable address; callers serialize
+ * all access and keep the borrowed toolchain centre alive until destruction.
+ * Snapshot failures preserve output and overlapping owner output is refused.
+ * Its aggregate revision saturates at UINT64_MAX and is not a unique cache key.
+ * toolchain_synchronised records a successful sync, not continuous monitoring of
+ * subsequent external toolchain selection changes. */
 #endif

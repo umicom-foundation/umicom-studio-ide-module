@@ -14,6 +14,8 @@ LICENCE:
 MIT
 -->
 
+![Umicom](assets/umicom-logo.svg)
+
 # Community Extension Development
 
 Umicom extensions add a focused capability without copying or modifying the

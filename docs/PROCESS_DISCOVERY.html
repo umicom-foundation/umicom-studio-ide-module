@@ -1,5 +1,13 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><title>Finding a running process</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Finding a running process</title>
 <style>body{max-width:58rem;margin:3rem auto;padding:0 1rem;font:17px/1.6 system-ui;color:#172536}code{background:#edf2f6;padding:.1rem .3rem}h1,h2{line-height:1.2}</style>
+
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
 <h1>Finding a running process</h1>
 <p>A process is a running program. Its process ID, or PID, is a number assigned by the operating system. Numbers can be reused after a program exits, so a remembered PID alone does not identify the same program forever.</p>
 <h2>Choose a process in Studio</h2><ol>
@@ -20,4 +28,4 @@
 <li>Inspect the capture report as well as the rows. Unreadable observations and incomplete scans are part of the result, not evidence that those processes do not exist.</li>
 <li>Use <code>UmiGtk4ProcessPickerCreate</code> when a native application needs filtering and explicit selection. The host callback must enforce its own workspace and action permissions. Choosing a row never grants authority to attach or terminate.</li>
 <li>A controlled provider can supply copied rows with <code>UmiDesktopProcessCatalogCreate</code>. Mark fixture observations explicitly. The picker displays those rows but disables selection. A supplied provider must honour cancellation and keep GTK calls on the main thread.</li></ol>
-<h2>When something goes wrong</h2><p>If a program is missing, refresh after starting it and check whether the scan was limited. If a creation time is unavailable, verify the program and operating-system permissions rather than treating the row as an authenticated identity. Changing workspace invalidates an earlier selected process. If discovery is still stopping, wait for its current operating-system read to finish before starting another capture.</p></html>
+<h2>When something goes wrong</h2><p>If a program is missing, refresh after starting it and check whether the scan was limited. If a creation time is unavailable, verify the program and operating-system permissions rather than treating the row as an authenticated identity. Changing workspace invalidates an earlier selected process. If discovery is still stopping, wait for its current operating-system read to finish before starting another capture.</p></body></html>

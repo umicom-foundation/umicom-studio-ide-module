@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Open a file mentioned by a test failure
 
 Studio keeps a test's retained results and output in Test Explorer. When a

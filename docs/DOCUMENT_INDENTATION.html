@@ -1,7 +1,14 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Choose indentation for one document</title>
 <style>body{font:17px/1.6 system-ui;max-width:880px;margin:3rem auto;padding:0 1.5rem;color:#172b3a}code,pre{background:#f0f4f7}pre{padding:1rem;overflow:auto}h1,h2{line-height:1.2}</style>
+
+<!-- Shared identity rules override historical font declarations without discarding them. -->
+<link rel="stylesheet" href="assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="assets/umicom.ico">
+</head><body>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
 <main><h1>Choose indentation for one document</h1>
 <p>Indentation controls what Tab inserts and how tab characters are displayed. A document override applies to one open working copy. Other files continue to use their own overrides or the session defaults.</p>
 <h2>Use the native editor</h2><ol>
@@ -25,4 +32,4 @@ if (status == UMI_STATUS_OK) {
 <li><strong>Document operation busy:</strong> finish saving, reloading or navigation, then retry.</li>
 <li><strong>Refresh interrupted:</strong> the setting may already have applied. The message distinguishes that outcome. Refresh the editor display; do not assume source or preferences were rolled back.</li>
 </ul>
-<p>Read-only source can have a different display policy, but text editing remains blocked. Tab width describes logical columns, not proportional-font character cells. Independent tab and indentation widths are not yet supported. The EditorConfig inspector remains a review tool; it does not automatically apply these settings.</p></main></html>
+<p>Read-only source can have a different display policy, but text editing remains blocked. Tab width describes logical columns, not proportional-font character cells. Independent tab and indentation widths are not yet supported. The EditorConfig inspector remains a review tool; it does not automatically apply these settings.</p></main></body></html>

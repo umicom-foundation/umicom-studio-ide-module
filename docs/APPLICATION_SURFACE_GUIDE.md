@@ -14,6 +14,8 @@ LICENCE:
 MIT
 -->
 
+![Umicom](assets/umicom-logo.svg)
+
 # Studio Application Surface
 
 Studio can now start the Framework learning, standard or focus recipe. The

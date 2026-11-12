@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # STU-02 — Workbench shell and window lifecycle
 
 This batch changes the real Studio close path.

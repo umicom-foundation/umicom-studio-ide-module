@@ -1,3 +1,5 @@
+![Umicom](assets/umicom-logo.svg)
+
 # Copy selected-test evidence
 
 Test evidence records what the test service retained from previous runs. A CSV
