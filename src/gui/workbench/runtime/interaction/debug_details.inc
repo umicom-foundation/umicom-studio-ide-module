@@ -582,6 +582,10 @@ static GtkWidget *runtime_debug_details_notebook(
         return notebook;
     }
 
+    /* The menu selects this owned page rather than rebuilding debugger state. */
+    (void)umi_gtk4_automation_tag_widget(notebook, "studio.debug.details");
+    (void)umi_gtk4_automation_tag_widget(runtime->debug_breakpoints_list, "studio.debug.breakpoints");
+    gtk_widget_set_focusable(runtime->debug_breakpoints_list, TRUE);
     gtk_widget_set_size_request(notebook, -1, 250);
 
     gtk_notebook_append_page(

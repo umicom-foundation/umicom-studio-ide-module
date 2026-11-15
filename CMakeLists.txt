@@ -1311,6 +1311,22 @@ if(BUILD_TESTING)
     umicom_apply_sanitizers(umicom-studio-tasks-test)
     add_test(NAME studio.tasks COMMAND umicom-studio-tasks-test)
 
+    # Isolated command feedback checks use the real registry and shared AI service.
+    add_executable(umicom-studio-ai-health-command-test tests/test_ai_health_command.c)
+    target_link_libraries(umicom-studio-ai-health-command-test PRIVATE Umicom::StudioCore)
+    set_target_properties(umicom-studio-ai-health-command-test PROPERTIES
+        C_STANDARD 23 C_STANDARD_REQUIRED YES C_EXTENSIONS NO)
+    umicom_apply_warnings(umicom-studio-ai-health-command-test)
+    umicom_apply_sanitizers(umicom-studio-ai-health-command-test)
+    foreach(_case IN ITEMS success invalid-health stale-runtime clock-missing busy short-message no-message)
+        set(_name "studio.ai.health_command.${_case}")
+        add_test(NAME "${_name}" COMMAND umicom-studio-ai-health-command-test "${_case}")
+        set_tests_properties("${_name}" PROPERTIES TIMEOUT 120 LABELS "studio;ai;commands;regression")
+        if(COMMAND umicom_test_impact_owners)
+            umicom_test_impact_owners("${_name}" TARGETS umicom-studio-ai-health-command-test)
+        endif()
+    endforeach()
+
     add_executable(umicom-studio-commands-test
         tests/test_commands.c
     )
@@ -3560,3 +3576,36 @@ include(cmake/UmicomStudioBookmarkPanel.cmake)
 
 # Each migrated test owns its state even when launched directly.
 include("cmake/UmicomStudioTestIsolation.cmake")
+
+# Native Navigate commands reuse Framework source review admission.
+include(cmake/UmicomStudioNavigationMenus.cmake)
+
+# Debugger menus reveal existing controls without executing process actions.
+include(cmake/UmicomStudioDebuggerMenus.cmake)
+include(cmake/UmicomStudioBranchMenus.cmake)
+
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/UmicomStudioZenMenus.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/UmicomStudioLayoutManagerMenus.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/UmicomStudioCheckpointMenus.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/UmicomStudioCommandPalette.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/UmicomStudioWelcomeNavigation.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/UmicomStudioShortcutReference.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/UmicomStudioDocumentationOwnership.cmake")
+
+# Reuse the shared native About service through the canonical Help command.
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/UmicomStudioAbout.cmake")
+
+# Keep background findings bound to their originating workspace.
+include(cmake/UmicomStudioCodeGuardJobs.cmake)
+include(cmake/UmicomStudioCodeGuardWorkflow.cmake)
+
+# Native quality actions reuse the Framework review owner and output presenter.
+include(cmake/UmicomStudioCodeGuardNative.cmake)
+
+include(cmake/UmicomStudioCodeGuardCli.cmake)
+
+# Product admission and recovery reuse the shared Framework services.
+include(cmake/UmicomStudioAiRecovery.cmake)
+include(cmake/UmicomStudioAiContextPreview.cmake)
+
+include(cmake/UmicomStudioAiParentLifetime.cmake)

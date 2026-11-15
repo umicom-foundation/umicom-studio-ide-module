@@ -1,0 +1,64 @@
+<!-- Umicom Studio IDE
+File: docs/learning/codeguard-native.html
+
+PURPOSE:
+Teach native saved-source review, cancellation and callback-safe report presentation.
+
+AUTHOR AND ORGANISATION:
+Sammy Hegab
+Umicom Foundation
+
+LICENCE:
+MIT
+-->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Review saved source from Studio</title>
+<link rel="stylesheet" href="../assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="../assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="../assets/umicom.ico">
+</head><body><main>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="../assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+<h1>Review saved source from Studio</h1>
+<p>CodeGuard inspects source files and reports patterns which deserve engineering review. Studio connects its native Tools actions to the shared Framework scanner, background queue and report presenter. This lesson explains the authored workflow and the checks needed to qualify it. The native regression cases have not yet been executed; a menu label or a successful configuration is not a runtime result.</p>
+<h2>1. Understand what the review reads</h2>
+<p>Open a workspace containing saved source files. The review reads those files from disk. It does not automatically save editor drafts, build the project, execute its programs or upload its contents. An open untrusted workspace is permitted because this action does not execute project commands. This does not grant permission to build or run that workspace.</p>
+<p>A finding is evidence for a person to inspect, not proof of a vulnerability. The scanner does not freeze the filesystem. Files can change between its passes, and unsaved text in an editor can differ from the saved file described by the report.</p>
+<h2>2. Start a review</h2>
+<ol><li>Open the intended workspace and save any changes you want included.</li><li>Select <strong>Tools → CodeGuard</strong>, or use <strong>Scan saved files</strong> in the CodeGuard section of Output.</li><li>The existing Output surface opens and its CodeGuard section expands.</li><li>The application captures the workspace revision before revealing Output and checks it again before submitting the job.</li><li>Read the status and report when the background job finishes.</li></ol>
+<p>Only one review may be pending for this service owner. The Scan action is disabled while it owns pending work. A retained button or a second direct command repeats the same check; disabled appearance alone is not an ownership rule.</p>
+<p>Revealing a native control can invoke application callbacks. A callback might close Studio, switch projects or collapse the section. The command then refuses submission rather than scanning a different workspace by accident. The implementation retains a weak host identity across those callbacks and compares the captured graph revision and root before calling Begin.</p>
+<h2>3. Read two separate outcomes</h2>
+<p>The status distinguishes execution from publication. Execution describes whether analysis completed. Publication describes whether that attempt still belongs to the current workspace. A completed job can become stale before its findings are accepted. A failed later attempt may also leave an earlier complete report available; the presenter calls it a retained report rather than implying the attempt succeeded.</p>
+<p>Framework copies a bounded text projection before updating GTK widgets. The widgets do not keep borrowed finding pointers. If the report is too large for the preview, the status says that the preview is unavailable and the view is empty. The service still owns the complete findings. This native panel does not yet provide a report-export chooser.</p>
+<h2>4. Use Follow, Refresh and Copy</h2>
+<p><strong>Follow output</strong> displays new accepted evidence automatically. Turn it off to inspect the current text without replacement. <strong>Refresh</strong> displays the latest accepted preview manually. <strong>Copy</strong> copies the displayed text; it does not start another scan or export the complete service result.</p>
+<p>Workspace changes override a paused view: findings from the retired context are cleared. If a text callback changes the workspace while a copied report is being displayed, Studio rechecks the context and clears that report immediately. A later refresh projects the new workspace. Repeated identical evidence leaves text selection intact.</p>
+<h2>5. Cancel an owned review</h2>
+<ol><li>Select <strong>Tools → Cancel CodeGuard</strong> or <strong>Cancel review</strong> in Output.</li><li>The service requests cooperative cancellation. It does not free memory still used by a worker.</li><li>Continue handling UI events while the normal refresh retires the job.</li><li>Inspect the terminal status before starting another review.</li></ol>
+<p>Cancellation remains available for an owned pending job after the workspace closes. Closing or replacing a workspace also causes polling to reject stale publication and request cancellation. A queued attempt can therefore retire before a later explicit Cancel click; at that point no pending operation needs cancellation. Cancellation cannot forcibly interrupt blocking operating-system file access.</p>
+<h2>6. Follow the ownership boundary in C</h2>
+<pre><code class="language-c">UmiCodeGuardReviewSnapshot review;
+UmiStatus status = UmiStudioCodeGuardPoll(services, &amp;review);
+if (status == UMI_STATUS_OK) {
+    const UmiCodeGuardResult *report = review.has_report
+        ? UmiStudioCodeGuardResult(services) : NULL;
+    status = UmiCodeGuardOutputGtk4Update(panel, context, &amp;review, report);
+    /* GTK callbacks may have retired the application. Resolve the weak
+     * owner again before reading services or the workspace here. */
+}</code></pre>
+<p>This fragment illustrates one boundary, not a complete event-loop implementation. All review operations belong to the service container's creating thread. The production <a href="../../src/gui/workbench/runtime/interaction/codeguard.inc">native binding</a> also checks current context, handles API failures, prevents nested publication and deduplicates repeated failure notifications.</p>
+<p>A polling error clears the previous preview and reports that the update is unavailable. Recovery must invalidate the presenter's equality cache as well as clear the visible text; otherwise an unchanged successful report could remain invisible. The binding publishes an empty shared snapshot, then allows the next successful observation to restore current evidence.</p>
+<h2>7. Qualify menu and output behavior</h2>
+<p>The <a href="../../tests/test_codeguard_native_gtk4.c">native fixture</a> creates an isolated temporary workspace, real services, a real task queue and native GTK controls. It retains the fixture directory for diagnosis. A controlled queue blocker makes pending-job and text-observer cases deterministic, including on fast machines.</p>
+<p>From an Applications checkout configured with GTK4 and testing enabled, use the corresponding build directory:</p>
+<pre><code>cmake --build build/windows-ucrt64-all-debug --target umicom-studio-codeguard-native-test
+ctest --test-dir build/windows-ucrt64-all-debug -R "^studio\.codeguard_native\." --output-on-failure
+
+# GNU-compatible linker wrapping enables the focused polling failures:
+cmake --build build/windows-ucrt64-all-debug --target umicom-studio-codeguard-native-fault-test
+ctest --test-dir build/windows-ucrt64-all-debug -R "^studio\.codeguard_native_fault\." --output-on-failure</code></pre>
+<p>The ordinary target registers 22 cases. Three additional cases inject a polling failure, verify recovery of unchanged findings and reject old-context text during failure. A machine without a usable GTK display reports a skip, which is missing coverage rather than a pass. Configuration checks target registration; compilation, assertions, callback lifetime and rendered appearance need actual execution.</p>
+<p>After the automated checks, exercise the same actions in a qualified Studio build. Confirm the approved logo and Windows icon, keyboard/menu discovery, visible status, paused output, cancellation and project switching. Keep failed and skipped results alongside passes. If a command is unavailable, check for a closed workspace or a pending job; if the preview is unavailable, inspect the underlying operation status before retrying.</p>
+<p><a href="codeguard-workspace.html">Workspace service ownership</a> · <a href="../learning-in-studio.html">Learning in Studio</a> · <a href="../../include/umicom/studio/codeguard_workflow.h">C service contract</a></p>
+</main></body></html>

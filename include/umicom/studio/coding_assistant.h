@@ -88,6 +88,15 @@ UmiStatus umi_studio_coding_assistant_revert_patch(
     const char *patch_id,
     const UmiAiCodingFileAdapter *adapter);
 
+/* Preserve Framework recovery reports through the existing Studio owner.
+ * A fresh zeroed report distinguishes admission refusal from admitted work. */
+UmiStatus UmiStudioCodingAssistantApplyPatchWithReport(UmiStudioAiPlatform *platform,
+    const char *patch_id, const UmiAiCodingFileAdapter *adapter,
+    UmiAiCodingPatchTransactionReport *outReport);
+UmiStatus UmiStudioCodingAssistantRevertPatchWithReport(UmiStudioAiPlatform *platform,
+    const char *patch_id, const UmiAiCodingFileAdapter *adapter,
+    UmiAiCodingPatchTransactionReport *outReport);
+
 #ifdef __cplusplus
 }
 #endif

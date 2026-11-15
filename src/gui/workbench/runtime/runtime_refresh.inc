@@ -398,6 +398,8 @@ static UmiStatus runtime_refresh_services(
 }
 
 #endif
+/* Poll the shared quality review and refresh its Output controls through the same weak host continuation as other native evidence. Preserve the former refresh path for review. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus runtime_refresh_services(
     UmiStudioGtkRuntimeChrome *runtime)
 {
@@ -607,6 +609,277 @@ static UmiStatus runtime_refresh_services(
     runtime = RuntimeResolveOwner(request, &window);
     if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
     runtime_refresh_command_sensitivity(runtime, runtime->surface_panels[UMI_STUDIO_SURFACE_BUILD]);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    runtime_refresh_command_sensitivity(runtime, runtime->toolbar);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    runtime_refresh_command_sensitivity(runtime, runtime->activity_bar);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    /* Editor actions live inside the retained centre body, outside the four
+     * chrome containers above. Refresh their existing command policy too. */
+    runtime_refresh_command_sensitivity(runtime, runtime->centre_stack);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    /* Explorer survives Welcome and workspace changes. Reuse the same command
+     * policy so its project actions enable and disable with the current root.
+     * Sensitivity notifications may close the host, just like other chrome. */
+    runtime_refresh_command_sensitivity(runtime, runtime->surface_panels[UMI_STUDIO_SURFACE_EXPLORER]);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+
+    RuntimeTestLiveOutputRefresh(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    runtime_terminal_refresh_transcript(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+
+    if (runtime->test_summary_label != NULL && runtime->owner->ui != NULL) {
+        UmiStudioTestService *tests = umi_studio_services_tests(umi_studio_ui_services(runtime->owner->ui));
+        UmiCtestJobSnapshot progress;
+        if (UmiStudioTestRunPending(tests) &&
+            UmiStudioTestRunSnapshot(tests, &progress) == UMI_STATUS_OK) {
+            char *name = g_utf8_make_valid(progress.active_name, -1);
+            const char *phase = progress.state == UMI_TASK_QUEUED ? "Queued" :
+                progress.state == UMI_TASK_RUNNING ? "Running " : "Publishing results";
+            char *summary = g_strdup_printf(
+                "%zu / %zu attempts complete — %zu passed, %zu failed — %s%s",
+                progress.completed, progress.planned, progress.passed, progress.failed, phase, name);
+            gtk_label_set_text(GTK_LABEL(runtime->test_summary_label), summary);
+            g_free(summary);
+            g_free(name);
+        }
+    }
+
+    status = snapshot_status == UMI_STATUS_OK ? UMI_STATUS_OK : snapshot_status;
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+refresh_done:
+    g_clear_object(&window); runtime_file_dialog_request_free(request);
+    return status;
+}
+#endif
+static UmiStatus runtime_refresh_services(
+    UmiStudioGtkRuntimeChrome *runtime)
+{
+    UmiStatus status = UMI_STATUS_OK;
+    UmiStatus snapshot_status = UMI_STATUS_OK;
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime == NULL || runtime->owner == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL;
+
+    /* Publish a completed private catalogue on the owning GUI thread before
+     * the existing refresh reads it. Poll never waits for CTest to complete. */
+    if (runtime->owner->ui != NULL) {
+        UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+        UmiStudioTestService *tests = umi_studio_services_tests(services);
+        if (UmiStudioTestDiscoveryPending(tests)) {
+            UmiStudioWorkspaceSnapshot workspace;
+            const UmiBuildProfile *profile = umi_studio_build_service_profile(
+                umi_studio_services_build(services));
+            int allowed = umi_studio_workspace_snapshot(services, &workspace) == UMI_STATUS_OK &&
+                workspace.graph.open && workspace.graph.trusted;
+            int published = 0;
+            char message[512];
+/* Discovery publication now checks the selected CTest folder as well as workspace paths and trust. The previous implementation is retained for engineering review. */
+#if 0
+            UmiStatus discoveryStatus = UmiStudioTestDiscoveryPoll(tests,
+                profile != NULL ? profile->source_directory : NULL,
+                profile != NULL ? profile->build_directory : NULL,
+                profile != NULL ? profile->configuration : NULL,
+                allowed ? workspace.graph.revision : 0U, allowed,
+                &published, message, sizeof(message));
+#endif
+/* Compare the resolved build root captured at submission, so relative profile settings do not invalidate their own discovery result. The previous comparison is retained for review. */
+#if 0
+            UmiStatus discoveryStatus = UmiStudioTestDiscoveryPollWithToolDirectory(tests,
+                profile != NULL ? profile->tool_directory : NULL,
+                profile != NULL ? profile->source_directory : NULL,
+                profile != NULL ? profile->build_directory : NULL,
+                profile != NULL ? profile->configuration : NULL,
+                allowed ? workspace.graph.revision : 0U, allowed,
+                &published, message, sizeof(message));
+#endif
+            char buildRoot[UMI_BUILD_PATH_CAPACITY];
+            allowed = allowed && profile != NULL &&
+                umi_path_equal(profile->source_directory, workspace.graph.root) &&
+                UmiBuildProfileBuildDirectory(profile, workspace.graph.root,
+                    buildRoot, sizeof buildRoot) == UMI_STATUS_OK;
+            UmiStatus discoveryStatus = UmiStudioTestDiscoveryPollWithToolDirectory(tests,
+                profile != NULL ? profile->tool_directory : NULL,
+                profile != NULL ? profile->source_directory : NULL,
+                allowed ? buildRoot : NULL,
+                profile != NULL ? profile->configuration : NULL,
+                allowed ? workspace.graph.revision : 0U, allowed,
+                &published, message, sizeof(message));
+/* Completion feedback now rechecks the workbench lifetime before continuing refresh. The original notification path is retained for review. */
+#if 0
+            if (discoveryStatus != UMI_STATUS_BUSY && discoveryStatus != UMI_STATUS_NOT_FOUND)
+                runtime_show_notification(runtime, message[0] != '\0' ? message :
+                    umi_status_text(discoveryStatus));
+#endif
+
+            if (discoveryStatus != UMI_STATUS_BUSY && discoveryStatus != UMI_STATUS_NOT_FOUND) {
+                status = RuntimeNotifyAndContinue(runtime, message[0] != '\0' ? message :
+                    umi_status_text(discoveryStatus));
+                if (status != UMI_STATUS_OK) goto refresh_done;
+            }
+        }
+    }
+
+    if (runtime->owner->ui != NULL) {
+        UmiStudioTestService *tests = umi_studio_services_tests(umi_studio_ui_services(runtime->owner->ui));
+        if (UmiStudioTestRunPending(tests)) {
+            UmiStudioTestRunContext context;
+            (void)RuntimeTestRunContext(runtime, &context);
+            char message[512];
+            UmiStatus runStatus = UmiStudioTestRunPoll(tests, &context, message, sizeof(message));
+/* Completion feedback now rechecks the workbench lifetime before continuing refresh. The original notification path is retained for review. */
+#if 0
+            if (runStatus != UMI_STATUS_BUSY && runStatus != UMI_STATUS_NOT_FOUND)
+                runtime_show_notification(runtime, message[0] ? message : umi_status_text(runStatus));
+#endif
+
+            if (runStatus != UMI_STATUS_BUSY && runStatus != UMI_STATUS_NOT_FOUND) {
+                status = RuntimeNotifyAndContinue(runtime, message[0] ? message : umi_status_text(runStatus));
+                if (status != UMI_STATUS_OK) goto refresh_done;
+            }
+        }
+    }
+
+    /*
+     * Preserve the established Studio refresh path first. The new runtime is a
+     * presentation/composition layer around it, not a replacement service graph.
+     */
+    RuntimeTerminalPoll(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    status = umi_studio_gtk_workbench_refresh(runtime->owner);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) goto refresh_done;
+
+    /* Synchronize project identity after all open/close routes, including menus
+     * and session restore; do not depend on which folder chooser was used. */
+    status = runtime_prepare_workspace_identity(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    if (status != UMI_STATUS_OK) goto refresh_done;
+
+    UmiStudioServices *developmentServices = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioDebuggerService *nativeDebugger = umi_studio_services_debugger(developmentServices);
+    UmiStudioWorkspaceSnapshot developmentWorkspace;
+    if (UmiStudioDebuggerNativeBusy(nativeDebugger) &&
+        (umi_studio_workspace_snapshot(developmentServices, &developmentWorkspace) != UMI_STATUS_OK ||
+         !developmentWorkspace.graph.open || !developmentWorkspace.graph.trusted)) {
+        (void)umi_studio_debugger_service_stop(nativeDebugger, 0);
+    } else {
+        UmiStatus debugStatus = UmiStudioDebuggerPollNative(nativeDebugger,
+            umi_studio_services_build(developmentServices));
+/* Completion feedback now rechecks the workbench lifetime before continuing refresh. The original notification path is retained for review. */
+#if 0
+        if (debugStatus != UMI_STATUS_OK && debugStatus != UMI_STATUS_NOT_FOUND)
+            runtime_show_notification(runtime, umi_status_text(debugStatus));
+#endif
+
+        if (debugStatus != UMI_STATUS_OK && debugStatus != UMI_STATUS_NOT_FOUND) {
+            status = RuntimeNotifyAndContinue(runtime, umi_status_text(debugStatus));
+            if (status != UMI_STATUS_OK) goto refresh_done;
+        }
+    }
+
+    /* Keep the shared header's contrast-aware SVG aligned with the active
+     * Studio appearance before refreshing the rest of the workbench panels. */
+    status = runtime_refresh_brand_appearance(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) goto refresh_done;
+
+    snapshot_status = runtime_refresh_service_snapshots(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime->runtime_bootstrap != NULL) {
+        status = umi_studio_runtime_bootstrap_refresh(
+            runtime->runtime_bootstrap);
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status != UMI_STATUS_OK) goto refresh_done;
+    }
+
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime->runtime_bootstrap != NULL &&
+        runtime->runtime_bootstrap->platform != NULL) {
+        status = umi_studio_host_sync(
+            runtime->runtime_bootstrap->platform,
+            &runtime->host_adapter);
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status != UMI_STATUS_OK) goto refresh_done;
+    }
+
+    runtime->panel_refresh_tick += 1U;
+    /* Keep the operation inside its valid bounds before reading, writing or adding data. */
+    if (runtime->panel_refresh_tick >= 4U) {
+        runtime->panel_refresh_tick = 0U;
+        runtime_refresh_interactive_panels(runtime);
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    }
+
+    runtime_status_override_legacy_services(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    runtime_welcome_update_mode(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    /* This call is cheap when the document-model revision is unchanged. It
+     * gives the preview a short natural debounce without rebuilding widgets. */
+    (void)runtime_live_preview_refresh(runtime, 0);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    RuntimeRefreshBuildOutput(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    /* Nonblocking quality polling also retires jobs when Output is hidden.
+     * Presentation may invoke user observers; reacquire the native owner. */
+    UmiStatus quality_status = RuntimeRefreshCodeGuard(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    if (quality_status != UMI_STATUS_OK && quality_status != UMI_STATUS_BUSY)
+        snapshot_status = quality_status;
+    RuntimeFileSearchRefresh(runtime);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    runtime_refresh_command_sensitivity(runtime, runtime->menu_bar);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    runtime_refresh_command_sensitivity(runtime, runtime->surface_panels[UMI_STUDIO_SURFACE_BUILD]);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
+    runtime_refresh_command_sensitivity(runtime, runtime->surface_panels[UMI_STUDIO_SURFACE_OUTPUT]);
     runtime = RuntimeResolveOwner(request, &window);
     if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto refresh_done; }
     runtime_refresh_command_sensitivity(runtime, runtime->toolbar);

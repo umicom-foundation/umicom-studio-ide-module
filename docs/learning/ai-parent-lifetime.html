@@ -1,0 +1,95 @@
+<!-- Umicom Studio IDE
+File: docs/learning/ai-parent-lifetime.html
+
+PURPOSE:
+Teach checked parent teardown for native AI composition and callback ownership.
+
+AUTHOR AND ORGANISATION:
+Sammy Hegab
+Umicom Foundation
+
+LICENCE:
+MIT
+-->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Keep AI parents alive through callbacks | Umicom Studio</title>
+<link rel="stylesheet" href="../assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="../assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="../assets/umicom.ico">
+<style>main{max-width:1000px;margin:auto;padding:28px;line-height:1.65}pre{background:#edf3f9;padding:18px;overflow:auto}aside{border-left:4px solid #2678a3;padding:16px;background:#edf3f9}td,th{text-align:left;padding:8px;border-bottom:1px solid #ccd6df}</style>
+</head><body><main>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="../assets/umicom-logo.svg" alt="Umicom"></div>
+<h1>Keep AI parents alive through callbacks</h1>
+<p>A child service can correctly refuse destruction while its parent still frees the memory that child needs. This lesson explains how Studio carries a checked Framework result through two levels of ownership: its AI platform and its application service container. Prerequisites are C pointers, structures, callbacks and return statuses. Read <a href="../../../../framework/docs/learning/coding-service-ownership.html">Coding service ownership</a> first.</p>
+<h2>1. Draw the ownership relationships</h2>
+<p>Studio's service container owns an AI platform. That platform owns a coding assistant, an AuthorEngine service and an AI runtime. The coding assistant borrows AuthorEngine. A patch operation calls a file adapter supplied by its caller. While that callback runs, both the assistant and its borrowed dependencies must remain alive.</p>
+<pre><code>Studio services
+  owns AI platform
+    owns coding assistant --borrows--&gt; AuthorEngine
+    owns AuthorEngine --borrows--&gt; AI runtime
+
+patch apply/revert --calls--&gt; file adapter callback</code></pre>
+<p>If a callback requests shutdown, returning <code>BUSY</code> from the assistant alone is insufficient. A parent that ignores that result could free AuthorEngine and the runtime. Returning from the callback would then resume code with invalid pointers. No amount of checking a pointer for NULL can prove that its allocation is still alive.</p>
+<h2>2. Preflight before unrelated shutdown effects</h2>
+<!-- Retained earlier preflight description; runtime activity now precedes dependent release.
+<p><code>UmiAiCodingAssistantCheckIdle</code> reports whether a patch operation is active. Studio's <code>UmiStudioAiPlatformCheckIdle</code> also checks its own destruction guard and the provider registry's structural validity. The service container calls this before cancelling or stopping unrelated work. A refusal therefore preserves the aggregate state at this boundary.</p>
+-->
+<p><code>UmiAiCodingAssistantCheckIdle</code> reports whether a patch operation is active. Studio's <code>UmiStudioAiPlatformCheckIdle</code> also checks its own destruction guard and Framework runtime activity and provider ownership. The service container calls this before cancelling or stopping unrelated work. A refusal therefore preserves the aggregate state at this boundary.</p>
+<!-- Retained previous scope statement: Framework generation activity is now included through the shared idle preflight.
+<p>An idle check is an observation under serialized access, not a lock or reservation. Another thread must not begin work between the check and destruction. The lifecycle controller remains responsible for excluding all other callers. The checks cover synchronous patch callbacks and teardown reentry; they do not establish safe destruction during arbitrary model generation, Helix activity or detached workers.</p>
+-->
+<p>An idle check is an observation under serialized access, not a lock or reservation. Another thread must not begin work between the check and destruction. The lifecycle controller remains responsible for excluding all other callers. The checks cover synchronous patch callbacks, Framework generation and teardown reentry. Raw provider calls, arbitrary tool or Helix activity and detached workers still require separate lifecycle control.</p>
+<h2>3. Retain a handle when release refuses</h2>
+<pre><code class="language-c">#include "umicom/studio/services.h"
+
+UmiStatus close_owned_services(UmiStudioServices **owner)
+{
+    /* The caller has already retired UI aliases and concurrent work. */
+    UmiStatus status = UmiStudioServicesRelease(owner);
+    if (status != UMI_STATUS_OK) {
+        /* Keep *owner for diagnosis and a later lifecycle-controlled retry. */
+        return status;
+    }
+    /* Successful release has cleared *owner. */
+    return UMI_STATUS_OK;
+}</code></pre>
+<p>The direct platform API accepts a pointer rather than pointer-to-pointer. After <code>UmiStudioAiPlatformDestroyChecked(platform)</code> returns OK, its owner must set its handle to NULL. On failure, retain the pointer. Do not retry inside the same active patch callback: return from the callback first and arrange shutdown after the outer operation finishes.</p>
+<p>Legacy void destructors remain available. They delegate to the checked implementation and leave a refused owner alive, but cannot report why release failed. New lifecycle code should use the checked APIs. A late shutdown failure may leave a partially stopped service graph, as in the existing checked shutdown contract; preserve it for recovery rather than resuming ordinary commands.</p>
+<h2>4. Guard destructor callbacks too</h2>
+<p>Registered AI providers can have their own destroy callbacks. During platform teardown, these callbacks run after dependent AI services have been released. The platform keeps its destruction flag set throughout provider cleanup. The service container similarly guards nested release. Reentrant teardown returns BUSY instead of freeing the same graph twice.</p>
+<p>Provider destructors must not use already retired AI children, rewrite the provider registry or start new work. The guard does not turn arbitrary callback behavior into a safe operation. Registry validation also assumes every borrowed identifier still points to readable, stable storage.</p>
+<h2>5. Qualify the boundary with memory adapters</h2>
+<ol><li>Configure an Applications build with Studio and testing enabled using your normal toolchain.</li><li>Build the focused native target below.</li><li>Run the registered parent-lifetime cases. Record the tested source revisions and toolchain with the results.</li><li>Then qualify ordinary Studio shutdown and UI workflows separately. These headless cases do not establish GUI behavior.</li></ol>
+<pre><code class="language-powershell"># Run from the Umicom-Applications source root after configuration.
+cmake --build build/windows-ucrt64-all-debug --target umicom-studio-ai-parent-lifetime-test
+ctest --test-dir build/windows-ucrt64-all-debug -R '^studio\.ai\.parent-lifetime\.' --output-on-failure</code></pre>
+<p>Expected result: all selected cases pass. The fixtures attempt checked and legacy shutdown from read, write and compensation callbacks in both apply and revert operations. They also check provider-destructor reentry, NULL cleanup, a malformed registry and final release after the callback has returned. File contents live in memory; no model is invoked and no real project file is changed. Case registration is not an executed result.</p>
+<h2>6. Diagnose a refusal</h2>
+<table><thead><tr><th>Result</th><th>Next step</th></tr></thead><tbody>
+<tr><td>BUSY during a patch callback</td><td>Retain the handle, return normally, and retry after the outer operation ends.</td></tr>
+<tr><td>BUSY during provider teardown</td><td>Remove the nested release request from the callback. Let the original release finish.</td></tr>
+<tr><td>INVALID_STATE from registry admission</td><td>Preserve the owner and diagnose the invalid metadata. Do not erase the registry to force destruction.</td></tr>
+<tr><td>Later stop or release failure</td><td>Keep the partially stopped graph and inspect the failing child before retrying shutdown.</td></tr>
+</tbody></table>
+<aside>Exercise: follow a single patch callback from Framework to Studio's platform and then to the service container. Identify every borrowed pointer that would become invalid if any one layer ignored BUSY. Explain why a destructor guard is separate from a mutex, and why checked cleanup still needs an external lifecycle owner.</aside>
+<p><a href="ai-session-recovery.html">Continue with AI session recovery</a>.</p>
+
+<h2>7. Carry generation activity through the parent graph</h2>
+<p>A provider callback can ask the application to close while Framework still holds its instance. Studio's idle preflight now delegates to <code>UmiAiRuntimeCheckIdle</code> as well as checking the coding assistant and its own teardown flag. Framework owns the callback tracking; Studio does not duplicate that mechanism.</p>
+<p>The runtime detects synchronous generation through both its legacy and checked generation entry points. Studio platform destruction, service release and background-stop preflight therefore return BUSY before releasing dependent owners. Legacy void destructors retain the same graph. Return from the provider callback normally, then retry shutdown under the lifecycle controller after the outer call finishes.</p>
+<p>The parent-lifetime suite adds 24 cases combining six teardown/idle entry points with both generation APIs and provider success/error outcomes. Each case checks retained service storage and child identity during the callback, then successful final cleanup and exactly one provider destruction after it returns. The provider callback is controlled test code; no model process, network request or GUI is launched.</p>
+<pre><code class="language-powershell"># Focus only on provider-generation callbacks in a configured Applications build.
+cmake --build build/windows-ucrt64-all-debug --target umicom-studio-ai-parent-lifetime-test
+ctest --test-dir build/windows-ucrt64-all-debug -R '^studio[.]ai[.]parent-lifetime[.]generation[.]' --output-on-failure</code></pre>
+<p>This does not cover providers invoked directly through raw function pointers, arbitrary tool or Helix callbacks, or workers running concurrently with shutdown. Retire those callers explicitly before freeing the platform. An idle result is still a current observation, not permission to ignore later activity.</p>
+
+
+<h2>8. Retain parents during health probes</h2>
+<p>Health refresh can invoke either a registered provider's health callback or an endpoint-specific probe supplied by the caller. AuthorEngine now retains its borrowed runtime throughout the refresh. Studio checks <code>UmiAiAuthorEngineServiceCheckIdle</code> before releasing siblings and propagates the checked AuthorEngine destruction result before clearing that child pointer.</p>
+<p>The same lifecycle rule applies: a callback that requests shutdown receives BUSY, keeps the graph alive, returns normally, and lets the lifecycle controller retry later. A probe error or malformed health value still ends the activity scope. Legacy provider callback errors retain their unavailable-health behavior; descriptor-aware probe errors remain explicit failures.</p>
+<pre><code class="language-powershell">cmake --build build/windows-ucrt64-all-debug --target umicom-studio-ai-parent-lifetime-test
+ctest --test-dir build/windows-ucrt64-all-debug -R '^studio[.]ai[.]parent-lifetime[.]health[.]' --output-on-failure</code></pre>
+<p>The 54 cases combine both health APIs with success, callback failure and malformed output, across direct AuthorEngine and Studio parent cleanup entry points. Each checks retained parent storage and final single provider destruction. These fixtures do not start a model, access a network endpoint or establish GUI shutdown behavior.</p>
+
+</main></body></html>

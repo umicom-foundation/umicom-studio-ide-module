@@ -1,10 +1,18 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
- * File: src/gui/workbench/runtime/runtime_workspace_storage.inc
- * PURPOSE: Present explicit Framework canvas checkpoints and safe recovery.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ * File: applications/studio/src/gui/workbench/runtime/runtime_workspace_storage.inc
+ *
+ * PURPOSE:
+ *   Present explicit Framework canvas checkpoints and safe recovery.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
+
 
 /* Layout preference belongs to this application, not to an open source file.
  * The user configuration directory separates operating-system user accounts. */
@@ -222,6 +230,21 @@ static UmiStatus runtime_workspace_library_storage_operation(
 
 /* Describe a stored checkpoint without claiming the current arrangement has
  * no newer edits. Unsupported storage never looks like a successful disk save. */
+/* Menu and toolbar availability read the same bound Data Server evidence.
+ * Restore stays available when metadata needs recovery; Save requires the
+ * revision captured at bind/restore and never refreshes it implicitly. */
+static int RuntimeCheckpointCommandEnabled(UmiStudioGtkRuntimeChrome *runtime, int restore)
+{
+    const UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+    return runtime != NULL && runtime->workspace_storage != NULL &&
+        model != NULL && !model->edit_active &&
+        (restore || runtime->workspace_checkpoint.storage_revision_known);
+}
+
+/* The former local readiness calculation is retained for review. The active
+ * implementation below shares its predicate with native menu commands while
+ * preserving the same storage labels and recovery policy. */
+#if 0
 static void runtime_workspace_update_storage_controls(UmiStudioGtkRuntimeChrome *runtime)
 {
     UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
@@ -254,6 +277,42 @@ static void runtime_workspace_update_storage_controls(UmiStudioGtkRuntimeChrome 
             ready && runtime->workspace_checkpoint.storage_revision_known);
     if (runtime->workspace_restore_button != NULL)
         gtk_widget_set_sensitive(runtime->workspace_restore_button, ready);
+    if (runtime->workspace_storage_label != NULL) {
+        gtk_label_set_text(GTK_LABEL(runtime->workspace_storage_label), label);
+        gtk_widget_set_tooltip_text(runtime->workspace_storage_label, detail);
+    }
+}
+
+#endif
+static void runtime_workspace_update_storage_controls(UmiStudioGtkRuntimeChrome *runtime)
+{
+    const char *label = "Storage unavailable";
+    const char *detail = "No canvas Data Server is connected";
+    if (runtime == NULL) return;
+    if (runtime->workspace_storage != NULL) {
+        if (!runtime->workspace_checkpoint.storage_revision_known) {
+            label = "Storage needs attention";
+            detail = "Restore can retry recovery; Save needs trustworthy storage metadata";
+        } else if (runtime->workspace_storage_status != UMI_STATUS_OK &&
+                   runtime->workspace_storage_status != UMI_STATUS_NOT_FOUND) {
+            label = "Checkpoint error";
+            detail = umi_status_text(runtime->workspace_storage_status);
+        } else if (runtime->workspace_checkpoint.recovered_last_good) {
+            label = "Previous checkpoint";
+            detail = "The latest checkpoint was unusable; a validated previous copy was recovered";
+        } else if (runtime->workspace_checkpoint.layout_id[0] != '\0') {
+            label = runtime->workspace_checkpoint.durable ? "Checkpoint on disk" : "Memory checkpoint";
+            detail = "Only the last explicitly saved layout is stored; newer arrangements still need Save layout";
+        } else {
+            label = "No saved checkpoint";
+            detail = "Apply and Lock, then Save layout to store the current arrangement";
+        }
+    }
+    if (runtime->workspace_save_button != NULL)
+        gtk_widget_set_sensitive(runtime->workspace_save_button,
+            RuntimeCheckpointCommandEnabled(runtime, 0));
+    if (runtime->workspace_restore_button != NULL)
+        gtk_widget_set_sensitive(runtime->workspace_restore_button, RuntimeCheckpointCommandEnabled(runtime, 1));
     if (runtime->workspace_storage_label != NULL) {
         gtk_label_set_text(GTK_LABEL(runtime->workspace_storage_label), label);
         gtk_widget_set_tooltip_text(runtime->workspace_storage_label, detail);

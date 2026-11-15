@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/gui/workbench/runtime/interaction/debug_attach.inc
- * PURPOSE: Expose explicit process attachment through the shared native debugger owner.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Expose explicit process attachment through the shared native debugger owner.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/debug_runtime/native_attach.h"
@@ -135,6 +142,8 @@ done:
 static GtkWidget *RuntimeDebugAttachCreate(UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *expander = gtk_expander_new("Attach to a running application");
+    /* Stable identity lets menu navigation reveal this exact existing form. */
+    (void)umi_gtk4_automation_tag_widget(expander, "studio.debug.attach.form");
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     GtkWidget *explanation = gtk_label_new(
         "Use the process ID of an application you started and are authorised to debug. "

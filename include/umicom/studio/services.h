@@ -85,13 +85,17 @@ void umi_studio_services_destroy(UmiStudioServices *services);
 
 /** Stop background owners without freeing the service graph. This is blocking;
  * only an external lifecycle controller may call it. A queue worker is refused
- * before other services are stopped. Failure may leave some children stopped;
+ * before other services are stopped. Active AI patch callbacks return BUSY before
+ * cancellation or shutdown effects. Failure may leave some children stopped;
  * retain the graph and retry shutdown instead of resuming normal commands. */
 UmiStatus UmiStudioServicesStopBackground(UmiStudioServices *services);
 
 /** Release an exclusively owned service graph and clear its pointer on success.
  * Stop/join/handle-release failures retain the pointer for investigation and retry.
  * Exclude UI models, registry aliases and all concurrent callers before release.
+ * Active AI patch callbacks and nested release return BUSY with the handle
+ * retained. This serialized preflight is not a lifetime lock; arbitrary model
+ * generation and independent child callbacks must already be retired.
  * An empty owner is an OK no-op; NULL owner storage is invalid. */
 UmiStatus UmiStudioServicesRelease(UmiStudioServices **inOutServices);
 

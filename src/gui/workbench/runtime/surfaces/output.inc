@@ -406,6 +406,8 @@ static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtim
     return runtime_scroll(panel);
 }
 #endif
+/* Add the shared CodeGuard presenter to the existing Output surface while preserving compiler output, logging and diagnostics. Retain the earlier composition for review. The previous implementation is retained for engineering review. */
+#if 0
 static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtime)
 {
     GtkWidget *panel = runtime_panel_new("Output");
@@ -476,6 +478,119 @@ static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtim
     gtk_expander_set_child(GTK_EXPANDER(diagnostics), runtime->build_live_diagnostics);
     gtk_expander_set_expanded(GTK_EXPANDER(diagnostics), TRUE);
     gtk_box_append(GTK_BOX(panel), diagnostics);
+    GtkWidget *completed = gtk_label_new("Latest completed phase");
+    gtk_label_set_xalign(GTK_LABEL(completed), 0.0F);
+    gtk_box_append(GTK_BOX(panel), completed);
+    view = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(view), FALSE);
+    gtk_text_view_set_monospace(GTK_TEXT_VIEW(view), TRUE);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_NONE);
+    gtk_widget_set_vexpand(view, TRUE);
+    gtk_widget_set_hexpand(view, TRUE);
+    gtk_widget_set_tooltip_text(view, "Compiler, test or program output from the latest completed phase.");
+    (void)umi_gtk4_automation_tag_widget(view, "studio.build.output");
+    runtime->build_output_view = view;
+    runtime->build_output_operation = 0U;
+    gtk_text_buffer_set_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)),
+        "No build output yet. Output is updated when each phase finishes.", -1);
+    gtk_box_append(GTK_BOX(panel), view);
+    RuntimeRefreshBuildOutput(runtime);
+    return runtime_scroll(panel);
+}
+#endif
+static GtkWidget *runtime_build_surface_output(UmiStudioGtkRuntimeChrome *runtime)
+{
+    GtkWidget *panel = runtime_panel_new("Output");
+    GtkWidget *view;
+    char value[64];
+    if (panel == NULL || runtime == NULL) return panel;
+    /* Retain the existing task and diagnostic readouts alongside the new
+     * compiler transcript. Adding output must not remove earlier information. */
+    (void)snprintf(value, sizeof(value), "%zu",
+                   runtime->view_model_snapshot.queued_tasks);
+    runtime_panel_add_stat(panel, "Queued tasks", value);
+    (void)snprintf(value, sizeof(value), "%zu",
+                   runtime->view_model_snapshot.running_tasks);
+    runtime_panel_add_stat(panel, "Running tasks", value);
+    (void)snprintf(value, sizeof(value), "%zu",
+                   runtime->view_model_snapshot.retained_diagnostics);
+    runtime_panel_add_stat(panel, "Diagnostics", value);
+
+    /* Saving is deliberate and uses a fresh file. The entry is only a draft
+     * until Use log for next job succeeds; typing never changes a running job. */
+    GtkWidget *log_title = gtk_label_new("Save complete emitted output to a new file");
+    gtk_label_set_xalign(GTK_LABEL(log_title), 0.0F);
+    gtk_box_append(GTK_BOX(panel), log_title);
+    runtime->build_log_path = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(runtime->build_log_path), "Absolute path to a new log file");
+    gtk_entry_set_max_length(GTK_ENTRY(runtime->build_log_path), (int)UMI_PATH_CAPACITY - 1);
+    (void)umi_gtk4_automation_tag_widget(runtime->build_log_path, "studio.build.log.path");
+    gtk_box_append(GTK_BOX(panel), runtime->build_log_path);
+    /* A native chooser changes only the draft; arming the next job remains
+     * explicit so browsing cannot redirect an already running compiler log. */
+    GtkWidget *browse_log = UmiPathPickerGtk4Create(GTK_ENTRY(runtime->build_log_path),
+        UMI_PATH_PICKER_NEW_FILE, "Choose a new build log", "build-output.log");
+    if (browse_log != NULL) {
+        (void)umi_gtk4_automation_tag_widget(browse_log, "studio.build.log.browse");
+        gtk_box_append(GTK_BOX(panel), browse_log);
+    }
+    GtkWidget *log_controls = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget *select_log = gtk_button_new_with_label("Use log for next job");
+    GtkWidget *clear_log = gtk_button_new_with_label("Disable next log");
+    GtkWidget *copy_log = gtk_button_new_with_label("Copy log path");
+    (void)umi_gtk4_automation_tag_widget(select_log, "studio.build.log.select");
+    (void)umi_gtk4_automation_tag_widget(clear_log, "studio.build.log.clear");
+    (void)umi_gtk4_automation_tag_widget(copy_log, "studio.build.log.copy-path");
+    g_object_set_data(G_OBJECT(clear_log), "umicom-clear-build-log", GINT_TO_POINTER(1));
+    runtime_bind_editor_action(runtime, select_log, RuntimeBuildLogSelect);
+    runtime_bind_editor_action(runtime, clear_log, RuntimeBuildLogSelect);
+    runtime_bind_editor_action(runtime, copy_log, RuntimeBuildLogCopyPath);
+    gtk_box_append(GTK_BOX(log_controls), select_log);
+    gtk_box_append(GTK_BOX(log_controls), clear_log);
+    gtk_box_append(GTK_BOX(log_controls), copy_log);
+    gtk_box_append(GTK_BOX(panel), log_controls);
+    runtime->build_log_status = gtk_label_new(NULL);
+    gtk_label_set_wrap(GTK_LABEL(runtime->build_log_status), TRUE);
+    gtk_label_set_xalign(GTK_LABEL(runtime->build_log_status), 0.0F);
+    (void)umi_gtk4_automation_tag_widget(runtime->build_log_status, "studio.build.log.status");
+    gtk_box_append(GTK_BOX(panel), runtime->build_log_status);
+    RuntimeBuildHistoryControls(runtime, panel);
+    runtime->build_live_output = UmiBuildOutputGtk4Create();
+    gtk_box_append(GTK_BOX(panel), runtime->build_live_output);
+    GtkWidget *diagnostics = gtk_expander_new("Compiler messages for the current phase");
+    runtime->build_live_diagnostics = UmiBuildDiagnosticViewGtk4Create();
+    UmiStudioFileDialogRequest *sourceBinding = runtime_file_dialog_request_new(runtime, 0U);
+    if (sourceBinding != NULL &&
+        UmiBuildDiagnosticViewGtk4SetSourceOpener(runtime->build_live_diagnostics,
+            RuntimeBuildDiagnosticOpen, sourceBinding, RuntimeBuildSourceBindingFree) != UMI_STATUS_OK)
+        runtime_file_dialog_request_free(sourceBinding);
+
+    gtk_expander_set_child(GTK_EXPANDER(diagnostics), runtime->build_live_diagnostics);
+    gtk_expander_set_expanded(GTK_EXPANDER(diagnostics), TRUE);
+    gtk_box_append(GTK_BOX(panel), diagnostics);
+    /* CodeGuard occupies the established Output surface. Framework supplies
+     * report rendering, Follow/Refresh/Copy and context-reset behavior; Studio
+     * adds only the same registered actions used by the Tools menu. */
+    runtime->codeguard_expander = gtk_expander_new("CodeGuard — saved source review");
+    (void)umi_gtk4_automation_tag_widget(runtime->codeguard_expander, "studio.codeguard.section");
+    GtkWidget *quality = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    GtkWidget *quality_actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget *scan = runtime_make_command_button(runtime, "Scan saved files",
+        "codeguard.scan", "Inspect saved files in the current workspace without running project code.");
+    GtkWidget *cancel = runtime_make_command_button(runtime, "Cancel review",
+        "codeguard.cancel", "Request cancellation of the current CodeGuard review.");
+    gtk_box_append(GTK_BOX(quality_actions), scan);
+    gtk_box_append(GTK_BOX(quality_actions), cancel);
+    gtk_box_append(GTK_BOX(quality), quality_actions);
+    GtkWidget *scope = gtk_label_new(
+        "Saved files only. Unsaved editor changes are not included. Findings require review.");
+    gtk_label_set_wrap(GTK_LABEL(scope), TRUE);
+    gtk_label_set_xalign(GTK_LABEL(scope), 0.0F);
+    gtk_box_append(GTK_BOX(quality), scope);
+    runtime->codeguard_output = UmiCodeGuardOutputGtk4Create();
+    gtk_box_append(GTK_BOX(quality), runtime->codeguard_output);
+    gtk_expander_set_child(GTK_EXPANDER(runtime->codeguard_expander), quality);
+    gtk_box_append(GTK_BOX(panel), runtime->codeguard_expander);
     GtkWidget *completed = gtk_label_new("Latest completed phase");
     gtk_label_set_xalign(GTK_LABEL(completed), 0.0F);
     gtk_box_append(GTK_BOX(panel), completed);

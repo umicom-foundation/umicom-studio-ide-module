@@ -3,8 +3,7 @@
  * File: src/gui/dialogs/about.c
  *
  * PURPOSE:
- *   Implement the about behavior for
- *   Umicom Studio IDE.
+ *   Keep legacy About entry points as thin clients of the shared native Framework dialog.
  *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
@@ -13,27 +12,17 @@
  * LICENCE:
  * MIT
  *---------------------------------------------------------------------------*/
-/*-----------------------------------------------------------------------------
- * Umicom Studio IDE
- * File: src/gui/dialog/about.c
- *
- * PURPOSE:
- *   Create and present a GTK4 About dialog. GTK4 removed gtk_dialog_run(),
- *   so we connect "response" and present the dialog non-blockingly.
- *
- * DESIGN:
- *   - No BOM / non-ASCII surprises (strict ASCII file).
- *   - Safe defaults: modal + transient when a parent is provided.
- *
- * SECURITY/ROBUSTNESS:
- *   - No dynamic format strings from user input.
- *   - All pointers are guarded before use.
- *
- * Created by: Umicom Foundation | Developer: Sammy Hegab | Date: 2025-10-13 | MIT
- *---------------------------------------------------------------------------*/
+
+/* Original implementation dated 2025-10-13 used non-blocking presentation,
+ * guarded pointers and fixed metadata rather than dynamic format strings.
+ * Its former response-signal assumption is retained below for review:
+ * GtkAboutDialog derives GtkWindow in GTK4 and has no GtkDialog response.
+ * Framework now owns closure, repeated presentation, artwork and metadata
+ * copying; the public void wrappers remain compatible with older callers. */
 #include <gtk/gtk.h>
 #include "about.h"
 
+#if 0 /* Superseded by UmiStudioAboutPresent; retained for source review. */
 /* Close handler for the dialog's "response" signal. */
 static void on_about_response(GtkDialog *dialog, int response, gpointer user_data)
 {
@@ -67,3 +56,14 @@ void umi_about_show(GtkWindow *parent)
 
 /* Back-compat wrapper retained for older callers */
 void umi_show_about(GtkWindow *parent) { umi_about_show(parent); }
+
+#endif
+
+void umi_about_show(GtkWindow *parent)
+{
+    (void)UmiStudioAboutPresent(parent);
+}
+void umi_show_about(GtkWindow *parent)
+{
+    umi_about_show(parent);
+}

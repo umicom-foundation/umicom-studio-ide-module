@@ -4380,6 +4380,8 @@ static UmiStatus developer_report_handler(void *user_data,
  * Provide the ai refresh health handler operation used by this module and its client
  * applications.
  */
+/* Studio now distinguishes successful availability observations from failed or partial refreshes and checks clock admission before dispatch. The former implementation is retained for owner review. */
+#if 0
 static UmiStatus ai_refresh_health_handler(void *user_data,
                                            const char *argument,
                                            char *out_message,
@@ -4401,6 +4403,38 @@ static UmiStatus ai_refresh_health_handler(void *user_data,
         (void)snprintf(out_message, message_capacity,
                        "AuthorEngine health refreshed: %zu healthy runtime(s)",
                        healthy);
+    }
+    return status;
+}
+#endif
+static UmiStatus ai_refresh_health_handler(void *user_data,
+                                           const char *argument,
+                                           char *out_message,
+                                           size_t message_capacity)
+{
+    UmiStudioServices *services = (UmiStudioServices *)user_data;
+    UmiClock *clock = umi_studio_services_clock(services);
+    size_t healthy = 0U;
+    UmiStatus status;
+    (void)argument;
+    /* Service admission must precede the clock callback. Report the returned
+     * operation outcome; a failed refresh may already have updated some rows. */
+    if (services == NULL) status = UMI_STATUS_INVALID_ARGUMENT;
+    else if (clock == NULL || clock->wall_nanoseconds == NULL)
+        status = UMI_STATUS_INVALID_STATE;
+    else
+        status = umi_studio_ai_platform_refresh_health(
+            umi_studio_services_ai_platform(services),
+            clock->wall_nanoseconds(clock), &healthy);
+    if (out_message != NULL && message_capacity > 0U) {
+        if (status == UMI_STATUS_OK)
+            (void)snprintf(out_message, message_capacity,
+                "AI health refreshed: %zu available runtime report(s). Model identity is unverified.",
+                healthy);
+        else
+            (void)snprintf(out_message, message_capacity,
+                "AI health refresh not completed: %s. Earlier observations may have changed.",
+                umi_status_text(status));
     }
     return status;
 }
@@ -4636,6 +4670,8 @@ static UmiStatus ai_patch_approve_handler(void *user_data,
  * Provide the coding patch mutate operation used by this module and its client
  * applications.
  */
+/* The existing Studio command surface now receives Framework transaction reports and distinguishes primary mutation failure from compensation and restoration observations. The former implementation is retained for owner review. */
+#if 0
 static UmiStatus coding_patch_mutate(void *user_data,
                                      const char *argument,
                                      char *out_message,
@@ -4680,6 +4716,64 @@ static UmiStatus coding_patch_mutate(void *user_data,
             (void)snprintf(out_message, message_capacity, "AI patch %s: %s",
                            revert ? "revert" : "apply",
                            umi_status_text(status));
+        }
+    }
+    return status;
+}
+
+#endif
+static UmiStatus coding_patch_mutate(void *user_data,
+                                     const char *argument,
+                                     char *out_message,
+                                     size_t message_capacity,
+                                     int revert)
+{
+    UmiStudioAiPlatform *platform = umi_studio_services_ai_platform(
+        (UmiStudioServices *)user_data);
+    UmiAiAuthorEngineServiceSnapshot integration;
+    UmiStudioCodingWorkspace workspace;
+    UmiAiCodingFileAdapter adapter;
+    UmiAiCodingPatchTransactionReport report = {0};
+    char patch_id[UMI_AI_ID_CAPACITY];
+    UmiStatus status = resolve_patch_id(
+        platform, argument, patch_id, sizeof(patch_id));
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_ai_platform_snapshot(platform, &integration);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = umi_studio_coding_workspace_adapter_init(
+            &workspace, integration.workspace, &adapter);
+    }
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) {
+        status = revert
+            ? UmiStudioCodingAssistantRevertPatchWithReport(
+                  platform, patch_id, &adapter, &report)
+            : UmiStudioCodingAssistantApplyPatchWithReport(
+                  platform, patch_id, &adapter, &report);
+    }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_message != NULL && message_capacity > 0U) {
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status == UMI_STATUS_OK) {
+            (void)snprintf(out_message, message_capacity, "%s AI patch %s",
+                           revert ? "Reverted" : "Applied", patch_id);
+        } else if (report.admitted && report.mutation_attempts != 0U) {
+            /* Keep recovery evidence visible in the existing command surface.
+             * A logical patch state does not certify filesystem restoration. */
+            (void)snprintf(out_message, message_capacity,
+                "AI patch %s: %s. Recovery: %s; callbacks failed %zu/%zu; restoration checks failed %zu/%zu. Inspect affected files before retrying.",
+                revert ? "revert" : "apply", umi_status_text(status),
+                umi_status_text(report.compensation_status), report.compensation_failures,
+                report.compensation_attempts, report.restoration_failures, report.restoration_checks);
+        } else {
+            (void)snprintf(out_message, message_capacity, "AI patch %s: %s",
+                           revert ? "revert" : "apply", umi_status_text(status));
         }
     }
     return status;

@@ -1,0 +1,272 @@
+/*-----------------------------------------------------------------------------
+ * Umicom Studio IDE
+ * File: tests/test_command_palette_gtk4.c
+ *
+ * PURPOSE:
+ *   Verify command search publication, retained controls, observer lifetime and document preservation.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+#include "workbench_window.h"
+#include "umicom/studio/bootstrap.h"
+#include "umicom/studio/settings.h"
+#include "umicom/studio_runtime/workspace_canvas.h"
+#include "umicom/ui/gtk4/automation.h"
+#include "umicom/ui/document_view.h"
+#include <glib/gstdio.h>
+#include <stdio.h>
+#include <string.h>
+#define CHECK(c) do { if (!(c)) { fprintf(stderr, "%d: %s\n", __LINE__, #c); failed = 1; goto cleanup; } } while (0)
+#define ID(name) UMI_STUDIO_RUNTIME_WORKSPACE_PREFIX name
+
+
+typedef struct PaletteObserver {
+    UmiStudioGtkWorkbench **owner;
+    GtkWindow *palette;
+    const char *mode;
+    unsigned calls;
+    UmiStatus nested;
+} PaletteObserver;
+
+static void Observe(GObject *object, GParamSpec *spec, gpointer data)
+{
+    (void)object; (void)spec;
+    PaletteObserver *observer = data;
+    if (observer->calls++ != 0U || *observer->owner == NULL) return;
+    if (strstr(observer->mode, "close") != NULL) {
+        UmiStudioGtkWorkbench *owner = *observer->owner;
+        *observer->owner = NULL;
+        umi_studio_gtk_workbench_destroy(owner);
+    } else if (strcmp(observer->mode, "observer-hide") == 0)
+        gtk_widget_set_visible(GTK_WIDGET(observer->palette), FALSE);
+    else if (strcmp(observer->mode, "choice-show") == 0)
+        gtk_widget_set_visible(GTK_WIDGET(observer->palette), TRUE);
+    else observer->nested = umi_studio_gtk_workbench_execute_command(
+        *observer->owner, "workbench.command-palette", NULL);
+}
+
+static GtkWidget *FindRow(GtkWidget *root, const char *key, const char *command)
+{
+    const char *id = g_object_get_data(G_OBJECT(root), key);
+    if (GTK_IS_BUTTON(root) && id != NULL && (command == NULL || strcmp(id, command) == 0)) return root;
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+        child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = FindRow(child, key, command);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+static GtkWidget *FindType(GtkWidget *root, GType type)
+{
+    if (G_TYPE_CHECK_INSTANCE_TYPE(root, type)) return root;
+    for (GtkWidget *child = gtk_widget_get_first_child(root); child != NULL;
+        child = gtk_widget_get_next_sibling(child)) {
+        GtkWidget *found = FindType(child, type);
+        if (found != NULL) return found;
+    }
+    return NULL;
+}
+static GtkWindow *FindPalette(GtkWindow *owner)
+{
+    GListModel *windows = gtk_window_get_toplevels();
+    for (guint i = 0U; i < g_list_model_get_n_items(windows); ++i) {
+        GtkWindow *window = g_list_model_get_item(windows, i);
+        if (gtk_window_get_transient_for(window) == owner &&
+            !g_strcmp0(gtk_window_get_title(window), "Search Commands and Menus")) return window;
+        g_object_unref(window);
+    }
+    return NULL;
+}
+static void Search(GtkWidget *entry, const char *query)
+{
+    gtk_editable_set_text(GTK_EDITABLE(entry), query);
+    g_signal_emit_by_name(entry, "search-changed");
+}
+
+int main(int argc, char **argv)
+{
+    const char *modes[] = {"menu", "direct", "compatibility", "repeat", "argument",
+        "retained-menu", "retained-choice", "retained-operation", "retained-search",
+        "stale-choice", "stale-operation", "choose", "disabled", "observer-close",
+        "observer-reenter", "observer-hide", "choice-close", "choice-reenter", "choice-show",
+        "refresh-close", "refresh-reenter", "reset-close", "closed-palette"};
+    if (argc != 2) return 2;
+    const char *mode = argv[1]; bool known = false;
+    for (size_t i = 0U; i < sizeof modes / sizeof modes[0]; ++i)
+        if (strcmp(mode, modes[i]) == 0) known = true;
+    if (!known) return 2;
+    if (!gtk_init_check()) return 77;
+    int failed = 0, moved = 0;
+    char *original = g_get_current_dir(), *base = NULL;
+    char *old_data = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
+    char *output = NULL, document_id[128] = {0}; size_t output_bytes = 0U;
+    UmiSettings *settings = NULL; UmiStudioBootstrap *bootstrap = NULL;
+    UmiStudioGtkWorkbench *workbench = NULL; GtkApplication *application = NULL;
+    GtkWidget *retained = NULL;
+    GtkWindow *palette = NULL;
+    GObject *observer_object = NULL; gulong observer_id = 0U;
+    PaletteObserver observer = {&workbench, NULL, mode, 0U, UMI_STATUS_OK};
+    UmiUiWorkspaceLayout *before = g_try_new0(UmiUiWorkspaceLayout, 1);
+    UmiUiWorkspaceLayout *after = g_try_new0(UmiUiWorkspaceLayout, 1);
+    CHECK(before != NULL && after != NULL);
+    base = g_dir_make_tmp("umicom-palette-menu-XXXXXX", NULL);
+    CHECK(base != NULL && g_chdir(base) == 0); moved = 1;
+    g_unsetenv("UMICOM_STUDIO_DATA_PATH");
+    CHECK(g_mkdir_with_parents("config", 0700) == 0);
+    CHECK(umi_studio_settings_create(&settings) == UMI_STATUS_OK);
+    CHECK(umi_settings_set_boolean(settings, UMI_STUDIO_SETTING_AI_ALLOW_REMOTE, 0) == UMI_STATUS_OK);
+    CHECK(umi_settings_set_boolean(settings, UMI_STUDIO_SETTING_AI_PERSIST_SESSIONS, 0) == UMI_STATUS_OK);
+    CHECK(umi_settings_set_boolean(settings, UMI_STUDIO_SETTING_WORKSPACE_RESTORE_SESSION, 0) == UMI_STATUS_OK);
+    CHECK(umi_settings_set_boolean(settings, UMI_STUDIO_SETTING_AUTO_SAVE, 0) == UMI_STATUS_OK);
+    CHECK(umi_studio_settings_save(settings, umi_studio_settings_default_path()) == UMI_STATUS_OK);
+    UmiStudioServicesOptions service_options = {0};
+    CHECK(umi_studio_bootstrap_create_with_options(&service_options, &bootstrap) == UMI_STATUS_OK);
+    UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+    UmiDocumentCoordinator *documents = umi_studio_ui_documents(ui);
+    UmiUiDocumentViewModel *views = umi_ui_workbench_documents(umi_studio_ui_workbench(ui));
+    application = gtk_application_new("org.umicom.studio.palette-menu-test", G_APPLICATION_NON_UNIQUE);
+    CHECK(g_application_register(G_APPLICATION(application), NULL, NULL));
+    UmiStudioGtkWorkbenchOptions options = {0};
+    CHECK(umi_studio_gtk_workbench_create_with_options(application, ui,
+        umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
+    CHECK(umi_document_coordinator_new(documents, "draft.c", document_id, sizeof document_id) == UMI_STATUS_OK);
+    UmiUiDocumentViewSnapshot view;
+    const char *text = "int draft_value = 17;\n";
+    CHECK(umi_ui_document_view_model_find(views, document_id, &view) == UMI_STATUS_OK);
+    view.cursor_offset = 4U; view.selection_length = 6U; view.dirty = 1;
+    CHECK(UmiUiDocumentViewModelUpsertText(views, &view, text, strlen(text)) == UMI_STATUS_OK);
+    CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_EDITOR, NULL) == UMI_STATUS_OK);
+    CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
+
+    CHECK(umi_studio_gtk_workbench_workspace_snapshot(workbench, before) == UMI_STATUS_OK);
+    GtkWindow *owner = umi_studio_gtk_workbench_window(workbench);
+    GtkWidget *menu = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(owner), "umicom.shell.view-menu.root");
+    CHECK(GTK_IS_MENU_BUTTON(menu));
+    GtkWidget *menu_row = FindRow(GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(menu))),
+        "umicom-command-id", "workbench.command-palette");
+    CHECK(GTK_IS_BUTTON(menu_row) && gtk_widget_get_sensitive(menu_row));
+    palette = FindPalette(owner); observer.palette = palette;
+    CHECK(palette != NULL && !gtk_widget_get_visible(GTK_WIDGET(palette)));
+    GtkWidget *entry = FindType(GTK_WIDGET(palette), GTK_TYPE_SEARCH_ENTRY);
+    CHECK(entry != NULL);
+    if (strcmp(mode, "retained-menu") == 0 || strcmp(mode, "retained-search") == 0) {
+        retained = g_object_ref(strcmp(mode, "retained-menu") == 0 ? menu_row : entry);
+        umi_studio_gtk_workbench_destroy(workbench); workbench = NULL;
+        g_signal_emit_by_name(retained, strcmp(mode, "retained-menu") == 0 ? "clicked" : "search-changed");
+        goto inspect;
+    }
+    if (strcmp(mode, "argument") == 0) {
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workbench.command-palette", "unexpected") == UMI_STATUS_INVALID_ARGUMENT);
+        CHECK(!gtk_widget_get_visible(GTK_WIDGET(palette))); goto unchanged;
+    }
+    if (strcmp(mode, "closed-palette") == 0) {
+        gtk_window_destroy(palette);
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workbench.command-palette", NULL) == UMI_STATUS_CANCELLED);
+        goto unchanged;
+    }
+    if (strncmp(mode, "observer-", 9U) == 0) {
+        observer_object = g_object_ref(G_OBJECT(palette));
+        observer_id = g_signal_connect(observer_object, "notify::visible", G_CALLBACK(Observe), &observer);
+    }
+    if (strcmp(mode, "menu") == 0) g_signal_emit_by_name(menu_row, "clicked");
+    else CHECK(umi_studio_gtk_workbench_execute_command(workbench,
+        strcmp(mode, "compatibility") == 0 ? "studio.command.search" : "workbench.command-palette", NULL) ==
+        ((strcmp(mode, "observer-close") == 0 || strcmp(mode, "observer-hide") == 0) ? UMI_STATUS_CANCELLED : UMI_STATUS_OK));
+    if (observer_id != 0U) {
+        CHECK(observer.calls != 0U);
+        if (strcmp(mode, "observer-reenter") == 0) CHECK(observer.nested == UMI_STATUS_BUSY);
+        g_signal_handler_disconnect(observer_object, observer_id); observer_id = 0U; g_clear_object(&observer_object);
+    }
+    if (workbench == NULL) goto inspect;
+    if (strcmp(mode, "observer-hide") == 0) { CHECK(!gtk_widget_get_visible(GTK_WIDGET(palette))); goto unchanged; }
+    CHECK(gtk_widget_get_visible(GTK_WIDGET(palette)) && gtk_window_get_modal(palette));
+    if (strcmp(mode, "repeat") == 0) {
+        gtk_window_close(palette);
+        CHECK(!gtk_widget_get_visible(GTK_WIDGET(palette)));
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workbench.command-palette", NULL) == UMI_STATUS_OK);
+        GtkWindow *again = FindPalette(owner); CHECK(again == palette); g_object_unref(again);
+    }
+    if (strcmp(mode, "reset-close") == 0) {
+        Search(entry, "Zen");
+        observer_object = g_object_ref(G_OBJECT(entry));
+        observer_id = g_signal_connect(entry, "notify::text", G_CALLBACK(Observe), &observer);
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workbench.command-palette", NULL) == UMI_STATUS_CANCELLED);
+        CHECK(workbench == NULL && observer.calls != 0U); goto inspect;
+    }
+    if (strncmp(mode, "refresh-", 8U) == 0) {
+        GtkWidget *scroll = FindType(GTK_WIDGET(palette), GTK_TYPE_SCROLLED_WINDOW);
+        CHECK(scroll != NULL);
+        observer_object = g_object_ref(G_OBJECT(scroll));
+        observer_id = g_signal_connect(scroll, "notify::child", G_CALLBACK(Observe), &observer);
+        Search(entry, "Zen");
+        CHECK(observer.calls != 0U);
+        if (strcmp(mode, "refresh-close") == 0) { CHECK(workbench == NULL); goto inspect; }
+        CHECK(observer.nested == UMI_STATUS_BUSY);
+        g_signal_handler_disconnect(observer_object, observer_id); observer_id = 0U; g_clear_object(&observer_object);
+    }
+    bool operation = strstr(mode, "operation") != NULL;
+    if (!operation) Search(entry, strcmp(mode, "disabled") == 0 ? "Save Layout" : "> Zen");
+    GtkWidget *choice = FindRow(GTK_WIDGET(palette), operation ? "umicom-operation-command" : "umicom-command-id",
+        operation ? NULL : strcmp(mode, "disabled") == 0 ? "layout.save" : "view.zen");
+    CHECK(GTK_IS_BUTTON(choice));
+    retained = g_object_ref(choice);
+    if (strncmp(mode, "retained-", 9U) == 0) {
+        umi_studio_gtk_workbench_destroy(workbench); workbench = NULL;
+        g_signal_emit_by_name(retained, "clicked"); goto inspect;
+    }
+    if (strncmp(mode, "stale-", 6U) == 0) {
+        Search(entry, "no-command-has-this-unique-phrase");
+        g_signal_emit_by_name(retained, "clicked");
+        CHECK(gtk_widget_get_visible(GTK_WIDGET(palette))); goto unchanged;
+    }
+    if (strcmp(mode, "disabled") == 0) {
+        CHECK(!gtk_widget_get_sensitive(choice));
+        g_signal_emit_by_name(choice, "clicked");
+        CHECK(gtk_widget_get_visible(GTK_WIDGET(palette))); goto unchanged;
+    }
+    if (strcmp(mode, "choose") == 0 || strncmp(mode, "choice-", 7U) == 0) {
+        if (strncmp(mode, "choice-", 7U) == 0) {
+            observer_object = g_object_ref(G_OBJECT(palette));
+            observer_id = g_signal_connect(palette, "notify::visible", G_CALLBACK(Observe), &observer);
+        }
+        g_signal_emit_by_name(choice, "clicked");
+        if (observer_id != 0U) {
+            CHECK(observer.calls != 0U);
+            if (strcmp(mode, "choice-reenter") == 0) CHECK(observer.nested == UMI_STATUS_BUSY);
+            g_signal_handler_disconnect(observer_object, observer_id); observer_id = 0U; g_clear_object(&observer_object);
+        }
+        if (workbench == NULL) goto inspect;
+        if (strcmp(mode, "choice-show") == 0) { CHECK(gtk_widget_get_visible(GTK_WIDGET(palette))); goto unchanged; }
+        CHECK(!gtk_widget_get_visible(GTK_WIDGET(palette)));
+        CHECK(umi_studio_gtk_workbench_workspace_snapshot(workbench, after) == UMI_STATUS_OK);
+        CHECK(strcmp(after->layout_id, ID("zen")) == 0); goto inspect;
+    }
+unchanged:
+    CHECK(umi_studio_gtk_workbench_workspace_snapshot(workbench, after) == UMI_STATUS_OK);
+    CHECK(memcmp(before, after, sizeof *before) == 0);
+inspect:
+    CHECK(UmiUiDocumentViewModelCopyText(views, document_id, &output, &output_bytes) == UMI_STATUS_OK);
+    CHECK(output_bytes == strlen(text) && memcmp(output, text, output_bytes) == 0);
+    CHECK(umi_ui_document_view_model_find(views, document_id, &view) == UMI_STATUS_OK);
+    CHECK(view.dirty && view.cursor_offset == 4U && view.selection_length == 6U);
+    CHECK(umi_document_coordinator_count(documents) == 1U);
+cleanup:
+    if (observer_id != 0U) g_signal_handler_disconnect(observer_object, observer_id);
+    g_clear_object(&observer_object);
+    UmiUiDocumentViewModelFreeText(output);
+    if (workbench != NULL) umi_studio_gtk_workbench_destroy(workbench);
+    g_clear_object(&retained); g_clear_object(&palette);
+    if (bootstrap != NULL) umi_studio_bootstrap_destroy(bootstrap);
+    if (settings != NULL) umi_settings_destroy(settings);
+    g_clear_object(&application);
+    if (moved) (void)g_chdir(original);
+    if (old_data != NULL) (void)g_setenv("UMICOM_STUDIO_DATA_PATH", old_data, TRUE);
+    else g_unsetenv("UMICOM_STUDIO_DATA_PATH");
+    g_free(old_data); g_free(base); g_free(original); g_free(before); g_free(after);
+    return failed;
+}

@@ -26,6 +26,71 @@ The save runs on a worker and reports its full destination path. A nonempty path
 Framework's application-path service. It does not save this preference in the opened project's repository.</li>
 <li>In a later window, choose <strong>Load saved adapter choice</strong>. Loading fills the draft fields;
 it does not change the active adapter. Review them and choose <strong>Use adapter</strong> separately.</li></ol>
+<section id="debugger-menu-boundary">
+<h2>Open debugger controls without starting an operation</h2>
+<p>A navigation command changes which controls you can see. An execution command
+asks a service to act on a process. Keeping these separate makes a debugger usable
+before a project is trusted and prevents a menu caption from becoming implicit
+permission to pause an unrelated application.</p>
+<ol>
+<li>Choose <strong>Run &gt; Attach to Process</strong>. Studio reveals Run and Debug
+and expands the existing <strong>Attach to a running application</strong> form.
+It preserves any process ID and symbols-path draft already entered.</li>
+<li>Review the selected adapter, project and process identity. Choose an exercise
+process you started and are authorised to debug. If the workspace is missing,
+untrusted or busy, resolve that condition before submitting attachment.</li>
+<li>Choose <strong>Attach to process</strong> in the form explicitly. Only this
+action requests attachment. Operating-system access rules still apply, and a
+process ID can be reused after a process exits.</li>
+<li>Choose <strong>Run &gt; Breakpoints</strong> to select the existing Breakpoints
+page in the debugger details notebook. Opening that page does not add, remove,
+enable or verify a breakpoint.</li>
+<li>Inspect requested and adapter-verified breakpoint states separately. A
+visible row is not evidence that the program will stop at that source location.</li>
+</ol>
+<h3>Trace the real code path</h3>
+<p>The Framework menu profile supplies <code>debug.attach</code> and
+<code>debug.breakpoints</code>. Studio's native router sends them to
+<code>RuntimeRevealDebuggerControl</code>. This small presentation adapter opens
+the existing surface, expands the form or selects the current notebook page.
+It does not call <code>UmiStudioDebuggerAttachNative</code>. The established
+form callback retains that operation and its workspace authority checks.</p>
+<p>The menu commands accept no argument. For example, sending <code>4321</code>
+as a command argument is rejected; it is not treated as permission to attach to
+that PID. Entering a value in the form is also only a draft until the explicit
+attachment button is chosen.</p>
+<h3>Understand the lifetime guard</h3>
+<p>Changing a native widget can call observers synchronously. An observer might
+close Studio while an expander is opening or a notebook page is changing.
+The reveal adapter retains the relevant widget objects, then resolves its weak
+window binding again before accessing Studio state. A temporary window guard
+refuses a second reveal command during that transition. Retaining a GTK object
+does not by itself prove that its application owner is still alive.</p>
+<h3>Practise and verify</h3>
+<ol>
+<li>Enter a harmless process-ID draft and an unsubmitted symbols-path draft.
+Open both menu actions repeatedly. Expect those drafts to remain unchanged,
+with no build or native debugger session starting.</li>
+<li>In an isolated regression fixture, retain a menu button, destroy its
+workbench, then emit the button signal. Expect no access to the retired owner
+and no native operation.</li>
+<li>Add an observer that closes the workbench when the attachment form expands
+or the breakpoint page becomes current. The direct command should report
+cancellation. An observer that tries to reenter the reveal command should be
+refused while the original reveal completes.</li>
+</ol>
+<pre><code>cmake --build &lt;applications-build&gt; --target umicom-studio-debug-menu-test
+ctest --test-dir &lt;applications-build&gt; --output-on-failure -R '^studio[.]debug[.]menu[.]'</code></pre>
+<p>Replace the placeholder with a configured Applications build that enables
+Studio and GTK tests. Stop on an error. The fourteen registered cases exercise
+menu and direct dispatch, repeat invocation, argument refusal, retained controls,
+closure and reentry. They do not start a debugger and do not qualify a real
+attachment. Record GTK-unavailable skips separately from passes.</p>
+<p><strong>Checkpoint:</strong> Why is it reasonable to show attachment settings
+without workspace trust? The user is inspecting and editing local drafts.
+Trust and process permission are checked again at the explicit operation
+boundary. Displaying settings must never silently perform that operation.</p>
+</section>
 <h2>Recover from a problem</h2>
 <p>If loading fails, check the reported location and keep or correct your current draft. A malformed file,
 unsupported adapter name or relative executable path is rejected. Saving a valid choice explicitly replaces

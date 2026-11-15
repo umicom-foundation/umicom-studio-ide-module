@@ -45,6 +45,14 @@ UmiStatus umi_studio_codeguard_scan(
     UmiStudioCodeGuard *guard,
     const UmiCodeGuardProfile *profile);
 
+/* Synchronous cooperative scan using Framework's shared token. The facade
+ * still requires an explicit profile. Cancellation preserves the prior
+ * complete result and its finding borrows. Serialize facade access and keep
+ * the token alive until return; only request may run concurrently. This
+ * adapter does not create a worker, a scan menu action or a GUI control. */
+UmiStatus umi_studio_codeguard_scan_cancellable(UmiStudioCodeGuard *guard,
+    const UmiCodeGuardProfile *profile, const UmiCancellationToken *cancellation);
+
 /* Borrow the latest detailed scan result; Studio and callers must not free it. */
 const UmiCodeGuardResult *umi_studio_codeguard_result(const UmiStudioCodeGuard *guard);
 
@@ -58,6 +66,18 @@ UmiStatus umi_studio_codeguard_review_documentation(
     const char *path,
     const UmiCodeGuardDocumentationPolicy *policy,
     UmiCodeGuardDocumentationReport *out_report);
+
+/* Prepare a copied job without starting it. Unlike the Framework default-profile
+ * API, Studio requires an explicit profile. A valid output is cleared on failure.
+ * Job lifetime is independent of the facade; scheduling uses Framework queues. */
+UmiStatus umi_studio_codeguard_create_job(UmiStudioCodeGuard *guard,
+    const UmiCodeGuardProfile *profile, UmiCodeGuardJob **out_job);
+
+/* Adopt a complete same-workspace job on its creating thread. Serialize facade
+ * access; failure preserves retained findings. Success invalidates old finding
+ * borrows but keeps result object identity. The caller still destroys the job.
+ * This facade does not connect a GUI action or choose newest-job ordering. */
+UmiStatus umi_studio_codeguard_adopt_job(UmiStudioCodeGuard *guard, UmiCodeGuardJob *job);
 
 #ifdef __cplusplus
 }

@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
- * Umicom Framework
- * File: applications/studio/src/gui/workbench/runtime/surfaces/learning_location.inc
- * PURPOSE: Present explicit lesson-library and practice-project folder choices.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ * Umicom Studio IDE
+ * File: src/gui/workbench/runtime/surfaces/learning_location.inc
+ *
+ * PURPOSE:
+ *   Present explicit lesson-library and practice-project folder choices with weak native owner bindings.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 
 #include "umicom/teacher/learning_library.h"
@@ -35,6 +42,8 @@ static UmiStatus RuntimeLearningOpen(UmiStudioGtkRuntimeChrome *runtime, const c
     return status;
 }
 #endif
+/* Opening a surface and publishing its preview can close the workbench; re-resolve the weak owner before subsequent work or error notification. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus RuntimeLearningOpen(UmiStudioGtkRuntimeChrome *runtime, const char *resource)
 {
     char file[UMI_PATH_CAPACITY];
@@ -53,9 +62,39 @@ static UmiStatus RuntimeLearningOpen(UmiStudioGtkRuntimeChrome *runtime, const c
                                            "Choose the Framework lesson folder again.");
     return status;
 }
+#endif
+static UmiStatus RuntimeLearningOpen(UmiStudioGtkRuntimeChrome *runtime, const char *resource)
+{
+    if (runtime == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    char file[UMI_PATH_CAPACITY];
+    UmiStatus status = UmiLearningLibraryResource(runtime->learning_directory, resource, file, sizeof(file));
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto done; }
+    if (status == UMI_STATUS_OK) {
+        status = runtime_workspace_open_surface(runtime, UMI_STUDIO_SURFACE_DOCUMENTATION, NULL);
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto done; }
+        if (status == UMI_STATUS_OK)
+            status = runtime_documentation_display_location(runtime, file, 1);
+    }
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto done; }
+    if (status != UMI_STATUS_OK && status != UMI_STATUS_CANCELLED && status != UMI_STATUS_BUSY)
+        runtime_show_notification(runtime, "This lesson could not be opened from the selected library. "
+                                           "Check the location and file permissions, then try again.");
+done:
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
 
 /* Settings remember only the chosen directory, never lesson edits or passwords.
  * An unavailable persistence store does not discard the user's current choice. */
+/* Folder selection publishes labels and notifications; reacquire the native owner after those callbacks before saving or opening a lesson. The previous implementation is retained for engineering review. */
+#if 0
 static void RuntimeLearningLocationComplete(GObject *source, GAsyncResult *result, gpointer data)
 {
     UmiStudioLearningLocationRequest *request = data;
@@ -106,6 +145,72 @@ static void RuntimeLearningLocationComplete(GObject *source, GAsyncResult *resul
     {
         runtime_show_notification(runtime, error->message);
     }
+    g_free(path);
+    g_clear_object(&folder);
+    g_clear_error(&error);
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request->owner);
+    g_free(request->resource);
+    g_free(request);
+}
+#endif
+static void RuntimeLearningLocationComplete(GObject *source, GAsyncResult *result, gpointer data)
+{
+    UmiStudioLearningLocationRequest *request = data;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(request->owner, &window);
+    GError *error = NULL;
+    GFile *folder = gtk_file_dialog_select_folder_finish(GTK_FILE_DIALOG(source), result, &error);
+    char *path = folder != NULL ? g_file_get_path(folder) : NULL;
+    char directory[UMI_PATH_CAPACITY];
+    if (runtime != NULL)
+        runtime->learning_location_pending = 0;
+    if (runtime != NULL && folder != NULL)
+    {
+        UmiStatus status = UmiLearningLibrarySelect(path, directory, sizeof(directory));
+        if (status == UMI_STATUS_OK)
+        {
+            memcpy(runtime->learning_directory, directory, strlen(directory) + 1U);
+            /* A panel may have closed while the chooser was open. Resolve its
+             * current logical control instead of dereferencing a cached widget. */
+            GtkWidget *label = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window),
+                                                                      "studio.learning.library");
+            if (GTK_IS_LABEL(label))
+                gtk_label_set_text(GTK_LABEL(label), directory);
+            runtime = RuntimeResolveOwner(request->owner, &window);
+            if (runtime == NULL) goto finished;
+            UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+            if (runtime->owner->options.persist_session)
+            {
+                status = umi_session_store_set(umi_studio_services_session(services),
+                                               "learning.library", directory);
+                if (status == UMI_STATUS_OK)
+                    status = umi_studio_session_save(services);
+            }
+            runtime = RuntimeResolveOwner(request->owner, &window);
+            if (runtime == NULL) goto finished;
+            runtime_show_notification(
+                runtime,
+                status == UMI_STATUS_OK
+                    ? "Lesson library selected. Your project folder has not changed."
+                    : "Lesson library selected for this session; its location could not be saved.");
+            runtime = RuntimeResolveOwner(request->owner, &window);
+            if (runtime == NULL) goto finished;
+            if (request->resource != NULL)
+                (void)RuntimeLearningOpen(runtime, request->resource);
+        }
+        else
+        {
+            runtime_show_notification(runtime,
+                                      "Choose Umicom-Applications, Framework, docs, or learning "
+                                      "containing welcome.html. The previous library was kept.");
+        }
+    }
+    else if (runtime != NULL && error != NULL && !runtime_file_dialog_cancelled(error))
+    {
+        runtime_show_notification(runtime, error->message);
+    }
+finished:
     g_free(path);
     g_clear_object(&folder);
     g_clear_error(&error);
@@ -197,6 +302,8 @@ static void RuntimeLearningProjectClicked(GtkButton *button, gpointer data)
     if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
 }
 #endif
+/* Project and folder actions may close their owner; error messages require a fresh owner lookup. The previous implementation is retained for engineering review. */
+#if 0
 static void RuntimeLearningProjectClicked(GtkButton *button, gpointer data)
 {
     (void)button;
@@ -206,6 +313,21 @@ static void RuntimeLearningProjectClicked(GtkButton *button, gpointer data)
     {
         UmiStatus status = RuntimeNewProject(runtime);
         if (status != UMI_STATUS_OK)
+            runtime_show_notification(runtime, umi_status_text(status));
+    }
+    g_clear_object(&window);
+}
+#endif
+static void RuntimeLearningProjectClicked(GtkButton *button, gpointer data)
+{
+    (void)button;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(data, &window);
+    if (runtime != NULL)
+    {
+        UmiStatus status = RuntimeNewProject(runtime);
+        runtime = RuntimeResolveOwner(data, &window);
+        if (runtime != NULL && status != UMI_STATUS_OK && status != UMI_STATUS_CANCELLED)
             runtime_show_notification(runtime, umi_status_text(status));
     }
     g_clear_object(&window);
@@ -221,6 +343,8 @@ static void RuntimeLearningWorkspaceClicked(GtkButton *button, gpointer data)
     if (status != UMI_STATUS_OK) runtime_show_notification(runtime, umi_status_text(status));
 }
 #endif
+/* Project and folder actions may close their owner; error messages require a fresh owner lookup. The previous implementation is retained for engineering review. */
+#if 0
 static void RuntimeLearningWorkspaceClicked(GtkButton *button, gpointer data)
 {
     (void)button;
@@ -230,6 +354,21 @@ static void RuntimeLearningWorkspaceClicked(GtkButton *button, gpointer data)
     {
         UmiStatus status = runtime_choose_workspace_folder(runtime);
         if (status != UMI_STATUS_OK)
+            runtime_show_notification(runtime, umi_status_text(status));
+    }
+    g_clear_object(&window);
+}
+#endif
+static void RuntimeLearningWorkspaceClicked(GtkButton *button, gpointer data)
+{
+    (void)button;
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(data, &window);
+    if (runtime != NULL)
+    {
+        UmiStatus status = runtime_choose_workspace_folder(runtime);
+        runtime = RuntimeResolveOwner(data, &window);
+        if (runtime != NULL && status != UMI_STATUS_OK && status != UMI_STATUS_CANCELLED)
             runtime_show_notification(runtime, umi_status_text(status));
     }
     g_clear_object(&window);

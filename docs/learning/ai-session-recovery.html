@@ -1,0 +1,82 @@
+<!-- Umicom Studio IDE
+File: docs/learning/ai-session-recovery.html
+
+PURPOSE:
+Teach bounded AI configuration admission and Framework-backed conversation recovery in Studio.
+
+AUTHOR AND ORGANISATION:
+Sammy Hegab
+Umicom Foundation
+
+LICENCE:
+MIT
+-->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admit settings and recover AI sessions | Umicom Studio</title>
+<link rel="stylesheet" href="../assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="../assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="../assets/umicom.ico">
+<style>main{max-width:1000px;margin:auto;padding:28px;line-height:1.65}pre{background:#edf3f9;padding:18px;overflow:auto}aside{border-left:4px solid #2678a3;padding:16px;background:#edf3f9}td,th{text-align:left;padding:8px;border-bottom:1px solid #ccd6df}</style>
+</head><body><main>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="../assets/umicom-logo.svg" alt="Umicom"></div>
+<h1>Admit settings and recover AI sessions</h1>
+<p>A native application receives settings as C values, but that does not make every value usable. A fixed character array may have no terminator. A floating-point value may be NaN, meaning “not a number.” A saved conversation may describe a valid record that would overwrite a newer live edit. This lesson follows Studio's product boundary and the Framework services behind it.</p>
+<p>Prerequisites: C structures, pointers, return statuses and the Framework lesson <a href="../../../../framework/docs/learning/conversation-file-loading.html">Load conversations without losing state</a>. The APIs below are native service interfaces for contributors. This work does not add a session file chooser or claim a verified GUI recovery workflow.</p>
+<h2>1. Validate a complete configuration before composition</h2>
+<p><code>UmiStudioAiPlatformConfigValidate</code> is a read-only check. It allocates no platform, opens no file and activates no provider. Studio supplies a field schema to Framework's <code>UmiSnapshotValidateTextFields</code>, which searches only inside each fixed array. The shared validator checks schema bounds before reading fields.</p>
+<pre><code class="language-c">#include "umicom/studio/ai_platform.h"
+
+UmiStatus create_local_ai_platform(UmiStudioAiPlatform **out_platform)
+{
+    UmiStudioAiPlatformConfig config =
+        umi_studio_ai_platform_config_default();
+    config.allow_remote = 0;
+    config.persist_sessions = 0;
+    UmiStatus status = UmiStudioAiPlatformConfigValidate(&amp;config);
+    if (status != UMI_STATUS_OK) return status;
+    return umi_studio_ai_platform_create_configured(&amp;config, out_platform);
+}</code></pre>
+<p>The constructor performs the same validation itself. The explicit check is useful for a settings form that wants to reject a draft before constructing anything. Passing admission does not guarantee that later allocation, service initialization or provider registration will succeed. Always inspect the constructor's result.</p>
+<ol><li>Start with the supplied defaults rather than an incompletely initialized structure.</li><li>Copy values using their destination capacities, ensuring each array contains a terminating zero byte.</li><li>Validate the draft before any string search, logging or composition.</li><li>Construct the platform only after admission. Keep it alive for every callback or worker completion that might use it.</li><li>Destroy the platform when the application has retired those users.</li></ol>
+<p>The executable, workspace, preferred runtime ID and knowledge archive path are required. Remote fields may be empty while unconfigured, but still must be terminated. If remote access is allowed and an endpoint is supplied, the existing provider ID, model ID and secret-reference requirements apply. A nonzero flag retains its historical true meaning. Validation checks the existing reference syntax; it does not retrieve a credential, approve a remote request, verify an endpoint or inspect whether a path exists.</p>
+<h2>2. Refuse nonfinite values explicitly</h2>
+<p>The fitness threshold must be finite and between zero and one, including both endpoints. The expression <code>value &lt; 0.0 || value &gt; 1.0</code> does not reject NaN: both comparisons are false. Studio now checks <code>isfinite</code> before applying the range. Positive and negative infinity are also refused.</p>
+<p>Other checks retain the existing relationships: output tokens must be fewer than context tokens, knowledge overlap must be smaller than the chunk size, and fixed-capacity patch/query counts must remain within their public limits. Do not replace an invalid value with an arbitrary default silently; identify the setting and let the caller correct it.</p>
+<h2>3. Keep file parsing in Framework</h2>
+<p>Studio's <code>UmiStudioAiPlatformImportSession</code> forwards a complete candidate to <code>UmiAiAuthorEngineImportSession</code>. The corresponding <code>UmiStudioAiPlatformLoadSessionBounded</code> composes Framework's bounded regular-file reader and import. Studio adds no file-format parser, revision arithmetic or duplicate persistence policy.</p>
+<table><thead><tr><th>Expected stored revision</th><th>Requested operation</th></tr></thead><tbody>
+<tr><td>Zero</td><td>Insert only when this session identifier is absent.</td></tr>
+<tr><td>A captured nonzero revision</td><td>Replace only that same existing record at that revision.</td></tr>
+</tbody></table>
+<p>A valid saved file can still conflict with the destination. <code>UMI_STATUS_BUSY</code> means the expected record identity no longer matches. Preserve the current view and ask the user to review the live record before choosing another replacement. Automatically reading a fresh revision and retrying would defeat this check.</p>
+<pre><code class="language-c">UmiStatus recover_parsed_session(
+    UmiStudioAiPlatform *platform,
+    const UmiAiConversationRecord *candidate,
+    uint64_t selected_revision,
+    UmiAiConversationImportReport *report)
+{
+    return UmiStudioAiPlatformImportSession(
+        platform, candidate, selected_revision, report);
+}</code></pre>
+<p>On success the report separates the file's historical revision, the new archive-assigned record revision and the service revision after active-session selection. The archive owns a copy of the candidate. On refusal, the live archive, active session and report are unchanged. Import can restore metadata for an unavailable model; it does not download, load or invoke that model.</p>
+<h2>4. Match a completion to its initiating request</h2>
+<p>The synchronous file interface can block and requires serialized platform ownership for the entire call. A responsive UI should instead load and parse into worker-owned memory, return to its owner thread, verify the initiating request and workspace identity, and then call the in-memory import function. A stored-record revision alone does not prove that the user is still in the same workspace.</p>
+<p>Cancel or retire the request when its window closes. Do not pass a borrowed platform pointer to an unjoined worker. Keep UI lifetime checks at the application boundary and reusable file/admission rules in Framework. These functions do not create threads or synchronize concurrent platform access.</p>
+<p>Saved approval flags and classifications remain record metadata. They neither enable remote access nor turn persistence on when the current platform forbids it. They are not proof of fresh consent or authenticity. Recheck policy and the current user's decision before later provider execution or saving.</p>
+<h2>5. Qualify the native integration</h2>
+<p>From the Applications repository, use the configured UCRT64 toolchain and stop after a failed command:</p>
+<pre><code class="language-powershell">cmake --preset windows-ucrt64-all-debug
+cmake --build --preset windows-ucrt64-all-debug --target umicom-studio-ai-configuration-admission-test umicom-studio-ai-session-recovery-test
+ctest --test-dir build/windows-ucrt64-all-debug -R '^studio[.]ai[.](configuration|session-recovery)[.]' --output-on-failure --no-tests=error</code></pre>
+<p>The <a href="../../tests/test_ai_configuration_admission.c">configuration tests</a> cover all fixed fields, required and optional text, exact terminators, remote configuration combinations, numeric bounds and nonfinite fitness. The <a href="../../tests/test_ai_session_recovery.c">recovery tests</a> use the real Framework service and build-local files. They check insertion, replacement, conflicts, malformed files, byte budgets and policy preservation. Registration is not execution evidence.</p>
+<p>If the target is missing, reconfigure using matching Studio and Framework sources. An import conflict requires reviewing the live record. A parse error requires inspecting a private copy of the saved file rather than clearing the current session. A capacity error can refer to the file budget, fixed archive size or exhausted revisions; use the operation and its input to distinguish them. Keep conversation text and secret references out of public diagnostic reports.</p>
+<h2>Retain and recheck a context preview</h2>
+<p>Studio also exposes <code>UmiStudioAiPlatformPlanContextObserved</code> and <code>UmiStudioAiPlatformCheckContextObservation</code>. These thin calls use Framework's service, context and runtime identities. Keep the same live platform and initiating UI request. A <code>BUSY</code> check means a preview is stale and should be rebuilt and reviewed; an <code>OK</code> check is only an identity match, not permission to send a prompt.</p>
+<p>Read <a href="../../../../framework/docs/learning/context-preview-observations.html">Detect stale AI context previews</a> for the ownership model. This API work adds no new layout or model execution. The existing settings and recovery code remains in place.</p>
+<pre><code class="language-powershell"># From the Umicom-Applications checkout after configuration:
+cmake --build build/windows-ucrt64-all-debug --target umicom-studio-ai-context-preview-test
+ctest --test-dir build/windows-ucrt64-all-debug -R '^studio[.]ai[.]context-preview[.]' --output-on-failure --no-tests=error</code></pre>
+<p>The native integration cases use a real Studio platform and shared Framework state. They verify stale policy, source and runtime updates, unchanged failed outputs and retained local-only settings. Configuration does not execute these cases.</p>
+<p>For native shutdown and callback ownership, continue with <a href="ai-parent-lifetime.html">Keep AI parents alive through callbacks</a>.</p>
+</main></body></html>

@@ -20,12 +20,16 @@
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/helix_agent_centre.h"
 
+#include "umicom/base/snapshot_validation.h"
+
 #include <inttypes.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 struct UmiStudioAiPlatform {
+    int destruction_active;
     UmiAiRuntime ai;
     UmiHelixRuntime helix;
     UmiAiAuthorEngineService *authorengine;
@@ -363,6 +367,56 @@ static UmiStatus register_coding_file(UmiStudioAiPlatform *platform,
         umi_ai_coding_assistant_context(platform->coding_assistant), &file);
 }
 
+/* Fixed arrays cross the application boundary as values, not trusted C
+ * strings. Framework owns the bounded scan; Studio supplies the field schema
+ * and product constraints before composition can inspect or copy any text. */
+UmiStatus UmiStudioAiPlatformConfigValidate(const UmiStudioAiPlatformConfig *config)
+{
+    static const UmiSnapshotTextField fields[] = {
+        {"authorengine_executable", offsetof(UmiStudioAiPlatformConfig, authorengine_executable),
+            sizeof(((UmiStudioAiPlatformConfig *)0)->authorengine_executable), 1},
+        {"workspace", offsetof(UmiStudioAiPlatformConfig, workspace),
+            sizeof(((UmiStudioAiPlatformConfig *)0)->workspace), 1},
+        {"preferred_runtime_id", offsetof(UmiStudioAiPlatformConfig, preferred_runtime_id),
+            sizeof(((UmiStudioAiPlatformConfig *)0)->preferred_runtime_id), 1},
+        {"remote_provider_id", offsetof(UmiStudioAiPlatformConfig, remote_provider_id),
+            sizeof(((UmiStudioAiPlatformConfig *)0)->remote_provider_id), 0},
+        {"remote_endpoint", offsetof(UmiStudioAiPlatformConfig, remote_endpoint),
+            sizeof(((UmiStudioAiPlatformConfig *)0)->remote_endpoint), 0},
+        {"remote_model_id", offsetof(UmiStudioAiPlatformConfig, remote_model_id),
+            sizeof(((UmiStudioAiPlatformConfig *)0)->remote_model_id), 0},
+        {"remote_secret_reference", offsetof(UmiStudioAiPlatformConfig, remote_secret_reference),
+            sizeof(((UmiStudioAiPlatformConfig *)0)->remote_secret_reference), 0},
+        {"knowledge_archive_path", offsetof(UmiStudioAiPlatformConfig, knowledge_archive_path),
+            sizeof(((UmiStudioAiPlatformConfig *)0)->knowledge_archive_path), 1}
+    };
+    int remote_requested;
+    if (UmiSnapshotValidateTextFields(config, sizeof(*config), fields,
+        sizeof fields / sizeof fields[0], NULL) != UMI_STATUS_OK)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    remote_requested = config->allow_remote && config->remote_endpoint[0] != '\0';
+    if (config->context_tokens == 0U ||
+        config->reserved_output_tokens >= config->context_tokens ||
+        config->coding_context_tokens == 0U || config->maximum_patch_lines == 0U ||
+        config->maximum_patch_files == 0U ||
+        config->maximum_patch_files > UMI_AI_CODING_PATCH_FILE_MAX ||
+        config->knowledge_source_capacity == 0U || config->knowledge_vector_capacity == 0U ||
+        config->knowledge_chunk_bytes == 0U ||
+        config->knowledge_chunk_bytes >= UMI_KNOWLEDGE_TEXT_CAPACITY ||
+        config->knowledge_overlap_bytes >= config->knowledge_chunk_bytes ||
+        config->knowledge_result_limit == 0U ||
+        config->knowledge_result_limit > UMI_KNOWLEDGE_QUERY_RESULT_MAX ||
+        config->helix_maximum_attempts == 0U ||
+        !isfinite(config->helix_minimum_fitness) ||
+        config->helix_minimum_fitness < 0.0 || config->helix_minimum_fitness > 1.0 ||
+        (remote_requested &&
+         (config->remote_provider_id[0] == '\0' || config->remote_model_id[0] == '\0' ||
+          config->remote_secret_reference[0] == '\0' ||
+          strstr(config->remote_secret_reference, "://") == NULL)))
+        return UMI_STATUS_INVALID_ARGUMENT;
+    return UMI_STATUS_OK;
+}
+
 /*
  * Provide the studio ai platform create configured operation used by this module and its
  * client applications.
@@ -377,6 +431,8 @@ UmiStatus umi_studio_ai_platform_create_configured(
     UmiAiPrivacyPolicy privacy_policy;
     UmiAiProvider provider;
     UmiStatus status;
+/* Framework bounded text admission and finite numeric checks now precede all string searches and composition. The earlier first-byte-only checks remain for review. The former implementation is retained for owner review. */
+#if 0
     int remote_requested;
 
     remote_requested = config != NULL && config->allow_remote &&
@@ -413,6 +469,12 @@ UmiStatus umi_studio_ai_platform_create_configured(
           strstr(config->remote_secret_reference, "://") == NULL))) {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+
+#endif
+    /* Admission does not change the caller's output or create services. */
+    if (out_platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = UmiStudioAiPlatformConfigValidate(config);
+    if (status != UMI_STATUS_OK) return status;
     *out_platform = NULL;
     platform = (UmiStudioAiPlatform *)calloc(1U, sizeof(*platform));
     /*
@@ -655,6 +717,8 @@ UmiStatus umi_studio_ai_platform_create(UmiStudioAiPlatform **out_platform)
  * Release or reset state held by studio ai platform so the same storage can be reused
  * safely.
  */
+/* Propagate Framework busy ownership before freeing parent dependencies, and guard parent reentry during registered provider cleanup. Checked callers retain the live handle on refusal. The former implementation is retained for owner review. */
+#if 0
 void umi_studio_ai_platform_destroy(UmiStudioAiPlatform *platform)
 {
     /*
@@ -669,6 +733,94 @@ void umi_studio_ai_platform_destroy(UmiStudioAiPlatform *platform)
     /* Release registered adapter instances after their consumers are gone. */
     umi_ai_runtime_destroy(&platform->ai);
     free(platform);
+}
+
+#endif
+/* Studio consults Framework generation activity before releasing any dependent service; shared callback lifetime remains owned by Framework. The former implementation is retained for owner review. */
+#if 0
+UmiStatus UmiStudioAiPlatformCheckIdle(const UmiStudioAiPlatform *platform)
+{
+    if (platform == NULL) return UMI_STATUS_OK;
+    if (platform->destruction_active) return UMI_STATUS_BUSY;
+    UmiStatus status = UmiAiCodingAssistantCheckIdle(platform->coding_assistant);
+    if (status != UMI_STATUS_OK) return status;
+    return UmiAiProviderRegistryValidate(&platform->ai.providers);
+}
+
+#endif
+/* AuthorEngine health callbacks retain their service and Studio parent before any sibling is released. The former implementation is retained for owner review. */
+#if 0
+UmiStatus UmiStudioAiPlatformCheckIdle(const UmiStudioAiPlatform *platform)
+{
+    if (platform == NULL) return UMI_STATUS_OK;
+    if (platform->destruction_active) return UMI_STATUS_BUSY;
+    UmiStatus status = UmiAiCodingAssistantCheckIdle(platform->coding_assistant);
+    if (status != UMI_STATUS_OK) return status;
+    return UmiAiRuntimeCheckIdle(&platform->ai);
+}
+
+#endif
+UmiStatus UmiStudioAiPlatformCheckIdle(const UmiStudioAiPlatform *platform)
+{
+    if (platform == NULL) return UMI_STATUS_OK;
+    if (platform->destruction_active) return UMI_STATUS_BUSY;
+    UmiStatus status = UmiAiCodingAssistantCheckIdle(platform->coding_assistant);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiAiAuthorEngineServiceCheckIdle(platform->authorengine);
+    if (status != UMI_STATUS_OK) return status;
+    return UmiAiRuntimeCheckIdle(&platform->ai);
+}
+
+/* Propagate checked AuthorEngine cleanup instead of clearing a retained child pointer; preserve existing partial-teardown recovery behavior. The former implementation is retained for owner review. */
+#if 0
+UmiStatus UmiStudioAiPlatformDestroyChecked(UmiStudioAiPlatform *platform)
+{
+    UmiStatus status = UmiStudioAiPlatformCheckIdle(platform);
+    if (status != UMI_STATUS_OK || platform == NULL) return status;
+    platform->destruction_active = 1;
+    /* Release the checked child before any dependent teardown. Helix-centre
+     * destruction only frees its value; knowledge owns independent storage. */
+    status = UmiAiCodingAssistantDestroyChecked(platform->coding_assistant);
+    if (status != UMI_STATUS_OK) { platform->destruction_active = 0; return status; }
+    platform->coding_assistant = NULL;
+    umi_studio_helix_agent_centre_destroy(platform->helix_agent_centre);
+    platform->helix_agent_centre = NULL;
+    umi_knowledge_service_destroy(platform->knowledge); platform->knowledge = NULL;
+    umi_ai_authorengine_service_destroy(platform->authorengine); platform->authorengine = NULL;
+    /* Keep the parent guard active while provider destruction callbacks run.
+     * Preserve any refused runtime cleanup for diagnosis and checked retry. */
+    status = UmiAiRuntimeRelease(&platform->ai);
+    if (status != UMI_STATUS_OK) { platform->destruction_active = 0; return status; }
+    free(platform); return UMI_STATUS_OK;
+}
+
+#endif
+UmiStatus UmiStudioAiPlatformDestroyChecked(UmiStudioAiPlatform *platform)
+{
+    UmiStatus status = UmiStudioAiPlatformCheckIdle(platform);
+    if (status != UMI_STATUS_OK || platform == NULL) return status;
+    platform->destruction_active = 1;
+    /* Release the checked child before any dependent teardown. Helix-centre
+     * destruction only frees its value; knowledge owns independent storage. */
+    status = UmiAiCodingAssistantDestroyChecked(platform->coding_assistant);
+    if (status != UMI_STATUS_OK) { platform->destruction_active = 0; return status; }
+    platform->coding_assistant = NULL;
+    umi_studio_helix_agent_centre_destroy(platform->helix_agent_centre);
+    platform->helix_agent_centre = NULL;
+    umi_knowledge_service_destroy(platform->knowledge); platform->knowledge = NULL;
+    status = UmiAiAuthorEngineServiceDestroyChecked(platform->authorengine);
+    if (status != UMI_STATUS_OK) { platform->destruction_active = 0; return status; }
+    platform->authorengine = NULL;
+    /* Keep the parent guard active while provider destruction callbacks run.
+     * Preserve any refused runtime cleanup for diagnosis and checked retry. */
+    status = UmiAiRuntimeRelease(&platform->ai);
+    if (status != UMI_STATUS_OK) { platform->destruction_active = 0; return status; }
+    free(platform); return UMI_STATUS_OK;
+}
+
+void umi_studio_ai_platform_destroy(UmiStudioAiPlatform *platform)
+{
+    (void)UmiStudioAiPlatformDestroyChecked(platform);
 }
 
 /*
@@ -863,6 +1015,27 @@ UmiStatus umi_studio_ai_platform_save_session(
         platform->authorengine, session_id, path);
 }
 
+/* Studio forwards recovery to the shared owner. No application parser,
+ * persistence rules or revision arithmetic are duplicated here. The caller
+ * still owns UI request/workspace checks and serialized platform lifetime. */
+UmiStatus UmiStudioAiPlatformImportSession(UmiStudioAiPlatform *platform,
+    const UmiAiConversationRecord *record, uint64_t expected_record_revision,
+    UmiAiConversationImportReport *out_report)
+{
+    if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiAiAuthorEngineImportSession(platform->authorengine, record,
+        expected_record_revision, out_report);
+}
+
+UmiStatus UmiStudioAiPlatformLoadSessionBounded(UmiStudioAiPlatform *platform,
+    const char *absolute_path, size_t maximum_bytes, uint64_t expected_record_revision,
+    UmiAiConversationImportReport *out_report)
+{
+    if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiAiAuthorEngineLoadSessionBounded(platform->authorengine, absolute_path,
+        maximum_bytes, expected_record_revision, out_report);
+}
+
 /*
  * Provide the studio ai platform snapshot operation used by this module and its client
  * applications.
@@ -935,4 +1108,22 @@ const UmiAiModelEnsembleReport *umi_studio_ai_platform_model_comparison(
     const UmiStudioAiPlatform *platform)
 {
     return platform != NULL ? &platform->model_comparison : NULL;
+}
+
+/* Keep policy, source selection and stale checks in the shared service. Studio
+ * owns platform lifetime and the initiating UI request, not duplicate counters. */
+UmiStatus UmiStudioAiPlatformPlanContextObserved(UmiStudioAiPlatform *platform,
+    const char *runtime_id, int sensitive_approved, UmiAiContextPlan *out_plan,
+    UmiAiContextPlanObservation *out_observation)
+{
+    if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiAiAuthorEnginePlanContextObserved(platform->authorengine, runtime_id,
+        sensitive_approved, out_plan, out_observation);
+}
+
+UmiStatus UmiStudioAiPlatformCheckContextObservation(const UmiStudioAiPlatform *platform,
+    const UmiAiContextPlanObservation *observation)
+{
+    if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiAiAuthorEngineCheckContextObservation(platform->authorengine, observation);
 }

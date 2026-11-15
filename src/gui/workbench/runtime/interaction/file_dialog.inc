@@ -166,6 +166,11 @@ static UmiStatus RuntimePresentActiveSource(UmiStudioGtkRuntimeChrome *runtime)
     UmiStatus status = umi_document_coordinator_active_snapshot(
         umi_studio_ui_documents(runtime->owner->ui), &expected);
     if (status != UMI_STATUS_OK) goto present_done;
+    /* Explicit source activation returns from Welcome without changing the document. */
+    int show_welcome = 0;
+    status = UmiStartCentreNavigationUpdate(&runtime->welcome_navigation, expected.view_id,
+        UMI_START_CENTRE_SHOW_EDITOR, &show_welcome);
+    if (status != UMI_STATUS_OK) goto present_done;
     status = UmiGtk4AdapterRefreshActiveDocument(runtime->owner->adapter);
     RuntimeTraceAction("editor.prepare", "file.open", status);
     runtime = RuntimeResolveOwner(request, &window);

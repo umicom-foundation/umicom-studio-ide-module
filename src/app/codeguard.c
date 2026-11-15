@@ -66,6 +66,8 @@ void umi_studio_codeguard_destroy(UmiStudioCodeGuard *guard)
 }
 
 /* Delegate scanning directly to Framework without copying quality rules into Studio. */
+/* Keep cancellation and complete-result ownership in Framework; Studio only forwards its workspace facade and explicit profile. The previous implementation remains for review. */
+#if 0
 UmiStatus umi_studio_codeguard_scan(
     UmiStudioCodeGuard *guard,
     const UmiCodeGuardProfile *profile)
@@ -75,6 +77,25 @@ UmiStatus umi_studio_codeguard_scan(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     return umi_codeguard_service_scan(guard->service, profile);
+}
+#endif
+UmiStatus umi_studio_codeguard_scan_cancellable(
+    UmiStudioCodeGuard *guard,
+    const UmiCodeGuardProfile *profile,
+    const UmiCancellationToken *cancellation)
+{
+    /* Both the facade and caller-selected profile are required for a scan. */
+    if (guard == NULL || profile == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    return umi_codeguard_service_scan_cancellable(guard->service, profile, cancellation);
+}
+
+/* Ordinary callers retain their explicit-profile contract and no token. */
+UmiStatus umi_studio_codeguard_scan(UmiStudioCodeGuard *guard,
+    const UmiCodeGuardProfile *profile)
+{
+    return umi_studio_codeguard_scan_cancellable(guard, profile, NULL);
 }
 
 /* Borrow Framework's latest detailed result for immediate Studio rendering. */
@@ -110,4 +131,22 @@ UmiStatus umi_studio_codeguard_review_documentation(
         return UMI_STATUS_INVALID_ARGUMENT;
     }
     return umi_codeguard_documentation_scan_file(path, policy, out_report);
+}
+
+/* Studio supplies an explicit profile; Framework freezes the workspace and owns
+ * all scheduling/result policy. The job never borrows this product facade. */
+UmiStatus umi_studio_codeguard_create_job(UmiStudioCodeGuard *guard,
+    const UmiCodeGuardProfile *profile, UmiCodeGuardJob **out_job)
+{
+    if (out_job == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    *out_job = NULL;
+    if (guard == NULL || profile == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_codeguard_service_create_job(guard->service, profile, out_job);
+}
+
+/* The UI owner chooses when to publish; no worker calls into Studio widgets. */
+UmiStatus umi_studio_codeguard_adopt_job(UmiStudioCodeGuard *guard, UmiCodeGuardJob *job)
+{
+    if (guard == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return umi_codeguard_service_adopt_job(guard->service, job);
 }

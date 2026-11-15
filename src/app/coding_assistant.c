@@ -332,3 +332,21 @@ UmiStatus umi_studio_coding_assistant_revert_patch(
     return umi_ai_coding_assistant_revert_patch(
         umi_studio_ai_platform_coding_assistant(platform), patch_id, adapter);
 }
+
+UmiStatus UmiStudioCodingAssistantApplyPatchWithReport(UmiStudioAiPlatform *platform,
+    const char *patch_id, const UmiAiCodingFileAdapter *adapter,
+    UmiAiCodingPatchTransactionReport *outReport)
+{
+    if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiAiCodingAssistantApplyPatchWithReport(
+        umi_studio_ai_platform_coding_assistant(platform), patch_id, adapter, outReport);
+}
+
+UmiStatus UmiStudioCodingAssistantRevertPatchWithReport(UmiStudioAiPlatform *platform,
+    const char *patch_id, const UmiAiCodingFileAdapter *adapter,
+    UmiAiCodingPatchTransactionReport *outReport)
+{
+    if (platform == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    return UmiAiCodingAssistantRevertPatchWithReport(
+        umi_studio_ai_platform_coding_assistant(platform), patch_id, adapter, outReport);
+}

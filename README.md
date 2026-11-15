@@ -207,3 +207,5 @@ Test Explorer can retain completed queued runs in an explicitly selected local S
 ## Open related source files together
 
 [Open several files](docs/OPENING_SEVERAL_FILES.html) explains multi-selection, per-file results and preservation of existing drafts.
+
+[Admit settings and recover AI sessions](docs/learning/ai-session-recovery.html) explains bounded native AI settings, finite fitness values and Framework-backed conditional conversation import. It covers service APIs and their regression commands; a GUI session chooser is not provided by this change.

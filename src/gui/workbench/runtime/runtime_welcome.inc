@@ -378,6 +378,9 @@ static GtkWidget *runtime_build_welcome_surface(
     if (command_search != NULL)
         gtk_box_append(GTK_BOX(workspace_tools), command_search);
     if (layouts != NULL) gtk_box_append(GTK_BOX(workspace_tools), layouts);
+    /* Return through the existing active-source owner; no document is reopened. */
+    runtime_welcome_add_action(runtime, workspace_tools, "Return to editor",
+        "studio.welcome.return", "Return to the active source document without saving or replacing it", 0);
     gtk_widget_set_halign(workspace_tools, GTK_ALIGN_START);
     gtk_box_append(GTK_BOX(header), workspace_tools);
     gtk_box_append(GTK_BOX(page), header);
@@ -600,6 +603,9 @@ static GtkWidget *runtime_build_welcome_surface(
     return page;
 }
 
+/* Retain the original document-only visibility rule for review. The shared
+ * navigation state below additionally supports an explicit Help > Welcome choice. */
+#if 0
 /* Show the welcome surface only while no ordinary source document is active. */
 static void runtime_welcome_update_mode(
     UmiStudioGtkRuntimeChrome *runtime)
@@ -629,4 +635,83 @@ static void runtime_welcome_update_mode(
     gtk_stack_set_visible_child_name(
         GTK_STACK(runtime->centre_stack),
         show_welcome ? "welcome" : "workbench");
+}
+
+#endif
+
+/* Welcome is a view choice over the same retained editor body. Framework
+ * retains that choice across ordinary refreshes and clears it when another
+ * document becomes active. No document is closed to show the Start Centre. */
+static void runtime_welcome_update_mode(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->centre_stack == NULL ||
+        runtime->owner == NULL || runtime->owner->ui == NULL) return;
+    UmiUiWorkbenchState state;
+    umi_ui_workbench_state_init(&state);
+    if (umi_ui_workbench_state_snapshot(umi_studio_ui_workbench(runtime->owner->ui), &state) != UMI_STATUS_OK) return;
+    const char *active = strcmp(state.active_document, "studio.editor.welcome") == 0 ? "" : state.active_document;
+    int show = 0;
+    if (UmiStartCentreNavigationUpdate(&runtime->welcome_navigation, active,
+        UMI_START_CENTRE_OBSERVE, &show) != UMI_STATUS_OK) return;
+    /* This is the last runtime access: a visible-child observer may close it. */
+    gtk_stack_set_visible_child_name(GTK_STACK(runtime->centre_stack), show ? "welcome" : "workbench");
+}
+
+/* Reuse the existing Editor surface and Welcome content. Keep an independent
+ * token across host publication and stack observers; visible text is not proof
+ * that the original application runtime still owns the window afterwards. */
+static UmiStatus RuntimeShowWelcome(UmiStudioGtkRuntimeChrome *runtime, const char *argument)
+{
+    if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+    if (runtime == NULL || runtime->centre_stack == NULL) return UMI_STATUS_UNAVAILABLE;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL, *guard = NULL;
+    GtkWidget *stack = NULL;
+    runtime = runtime_file_dialog_owner(request, &window);
+    UmiStatus status = UMI_STATUS_CANCELLED;
+    if (runtime == NULL) goto done;
+    if (g_object_get_data(window, "umicom-welcome-navigation-active") != NULL) { status = UMI_STATUS_BUSY; goto done; }
+    guard = g_object_ref(window);
+    g_object_set_data(guard, "umicom-welcome-navigation-active", GINT_TO_POINTER(1));
+    status = runtime_workspace_open_surface(runtime, UMI_STUDIO_SURFACE_EDITOR, NULL);
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto done; }
+    if (status != UMI_STATUS_OK) goto done;
+    UmiUiWorkbenchState state;
+    umi_ui_workbench_state_init(&state);
+    status = umi_ui_workbench_state_snapshot(umi_studio_ui_workbench(runtime->owner->ui), &state);
+    if (status != UMI_STATUS_OK) goto done;
+    const char *active = strcmp(state.active_document, "studio.editor.welcome") == 0 ? "" : state.active_document;
+    int show = 0;
+    status = UmiStartCentreNavigationUpdate(&runtime->welcome_navigation, active, UMI_START_CENTRE_SHOW_WELCOME, &show);
+    if (status != UMI_STATUS_OK) goto done;
+    stack = g_object_ref(runtime->centre_stack);
+    gtk_stack_set_visible_child_name(GTK_STACK(stack), "welcome");
+    runtime = RuntimeResolveOwner(request, &window);
+    if (runtime == NULL || g_strcmp0(gtk_stack_get_visible_child_name(GTK_STACK(stack)), "welcome") != 0)
+        status = UMI_STATUS_CANCELLED;
+done:
+    if (guard != NULL) g_object_set_data(guard, "umicom-welcome-navigation-active", NULL);
+    g_clear_object(&stack); g_clear_object(&guard); g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}
+
+/* Hold the navigation guard through source refresh as well as Welcome entry.
+ * A synchronous observer must not replace an explicit return with another
+ * Welcome request before the retained editor has been restored. */
+static UmiStatus RuntimeReturnToEditor(UmiStudioGtkRuntimeChrome *runtime, const char *argument)
+{
+    if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+    if (runtime == NULL || runtime->owner == NULL || !UmiGtk4WindowIsOpen(runtime->owner->window))
+        return UMI_STATUS_CANCELLED;
+    GObject *guard = G_OBJECT(runtime->owner->window);
+    if (g_object_get_data(guard, "umicom-welcome-navigation-active") != NULL) return UMI_STATUS_BUSY;
+    g_object_ref(guard);
+    g_object_set_data(guard, "umicom-welcome-navigation-active", GINT_TO_POINTER(1));
+    UmiStatus status = RuntimePresentActiveSource(runtime);
+    g_object_set_data(guard, "umicom-welcome-navigation-active", NULL);
+    g_object_unref(guard);
+    return status;
 }

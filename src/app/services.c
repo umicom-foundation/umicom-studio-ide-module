@@ -16,6 +16,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/services.h"
+#include "umicom/studio/codeguard_workflow.h"
 #include "umicom/terminal_ui/execution.h"
 #include "umicom/studio/build.h"
 #include "umicom/build/project_profile.h"
@@ -46,11 +47,18 @@
 #include "umicom/studio/web_platform.h"
 
 struct UmiStudioServices {
+    int release_in_progress;
     UmiDiagnosticHub diagnostic_hub;
     UmiDiagnosticStore *diagnostic_store;
     UmiDiagnosticPipeline *diagnostic_pipeline;
     UmiSettings *settings;
     UmiTaskQueue *task_queue;
+    /* Framework owns scan execution and retained findings. Studio supplies the
+     * workspace context and stops this owner before freeing shared services. */
+    UmiCodeGuardReview *codeguard_review;
+    UmiCodeGuardReviewSnapshot codeguard_snapshot;
+    uint64_t codeguard_owner_thread;
+    char codeguard_root[UMI_PATH_CAPACITY];
     UmiDocumentStore *documents;
     UmiSessionStore *session;
     UmiRecentItemRegistry *recent_items;
@@ -96,6 +104,8 @@ struct UmiStudioServices {
     int recent_items_dirty;
     int published;
 };
+
+#include "services_codeguard.inc"
 
 static const char *STUDIO_RECENT_ITEMS_PATH = ".umicom/studio-recent-items";
 
@@ -183,6 +193,8 @@ static void studio_watch_sink(const UmiWatchEvent *event, void *user_data)
 }
 
 /* Provide the destroy partial operation used by this module and its client applications. */
+/* Propagate checked AI parent teardown through the service graph and refuse active patch ownership before background shutdown. Existing partial-cleanup pointer clearing and retry behavior are retained. The former implementation is retained for owner review. */
+#if 0
 static UmiStatus destroy_partial_checked(UmiStudioServices *services)
 {
     /*
@@ -220,6 +232,10 @@ static UmiStatus destroy_partial_checked(UmiStudioServices *services)
 #endif
     UmiStatus status = UmiStudioServicesStopBackground(services);
     if (status != UMI_STATUS_OK) return status;
+    /* StopBackground joined the shared queue. A failed release keeps the
+     * service owner intact for retry, just like the other checked children. */
+    status = UmiCodeGuardReviewDestroy(&services->codeguard_review);
+    if (status != UMI_STATUS_OK) return status;
     umi_studio_product_centre_destroy(services->product_centre);
     services->product_centre = NULL;
     umi_studio_compatibility_platform_destroy(services->compatibility_platform);
@@ -235,6 +251,154 @@ static UmiStatus destroy_partial_checked(UmiStudioServices *services)
     umi_studio_declarative_destroy(services->declarative);
     services->declarative = NULL;
     umi_studio_ai_platform_destroy(services->ai_platform);
+    services->ai_platform = NULL;
+    umi_terminal_controller_destroy(services->terminal_controller);
+    services->terminal_controller = NULL;
+    umi_studio_trading_service_destroy(services->trading);
+    services->trading = NULL;
+    umi_studio_developer_platform_destroy(services->developer_platform);
+    services->developer_platform = NULL;
+    umi_studio_operations_destroy(services->operations);
+    services->operations = NULL;
+    /* Keep the former void release visible; checked release retains errors. */
+#if 0
+    umi_watcher_destroy(services->watcher);
+#endif
+    status = UmiWatcherRelease(&services->watcher);
+    if (status != UMI_STATUS_OK) return status;
+    services->watcher = NULL;
+    umi_file_index_destroy(services->file_index);
+    services->file_index = NULL;
+    umi_workspace_graph_destroy(services->workspace);
+    services->workspace = NULL;
+    free(services->message_metrics);
+    services->message_metrics = NULL;
+    umi_journal_store_dispose(&services->journal);
+    umi_message_store_destroy(services->message_store);
+    services->message_store = NULL;
+    umi_topic_registry_destroy(services->topics);
+    services->topics = NULL;
+    umi_dead_letter_store_destroy(services->dead_letters);
+    services->dead_letters = NULL;
+    umi_outbox_destroy(services->outbox);
+    services->outbox = NULL;
+    umi_inbox_destroy(services->inbox);
+    services->inbox = NULL;
+    umi_dispatcher_destroy(services->dispatcher);
+    services->dispatcher = NULL;
+    umi_schema_registry_destroy(services->schemas);
+    services->schemas = NULL;
+    umi_data_server_destroy(services->data_server);
+    services->data_server = NULL;
+    /* Keep the former void release visible; checked release retains errors. */
+#if 0
+    umi_process_supervisor_destroy(services->process_supervisor);
+#endif
+    status = UmiProcessSupervisorRelease(&services->process_supervisor);
+    if (status != UMI_STATUS_OK) return status;
+    services->process_supervisor = NULL;
+    umi_recovery_manager_destroy(services->recovery);
+    services->recovery = NULL;
+    /* Save recent work before releasing it. A registry loaded from malformed
+     * data is deliberately not allowed to overwrite the file that needs
+     * diagnosis or recovery. */
+    if (services->recent_items != NULL) {
+        if (services->recent_items_persistence_enabled != 0 &&
+            services->recent_items_dirty != 0) {
+            /* Keep the old relative save visible; shutdown uses the bound path. */
+#if 0
+            (void)umi_platform_recent_items_registry_save(
+                services->recent_items, STUDIO_RECENT_ITEMS_PATH);
+#endif
+            (void)StudioRecentItemsSave(services);
+        }
+        umi_platform_recent_items_registry_destroy(services->recent_items);
+        services->recent_items = NULL;
+    }
+    umi_session_store_destroy(services->session);
+    services->session = NULL;
+    umi_document_store_destroy(services->documents);
+    services->documents = NULL;
+    /* Keep the former void release visible; checked release retains errors. */
+#if 0
+    umi_task_queue_destroy(services->task_queue);
+#endif
+    status = UmiTaskQueueReleaseStopped(&services->task_queue);
+    if (status != UMI_STATUS_OK) return status;
+    services->task_queue = NULL;
+    umi_diagnostic_pipeline_destroy(services->diagnostic_pipeline);
+    services->diagnostic_pipeline = NULL;
+    umi_diagnostic_store_destroy(services->diagnostic_store);
+    services->diagnostic_store = NULL;
+    umi_settings_destroy(services->settings);
+    services->settings = NULL;
+    umi_clock_dispose(&services->clock);
+    free(services);
+    return UMI_STATUS_OK;
+}
+
+#endif
+static UmiStatus destroy_partial_checked(UmiStudioServices *services)
+{
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services == NULL) {
+        return UMI_STATUS_OK;
+    }
+
+    /* Preserve the former unchecked stop sequence. The checked boundary
+     * retains the graph if any background owner cannot finish shutdown. */
+#if 0
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services->watcher != NULL) {
+        (void)umi_watcher_stop(services->watcher);
+    }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services->process_supervisor != NULL) {
+        (void)umi_process_supervisor_shutdown(services->process_supervisor);
+    }
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (services->task_queue != NULL) {
+        (void)umi_task_queue_shutdown(services->task_queue, 1);
+    }
+#endif
+    /* Refuse an active AI callback before stopping unrelated background
+     * work or releasing any part of the aggregate service graph. */
+    UmiStatus status = UmiStudioAiPlatformCheckIdle(services->ai_platform);
+    if (status != UMI_STATUS_OK) return status;
+    status = UmiStudioServicesStopBackground(services);
+    if (status != UMI_STATUS_OK) return status;
+    /* StopBackground joined the shared queue. A failed release keeps the
+     * service owner intact for retry, just like the other checked children. */
+    status = UmiCodeGuardReviewDestroy(&services->codeguard_review);
+    if (status != UMI_STATUS_OK) return status;
+    umi_studio_product_centre_destroy(services->product_centre);
+    services->product_centre = NULL;
+    umi_studio_compatibility_platform_destroy(services->compatibility_platform);
+    services->compatibility_platform = NULL;
+    umi_studio_extension_platform_destroy(services->extension_platform);
+    services->extension_platform = NULL;
+    umi_studio_delivery_platform_destroy(services->delivery_platform);
+    services->delivery_platform = NULL;
+    umi_studio_web_platform_destroy(services->web_platform);
+    services->web_platform = NULL;
+    umi_studio_designer_destroy(services->designer);
+    services->designer = NULL;
+    umi_studio_declarative_destroy(services->declarative);
+    services->declarative = NULL;
+    status = UmiStudioAiPlatformDestroyChecked(services->ai_platform);
+    if (status != UMI_STATUS_OK) return status;
     services->ai_platform = NULL;
     umi_terminal_controller_destroy(services->terminal_controller);
     services->terminal_controller = NULL;
@@ -393,6 +557,8 @@ UmiStatus umi_studio_services_create_with_options(
         return UMI_STATUS_OUT_OF_MEMORY;
     }
 
+    services->codeguard_owner_thread = umi_thread_current_id();
+    services->codeguard_snapshot = StudioCodeGuardEmpty();
     services->build_profile_storage_generation = 1U;
     status = umi_studio_settings_create(&services->settings);
     /* Preserve the original failure result so the caller can respond to the correct cause. */

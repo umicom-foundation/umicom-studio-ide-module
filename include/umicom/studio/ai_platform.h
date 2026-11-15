@@ -105,6 +105,12 @@ UmiStudioAiPlatformConfig umi_studio_ai_platform_config_default(void);
  * known state.
  */
 UmiStatus umi_studio_ai_platform_create(UmiStudioAiPlatform **out_platform);
+/* Validate bounded fields and product ranges without allocation, file access,
+ * provider activation or changing config. Optional remote metadata may be empty
+ * but must be terminated. A remote endpoint requires its existing identity and
+ * secret-reference fields only when allow_remote is nonzero. */
+UmiStatus UmiStudioAiPlatformConfigValidate(const UmiStudioAiPlatformConfig *config);
+
 /**
  * Provide the studio ai platform create configured operation used by this module and its
  * client applications.
@@ -116,6 +122,15 @@ UmiStatus umi_studio_ai_platform_create_configured(
  * Release or reset state held by studio ai platform so the same storage can be reused
  * safely.
  */
+/** Read-only serialized teardown preflight. Refuses active coding patch or
+ * provider-generation, health-probe or parent destruction callbacks and malformed provider
+ * ownership. NULL is idle. */
+UmiStatus UmiStudioAiPlatformCheckIdle(const UmiStudioAiPlatform *platform);
+/** Checked teardown returns BUSY before dependency release for an active
+ * patch, Framework generation or health callback. Keep the handle on refusal;
+ * clear it only after OK. The legacy void form also retains a refused owner. Callers serialize access;
+ * this is not a guard for direct provider calls, tool or Helix callbacks. */
+UmiStatus UmiStudioAiPlatformDestroyChecked(UmiStudioAiPlatform *platform);
 void umi_studio_ai_platform_destroy(UmiStudioAiPlatform *platform);
 /**
  * Provide the studio ai platform runtime operation used by this module and its client
@@ -211,6 +226,21 @@ UmiStatus umi_studio_ai_platform_save_session(
     UmiStudioAiPlatform *platform,
     const char *session_id,
     const char *path);
+/* Thin Framework session recovery. Expected zero inserts only if absent;
+ * a nonzero value replaces only that stored record revision. Failure preserves
+ * the active session and report. No provider/model is activated. Serialize
+ * platform access and validate the initiating UI request/workspace separately.
+ * The candidate is copied; it remains owned by the caller. */
+UmiStatus UmiStudioAiPlatformImportSession(UmiStudioAiPlatform *platform,
+    const UmiAiConversationRecord *record, uint64_t expected_record_revision,
+    UmiAiConversationImportReport *out_report);
+/* Blocking absolute regular-file reader with an explicit byte budget.
+ * For responsive UI, load/parse on an owned worker then import on the UI owner.
+ * This does not add a GUI picker or a background job. */
+UmiStatus UmiStudioAiPlatformLoadSessionBounded(UmiStudioAiPlatform *platform,
+    const char *absolute_path, size_t maximum_bytes, uint64_t expected_record_revision,
+    UmiAiConversationImportReport *out_report);
+
 /**
  * Provide the studio ai platform snapshot operation used by this module and its client
  * applications.
@@ -233,6 +263,15 @@ UmiStatus umi_studio_ai_platform_compare_models(
  */
 const UmiAiModelEnsembleReport *umi_studio_ai_platform_model_comparison(
     const UmiStudioAiPlatform *platform);
+
+/* Studio delegates context preview ownership to Framework. The caller retains
+ * this same live platform and serializes access through the UI owner. These
+ * APIs do not send prompts or authorize later execution. */
+UmiStatus UmiStudioAiPlatformPlanContextObserved(UmiStudioAiPlatform *platform,
+    const char *runtime_id, int sensitive_approved, UmiAiContextPlan *out_plan,
+    UmiAiContextPlanObservation *out_observation);
+UmiStatus UmiStudioAiPlatformCheckContextObservation(const UmiStudioAiPlatform *platform,
+    const UmiAiContextPlanObservation *observation);
 
 #ifdef __cplusplus
 }

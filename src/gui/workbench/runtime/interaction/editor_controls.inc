@@ -1886,6 +1886,9 @@ static void RuntimeSourceDiagnostics(GtkButton *button, gpointer data)
 }
 /* The product delegates outline requests and opening to Framework so names
  * never become a separate editable document model. */
+/* The toolbar now enters the same Framework command as Navigate > Go to
+ * Symbol. Preserve the earlier direct composition for engineering review. */
+#if 0
 static void RuntimeDocumentSymbols(GtkButton *button, gpointer data)
 {
     (void)button;
@@ -1909,6 +1912,13 @@ static void RuntimeDocumentSymbols(GtkButton *button, gpointer data)
             "Open a source draft within the language-server message limit. Symbols describe the complete captured source draft.");
     g_clear_object(&window);
     runtime_file_dialog_request_free(request);
+}
+
+#endif
+static void RuntimeDocumentSymbols(GtkButton *button, gpointer data)
+{
+    (void)button;
+    RuntimeReviewSourceButton(data, "navigate.symbol");
 }
 
 /* Definitions and references share Framework inspection and document navigation.
@@ -1964,6 +1974,9 @@ static void RuntimeSourceCalls(GtkButton *button, gpointer data,UmiLanguageCallD
 static void RuntimeSourceCallers(GtkButton *button,gpointer data) {RuntimeSourceCalls(button,data,UMI_LANGUAGE_CALL_INCOMING);}
 static void RuntimeSourceCallees(GtkButton *button,gpointer data) {RuntimeSourceCalls(button,data,UMI_LANGUAGE_CALL_OUTGOING);}
 
+/* Definition and references now share menu command admission. Other source
+ * inspection intents retain RuntimeSourceNavigation. Keep these adapters for review. */
+#if 0
 static void RuntimeSourceDefinition(GtkButton *button,gpointer data)
 {
     RuntimeSourceNavigation(button,data,UMI_LANGUAGE_NAVIGATION_DEFINITION);
@@ -1971,6 +1984,17 @@ static void RuntimeSourceDefinition(GtkButton *button,gpointer data)
 static void RuntimeSourceReferences(GtkButton *button,gpointer data)
 {
     RuntimeSourceNavigation(button,data,UMI_LANGUAGE_NAVIGATION_REFERENCES);
+}
+#endif
+static void RuntimeSourceDefinition(GtkButton *button, gpointer data)
+{
+    (void)button;
+    RuntimeReviewSourceButton(data, "navigate.definition");
+}
+static void RuntimeSourceReferences(GtkButton *button, gpointer data)
+{
+    (void)button;
+    RuntimeReviewSourceButton(data, "navigate.references");
 }
 /* Studio selects an intent; Framework retains protocol and document ownership. */
 static void RuntimeSourceTypeDefinition(GtkButton *button,gpointer data)

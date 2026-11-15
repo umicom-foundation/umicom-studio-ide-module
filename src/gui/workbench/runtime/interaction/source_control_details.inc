@@ -15,6 +15,9 @@
  * MIT
  *---------------------------------------------------------------------------*/
 
+/* The raw runtime callback is retained for review. Weak binding, originating
+ * project identity and current-list ancestry now reject retired row authority. */
+#if 0
 static void runtime_on_vcs_branch_checkout(
     GtkButton *button,
     gpointer user_data)
@@ -36,6 +39,60 @@ static void runtime_on_vcs_branch_checkout(
         runtime,
         UMI_STUDIO_COMMAND_VCS_BRANCH_CHECKOUT,
         branch);
+}
+#endif
+static void runtime_on_vcs_branch_checkout(GtkButton *button, gpointer user_data)
+{
+    GObject *window = NULL;
+    UmiStudioGtkRuntimeChrome *runtime = runtime_file_dialog_owner(user_data, &window);
+    const UmiWorkspaceGraphSnapshot *captured =
+        g_object_get_data(G_OBJECT(button), "umicom-vcs-project");
+    const char *branch = g_object_get_data(G_OBJECT(button), "umicom-vcs-branch");
+    UmiStudioWorkspaceSnapshot current;
+    if (runtime == NULL || captured == NULL || branch == NULL || branch[0] == '\0' ||
+        !gtk_widget_is_sensitive(GTK_WIDGET(button)) ||
+        gtk_widget_get_root(GTK_WIDGET(button)) != GTK_ROOT(window) ||
+        runtime->source_control_branches_list == NULL ||
+        gtk_widget_get_ancestor(GTK_WIDGET(button), GTK_TYPE_LIST_BOX) !=
+            runtime->source_control_branches_list ||
+        umi_studio_workspace_snapshot(umi_studio_ui_services(runtime->owner->ui),
+            &current) != UMI_STATUS_OK || !current.graph.open ||
+        current.graph.revision != captured->revision ||
+        strcmp(current.graph.root, captured->root) != 0) {
+        g_clear_object(&window);
+        return;
+    }
+    /* Registry execution may replace this row or close the workbench while
+     * reporting its outcome. Keep only an owned argument across that call. */
+    char *owned_branch = g_strdup(branch);
+    (void)runtime_execute_registered_command(runtime,
+        UMI_STUDIO_COMMAND_VCS_BRANCH_CHECKOUT, owned_branch);
+    g_free(owned_branch);
+    g_clear_object(&window);
+}
+
+/* Capture navigation authority when the actual row is built. The common
+ * command connector owns its weak request until signal closure destruction. */
+static GtkWidget *RuntimeCreateBranchCheckout(
+    UmiStudioGtkRuntimeChrome *runtime, const UmiVcsBranch *branch)
+{
+    if (runtime == NULL || runtime->owner == NULL || branch == NULL) return NULL;
+    GtkWidget *button = gtk_button_new_with_label("Checkout");
+    if (button == NULL) return NULL;
+    UmiStudioWorkspaceSnapshot workspace;
+    if (umi_studio_workspace_snapshot(umi_studio_ui_services(runtime->owner->ui),
+            &workspace) != UMI_STATUS_OK || !workspace.graph.open) {
+        gtk_widget_set_sensitive(button, FALSE);
+        return button;
+    }
+    g_object_set_data_full(G_OBJECT(button), "umicom-vcs-branch",
+        g_strdup(branch->name), g_free);
+    g_object_set_data_full(G_OBJECT(button), "umicom-vcs-project",
+        g_memdup2(&workspace.graph, sizeof workspace.graph), g_free);
+    int bound = RuntimeConnectCommandButton(runtime, button,
+        G_CALLBACK(runtime_on_vcs_branch_checkout));
+    gtk_widget_set_sensitive(button, bound && !branch->current);
+    return button;
 }
 
 /*
@@ -158,7 +215,11 @@ static void runtime_source_control_refresh_details(
             row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
             label = runtime_label(text, 0.0F);
             spacer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+/* The factory retains project identity and uses the common weak connector. */
+#if 0
             checkout = gtk_button_new_with_label("Checkout");
+#endif
+            checkout = RuntimeCreateBranchCheckout(runtime, branch);
 
             /*
              * Protect caller-owned memory by checking that required state is available before it is
@@ -170,6 +231,9 @@ static void runtime_source_control_refresh_details(
             }
 
             gtk_widget_set_hexpand(spacer, TRUE);
+/* RuntimeCreateBranchCheckout replaces the raw signal owner and metadata setup.
+ * Keep this earlier wiring for comparison; only the factory is active. */
+#if 0
             gtk_widget_set_sensitive(checkout, !branch->current);
 
             g_object_set_data_full(
@@ -182,6 +246,8 @@ static void runtime_source_control_refresh_details(
                 "clicked",
                 G_CALLBACK(runtime_on_vcs_branch_checkout),
                 runtime);
+
+#endif
 
             gtk_box_append(GTK_BOX(row), label);
             gtk_box_append(GTK_BOX(row), spacer);
@@ -222,6 +288,10 @@ static GtkWidget *runtime_source_control_notebook(
         return notebook;
     }
 
+    /* Stable native identities allow navigation and acceptance to inspect the existing controls. */
+    (void)umi_gtk4_automation_tag_widget(notebook, "studio.source-control.notebook");
+    (void)umi_gtk4_automation_tag_widget(runtime->source_control_branches_list, "studio.source-control.branches");
+    (void)umi_gtk4_automation_tag_widget(runtime->source_control_commit_entry, "studio.source-control.commit-message");
     gtk_widget_set_size_request(notebook, -1, 300);
 
     gtk_notebook_append_page(

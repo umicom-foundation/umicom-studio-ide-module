@@ -1,0 +1,65 @@
+<!-- Umicom Studio IDE
+File: docs/learning/codeguard-cli.html
+
+PURPOSE:
+Teach separate analysis, severity and output outcomes in a native C command.
+
+AUTHOR AND ORGANISATION:
+Sammy Hegab
+Umicom Foundation
+
+LICENCE:
+MIT
+-->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reliable CodeGuard command results</title>
+<link rel="stylesheet" href="../assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="../assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="../assets/umicom.ico">
+</head><body><main>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="../assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+<h1>Reliable CodeGuard command results</h1>
+<p>A command has more than one responsibility: it must inspect the requested files, deliver its report and tell the calling shell what happened. This lesson follows Studio's small native CodeGuard command. Framework owns scanning, reports and native argument capture; Studio chooses the command's exit codes.</p>
+<h2>1. Run the existing positional interface</h2>
+<p>After building the <code>umicom-studio-codeguard</code> target, run its executable with a workspace directory. The Applications build normally places executables in its <code>bin</code> directory; check the configured output location if that file is absent.</p>
+<pre><code class="language-powershell">&amp; ".\build\windows-ucrt64-all-debug\bin\umicom-studio-codeguard.exe" "C:\Projects\Example"
+$LASTEXITCODE</code></pre>
+<p>The argument is a directory, not a command to execute. With no directory argument, the command scans its current working directory. It uses the default quality profile and writes a text report to standard output. Legacy extra positional arguments remain ignored; they are not supported format or export options. Use the shared <code>umicom quality scan</code> command when you need its explicit format and export options.</p>
+<p>The scan reads saved files. It does not include unsaved editor text, freeze the filesystem or prove that a reported pattern is exploitable. Inspect a finding in its source context.</p>
+<h2>2. Distinguish three outcomes</h2>
+<table><thead><tr><th>Exit code</th><th>Meaning</th><th>Next step</th></tr></thead><tbody>
+<tr><td>0</td><td>Analysis and report output completed; no finding met the default failure threshold.</td><td>Review lower-severity findings as appropriate.</td></tr>
+<tr><td>1</td><td>Analysis and output completed; at least one finding met the threshold.</td><td>Review the reported finding and decide the correction.</td></tr>
+<tr><td>2</td><td>Native argument capture or session creation failed.</td><td>Check the input path and diagnostic, then retry.</td></tr>
+<tr><td>3</td><td>Analysis or report output failed.</td><td>Resolve the operational error before treating the report as complete.</td></tr>
+</tbody></table>
+<p>The default failure threshold is high severity. An output failure takes precedence over that threshold: exit 3 is returned even when the analysis itself found no high-severity issue or would otherwise have returned 1. A destination can contain only part of a report after a write fails. Do not interpret a partial file as a complete clean result.</p>
+<h2>3. Keep resource cleanup on every owned path</h2>
+<pre><code class="language-c">status = umi_studio_codeguard_scan(guard, &amp;profile);
+if (status == UMI_STATUS_OK)
+    status = umi_codeguard_report_write(stdout, UMI_CODEGUARD_REPORT_TEXT,
+        umi_studio_codeguard_result(guard));
+UmiCodeGuardSummary summary = umi_studio_codeguard_summary(guard);
+umi_studio_codeguard_destroy(guard);
+if (status != UMI_STATUS_OK)
+    return 3;
+return umi_codeguard_summary_failed(&amp;summary, profile.fail_on) ? 1 : 0;</code></pre>
+<p>The detailed report is borrowed from the session, so output must finish before destruction. The small summary is copied by value and remains valid afterwards. A failed scan does not fall through to report an empty result. A failed write does not fall through to report a successful severity gate.</p>
+<p>The implementation prints operational diagnostics to standard error. If that stream also fails, the exit code still conveys failure. The command does not install a process signal handler: on POSIX, a shell may terminate a process with a broken-pipe signal before a C stream reports an error. The controlled read-only-descriptor tests below exercise a returned write error without changing signal policy.</p>
+<h2>4. Capture Unicode at the process boundary</h2>
+<p>On Windows, narrow C runtime arguments can lose characters which the current code page cannot represent. The entry uses Framework's <code>UmiNativeArgumentsDispatch</code> to capture the original Unicode command line and call its UTF-8 callback. Framework owns and releases the copied argument storage. This does not change the console font, output encoding, locale or working directory.</p>
+<p>Do not use native capture to reinterpret a synthetic test vector: Windows capture reads the process's actual command line. Callback tests therefore call the internal run function directly. Separate CTest cases launch the real executable with an empty workspace and a workspace whose name contains accented and Japanese characters.</p>
+<h2>5. Reproduce output failure deliberately</h2>
+<p>A reliable regression does not depend on filling a real disk. The fixture opens a retained input file read-only, duplicates its descriptor onto standard output, runs the production callback, then restores standard output before checking results. The OS rejects report writes. The fixture checks exit 3 and verifies that the input file was unchanged.</p>
+<p>Other cases cover a clean directory, an unsafe-copy finding, default current-directory behavior, UTF-8 paths, missing or empty roots and the compatibility argument convention. GNU-compatible linker wrappers inject session creation, scan, report and native capture failures, and count destruction to verify cleanup. These fault cases are authored tests, not evidence of execution.</p>
+<pre><code>cmake --build build/windows-ucrt64-all-debug --target umicom-studio-codeguard umicom-studio-codeguard-cli-test
+ctest --test-dir build/windows-ucrt64-all-debug -R "^studio\.codeguard_cli(\.|_process\.)" --output-on-failure
+
+# GNU-compatible linker fault cases:
+cmake --build build/windows-ucrt64-all-debug --target umicom-studio-codeguard-cli-fault-test
+ctest --test-dir build/windows-ucrt64-all-debug -R "^studio\.codeguard_cli_fault\." --output-on-failure</code></pre>
+<p>Run commands separately and stop on errors. Configuration registers tests but does not compile or execute them. A supported linker is required for the injected faults; the ordinary cases remain available without wrapping. The tests retain their temporary workspace paths for diagnosis.</p>
+<h2>6. Continue the workflow</h2>
+<p>Compare this synchronous command with <a href="codeguard-workspace.html">Studio's background workspace review</a> and its <a href="codeguard-native.html">native Tools and Output integration</a>. Both clients share Framework behavior, while their application lifetime and presentation requirements differ.</p>
+</main></body></html>

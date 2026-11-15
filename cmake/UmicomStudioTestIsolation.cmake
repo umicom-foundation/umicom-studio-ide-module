@@ -44,6 +44,7 @@ if(BUILD_TESTING)
     endforeach()
     endif()
     foreach(_target IN ITEMS
+            umicom-studio-ai-health-command-test
             umicom-studio-ai-workspace-test
             umicom-studio-application_authority-test
             umicom-studio-automation-audit-test

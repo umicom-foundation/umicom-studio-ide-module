@@ -22,6 +22,9 @@
 
 #include <glib/gstdio.h>
 #include "umicom/ui/gtk4/developer_dialog.h"
+#include "umicom/developer_workbench/start_centre.h"
+/* Native predicates run before the file-dialog fragment in this unity unit. */
+#include "umicom/ui/gtk4/window_lifecycle.h"
 #include "umicom/ui/gtk4/build_configurations.h"
 #include "umicom/studio/build_configurations.h"
 #include "umicom/studio/security.h"
@@ -48,6 +51,7 @@
 #include "umicom/ui/workspace_library_checkpoint.h"
 #include "umicom/studio/professional_workspace.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
+#include "umicom/studio_runtime/workspace_zen.h"
 #include "umicom/studio/ai_platform.h"
 #include "umicom/studio/build.h"
 #include "umicom/studio/coding_assistant.h"
@@ -108,6 +112,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
      * retains presentation through one Framework host, not a second canvas. */
     UmiStudioProfessionalWorkspace *professional_workspace;
     UmiGtk4WorkspaceLayoutHost *workspace_host;
+    /* Framework owns selection policy; this transient identity is never a saved layout. */
+    UmiStudioWorkspaceZenState zen_state;
+    bool zen_toggle_active;
     /* The library borrows the existing workspace owner and stores copied rows only. */
     UmiUiWorkspaceLibraryHistory *workspace_library_history;
     UmiGtk4WorkspaceLayoutLibrary *workspace_library;
@@ -139,6 +146,8 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *body;
     GtkWidget *centre_stack;
     GtkWidget *welcome_surface;
+    /* Framework owns the view choice independently of open document storage. */
+    UmiStartCentreNavigation welcome_navigation;
     GtkWidget *workbench_surface;
     GtkWidget *editor_adapter_root;
     GtkWidget *activity_bar;
@@ -160,6 +169,9 @@ typedef struct UmiStudioGtkRuntimeChrome {
     GtkWidget *command_window;
     GtkWidget *command_entry;
     GtkWidget *command_list;
+    /* The scroll host owns the published generation; rows from older queries are inert. */
+    GtkWidget *command_scroll;
+    uint64_t command_generation;
     GtkWidget *layout_window;
     GtkWidget *layout_list;
     GtkWidget *window_catalogue_window;
@@ -252,6 +264,10 @@ typedef struct UmiStudioGtkRuntimeChrome {
     UmiGtk4DeveloperDialog *project_dialog;
     UmiGtk4DeveloperDialog *build_settings_dialog;
     UmiStudioBuildConfigurationContext build_configuration_context;
+    /* Widgets borrow their parent surface; Framework owns copied report text. */
+    GtkWidget *codeguard_expander;
+    GtkWidget *codeguard_output;
+    UmiStatus codeguard_last_error;
     GtkWidget *build_output_view;
     /* The shared presenter owns display controls; this is a host widget link. */
     GtkWidget *build_live_output;
@@ -370,11 +386,14 @@ STUDIO_SURFACE_STORAGE_CHECK(surface_state_initialised);
  * applications.
  */
 static void runtime_show_command_palette(UmiStudioGtkRuntimeChrome *runtime);
+static UmiStatus RuntimePresentCommandPalette(UmiStudioGtkRuntimeChrome *runtime, const char *argument);
 /*
  * Provide the runtime show layout browser operation used by this module and its client
  * applications.
  */
 static void runtime_show_layout_browser(UmiStudioGtkRuntimeChrome *runtime);
+static UmiStatus RuntimePresentLayoutBrowser(UmiStudioGtkRuntimeChrome *runtime, const char *argument);
+static int RuntimeCheckpointCommandEnabled(UmiStudioGtkRuntimeChrome *runtime, int restore);
 /*
  * Provide the runtime show window catalogue operation used by this module and its client
  * applications.
@@ -387,6 +406,8 @@ static UmiStatus runtime_rebuild_surface_panels(
  * Provide the runtime welcome update mode operation used by this module and its client
  * applications.
  */
+static UmiStatus RuntimeShowWelcome(UmiStudioGtkRuntimeChrome *runtime, const char *argument);
+static UmiStatus RuntimeReturnToEditor(UmiStudioGtkRuntimeChrome *runtime, const char *argument);
 static void runtime_welcome_update_mode(
     UmiStudioGtkRuntimeChrome *runtime);
 
@@ -463,3 +484,6 @@ static UmiStudioGtkRuntimeChrome *runtime_file_dialog_owner(
     UmiStudioFileDialogRequest *request, GObject **outWindow);
 static void runtime_file_dialog_request_free(UmiStudioFileDialogRequest *request);
 static UmiStatus RuntimeNavigateProblem(UmiStudioGtkRuntimeChrome *runtime, int previous);
+
+/* Menu toggles reuse the existing model and staged native publisher. */
+static UmiStatus RuntimeToggleZen(UmiStudioGtkRuntimeChrome *runtime, const char *argument);

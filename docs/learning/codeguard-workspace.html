@@ -1,0 +1,78 @@
+<!-- Umicom Studio IDE
+File: docs/learning/codeguard-workspace.html
+
+PURPOSE:
+Teach nonblocking quality reviews bound to Studio workspace and service lifetime.
+
+AUTHOR AND ORGANISATION:
+Sammy Hegab
+Umicom Foundation
+
+LICENCE:
+MIT
+-->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Keep a quality review with its Studio workspace</title>
+<link rel="stylesheet" href="../assets/umicom-documentation.css">
+<link rel="icon" type="image/svg+xml" href="../assets/umicom-icon.svg">
+<link rel="icon" type="image/x-icon" href="../assets/umicom.ico">
+</head><body><main>
+<div class="umicom-doc-brand"><img class="umicom-doc-logo" src="../assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div>
+<h1>Keep a quality review with its Studio workspace</h1>
+<!-- The earlier integration boundary is retained for source review; native bindings are now authored but unqualified.
+<p>This lesson is for contributors connecting Studio commands to shared Framework services. The C service API below is implemented in source. Its native menu and report presentation need separate integration and qualification; the existence of a CodeGuard menu label does not prove that an end-to-end interface works.</p>
+-->
+<p>This lesson is for contributors connecting Studio commands to shared Framework services. The C service API below is implemented in source. The <a href="codeguard-native.html">native Tools and Output binding</a> now uses it for saved-source review and cancellation. Both layers require runtime qualification; a menu label or configuration result does not prove an end-to-end workflow.</p>
+<h2>1. Start with one owner</h2>
+<p>Studio's service container owns the workspace graph, task queue and quality review. Framework owns scanning, cancellation and retained findings. A thin Studio wrapper supplies the current workspace root and revision. It does not start another thread pool or implement a second scanner.</p>
+<p>Call <code>UmiStudioCodeGuardBegin</code>, <code>Poll</code>, <code>Snapshot</code>, <code>Cancel</code> and <code>Result</code> on the thread which created the service container. The creating thread is recorded during construction, before the first scan. A queue worker cannot become the owner merely by requesting the first scan.</p>
+<h2>2. Accept a request without waiting for it</h2>
+<pre><code class="language-c">#include "umicom/studio/codeguard_workflow.h"
+
+uint64_t request = 0;
+UmiStatus status = UmiStudioCodeGuardBegin(services, NULL, &amp;request);
+if (status == UMI_STATUS_OK) {
+    /* Admission succeeded. The event loop can continue handling input. */
+}</code></pre>
+<p>A NULL profile selects Framework defaults. An explicit profile is copied into the job, so changing a stack variable later cannot change an admitted request. Begin requires an open workspace and captures its absolute root. Changing the process's current directory afterwards does not redirect the job.</p>
+<p>A scan reads saved source files and does not execute project commands, so this API allows an open untrusted workspace. This permission does not authorize build, run, install or network actions. Findings also do not include unsaved editor buffers and do not represent an immutable filesystem snapshot.</p>
+<p>Only one job may be pending in a review. Before accepting a replacement, Begin polls the previous job and retires it if possible. BUSY means it still owns unfinished work. A failed call leaves the caller's request output unchanged. Request IDs are scoped to a root-bound review; pair them with the workspace context ID rather than treating the number as a global identity.</p>
+<h2>3. Poll and interpret two outcomes</h2>
+<pre><code class="language-c">UmiCodeGuardReviewSnapshot snapshot;
+UmiStatus status = UmiStudioCodeGuardPoll(services, &amp;snapshot);
+if (status == UMI_STATUS_OK &amp;&amp; !snapshot.pending) {
+    /* snapshot.operation_status describes file analysis.
+     * snapshot.status describes whether this attempt could publish.
+     * snapshot.has_report may describe a retained earlier success. */
+}</code></pre>
+<p>Poll never joins a worker. If it returns an API error, the supplied snapshot remains unchanged. A worker failure normally appears in the snapshot instead. For example, a file budget refusal can leave a previous complete report available. Do not label that retained report as the output of the failed attempt.</p>
+<p>Snapshot reads the last poll cache without publishing a result or requesting cancellation. It is suitable for command availability checks which should have no execution effects. It masks a cached report immediately when the current workspace no longer matches. Worker progress becomes current only through Poll.</p>
+<h2>4. Reject results from a different context</h2>
+<p>The workspace graph supplies a revision which changes when the project session, trust or project list changes. Closing and reopening the same directory therefore does not restore the old request's authority. Poll compares that revision and the bound root. A mismatch marks a pending attempt stale, requests cooperative cancellation and suppresses publication.</p>
+<p>A worker might already have succeeded before the workspace changes. In that case the operation status can still be OK while publication returns INVALID_STATE. This is expected: the computation finished, but it belongs to an older workspace. Result returns NULL for a report whose context is no longer current.</p>
+<p>Switching to a different root prepares a new Framework controller after the old job retires. Allocation failure retains the old controller. A successful rebind drops the old root's report, even if a later queue admission fails. Returning to that root creates or reuses a controller according to the current binding; never assume a multi-project report cache exists.</p>
+<h2>5. Borrow findings deliberately</h2>
+<pre><code class="language-c">const UmiCodeGuardResult *report = UmiStudioCodeGuardResult(services);
+if (report != NULL) {
+    size_t count = umi_codeguard_result_count(report);
+    /* Copy any fields needed by a longer-lived presentation model. */
+    (void)count;
+}</code></pre>
+<p>Studio owns the report. Do not free it. Finding pointers survive failed attempts against the same review but expire after a successful replacement, root rebinding or service destruction. A GUI callback can close its window or change context; reacquire the native owner and current report before using them after such callbacks.</p>
+<h2>6. Cancel before releasing storage</h2>
+<p>Cancel is cooperative and may be called after the workspace closes. It suppresses an unpolled successful attempt as well as requesting cancellation of running work. It does not release worker storage. With no pending review it is a successful no-op.</p>
+<p><code>UmiStudioServicesStopBackground</code> requests review cancellation before stopping and joining the shared queue. Checked service release destroys the review only after that shutdown succeeds. A cancellation, join or release failure retains the service owner for investigation and retry. StopBackground is a blocking lifecycle operation; use it during controlled shutdown, not as a progress-poll operation in a responsive interface.</p>
+<h2>7. Qualify the real integration</h2>
+<p>The <a href="../../tests/test_codeguard_workflow.c">native fixture</a> constructs real Studio services in a uniquely owned directory. It disables unrelated automation, creates a saved C source file, and exercises Framework's scanner and task queue. Its data directory is retained for diagnosis. It never removes a caller's existing application state.</p>
+<ol><li>Configure the Applications checkout with testing enabled.</li><li>Build the focused target using the same Framework source and toolchain.</li><li>Run the ordinary cases and, on GNU-compatible linkers, the four injected failure cases.</li><li>Keep the exact source revisions and test output with the qualification evidence.</li></ol>
+<pre><code>cmake -S . -B build/studio-review -DBUILD_TESTING=ON
+cmake --build build/studio-review --target umicom-studio-codeguard-workflow-test
+ctest --test-dir build/studio-review -R "^studio\.codeguard_workflow\." --output-on-failure
+
+# GNU/Clang toolchains with linker wrapping:
+cmake --build build/studio-review --target umicom-studio-codeguard-workflow-fault-test
+ctest --test-dir build/studio-review -R "^studio\.codeguard_workflow_fault\." --output-on-failure</code></pre>
+<p>The ordinary suite registers 26 cases, including closed and untrusted workspaces, stale completion, retry, copied profiles, a changed current directory, wrong-thread calls and shutdown. Four fault cases cover controller allocation, failed polling before admission, cancellation failure during shutdown and review-release retry. A supported qualified run should pass all selected cases. These tests have been authored; configuration alone cannot establish that they compile or pass.</p>
+<p><a href="../learning-in-studio.html">Learning and building in Studio</a> · <a href="../../include/umicom/studio/codeguard_workflow.h">Public C contract</a> · <a href="../../src/app/services_codeguard.inc">Thin service implementation</a></p>
+</main></body></html>

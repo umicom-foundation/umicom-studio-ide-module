@@ -32,6 +32,11 @@ static GtkWidget *runtime_make_command_button(
     const char *command_id, const char *tooltip);
 #include "interaction/editor_search_options.inc"
 #include "interaction/learning_commands.inc"
+/* Native branch availability is queried before interaction fragments are defined. */
+static int RuntimeBranchesCommandEnabled(UmiStudioGtkRuntimeChrome *runtime);
+/* Native quality admission is queried before its interaction implementation. */
+static int RuntimeCodeGuardCommandEnabled(UmiStudioGtkRuntimeChrome *runtime,
+    const char *command);
 #include "runtime_helpers.inc"
 #include "runtime_profile_catalogues.inc"
 #include "runtime_theme.inc"
@@ -40,6 +45,10 @@ static GtkWidget *runtime_make_command_button(
 #include "interaction/selection.inc"
 #include "interaction/registered_command.inc"
 #include "interaction/file_dialog.inc"
+/* Quality feedback reuses the refresh continuation declared at this boundary. */
+static UmiStatus RuntimeNotifyAndContinue(UmiStudioGtkRuntimeChrome *runtime,
+    const char *message);
+#include "interaction/codeguard.inc"
 #include "interaction/save_copy.inc"
 #include "interaction/file_drop.inc"
 #include "interaction/prompt_dialog.inc"
@@ -53,15 +62,22 @@ static GtkWidget *runtime_make_command_button(
 #include "interaction/tests.inc"
 #include "interaction/terminal.inc"
 #include "interaction/debug.inc"
+#include "interaction/debug_menu.inc"
 #include "interaction/ai.inc"
 #include "interaction/provider_connections.inc"
 #include "interaction/source_control.inc"
+/* Branch rows reuse the shared weak command connector defined with actions. */
+static int RuntimeConnectCommandButton(UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *button, GCallback callback);
 #include "interaction/source_control_details.inc"
+#include "interaction/source_control_menu.inc"
 #include "interaction/operation_catalogue.inc"
 #include "interaction/context_actions.inc"
 #include "interaction/project.inc"
 #include "interaction/project_board.inc"
 #include "interaction/editor_config.inc"
+#include "interaction/source_navigation_commands.inc"
+#include "interaction/shortcut_reference.inc"
 #include "interaction/command_router.inc"
 #include "interaction/editor_controls.inc"
 #include "interaction/test_run_selection.inc"
@@ -117,6 +133,7 @@ static GtkWidget *runtime_make_command_button(
 #include "runtime_layout_tabs.inc"
 #include "runtime_status_bar.inc"
 #include "runtime_host_adapter.inc"
+#include "runtime_zen.inc"
 #include "runtime_close_guard.inc"
 #include "runtime_framework.inc"
 #include "runtime_shell.inc"

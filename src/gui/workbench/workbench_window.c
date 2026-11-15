@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "workbench_window.h"
+#include "../dialogs/include/about.h"
 
 #include "umicom/diagnostics/log.h"
 #include "umicom/studio/services.h"

@@ -529,6 +529,8 @@ static UmiStatus runtime_route_command(
     return runtime_execute_phase1_host_command(runtime, command_id, argument);
 }
 #endif
+/* Native CodeGuard routes now use the Framework review controller through Studio services. Preserve the former unbound fallback routing for review. The previous implementation is retained for engineering review. */
+#if 0
 static UmiStatus runtime_route_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
@@ -542,6 +544,26 @@ static UmiStatus runtime_route_command(
         command_id[0] == '\0') {
         return UMI_STATUS_INVALID_ARGUMENT;
     }
+
+    /* Product code supplies identity only. Framework owns native dialog
+     * caching, branding and observers; no runtime pointer crosses the call. */
+    if (strcmp(command_id, "help.about") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        if (runtime->owner == NULL) return UMI_STATUS_INVALID_STATE;
+        return UmiStudioAboutPresent(runtime->owner->window);
+    }
+
+    /* Debugger menu navigation only exposes the existing controls.
+     * It never treats opening the form as permission to attach a process. */
+    if (strcmp(command_id, "view.zen") == 0) return RuntimeToggleZen(runtime, argument);
+
+    if (strcmp(command_id, "debug.attach") == 0 || strcmp(command_id, "debug.breakpoints") == 0)
+        return RuntimeRevealDebuggerControl(runtime, command_id, argument);
+
+    /* Source inspection menu commands share the editor toolbar owner.
+     * The Framework repeats capture and busy checks for retained commands. */
+    if (UmiGtk4AdapterSourceNavigationCommandKnown(command_id))
+        return RuntimeReviewSourceCommand(runtime, command_id, argument);
 
     /* Run uses the existing project session, so Stop must cancel that same
      * owner instead of falling through to an unrelated generic host command.
@@ -722,10 +744,25 @@ static UmiStatus runtime_route_command(
 
     /* Layout commands use the Data Server checkpoint, not the older shell
      * session file, and never replace source-document saving. */
+    /* Both Window menu aliases must use the active canvas Data Server owner.
+     * The generic alias registry remains available to headless/legacy hosts,
+     * but must not save a different session model for this native window. */
+#if 0
     if (strcmp(command_id, "studio.layout.save") == 0)
         return runtime_workspace_save(runtime);
     if (strcmp(command_id, "studio.layout.restore") == 0)
         return runtime_workspace_restore(runtime);
+#endif
+    if (strcmp(command_id, "studio.layout.save") == 0 ||
+        strcmp(command_id, "layout.save") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return runtime_workspace_save(runtime);
+    }
+    if (strcmp(command_id, "studio.layout.restore") == 0 ||
+        strcmp(command_id, "layout.restore") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return runtime_workspace_restore(runtime);
+    }
     /* Reject before a legacy named-layout command can mutate shell state. */
     if ((strncmp(command_id, "studio.layout.", 14U) == 0 &&
          strcmp(command_id, "studio.layout.manager") != 0) ||
@@ -944,6 +981,10 @@ static UmiStatus runtime_route_command(
             argument);
     }
 
+    /* Branches opens existing state; checkout remains a separate user action. */
+    if (strcmp(command_id, "source-control.branches") == 0)
+        return RuntimeRevealBranches(runtime, argument);
+
     /* Source Control menu commands are mapped to the canonical VCS facade. */
     if (strcmp(command_id, "source-control.refresh") == 0) {
         return runtime_execute_registered_command(
@@ -1012,16 +1053,29 @@ static UmiStatus runtime_route_command(
         RuntimeShowQuickOpen(runtime);
         return UMI_STATUS_OK;
     }
+    /* Preserve the unchecked route; the current route returns real native admission. */
+#if 0
     if (strcmp(command_id, "studio.command.search") == 0 ||
         strcmp(command_id, "workbench.command-palette") == 0) {
         runtime_show_command_palette(runtime);
         return UMI_STATUS_OK;
     }
+#endif
+    if (strcmp(command_id, "studio.command.search") == 0 ||
+        strcmp(command_id, "workbench.command-palette") == 0)
+        return RuntimePresentCommandPalette(runtime, argument);
     /* Use the stable identifier comparison to choose the matching record or policy. */
+    /* The Window menu and compatibility shortcut share one checked owner.
+     * Retain the former unconditional-success route for engineering review. */
+#if 0
     if (strcmp(command_id, "studio.layout.manager") == 0) {
         runtime_show_layout_browser(runtime);
         return UMI_STATUS_OK;
     }
+#endif
+    if (strcmp(command_id, "studio.layout.manager") == 0 ||
+        strcmp(command_id, "layout.manager") == 0)
+        return RuntimePresentLayoutBrowser(runtime, argument);
 
     /* Native named presets use the same professional model as the selector.
      * The shell receives only its accepted one-way projection afterward. */
@@ -1100,6 +1154,708 @@ static UmiStatus runtime_route_command(
         runtime_file_dialog_request_free(binding);
         return status;
     }
+
+    /* Keyboard references read the same bindings as the native key dispatcher. */
+    if (strcmp(command_id, "help.shortcuts") == 0)
+        return RuntimeShowShortcutReference(runtime, argument);
+
+    /* Welcome and returning to source share the retained native editor owner. */
+    if (strcmp(command_id, "help.welcome") == 0)
+        return RuntimeShowWelcome(runtime, argument);
+    if (strcmp(command_id, "studio.welcome.return") == 0)
+        return RuntimeReturnToEditor(runtime, argument);
+
+    /* Help actions reveal operational workbench panels rather than sending
+     * users to a disconnected placeholder or a separate application. */
+#ifdef UMICOM_STUDIO_HAS_LEARNING_CATALOGUE
+    if (RuntimeLearningCommandKnown(command_id))
+        return RuntimeLearningDispatch(runtime, command_id);
+#endif
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
+    if (strcmp(command_id, "help.ai-teacher") == 0) {
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LEARNING);
+        return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "help.ai-teacher") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LEARNING);
+    }
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
+    if (strcmp(command_id, "help.documentation") == 0) {
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DOCUMENTATION);
+        return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "help.documentation") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DOCUMENTATION);
+    }
+
+    /* View/activity navigation opens a canonical singleton through the same
+     * owner used by the catalogue. No legacy shell placement is imported. */
+    {
+        size_t index;
+        for (index = 0U; index < sizeof(RUNTIME_SURFACE_PROFILES) /
+                sizeof(RUNTIME_SURFACE_PROFILES[0]); ++index) {
+            const UmiStudioGtkSurfaceProfile *profile = &RUNTIME_SURFACE_PROFILES[index];
+            if (profile->command_id[0] != '\0' &&
+                strcmp(profile->command_id, command_id) == 0)
+                return runtime_workspace_open_surface(runtime, profile->kind, NULL);
+        }
+    }
+    /* Canonical identifiers from command search and native integrations must
+     * keep Studio's scheduling wrapper, just like the menu aliases above.
+     * Falling through to the generic host executes registry handlers directly
+     * and loses background arming, save admission and completion feedback. */
+    if (RuntimeBuildReadsSavedDocuments(command_id) ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_REFRESH) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_DISCOVER) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RUN_ALL) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RUN_SELECTED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_RERUN_FAILED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TESTS_REPEAT_SELECTED) == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_TERMINAL_EXECUTE) == 0)
+        return runtime_execute_registered_command(runtime, command_id, argument);
+    return runtime_execute_phase1_host_command(runtime, command_id, argument);
+}
+#endif
+static UmiStatus runtime_route_command(
+    UmiStudioGtkRuntimeChrome *runtime,
+    const char *command_id,
+    const char *argument)
+{
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (runtime == NULL || command_id == NULL ||
+        command_id[0] == '\0') {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+
+    if (strcmp(command_id, "codeguard.scan") == 0 || strcmp(command_id, "codeguard.cancel") == 0)
+        return RuntimeCodeGuardCommand(runtime, command_id, argument);
+
+    /* Product code supplies identity only. Framework owns native dialog
+     * caching, branding and observers; no runtime pointer crosses the call. */
+    if (strcmp(command_id, "help.about") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        if (runtime->owner == NULL) return UMI_STATUS_INVALID_STATE;
+        return UmiStudioAboutPresent(runtime->owner->window);
+    }
+
+    /* Debugger menu navigation only exposes the existing controls.
+     * It never treats opening the form as permission to attach a process. */
+    if (strcmp(command_id, "view.zen") == 0) return RuntimeToggleZen(runtime, argument);
+
+    if (strcmp(command_id, "debug.attach") == 0 || strcmp(command_id, "debug.breakpoints") == 0)
+        return RuntimeRevealDebuggerControl(runtime, command_id, argument);
+
+    /* Source inspection menu commands share the editor toolbar owner.
+     * The Framework repeats capture and busy checks for retained commands. */
+    if (UmiGtk4AdapterSourceNavigationCommandKnown(command_id))
+        return RuntimeReviewSourceCommand(runtime, command_id, argument);
+
+    /* Run uses the existing project session, so Stop must cancel that same
+     * owner instead of falling through to an unrelated generic host command.
+     * Admission is repeated here for retained menu and command-search requests. */
+    if (strcmp(command_id, "run.stop") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        UmiStudioServices *services = runtime->owner != NULL && runtime->owner->ui != NULL
+            ? umi_studio_ui_services(runtime->owner->ui) : NULL;
+        if (services == NULL || !UmiStudioBuildBusy(umi_studio_services_build(services)))
+            return UMI_STATUS_INVALID_STATE;
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_BUILD_CANCEL, NULL);
+    }
+    if (strcmp(command_id, "run.restart") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_BUILD_RUN_RESTART, NULL);
+    }
+    /* Run With presents the established Framework settings/configuration form.
+     * Normalize before its existing busy and lifetime checks; opening the form
+     * does not apply a profile, grant trust, save source or launch a process. */
+    if (strcmp(command_id, "run.select-configuration") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        command_id = "build.settings";
+    }
+
+    /* Repeat workspace/profile availability at execution: a stale menu must
+     * not replace the workspace of a pending or active debug process. */
+    if (runtime->owner != NULL && UmiStudioDebuggerNativeBusy(
+            umi_studio_services_debugger(umi_studio_ui_services(runtime->owner->ui))) &&
+        (strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, "build.settings") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0))
+        return UMI_STATUS_BUSY;
+
+    if (runtime->owner != NULL && UmiGtk4AdapterReplacementReviewBusy(runtime->owner->adapter) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
+         strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0 ||
+         strcmp(command_id, UMI_STUDIO_COMMAND_WORKSPACE_CLOSE) == 0)) return UMI_STATUS_BUSY;
+    if (strcmp(command_id, "editor.replace-complete-set") == 0)
+        return RuntimeReviewReplacementSet(runtime);
+
+    if (strcmp(command_id, "project.editor-config") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeOpenEditorConfigInspection(runtime);
+    }
+    if (strcmp(command_id, "project.board") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+#if defined(UMICOM_STUDIO_HAS_KANBAN)
+        return RuntimeOpenProjectBoard(runtime);
+#else
+        return UMI_STATUS_NOT_IMPLEMENTED;
+#endif
+    }
+
+    if (strcmp(command_id, "editor.replace-open-documents") == 0)
+        return RuntimeReviewOpenReplacements(runtime);
+
+    /* Both shell and editor aliases use the same Framework-owned timeline. */
+    if (strcmp(command_id, "navigate.back") == 0 || strcmp(command_id, "editor.navigate.back") == 0)
+        /* Framework retains history ownership. Studio now reveals the editor
+         * for this explicit navigation; the previous direct return is retained. */
+#if 0
+        return UmiGtk4AdapterTravelDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL, -1);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_BACK);
+    if (strcmp(command_id, "navigate.forward") == 0 || strcmp(command_id, "editor.navigate.forward") == 0)
+        /* Framework retains history ownership. Studio now reveals the editor
+         * for this explicit navigation; the previous direct return is retained. */
+#if 0
+        return UmiGtk4AdapterTravelDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL, 1);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_FORWARD);
+    if (strcmp(command_id, "navigate.history.clear") == 0)
+        return UmiGtk4AdapterClearNavigationHistory(runtime->owner != NULL ? runtime->owner->adapter : NULL);
+
+    /* Bookmark state and navigation remain owned by Framework. */
+    if (strcmp(command_id, "editor.bookmark.toggle") == 0)
+        return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 0);
+    if (strcmp(command_id, "editor.bookmark.next") == 0)
+/* Explicit bookmark navigation now reveals the destination in the native layout. Preserve the model-only route for review. */
+#if 0
+        return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 1);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_NEXT_BOOKMARK);
+    if (strcmp(command_id, "editor.bookmark.previous") == 0)
+/* Explicit bookmark navigation now reveals the destination in the native layout. Preserve the model-only route for review. */
+#if 0
+        return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, -1);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_PREVIOUS_BOOKMARK);
+    if (strcmp(command_id, "editor.bookmark.clear") == 0)
+        return UmiGtk4AdapterBookmarkCommand(runtime->owner != NULL ? runtime->owner->adapter : NULL, 2);
+    /* The shared coordinator owns closed paths; Studio supplies user intent. */
+    if (strcmp(command_id, "file.reopen-closed") == 0)
+        /* Framework retains history ownership. Studio now reveals the editor
+         * for this explicit navigation; the previous direct return is retained. */
+#if 0
+        return UmiGtk4AdapterReopenDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL);
+#endif
+        return RuntimeNavigateExistingSource(runtime, UMI_STUDIO_SOURCE_REOPEN);
+    if (strcmp(command_id, "file.forget-closed") == 0)
+        return UmiGtk4AdapterForgetClosedDocument(runtime->owner != NULL ? runtime->owner->adapter : NULL);
+    if (strcmp(command_id, "file.close-all.cancel") == 0)
+        return runtime->owner != NULL
+            ? UmiGtk4AdapterCancelCloseDocuments(runtime->owner->adapter)
+            : UMI_STATUS_INVALID_ARGUMENT;
+    if (strcmp(command_id, "file.close-all") == 0 || strcmp(command_id, "file.close-others") == 0)
+        return RuntimeCloseDocuments(runtime, strcmp(command_id, "file.close-others") == 0
+            ? UMI_DOCUMENT_CLOSE_OTHERS : UMI_DOCUMENT_CLOSE_ALL);
+    if (runtime->owner != NULL && UmiGtk4AdapterCloseDocumentsBusy(runtime->owner->adapter) &&
+        (RuntimeBuildReadsSavedDocuments(command_id) || strcmp(command_id, "application.exit") == 0 ||
+         strcmp(command_id, "project.new") == 0 ||
+         strcmp(command_id, "project.new-application") == 0 || strcmp(command_id, "workspace.open-folder") == 0))
+        return UMI_STATUS_BUSY;
+
+
+    if (strcmp(command_id, "file.save-copy") == 0) return RuntimeSaveCopy(runtime, argument);
+
+    if (strcmp(command_id, "file.open.cancel") == 0 ||
+        strcmp(command_id, "file.open.results") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return strcmp(command_id, "file.open.cancel") == 0
+            ? umi_studio_gtk_workbench_cancel_open_files(runtime->owner)
+            : RuntimeReviewOpenFiles(runtime);
+    }
+    if (strcmp(command_id, "file.save-all.cancel") == 0)
+        return RuntimeCancelSaveAll(runtime);
+
+    /* Repeat availability at dispatch, including registered command aliases. */
+    if (RuntimeBuildReadsSavedDocuments(command_id) && runtime->owner != NULL &&
+        UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter))
+        return UMI_STATUS_BUSY;
+
+    /* Source commands reveal and recheck the same editor before mutation. */
+    if (strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_NEWLINE) == 0 ||
+        strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_PLAIN_NEWLINE) == 0 ||
+        strcmp(command_id, UMI_DOCUMENT_COMMAND_INSERT_INDENTATION) == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeSourceLineCommand(runtime, command_id);
+    }
+
+    UmiEditorEditCommandKind lineKind;
+    if (UmiDocumentLineEditCommandFromId(command_id, &lineKind) == UMI_STATUS_OK) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeSourceLineCommand(runtime, command_id);
+    }
+
+    UmiDocumentEditCommand editCommand;
+    if (UmiDocumentEditCommandFromId(command_id, &editCommand) == UMI_STATUS_OK)
+        return UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, command_id);
+
+/* Source-location commands now reveal the selected editor through the existing Studio presentation boundary; retain the model-only dispatch for review. */
+#if 0
+    if (strcmp(command_id, "umicom.document.go-to-line") == 0) {
+        return argument != NULL && argument[0] != '\0'
+            ? UmiGtk4AdapterDocumentNavigate(runtime->owner->adapter, argument)
+            : UmiGtk4AdapterPromptDocumentLocation(runtime->owner->adapter);
+    }
+#endif
+    if (strcmp(command_id, "umicom.document.go-to-line") == 0)
+        return RuntimeSourceLocation(runtime, argument);
+    if (strcmp(command_id, "file.reload") == 0 || strcmp(command_id, "umicom.document.revert") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeReviewSourceReload(runtime);
+    }
+
+
+    if (strcmp(command_id, "navigate.document.next") == 0 ||
+        strcmp(command_id, "navigate.document.previous") == 0)
+/* Open-document cycling now reveals and focuses the selected editor while retaining the shared Framework ordering. */
+#if 0
+        return UmiGtk4AdapterCycleDocument(runtime->owner->adapter,
+            strcmp(command_id, "navigate.document.next") == 0 ? 1 : -1);
+#endif
+        return RuntimeNavigateExistingSource(runtime,
+            strcmp(command_id, "navigate.document.next") == 0
+                ? UMI_STUDIO_SOURCE_NEXT_DOCUMENT : UMI_STUDIO_SOURCE_PREVIOUS_DOCUMENT);
+
+    /* Layout commands use the Data Server checkpoint, not the older shell
+     * session file, and never replace source-document saving. */
+    /* Both Window menu aliases must use the active canvas Data Server owner.
+     * The generic alias registry remains available to headless/legacy hosts,
+     * but must not save a different session model for this native window. */
+#if 0
+    if (strcmp(command_id, "studio.layout.save") == 0)
+        return runtime_workspace_save(runtime);
+    if (strcmp(command_id, "studio.layout.restore") == 0)
+        return runtime_workspace_restore(runtime);
+#endif
+    if (strcmp(command_id, "studio.layout.save") == 0 ||
+        strcmp(command_id, "layout.save") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return runtime_workspace_save(runtime);
+    }
+    if (strcmp(command_id, "studio.layout.restore") == 0 ||
+        strcmp(command_id, "layout.restore") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return runtime_workspace_restore(runtime);
+    }
+    /* Reject before a legacy named-layout command can mutate shell state. */
+    if ((strncmp(command_id, "studio.layout.", 14U) == 0 &&
+         strcmp(command_id, "studio.layout.manager") != 0) ||
+        strcmp(command_id, "designer.open") == 0) {
+        UmiUiWorkspaceCustomisation *model = runtime_workspace_model(runtime);
+        if (model != NULL && model->edit_active) {
+            runtime_show_notification(runtime, "Apply or cancel this layout edit first.");
+            return UMI_STATUS_BUSY;
+        }
+    }
+
+/* Problem navigation now explicitly reveals the selected editor. Retain the old refresh-only route for review. */
+#if 0
+    if (strcmp(command_id, "navigate.problem.next") == 0 ||
+        strcmp(command_id, "navigate.problem.previous") == 0) {
+        UmiStatus status = UmiStudioUiNavigateProblem(runtime->owner->ui,
+            strcmp(command_id, "navigate.problem.previous") == 0);
+        if (status != UMI_STATUS_OK) runtime_show_notification(runtime,
+            "No available source location was opened. Read Problems and Output for details.");
+        (void)runtime_refresh_services(runtime);
+        return status;
+    }
+#endif
+    if (strcmp(command_id, "navigate.problem.next") == 0 ||
+        strcmp(command_id, "navigate.problem.previous") == 0)
+        return RuntimeNavigateProblem(runtime, strcmp(command_id, "navigate.problem.previous") == 0);
+
+    if (strcmp(command_id, "project.new") == 0) return RuntimeNewProject(runtime);
+    if (strcmp(command_id, "project.new-application") == 0) return RuntimeNewApplication(runtime);
+    if (strcmp(command_id, "file.new") == 0) return runtime_document_new(runtime);
+    /* Shared descriptors keep availability and dispatch on the same exact IDs. */
+    /* Framework owns syntax selection and the single document transaction. */
+    if (strcmp(command_id, "editor.toggle-language-comment") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterDocumentCommand(runtime->owner->adapter, UMI_DOCUMENT_COMMAND_TOGGLE_LANGUAGE_COMMENT);
+    }
+    UmiEditorSourceSelectionKind sourceSelection;
+    if (UmiDocumentSourceSelectionCommandFromId(command_id, &sourceSelection) == UMI_STATUS_OK) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterSelectSourceUnit(runtime->owner->adapter, sourceSelection);
+    }
+    if (strcmp(command_id, "editor.replace-selection") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return RuntimeReviewSelectionReplacement(runtime);
+    }
+    if (strcmp(command_id, "editor.document-language") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterReviewDocumentLanguage(runtime->owner->adapter, 0U);
+    }
+    if (strcmp(command_id, "editor.inspect-source") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterInspectDocumentText(runtime->owner->adapter, 0U);
+    }
+    for (size_t i = 0U; i < UmiDocumentWhitespaceCommandCount(); ++i)
+        if (strcmp(command_id, UmiDocumentWhitespaceCommandAt(i)->id) == 0) {
+            if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+            return UmiGtk4AdapterReviewWhitespaceCommand(runtime->owner->adapter, command_id);
+        }
+    if (strcmp(command_id, "editor.project-indentation") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        UmiStudioWorkspaceSnapshot workspace;
+        UmiStatus status = umi_studio_workspace_snapshot(umi_studio_ui_services(runtime->owner->ui), &workspace);
+        if (status != UMI_STATUS_OK) return status;
+        if (!workspace.graph.open) return UMI_STATUS_INVALID_STATE;
+        return UmiGtk4AdapterReviewEditorConfig(runtime->owner->adapter, workspace.graph.root, 0U);
+    }
+    if (strcmp(command_id, "editor.document-indentation") == 0) {
+        if (argument != NULL && argument[0] != '\0') return UMI_STATUS_INVALID_ARGUMENT;
+        return UmiGtk4AdapterReviewDocumentIndentation(runtime->owner->adapter, 0U);
+    }
+    if (strcmp(command_id, "editor.preferences") == 0) return RuntimeOpenEditorPreferences(runtime);
+    if (strcmp(command_id, "build.settings") == 0) return RuntimeBuildSettings(runtime);
+    if (strcmp(command_id, "build.test") == 0)
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_TEST);
+    if (strcmp(command_id, "build.cancel") == 0)
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_BUILD_CANCEL, NULL);
+
+    /* File/workspace commands requiring native GTK path selection. */
+/* Explicit file paths from accessibility and command clients use the same open route as the chooser; keep the chooser-only route for review. */
+#if 0
+    if (strcmp(command_id, "file.open") == 0) {
+        return runtime_choose_file_to_open(runtime);
+    }
+#endif
+    if (strcmp(command_id, "file.open") == 0) {
+        return argument != NULL && argument[0] != '\0'
+            ? RuntimeOpenSourcePath(runtime, argument)
+            : runtime_choose_file_to_open(runtime);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "workspace.open-folder") == 0) {
+        /* Recent-work actions already know their path, while ordinary menu
+         * actions still open the native folder chooser. */
+        return argument != NULL && argument[0] != '\0'
+            ? runtime_open_workspace_path(runtime, argument)
+            : runtime_choose_workspace_folder(runtime);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "file.save") == 0) {
+        return runtime_document_save(runtime);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "file.save-as") == 0) {
+        return runtime_choose_save_as(runtime);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    /* REFACTOR: GUI Save All now delegates to Framework's save_session.c and
+     * document_saving_gtk4.c. They can wait for an untitled filename and report
+     * partial saves. The named-only synchronous API remains for build services.
+     * Former Studio route retained below; do not enable both routes. */
+    // if (strcmp(command_id, "file.save-all") == 0) {
+    // UmiStatus status = UmiDocumentCoordinatorSaveAll(
+    // umi_studio_ui_documents(runtime->owner->ui), NULL);
+    // (void)runtime_refresh_services(runtime);
+    // return status;
+    // }
+    if (strcmp(command_id, "file.save-all") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_DOCUMENTS_SAVE_ALL) == 0) {
+        return runtime_document_save_all(runtime);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "file.close") == 0) {
+        return runtime_document_close(runtime);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "application.exit") == 0) {
+        gtk_window_close(runtime->owner->window);
+        return UMI_STATUS_OK;
+    }
+
+    /* Build/run commands reuse the canonical Studio service registrations. */
+/* The canonical dispatcher now owns save-before-debug for menus, buttons and command search. Retain the menu-only gate for review; its continuation could outlive document notifications. */
+#if 0
+    if (strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0) {
+        if (UmiGtk4AdapterDocumentSaveAllBusy(runtime->owner->adapter) ||
+            UmiGtk4AdapterDocumentCloseBusy(runtime->owner->adapter)) return UMI_STATUS_BUSY;
+        UmiStatus saved = UmiDocumentCoordinatorSaveAll(umi_studio_ui_documents(runtime->owner->ui), NULL);
+        if (saved != UMI_STATUS_OK) return saved;
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_DEBUG_START, argument);
+    }
+#endif
+    if (strcmp(command_id, "debug.start") == 0 || strcmp(command_id, UMI_STUDIO_COMMAND_DEBUG_START) == 0)
+        return runtime_execute_registered_command(runtime, UMI_STUDIO_COMMAND_DEBUG_START, argument);
+
+    if (strcmp(command_id, "build.package") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_PACKAGE) == 0)
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_PACKAGE);
+    if (strcmp(command_id, "build.rebuild") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_REBUILD) == 0)
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_REBUILD);
+    if (strcmp(command_id, "build.deploy") == 0 ||
+        strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_DEPLOY) == 0)
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_DEPLOY);
+    if (strcmp(command_id, "build.configure") == 0) {
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_CONFIGURE);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "build.build") == 0) {
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_COMPILE);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "build.clean") == 0) {
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_CLEAN);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "build.install") == 0) {
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_INSTALL);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    /* This explicit route must remain outside RuntimeBackgroundBuild: running
+     * an existing executable neither saves drafts nor starts a compiler. */
+    if (strcmp(command_id, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT) == 0)
+        return runtime_execute_registered_command(
+            runtime, UMI_STUDIO_COMMAND_BUILD_RUN_CURRENT, argument);
+    if (strcmp(command_id, "run.start") == 0) {
+        return RuntimeBackgroundBuild(runtime, UMI_STUDIO_COMMAND_BUILD_RUN);
+    }
+
+    /* Shell aliases use the same Framework-backed test service as the Test
+     * Explorer. The service remains responsible for selection, trust, project
+     * identity and adapter availability; the menu does not infer success. */
+    if (strcmp(command_id, "test.discover") == 0 ||
+        strcmp(command_id, "test.run-selected") == 0 ||
+        strcmp(command_id, "test.debug-selected") == 0 ||
+        strcmp(command_id, "test.coverage-all") == 0)
+        return runtime_execute_registered_command(runtime,
+            runtime_mapped_studio_command(command_id), argument);
+
+    /* Professional Test Explorer operations. */
+    if (strcmp(command_id, "test.run-all") == 0) {
+        return runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_TESTS_RUN_ALL,
+            argument);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "test.rerun-failed") == 0) {
+        return runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_TESTS_RERUN_FAILED,
+            argument);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "test.stop") == 0) {
+        return runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_TESTS_STOP,
+            argument);
+    }
+
+    /* Debugging commands use Studio's existing DAP-backed service. */
+    if (strcmp(command_id, "debug.start") == 0) {
+        return runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_DEBUG_START,
+            argument);
+    }
+
+    /* Branches opens existing state; checkout remains a separate user action. */
+    if (strcmp(command_id, "source-control.branches") == 0)
+        return RuntimeRevealBranches(runtime, argument);
+
+    /* Source Control menu commands are mapped to the canonical VCS facade. */
+    if (strcmp(command_id, "source-control.refresh") == 0) {
+        return runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_VCS_REFRESH,
+            argument);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.stage-all") == 0) {
+        return runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_VCS_STAGE_ALL,
+            argument);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.commit") == 0) {
+        return runtime_prompt_text(
+            runtime,
+            "Commit Changes",
+            "Enter the Git commit message.",
+            "",
+            "Commit",
+            runtime_route_vcs_commit_accepted);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.pull") == 0) {
+        return runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_VCS_PULL,
+            argument);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.push") == 0) {
+        return runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_VCS_PUSH,
+            argument);
+    }
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    if (strcmp(command_id, "source-control.diff") == 0 &&
+        runtime->selected_vcs_path[0] != '\0') {
+        UmiStatus status = runtime_execute_registered_command(
+            runtime,
+            UMI_STUDIO_COMMAND_VCS_DIFF,
+            runtime->selected_vcs_path);
+        /* Preserve the original failure result so the caller can respond to the correct cause. */
+        if (status == UMI_STATUS_OK) {
+            runtime_show_selected_diff(runtime);
+        }
+        return status;
+    }
+
+    /* Local UI entry points are deliberately not phantom registry commands. */
+    /* Retain the keyboard-only spelling for compatibility. The shell uses
+     * workbench.command-palette and must reach this same native window. */
+#if 0
+    if (strcmp(command_id, "studio.command.search") == 0) {
+        runtime_show_command_palette(runtime);
+        return UMI_STATUS_OK;
+    }
+#endif
+    /* Navigate and View share the Framework indexed-file picker and its
+     * captured workspace ownership; no second document-opening path is needed. */
+    if (strcmp(command_id, "workbench.quick-open") == 0 ||
+        strcmp(command_id, "navigate.file") == 0) {
+        RuntimeShowQuickOpen(runtime);
+        return UMI_STATUS_OK;
+    }
+    /* Preserve the unchecked route; the current route returns real native admission. */
+#if 0
+    if (strcmp(command_id, "studio.command.search") == 0 ||
+        strcmp(command_id, "workbench.command-palette") == 0) {
+        runtime_show_command_palette(runtime);
+        return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "studio.command.search") == 0 ||
+        strcmp(command_id, "workbench.command-palette") == 0)
+        return RuntimePresentCommandPalette(runtime, argument);
+    /* Use the stable identifier comparison to choose the matching record or policy. */
+    /* The Window menu and compatibility shortcut share one checked owner.
+     * Retain the former unconditional-success route for engineering review. */
+#if 0
+    if (strcmp(command_id, "studio.layout.manager") == 0) {
+        runtime_show_layout_browser(runtime);
+        return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "studio.layout.manager") == 0 ||
+        strcmp(command_id, "layout.manager") == 0)
+        return RuntimePresentLayoutBrowser(runtime, argument);
+
+    /* Native named presets use the same professional model as the selector.
+     * The shell receives only its accepted one-way projection afterward. */
+    if (strncmp(command_id, "studio.layout.", 14U) == 0 ||
+        strcmp(command_id, "designer.open") == 0) {
+        const char *layout_id = strcmp(command_id, "designer.open") == 0
+            ? "visual-design" : command_id + 14U;
+        UmiStatus status = runtime_workspace_select_layout(runtime, layout_id);
+        if (status == UMI_STATUS_OK && strcmp(layout_id, "code-preview") == 0) {
+            runtime_workspace_focus_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
+            (void)runtime_live_preview_refresh(runtime, 1);
+        } else if (status == UMI_STATUS_OK && strcmp(layout_id, "visual-design") == 0) {
+            runtime->designer_active_surface = UMI_STUDIO_SURFACE_VISUAL_DESIGNER;
+            runtime_workspace_focus_surface(runtime, UMI_STUDIO_SURFACE_VISUAL_DESIGNER);
+        }
+        return status;
+    }
+
+    /* Mode commands select an already registered central authoring surface.
+     * The same surfaces remain available through the Window catalogue. */
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
+    if (strcmp(command_id, "designer.code") == 0) {
+        runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_CODE;
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_CODE);
+        return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "designer.code") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_CODE);
+    }
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
+    if (strcmp(command_id, "designer.mixed") == 0) {
+        runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_MIXED;
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_MIXED);
+        return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "designer.mixed") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_MIXED);
+    }
+    /* Preserve the unconditional-success route for engineering review. */
+#if 0
+    if (strcmp(command_id, "designer.preview") == 0) {
+        runtime->designer_active_surface = UMI_STUDIO_SURFACE_DESIGN_PREVIEW;
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_PREVIEW);
+        return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "designer.preview") == 0) {
+        return runtime_show_surface(runtime, UMI_STUDIO_SURFACE_DESIGN_PREVIEW);
+    }
+
+    /* Live Preview follows the ordinary editor document and remains separate
+     * from the declarative visual designer's Preview mode. */
+    /* Preview used to refresh a possibly retired owner and discard both results.
+     * Presentation and rendering now share a checked weak owner boundary. */
+#if 0
+    if (strcmp(command_id, "view.live-preview") == 0) {
+        runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
+        (void)runtime_live_preview_refresh(runtime, 1);
+        return UMI_STATUS_OK;
+    }
+#endif
+    if (strcmp(command_id, "view.live-preview") == 0) {
+        UmiStudioFileDialogRequest *binding = runtime_file_dialog_request_new(runtime, 0U);
+        if (binding == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+        UmiStatus status = runtime_show_surface(runtime, UMI_STUDIO_SURFACE_LIVE_PREVIEW);
+        GObject *window = NULL;
+        runtime = runtime_file_dialog_owner(binding, &window);
+        if (status == UMI_STATUS_OK)
+            status = runtime != NULL ? runtime_live_preview_refresh(runtime, 1)
+                                     : UMI_STATUS_CANCELLED;
+        g_clear_object(&window);
+        runtime_file_dialog_request_free(binding);
+        return status;
+    }
+
+    /* Keyboard references read the same bindings as the native key dispatcher. */
+    if (strcmp(command_id, "help.shortcuts") == 0)
+        return RuntimeShowShortcutReference(runtime, argument);
+
+    /* Welcome and returning to source share the retained native editor owner. */
+    if (strcmp(command_id, "help.welcome") == 0)
+        return RuntimeShowWelcome(runtime, argument);
+    if (strcmp(command_id, "studio.welcome.return") == 0)
+        return RuntimeReturnToEditor(runtime, argument);
 
     /* Help actions reveal operational workbench panels rather than sending
      * users to a disconnected placeholder or a separate application. */
