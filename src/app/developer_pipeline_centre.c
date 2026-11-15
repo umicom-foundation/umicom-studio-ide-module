@@ -184,6 +184,8 @@ void umi_studio_developer_pipeline_centre_destroy(
  * Provide the studio developer pipeline centre snapshot operation used by this module and
  * its client applications.
  */
+/* Publish the complete Studio observation only after both Framework snapshots and aggregate arithmetic succeed; retain earlier incremental output writes for comparison. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_snapshot(
     UmiStudioDeveloperPipelineCentre *centre,
     UmiStudioDeveloperPipelineCentreSnapshot *out_snapshot)
@@ -237,10 +239,70 @@ UmiStatus umi_studio_developer_pipeline_centre_snapshot(
     return UMI_STATUS_OK;
 }
 
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_snapshot(
+    UmiStudioDeveloperPipelineCentre *centre,
+    UmiStudioDeveloperPipelineCentreSnapshot *out_snapshot)
+{
+    if (centre == NULL || out_snapshot == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* A composite observation is one value. Keep the sizeable draft off the
+     * UI stack and publish it only after every child and aggregate is valid. */
+    UmiStudioDeveloperPipelineCentreSnapshot *staged = calloc(1U, sizeof(*staged));
+    if (staged == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    UmiDeveloperRuntimeSnapshot runtime_snapshot;
+    UmiStatus status = umi_developer_runtime_snapshot(centre->runtime, &runtime_snapshot);
+    if (status != UMI_STATUS_OK) goto finished;
+    status = umi_build_delivery_pipeline_snapshot(centre->delivery, &staged->delivery);
+    if (status != UMI_STATUS_OK) goto finished;
+
+    staged->revision = centre->revision;
+    const uint64_t revisions[] = {runtime_snapshot.revision, staged->delivery.revision};
+    for (size_t i = 0U; i < sizeof(revisions) / sizeof(revisions[0]); ++i) {
+        if (revisions[i] > UINT64_MAX - staged->revision) {
+            status = UMI_STATUS_CAPACITY_EXCEEDED;
+            goto finished;
+        }
+        staged->revision += revisions[i];
+    }
+    const size_t counts[] = {
+        runtime_snapshot.pipeline.operation_count, runtime_snapshot.journal.entry_count,
+        staged->delivery.tasks.planned_count, staged->delivery.artifacts.artifact_count,
+        staged->delivery.deployment.plan.step_count
+    };
+    for (size_t i = 0U; i < sizeof(counts) / sizeof(counts[0]); ++i) {
+        if (counts[i] > SIZE_MAX - staged->item_count) {
+            status = UMI_STATUS_CAPACITY_EXCEEDED;
+            goto finished;
+        }
+        staged->item_count += counts[i];
+    }
+    staged->struct_size = (uint32_t)sizeof(*staged);
+    staged->api_version = 2U;
+    copy_text(staged->area_id, sizeof(staged->area_id), "studio.developer-pipeline");
+    copy_text(staged->title, sizeof(staged->title), "Build, Tasks and Deployment");
+    copy_text(staged->summary, sizeof(staged->summary),
+        "Framework-owned incremental build graph, dependency tasks, artifact evidence and governed deployment pipeline.");
+    staged->context = runtime_snapshot.context;
+    staged->pipeline = runtime_snapshot.pipeline;
+    staged->journal = runtime_snapshot.journal;
+    staged->delivery_command_count = umi_studio_build_delivery_command_contribution_count();
+    staged->delivery_view_count = umi_studio_build_delivery_view_contribution_count();
+    staged->available = 1;
+    if (centre->has_project_workflow) {
+        staged->last_project_workflow = centre->last_project_workflow;
+        staged->has_project_workflow = 1;
+    }
+    *out_snapshot = *staged;
+finished:
+    free(staged);
+    return status;
+}
 /*
  * Provide the studio developer pipeline centre prepare cmake operation used by this module
  * and its client applications.
  */
+/* Admit the Studio owner revision before delegating to Framework; preserve successful behavior and the earlier wrapper for review. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_prepare_cmake(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperCMakePlanRequest *request,
@@ -259,10 +321,33 @@ UmiStatus umi_studio_developer_pipeline_centre_prepare_cmake(
     return status;
 }
 
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_prepare_cmake(
+    UmiStudioDeveloperPipelineCentre *centre,
+    const UmiDeveloperCMakePlanRequest *request,
+    UmiDeveloperCMakePlanSnapshot *out_plan)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Reserve this composition identity before nested work or execution. */
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_INVALID_STATE;
+    status = umi_developer_runtime_submit_cmake_plan(
+        centre->runtime, request, out_plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) centre->revision += 1U;
+    return status;
+}
+
 /*
  * Provide the studio developer pipeline centre execute next operation used by this module
  * and its client applications.
  */
+/* Admit the Studio owner revision before delegating to Framework; preserve successful behavior and the earlier wrapper for review. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_execute_next(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperExecutor *executor,
@@ -275,6 +360,28 @@ UmiStatus umi_studio_developer_pipeline_centre_execute_next(
      * used.
      */
     if (centre == NULL || executor == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_developer_runtime_execute_next(
+        centre->runtime, executor, out_operation, out_result);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) centre->revision += 1U;
+    return status;
+}
+
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_execute_next(
+    UmiStudioDeveloperPipelineCentre *centre,
+    const UmiDeveloperExecutor *executor,
+    UmiDeveloperOperationSnapshot *out_operation,
+    UmiDeveloperExecutionResult *out_result)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (centre == NULL || executor == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Reserve this composition identity before nested work or execution. */
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_INVALID_STATE;
     status = umi_developer_runtime_execute_next(
         centre->runtime, executor, out_operation, out_result);
     /* Preserve the original failure result so the caller can respond to the correct cause. */
@@ -306,6 +413,8 @@ UmiStatus umi_studio_developer_pipeline_centre_execute_next_process(
  * Provide the studio developer pipeline centre submit task operation used by this module
  * and its client applications.
  */
+/* Admit the Studio owner revision before delegating to Framework; preserve successful behavior and the earlier wrapper for review. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_submit_task(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperTaskPlanRequest *request,
@@ -323,10 +432,32 @@ UmiStatus umi_studio_developer_pipeline_centre_submit_task(
     return status;
 }
 
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_submit_task(
+    UmiStudioDeveloperPipelineCentre *centre,
+    const UmiDeveloperTaskPlanRequest *request,
+    UmiDeveloperTaskPlanSnapshot *out_plan)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Reserve this composition identity before nested work or execution. */
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_INVALID_STATE;
+    status = umi_developer_task_plan_submit(centre->runtime, request, out_plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) centre->revision += 1U;
+    return status;
+}
+
 /*
  * Provide the studio developer pipeline centre submit launch operation used by this module
  * and its client applications.
  */
+/* Admit the Studio owner revision before delegating to Framework; preserve successful behavior and the earlier wrapper for review. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_submit_launch(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperLaunchPlanRequest *request,
@@ -344,10 +475,32 @@ UmiStatus umi_studio_developer_pipeline_centre_submit_launch(
     return status;
 }
 
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_submit_launch(
+    UmiStudioDeveloperPipelineCentre *centre,
+    const UmiDeveloperLaunchPlanRequest *request,
+    UmiDeveloperLaunchPlanSnapshot *out_plan)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Reserve this composition identity before nested work or execution. */
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_INVALID_STATE;
+    status = umi_developer_launch_plan_submit(centre->runtime, request, out_plan);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) centre->revision += 1U;
+    return status;
+}
+
 /*
  * Provide the studio developer pipeline centre submit workflow operation used by this
  * module and its client applications.
  */
+/* Admit the Studio owner revision before delegating to Framework; preserve successful behavior and the earlier wrapper for review. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_submit_workflow(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperWorkflowRequest *request,
@@ -366,10 +519,33 @@ UmiStatus umi_studio_developer_pipeline_centre_submit_workflow(
     return status;
 }
 
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_submit_workflow(
+    UmiStudioDeveloperPipelineCentre *centre,
+    const UmiDeveloperWorkflowRequest *request,
+    UmiDeveloperWorkflowSnapshot *out_workflow)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Reserve this composition identity before nested work or execution. */
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_INVALID_STATE;
+    status = umi_developer_workflow_submit(
+        centre->runtime, request, out_workflow);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) centre->revision += 1U;
+    return status;
+}
+
 /*
  * Provide the studio developer pipeline centre prepare project workflow operation used by
  * this module and its client applications.
  */
+/* Admit the Studio owner revision before delegating to Framework; preserve successful behavior and the earlier wrapper for review. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_prepare_project_workflow(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperProjectWorkflowRequest *request,
@@ -397,10 +573,42 @@ UmiStatus umi_studio_developer_pipeline_centre_prepare_project_workflow(
     return UMI_STATUS_OK;
 }
 
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_prepare_project_workflow(
+    UmiStudioDeveloperPipelineCentre *centre,
+    const UmiDeveloperProjectWorkflowRequest *request,
+    UmiDeveloperProjectWorkflowSnapshot *out_workflow)
+{
+    UmiDeveloperProjectWorkflowSnapshot workflow;
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (centre == NULL || request == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Reserve this composition identity before nested work or execution. */
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_INVALID_STATE;
+    status = umi_developer_project_workflow_submit(
+        centre->runtime, request, &workflow);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status != UMI_STATUS_OK) return status;
+    centre->last_project_workflow = workflow;
+    centre->has_project_workflow = 1;
+    centre->revision += 1U;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (out_workflow != NULL) *out_workflow = workflow;
+    return UMI_STATUS_OK;
+}
+
 /*
  * Provide the studio developer pipeline centre execute batch operation used by this module
  * and its client applications.
  */
+/* Admit the Studio owner revision before delegating to Framework; preserve successful behavior and the earlier wrapper for review. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_execute_batch(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperExecutor *executor,
@@ -422,10 +630,36 @@ UmiStatus umi_studio_developer_pipeline_centre_execute_batch(
     return status;
 }
 
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_execute_batch(
+    UmiStudioDeveloperPipelineCentre *centre,
+    const UmiDeveloperExecutor *executor,
+    const UmiDeveloperBatchExecutionRequest *request,
+    UmiDeveloperBatchExecutionSnapshot *out_snapshot)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (centre == NULL || executor == NULL) {
+        return UMI_STATUS_INVALID_ARGUMENT;
+    }
+    /* Reserve this composition identity before nested work or execution. */
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_INVALID_STATE;
+    status = umi_developer_batch_execute(
+        centre->runtime, executor, request, out_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) centre->revision += 1U;
+    return status;
+}
+
 /*
  * Provide the studio developer pipeline centre execute batch process operation used by
  * this module and its client applications.
  */
+/* Admit the Studio owner revision before delegating to Framework; preserve successful behavior and the earlier wrapper for review. The former implementation is retained for owner review. */
+#if 0
 UmiStatus umi_studio_developer_pipeline_centre_execute_batch_process(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperBatchExecutionRequest *request,
@@ -437,6 +671,27 @@ UmiStatus umi_studio_developer_pipeline_centre_execute_batch_process(
      * used.
      */
     if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    status = umi_developer_batch_execute_process(
+        centre->runtime, request, out_snapshot);
+    /* Preserve the original failure result so the caller can respond to the correct cause. */
+    if (status == UMI_STATUS_OK) centre->revision += 1U;
+    return status;
+}
+
+#endif
+UmiStatus umi_studio_developer_pipeline_centre_execute_batch_process(
+    UmiStudioDeveloperPipelineCentre *centre,
+    const UmiDeveloperBatchExecutionRequest *request,
+    UmiDeveloperBatchExecutionSnapshot *out_snapshot)
+{
+    UmiStatus status;
+    /*
+     * Protect caller-owned memory by checking that required state is available before it is
+     * used.
+     */
+    if (centre == NULL) return UMI_STATUS_INVALID_ARGUMENT;
+    /* Reserve this composition identity before nested work or execution. */
+    if (centre->revision == UINT64_MAX) return UMI_STATUS_INVALID_STATE;
     status = umi_developer_batch_execute_process(
         centre->runtime, request, out_snapshot);
     /* Preserve the original failure result so the caller can respond to the correct cause. */

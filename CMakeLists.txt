@@ -1103,6 +1103,47 @@ if(BUILD_TESTING)
         COMMAND umicom-studio-framework-bootstrap-test
     )
 
+
+    # Test the Studio boundary separately from native Framework operation tests.
+    add_executable(umicom-studio-pipeline-admission-test
+        tests/test_pipeline_centre_admission.c)
+    target_link_libraries(umicom-studio-pipeline-admission-test PRIVATE Umicom::StudioCore)
+    set_target_properties(umicom-studio-pipeline-admission-test PROPERTIES
+        C_STANDARD 23 C_STANDARD_REQUIRED YES C_EXTENSIONS NO)
+    umicom_apply_warnings(umicom-studio-pipeline-admission-test)
+    umicom_apply_sanitizers(umicom-studio-pipeline-admission-test)
+    if(COMMAND umicom_target_qualification_inputs)
+        umicom_target_qualification_inputs(umicom-studio-pipeline-admission-test
+            FILES src/app/developer_pipeline_centre.c
+                include/umicom/studio/developer_pipeline_centre.h)
+    endif()
+    if(COMMAND umicom_register_validation_target)
+        umicom_register_validation_target(umicom-studio-pipeline-admission-test)
+    endif()
+    foreach(_route IN ITEMS cmake task launch workflow project next next-process batch batch-process)
+        foreach(_mode IN ITEMS exhausted last nested-error)
+            add_test(NAME studio.pipeline.admission.${_route}.${_mode}
+                COMMAND umicom-studio-pipeline-admission-test ${_route} ${_mode})
+            set_tests_properties(studio.pipeline.admission.${_route}.${_mode}
+                PROPERTIES TIMEOUT 30 LABELS "studio;developer;revision;composition")
+            if(COMMAND umicom_test_impact_owners)
+                umicom_test_impact_owners(studio.pipeline.admission.${_route}.${_mode}
+                    TARGETS umicom-studio-pipeline-admission-test)
+            endif()
+        endforeach()
+    endforeach()
+    foreach(_mode IN ITEMS success boundary runtime-error delivery-error allocation
+            revision-first revision-second count-first count-last null-output null-centre)
+        add_test(NAME studio.pipeline.snapshot.${_mode}
+            COMMAND umicom-studio-pipeline-admission-test snapshot ${_mode})
+        set_tests_properties(studio.pipeline.snapshot.${_mode}
+            PROPERTIES TIMEOUT 30 LABELS "studio;developer;snapshot;composition")
+        if(COMMAND umicom_test_impact_owners)
+            umicom_test_impact_owners(studio.pipeline.snapshot.${_mode}
+                TARGETS umicom-studio-pipeline-admission-test)
+        endif()
+    endforeach()
+
     # Unified workbench and reusable platform shell coverage.
     foreach(UMICOM_STUDIO_PLATFORM_TEST
             workbench_shell_catalogue

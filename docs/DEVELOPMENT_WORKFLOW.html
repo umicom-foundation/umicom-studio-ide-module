@@ -325,4 +325,21 @@ of a trusted Framework checkout or reinstall the Framework resources.</p>
 <section id="source-navigation-history"><h2>Return after inspecting a failure</h2>
 <p>Opening a compiler diagnostic, test source location or stopped debugger frame records one source jump. Use <strong>Alt+Left</strong> to return to the document and position you left, then <strong>Alt+Right</strong> to revisit the reached location. These commands preserve source text and its undo history.</p>
 <p>If a reported line no longer exists, Studio keeps that source tab available for inspection and returns to the previous active document when it still exists. Next/Previous Problem can continue to another available location. Rebuild or rerun the affected test to obtain current evidence; a navigation result does not change the recorded build or test outcome.</p></section>
+
+<section id="pipeline-observations"><h2>Keep pipeline observations complete</h2>
+<p>The developer pipeline centre combines Framework's active context, operation queue, event journal and delivery state for Studio. Read it through <code>umi_studio_developer_pipeline_centre_snapshot</code> and check the returned status before displaying the result. A failed read preserves the caller's previous snapshot; it does not turn that older observation into a current one.</p>
+<ol>
+<li>Keep the most recent successful snapshot with the status of the latest refresh attempt.</li>
+<li>If a child read fails, display the failure separately and retain the older observation for reference. Do not replace its fields with a partially refreshed view.</li>
+<li>If the centre reports <code>CAPACITY_EXCEEDED</code>, the combined revision or item count cannot be represented. Inspect the individual Framework services and retain the diagnostic rather than treating a wrapped value as fresh.</li>
+<li>An exhausted centre revision returns <code>INVALID_STATE</code> before configure, task, launch, workflow or execution delegation. Do not reset the revision or replay an operation to hide this result. Recover the owning workbench only after active operations and their evidence have been reviewed.</li>
+</ol>
+<p>Successful wrappers advance the centre's local revision once. A nested failure retains its original status; the Framework child revisions remain responsible for reporting any partial child work. Calls must be serialized, the borrowed runtime must outlive the centre, and executor or notification callbacks must not re-enter or destroy either owner.</p>
+<p>These rules govern the native service boundary. They do not introduce a new screen or prove a particular GTK presentation has been exercised. After configuring the Applications build, developers can run the focused composition checks:</p>
+<pre><code>Set-Location &quot;C:\umicom\Umicom-Applications&quot;
+cmake --build build/windows-ucrt64-all-debug --target umicom-studio-pipeline-admission-test
+ctest --test-dir build/windows-ucrt64-all-debug -C Debug --output-on-failure -R &quot;^studio[.]pipeline[.](admission|snapshot)[.]&quot;
+</code></pre>
+<p>Stop on a command failure. The 38 cases use controlled child boundaries to check delegation counts, the last available revision, nested failures, allocation failure and complete snapshot publication. They never invoke a compiler, debugger or application through the tested centre. Run the existing native workflow and GUI checks separately to qualify those integrations.</p>
+</section>
 </main></body></html>

@@ -108,6 +108,12 @@ void umi_studio_developer_pipeline_centre_destroy(
  * Provide the studio developer pipeline centre snapshot operation used by this module and
  * its client applications.
  */
+/* A snapshot is published only after every child read and aggregate fits.
+ * Failure preserves the caller output, including allocation failure and
+ * CAPACITY_EXCEEDED for revision/count sums. A child revision near its limit
+ * can make the composite unrepresentable even when the centre can still mutate.
+ * Serialize access and retain the borrowed runtime for the centre lifetime;
+ * executor/notification callbacks must not re-enter or destroy these owners. */
 UmiStatus umi_studio_developer_pipeline_centre_snapshot(
     UmiStudioDeveloperPipelineCentre *centre,
     UmiStudioDeveloperPipelineCentreSnapshot *out_snapshot);
@@ -115,6 +121,10 @@ UmiStatus umi_studio_developer_pipeline_centre_snapshot(
  * Provide the studio developer pipeline centre prepare cmake operation used by this module
  * and its client applications.
  */
+/* Mutating and executing wrappers refuse an exhausted centre revision with
+ * INVALID_STATE before delegation. Successful calls advance it once; child
+ * failures retain their original status and do not advance this local counter.
+ * Child observation revisions still describe any partial work they report. */
 UmiStatus umi_studio_developer_pipeline_centre_prepare_cmake(
     UmiStudioDeveloperPipelineCentre *centre,
     const UmiDeveloperCMakePlanRequest *request,
