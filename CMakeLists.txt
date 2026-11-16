@@ -678,7 +678,10 @@ if(UMICOM_STUDIO_BUILD_GTK)
     # These paths preserve the current product's include relationships.  Later
     # extraction commits will reduce this list as each bounded module receives
     # a public contract and its own CMake target.
+    # Product dialogs read the public Studio version contract directly.
+    # Keep this path on the product target instead of relying on another host.
     target_include_directories(umicom_studio_product PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/build/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/core/include"
