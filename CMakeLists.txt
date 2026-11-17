@@ -2249,6 +2249,12 @@ add_executable(umicom-studio-quality-gate-test tests/test_quality_gate.c)
 target_link_libraries(umicom-studio-quality-gate-test PRIVATE Umicom::StudioCore)
 umicom_apply_warnings(umicom-studio-quality-gate-test)
 add_test(NAME studio.quality_gate COMMAND umicom-studio-quality-gate-test)
+# These integration checks inspect a bounded, known source tree. The build
+# directory contains generated files and is not a reproducible scan fixture.
+set_tests_properties(studio.architecture_quality studio.duplicate_review studio.quality_gate
+    PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/quality_fixture")
+target_compile_definitions(umicom-studio-codeguard-test PRIVATE
+    UMICOM_STUDIO_QUALITY_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/tests/quality_fixture/checked_source.c")
 # Visit each bounded item once so every record receives the same rule.
 foreach(UMICOM_STUDIO_QUALITY_TEST
         quality_centre

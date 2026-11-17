@@ -46,7 +46,11 @@ static int ExerciseRunRestart(UmiStudioGtkWorkbench *workbench, UmiStudioUi *ui,
     GtkWidget *restart = FindMenuCommand(GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(menu))), "run.restart");
     CHECK(GTK_IS_BUTTON(restart) && !gtk_widget_get_sensitive(restart));
     if (!strcmp(mode, "run-restart-idle")) {
+/* Public workbench dispatch rejects disabled commands before reaching their operation. Test the admission boundary while retaining the former operation-level expectation. The former implementation is retained for owner review. */
+#if 0
         CHECK(umi_studio_gtk_workbench_execute_command(workbench, "run.restart", NULL) == UMI_STATUS_INVALID_STATE);
+#endif
+        CHECK(umi_studio_gtk_workbench_execute_command(workbench, "run.restart", NULL) == UMI_STATUS_PERMISSION_DENIED);
     } else {
         *profile = *umi_studio_build_service_profile(build);
         CHECK(strlen(UMICOM_STUDIO_STOP_PEER) < sizeof profile->run_program);

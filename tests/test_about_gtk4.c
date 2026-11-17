@@ -101,6 +101,7 @@ int main(int argc, char **argv)
     UmiStudioGtkWorkbenchOptions options = {0};
     CHECK(umi_studio_gtk_workbench_create_with_options(application, ui,
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
+    const size_t initial_documents = umi_document_coordinator_count(documents);
     CHECK(umi_document_coordinator_new(documents, "draft.c", document_id, sizeof document_id) == UMI_STATUS_OK);
     UmiUiDocumentViewSnapshot view;
     const char *text = "int draft_value = 17;\n";
@@ -152,7 +153,12 @@ inspect:
     CHECK(output_bytes == strlen(text) && !memcmp(output, text, output_bytes));
     CHECK(umi_ui_document_view_model_find(views, document_id, &view) == UMI_STATUS_OK);
     CHECK(view.dirty && view.cursor_offset == 4U && view.selection_length == 6U);
+/* Account for the real editable welcome document instead of assuming an empty startup model. The former implementation is retained for owner review. */
+#if 0
     CHECK(umi_document_coordinator_count(documents) == 1U);
+#endif
+    /* About must preserve the starter document as well as the edited draft. */
+    CHECK(umi_document_coordinator_count(documents) == initial_documents + 1U);
 cleanup:
     if (observer_id != 0U) g_signal_handler_disconnect(about, observer_id);
     UmiUiDocumentViewModelFreeText(output);

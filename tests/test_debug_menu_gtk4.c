@@ -118,6 +118,7 @@ int main(int argc, char **argv)
     UmiStudioServices *services = umi_studio_ui_services(ui);
     UmiStudioDebuggerService *debugger = umi_studio_services_debugger(services);
     UmiStudioBuildService *build = umi_studio_services_build(services);
+    const size_t initial_documents = umi_document_coordinator_count(umi_studio_ui_documents(ui));
     application = gtk_application_new("org.umicom.studio.debug-menu-test", G_APPLICATION_NON_UNIQUE);
     CHECK(g_application_register(G_APPLICATION(application), NULL, NULL));
     UmiStudioGtkWorkbenchOptions options = {0};
@@ -200,7 +201,11 @@ inspect:
     CHECK(!UmiStudioDebuggerNativeBusy(debugger) && !UmiStudioBuildBusy(build));
     CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(pid)), "4321") == 0);
     CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(program)), "unsubmitted symbols path") == 0);
+/* Navigation must preserve the editable startup document rather than require it to be absent. The former implementation is retained for owner review. */
+#if 0
     CHECK(umi_document_coordinator_count(umi_studio_ui_documents(ui)) == 0U);
+#endif
+    CHECK(umi_document_coordinator_count(umi_studio_ui_documents(ui)) == initial_documents);
 cleanup:
     if (observer_id != 0U) g_signal_handler_disconnect(observed, observer_id);
     g_clear_object(&observed);

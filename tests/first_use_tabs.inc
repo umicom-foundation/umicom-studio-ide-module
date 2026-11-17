@@ -67,9 +67,13 @@ static int ExerciseStableTabs(UmiStudioGtkWorkbench **slot, UmiStudioUi *ui,
         buttons[index]=g_object_ref(tab);editors[index]=g_object_ref(editor);
         buffers[index]=g_object_ref(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)));
         g_snprintf(drafts[index],sizeof drafts[index],"/* Source %zu keeps its own draft. */\nint value_%zu = %zu;\n",index,index,index+1U);
+/* Use the existing typing helper: set_text starts an irreversible GTK action and cannot be nested in an undoable user action. The former implementation is retained for owner review. */
+#if 0
         gtk_text_buffer_begin_user_action(buffers[index]);
         gtk_text_buffer_set_text(buffers[index],drafts[index],-1);
         gtk_text_buffer_end_user_action(buffers[index]);
+#endif
+        FirstUseReplaceText(buffers[index], drafts[index]);
     }
     CHECK(umi_document_coordinator_count(documents)==count);
     if(visible) {

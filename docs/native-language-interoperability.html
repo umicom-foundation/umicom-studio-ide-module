@@ -1,0 +1,442 @@
+<!doctype html>
+<!--
+Umicom Studio IDE
+File: docs/native-language-interoperability.html
+
+PURPOSE:
+Teach native language editing and shared C ABI examples through the existing learning catalogue.
+
+AUTHOR AND ORGANISATION:
+Sammy Hegab
+Umicom Foundation
+
+LICENCE:
+MIT
+-->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Native languages and the C boundary</title><link rel="stylesheet" href="assets/umicom-documentation.css"><link rel="icon" type="image/svg+xml" href="assets/umicom-icon.svg"><link rel="icon" type="image/x-icon" href="assets/umicom.ico"></head><body><div class="umicom-doc-brand"><img class="umicom-doc-logo" src="assets/umicom-logo.svg" width="212" height="52" alt="Umicom"></div><main><h1>Native languages and the C boundary</h1><p>Use this guide alongside the Bits2Banking course <strong>Native languages working together through C</strong>. The shared implementation remains C; the other languages demonstrate deliberate interfaces, not replacements for Framework services.</p><h2>Open a lesson and its example</h2><ol><li>Open Guided Learning in Studio. This bundled guide is available as Native languages and the C boundary after the application package is rebuilt.</li><li>For the longer course, choose the Bits2Banking checkout as the library root and <code>learning-packs/native-language-interoperability.json</code> as its manifest path. Load the library and select its course guide.</li><li>Keep a separate practice workspace. Read the source before running its commands. Opening a lesson never starts its compiler.</li><li>Begin with the common C archive and installed SDK setup. Then select one language client and its matching target.</li></ol><h2>What Studio currently provides</h2><table><thead><tr><th scope="col">Language</th><th scope="col">Source identity</th><th scope="col">Line comment</th></tr></thead><tbody><tr><th scope="row">C</th><td>.c</td><td>//</td></tr><tr><th scope="row">C++</th><td>.cpp</td><td>//</td></tr><tr><th scope="row">Rust</th><td>.rs</td><td>//</td></tr><tr><th scope="row">Zig</th><td>.zig</td><td>//</td></tr><tr><th scope="row">Fortran (free form)</th><td>.f90, .f95, .f03, .f08</td><td>!</td></tr><tr><th scope="row">D</th><td>.d, .di</td><td>//</td></tr><tr><th scope="row">Odin</th><td>.odin</td><td>//</td></tr><tr><th scope="row">Nim</th><td>.nim, .nims</td><td>#</td></tr><tr><th scope="row">Assembly</th><td>.s, .S, .asm</td><td>Choose the dialect deliberately</td></tr></tbody></table><p>Framework supplies these identities to Studio document language selection, filename detection, file filters and comment editing. Fixed-form Fortran is not inferred as free form. Syntax colours depend on installed syntax descriptions; an unsupported syntax package falls back to text. This table does not claim installed compilers, language servers, debuggers or automatic build profiles for all languages.</p><h2>Try the editing workflow</h2><ol><li>Open a disposable copy of a sample.</li><li>Inspect its effective language and select an override if the filename is temporary.</li><li>Toggle a line comment, check the actual prefix and toggle again. Confirm the original text returns before saving.</li><li>Use the lab command from the existing terminal or project task workflow. Keep output, arguments and working directory visible.</li></ol><h2>Read the shared declaration first</h2><pre><code>int BtbActivityNext(int current);</code></pre><p>A nonnegative result is the next count; -1 means refusal. The function retains no pointer and allocates no heap memory. The original implementation and build recipes are in Bits2Banking. The following complete client sources are reading examples; use the course archive and SDK commands to link them.</p><h2>C model</h2><p>Source: <code>labs/native/framework-activity/activity.c</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Bits2Banking
+ * File: labs/native/framework-activity/activity.c
+ *
+ * PURPOSE:
+ *   Keep checked exercise-count logic independent of its console and GTK presentations.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+#include &quot;activity.h&quot;
+UmiStatus BtbActivityAdvance(unsigned current, unsigned *next)
+{
+    if (next == 0 || current &gt; 1000U) return UMI_STATUS_INVALID_ARGUMENT;
+    if (current == 1000U) return UMI_STATUS_CAPACITY_EXCEEDED;
+    /* Validate before addition and publication. No caller observes a partial
+     * update, and the fixed upper bound proves the addition cannot overflow. */
+    *next = current + 1U;
+    return UMI_STATUS_OK;
+}
+</code></pre><h2>C bridge</h2><p>Source: <code>labs/native/activity-adapters/bridge.c</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Umicom Bits2Banking
+ * File: labs/native/activity-adapters/bridge.c
+ *
+ * PURPOSE:
+ *   Translate platform integers into the existing activity contract.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+#include &quot;bridge.h&quot;
+#include &quot;../framework-activity/activity.h&quot;
+int BtbActivityNext(int current)
+{
+    unsigned next = 0U;
+    /* Check the signed boundary before converting. The shared activity model
+     * remains responsible for its upper limit and success/failure decision. */
+    if (current &lt; 0) return -1;
+    if (BtbActivityAdvance((unsigned)current, &amp;next) != UMI_STATUS_OK) return -1;
+    return (int)next; /* The activity contract bounds successful values to 1000. */
+}
+
+</code></pre><h2>C++ client</h2><p>Source: <code>labs/native/cpp-activity-client/main.cpp</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Umicom Bits2Banking
+ * File: labs/native/cpp-activity-client/main.cpp
+ *
+ * PURPOSE:
+ *   Call the existing C activity boundary from a minimal C++ client.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+
+#include &quot;../activity-adapters/bridge.h&quot;
+#include &lt;cstdio&gt;
+
+int main()
+{
+    const int next = BtbActivityNext(0);
+    if (next &lt; 0) {
+        std::fputs(&quot;Unable to advance activity.\n&quot;, stderr);
+        return 1;
+    }
+    if (std::printf(&quot;Completed exercises: %d\n&quot;, next) &lt; 0) return 1;
+    return std::fflush(stdout) == 0 ? 0 : 1;
+}
+</code></pre><h2>Rust boundary</h2><p>Source: <code>labs/languages/rust-activity/activity.rs</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Umicom Bits2Banking
+ * File: labs/languages/rust-activity/activity.rs
+ *
+ * PURPOSE:
+ *   Wrap the existing C activity bridge in a checked Rust result.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+
+use std::ffi::c_int;
+
+unsafe extern &quot;C&quot; {
+    fn BtbActivityNext(current: c_int) -&gt; c_int;
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ActivityError {
+    Refused,
+}
+
+/// The C bridge owns the counting rule; this function translates its result.
+pub fn advance(current: c_int) -&gt; Result&lt;c_int, ActivityError&gt; {
+    // SAFETY: the linked declaration matches bridge.h: one C int in and out.
+    // There are no pointers, retained buffers, callbacks or shared mutable state.
+    // The bridge accepts every int and reports invalid values with -1.
+    let result = unsafe { BtbActivityNext(current) };
+    if result &lt; 0 { Err(ActivityError::Refused) } else { Ok(result) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ordinary_and_final_success() {
+        assert_eq!(advance(0), Ok(1));
+        assert_eq!(advance(41), Ok(42));
+        assert_eq!(advance(999), Ok(1000));
+    }
+
+    #[test]
+    fn refuses_capacity_and_invalid_values() {
+        for value in [-1, c_int::MIN, 1000, 1001, c_int::MAX] {
+            assert_eq!(advance(value), Err(ActivityError::Refused));
+        }
+    }
+
+    #[test]
+    fn each_call_is_independent() {
+        assert_eq!(advance(41), Ok(42));
+        assert_eq!(advance(1000), Err(ActivityError::Refused));
+        assert_eq!(advance(41), Ok(42));
+    }
+}
+
+</code></pre><h2>Rust client</h2><p>Source: <code>labs/languages/rust-activity/main.rs</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Umicom Bits2Banking
+ * File: labs/languages/rust-activity/main.rs
+ *
+ * PURPOSE:
+ *   Display results returned by the shared C activity model through Rust.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+
+mod activity;
+
+fn main() {
+    for current in [0, 41, 999, 1000] {
+        match activity::advance(current) {
+            Ok(next) =&gt; println!(&quot;{current} -&gt; {next}&quot;),
+            Err(activity::ActivityError::Refused) =&gt; println!(&quot;{current} -&gt; refused&quot;),
+        }
+    }
+}
+
+</code></pre><h2>Zig boundary</h2><p>Source: <code>labs/languages/zig-activity/activity.zig</code></p><pre><code>// -----------------------------------------------------------------------------
+// Umicom Bits2Banking
+// File: labs/languages/zig-activity/activity.zig
+//
+// PURPOSE:
+//   Translate the existing C activity bridge result into a Zig error union.
+//
+// AUTHOR AND ORGANISATION:
+// Sammy Hegab
+// Umicom Foundation
+//
+// LICENCE:
+// MIT
+// -----------------------------------------------------------------------------
+const std = @import(&quot;std&quot;);
+extern fn BtbActivityNext(current: c_int) c_int;
+
+pub const ActivityError = error{Refused};
+
+pub fn advance(current: c_int) ActivityError!c_int {
+    // The C bridge is the only implementation of input and count rules.
+    // No pointer crosses this boundary and no state is retained by the bridge.
+    const next = BtbActivityNext(current);
+    if (next &lt; 0) return error.Refused;
+    return next;
+}
+
+test &quot;ordinary values and final permitted transition&quot; {
+    try std.testing.expectEqual(@as(c_int, 1), try advance(0));
+    try std.testing.expectEqual(@as(c_int, 42), try advance(41));
+    try std.testing.expectEqual(@as(c_int, 1000), try advance(999));
+}
+
+test &quot;capacity and invalid signed values are refused&quot; {
+    const invalid = [_]c_int{ -1, std.math.minInt(c_int), 1000, 1001, std.math.maxInt(c_int) };
+    for (invalid) |value| try std.testing.expectError(error.Refused, advance(value));
+}
+
+test &quot;a refusal does not change a later call&quot; {
+    try std.testing.expectEqual(@as(c_int, 42), try advance(41));
+    try std.testing.expectError(error.Refused, advance(1000));
+    try std.testing.expectEqual(@as(c_int, 42), try advance(41));
+}
+
+</code></pre><h2>Zig client</h2><p>Source: <code>labs/languages/zig-activity/main.zig</code></p><pre><code>// -----------------------------------------------------------------------------
+// Umicom Bits2Banking
+// File: labs/languages/zig-activity/main.zig
+//
+// PURPOSE:
+//   Present checked C activity results from a small Zig command-line client.
+//
+// AUTHOR AND ORGANISATION:
+// Sammy Hegab
+// Umicom Foundation
+//
+// LICENCE:
+// MIT
+// -----------------------------------------------------------------------------
+const std = @import(&quot;std&quot;);
+const activity = @import(&quot;activity.zig&quot;);
+
+pub fn main() void {
+    const values = [_]c_int{ 0, 41, 999, 1000 };
+    for (values) |current| {
+        const next = activity.advance(current) catch {
+            std.debug.print(&quot;{d} -&gt; refused\n&quot;, .{current});
+            continue;
+        };
+        std.debug.print(&quot;{d} -&gt; {d}\n&quot;, .{ current, next });
+    }
+}
+
+</code></pre><h2>Fortran client</h2><p>Source: <code>labs/languages/fortran-activity/main.f90</code></p><pre><code>! Umicom Bits2Banking
+! File: labs/languages/fortran-activity/main.f90
+! 
+! PURPOSE:
+! Call the existing checked C activity bridge using interoperable integer values.
+! 
+! AUTHOR AND ORGANISATION:
+! Sammy Hegab
+! Umicom Foundation
+! 
+! LICENCE:
+! MIT
+! 
+program activity_client
+  use iso_c_binding, only: c_int
+  implicit none
+  interface
+    function activity_next(current) bind(C, name=&quot;BtbActivityNext&quot;) result(next)
+      import c_int
+      integer(c_int), value :: current
+      integer(c_int) :: next
+    end function activity_next
+  end interface
+  integer(c_int), parameter :: inputs(5) = [-1_c_int, 0_c_int, 41_c_int, 999_c_int, 1000_c_int]
+  integer(c_int), parameter :: expected(5) = [-1_c_int, 1_c_int, 42_c_int, 1000_c_int, -1_c_int]
+  integer :: i
+  integer(c_int) :: next
+  do i = 1, size(inputs)
+    next = activity_next(inputs(i))
+    ! VALUE passes a C int rather than the address of the Fortran variable.
+    if (next /= expected(i)) error stop 1
+    print '(I0,A,I0)', inputs(i), ' -&gt; ', next
+  end do
+end program activity_client
+</code></pre><h2>D BetterC client</h2><p>Source: <code>labs/languages/d-activity/main.d</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Umicom Bits2Banking
+ * File: labs/languages/d-activity/main.d
+ *
+ * PURPOSE:
+ *   Use the existing C activity contract from D BetterC without a managed runtime.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+import core.stdc.stdio : printf;
+extern(C) int BtbActivityNext(int current) nothrow @nogc;
+extern(C) int main() nothrow @nogc
+{
+    immutable int[5] inputs = [-1, 0, 41, 999, 1000];
+    immutable int[5] expected = [-1, 1, 42, 1000, -1];
+    foreach (index, current; inputs) {
+        const int next = BtbActivityNext(current);
+        // Explicit checks remain active even if the compiler disables assertions.
+        if (next != expected[index]) return 1;
+        printf(&quot;%d -&gt; %d\n&quot;, current, next);
+    }
+    return 0;
+}
+</code></pre><h2>Odin client</h2><p>Source: <code>labs/languages/odin-activity/main.odin</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Umicom Bits2Banking
+ * File: labs/languages/odin-activity/main.odin
+ *
+ * PURPOSE:
+ *   Call the shared C activity archive through an explicit library collection.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+package main
+import &quot;core:c&quot;
+import &quot;core:fmt&quot;
+import &quot;core:os&quot;
+// Supply -collection:activity=&lt;archive directory&gt;. This is an explicit build
+// input, not a search of another application or the current working directory.
+foreign import activity &quot;activity:libbtb-activity-adapters.a&quot;
+foreign activity {
+    BtbActivityNext :: proc &quot;c&quot; (current: c.int) -&gt; c.int ---
+}
+main :: proc() {
+    inputs := [5]c.int{-1, 0, 41, 999, 1000}
+    expected := [5]c.int{-1, 1, 42, 1000, -1}
+    for current, index in inputs {
+        next := BtbActivityNext(current)
+        if next != expected[index] { os.exit(1) }
+        fmt.printf(&quot;%d -&gt; %d\n&quot;, current, next)
+    }
+}
+</code></pre><h2>Nim client</h2><p>Source: <code>labs/languages/nim-activity/main.nim</code></p><pre><code># Umicom Bits2Banking
+# File: labs/languages/nim-activity/main.nim
+# 
+# PURPOSE:
+# Keep the counting rule in C and expose it through a C-sized Nim interface.
+# 
+# AUTHOR AND ORGANISATION:
+# Sammy Hegab
+# Umicom Foundation
+# 
+# LICENCE:
+# MIT
+# 
+proc activityNext(current: cint): cint {.importc: &quot;BtbActivityNext&quot;, cdecl.}
+let inputs = [-1.cint, 0.cint, 41.cint, 999.cint, 1000.cint]
+let expected = [-1.cint, 1.cint, 42.cint, 1000.cint, -1.cint]
+for index, current in inputs:
+  let next = activityNext(current)
+  # No Nim string, sequence or garbage-collected address crosses this boundary.
+  if next != expected[index]:
+    quit(&quot;C bridge returned an unexpected value&quot;, 1)
+  echo current, &quot; -&gt; &quot;, next
+</code></pre><h2>x86-64 assembly forwarding function</h2><p>Source: <code>labs/native/assembly-activity/forward.S</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Umicom Bits2Banking
+ * File: labs/native/assembly-activity/forward.S
+ *
+ * PURPOSE:
+ *   Demonstrate an x86-64 C ABI tail call without duplicating the checked C implementation.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+#if !defined(__x86_64__)
+#error This lesson requires an x86-64 target; use the C client on other architectures.
+#endif
+#if !defined(_WIN32) &amp;&amp; !defined(__linux__)
+#error This lesson covers Windows x64 and Linux x86-64, not every object format.
+#endif
+.text
+.globl BtbAssemblyActivityNext
+#ifndef _WIN32
+.type BtbAssemblyActivityNext, @function
+#endif
+BtbAssemblyActivityNext:
+    /* Both functions use the same ABI. Preserve the argument register (ECX on
+     * Windows, EDI on Linux), stack and caller return address. The C function
+     * writes EAX and returns to the original caller. No additional frame exists. */
+    jmp BtbActivityNext
+#ifndef _WIN32
+.size BtbAssemblyActivityNext, .-BtbAssemblyActivityNext
+.section .note.GNU-stack,&quot;&quot;,@progbits
+#endif
+</code></pre><h2>C assembly test driver</h2><p>Source: <code>labs/native/assembly-activity/main.c</code></p><pre><code>/*-----------------------------------------------------------------------------
+ * Umicom Bits2Banking
+ * File: labs/native/assembly-activity/main.c
+ *
+ * PURPOSE:
+ *   Compare an assembly forwarding call with the shared C activity contract at boundary values.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
+ *---------------------------------------------------------------------------*/
+
+#include &quot;../activity-adapters/bridge.h&quot;
+#include &lt;limits.h&gt;
+#include &lt;stdio.h&gt;
+extern int BtbAssemblyActivityNext(int current);
+int main(void)
+{
+    const int inputs[] = {INT_MIN, -1, 0, 41, 999, 1000, INT_MAX};
+    const int expected[] = {-1, -1, 1, 42, 1000, -1, -1};
+    for (size_t i = 0; i &lt; sizeof inputs / sizeof inputs[0]; ++i) {
+        int next = BtbAssemblyActivityNext(inputs[i]);
+        if (next != expected[i] || next != BtbActivityNext(inputs[i])) return 1;
+        printf(&quot;%d -&gt; %d\n&quot;, inputs[i], next);
+    }
+    return 0;
+}
+</code></pre><h2>Verify and troubleshoot</h2><p>Follow the per-language commands in the course. Keep missing compilers, failed links and executed test failures separate. A recognised extension is not a working language server. A generated C file is not evidence that memory ownership is correct. Match ABI, target, library identity and runtime before changing the shared rule.</p><p>Use the existing Learning C, C++, Rust, Zig and D courses for fundamentals, and the new Fortran, Odin and Nim introductions for their first programs. Links to external prerequisites may need another admitted pack or a browser. Source availability is not an executed native reader or installed-SDK qualification.</p></main></body></html>

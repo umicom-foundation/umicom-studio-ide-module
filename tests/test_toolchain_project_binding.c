@@ -1,7 +1,10 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: applications/studio/tests/test_toolchain_project_binding.c
- * PURPOSE: Verify that separate projects can select separate C23 profiles.
+ *
+ * PURPOSE:
+ *   Verify that separate projects can select separate C23 profiles.
+ *
  * AUTHOR AND ORGANISATION:
  * Sammy Hegab
  * Umicom Foundation
@@ -41,6 +44,12 @@ static void make_profile(UmiToolchainProfile *profile,
         UMI_TOOL_VALIDATED;
     umi_toolchain_profile_tool_mutable(profile, UMI_TOOL_NINJA)->state =
         UMI_TOOL_VALIDATED;
+    /* Validated tools must carry a concrete path. This synthetic profile is
+     * inspected only; it never launches the fixture executables. */
+    (void)strcpy(umi_toolchain_profile_tool_mutable(profile, UMI_TOOL_NINJA)->path,
+                 "/fixture/bin/ninja");
+    (void)strcpy(umi_toolchain_profile_tool_mutable(profile, UMI_TOOL_CMAKE)->path,
+                 "/fixture/bin/cmake");
 }
 
 /*

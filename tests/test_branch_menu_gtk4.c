@@ -115,6 +115,10 @@ static int ExerciseCheckout(UmiStudioGtkWorkbench **owner, UmiStudioUi *ui,
     descriptor.command_id = UMI_STUDIO_COMMAND_VCS_BRANCH_CHECKOUT;
     descriptor.title = "Synthetic checkout observer";
     descriptor.category = "Test";
+    /* Registration requires explicit descriptive and permission strings, even
+     * for a synthetic handler that performs no repository operation. */
+    descriptor.description = "Observe a reviewed checkout request without executing Git";
+    descriptor.required_permission = "";
     descriptor.handler = CheckoutObserved;
     descriptor.enabled = CheckoutEnabled;
     descriptor.user_data = &probe;
@@ -201,6 +205,7 @@ int main(int argc, char **argv)
     UmiStudioServicesOptions service_options = {0};
     CHECK(umi_studio_bootstrap_create_with_options(&service_options, &bootstrap) == UMI_STATUS_OK);
     UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
+    const size_t initial_documents = umi_document_coordinator_count(umi_studio_ui_documents(ui));
     UmiStudioServices *services = umi_studio_ui_services(ui);
     observer.services = services;
     if (strcmp(mode, "no-workspace") != 0)
@@ -243,6 +248,9 @@ int main(int argc, char **argv)
     }
     if (strcmp(mode, "no-workspace") == 0 || strcmp(mode, "closed-workspace") == 0) {
         CHECK(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+        /* Model refresh does not run the separate status/timer projection.
+         * Explicit synchronization drives that production path without a loop. */
+        CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
         CHECK(!gtk_widget_get_sensitive(row));
         /* Public dispatch refuses a disabled menu before invoking its route. */
         CHECK(umi_studio_gtk_workbench_execute_command(workbench,
@@ -283,7 +291,11 @@ inspect:
     CHECK(!after.available && after.operations == 0U && after.changes == before.changes);
     if (strcmp(mode, "observer-project") != 0) CHECK(after.revision == before.revision);
     CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(entry)), "unsubmitted message") == 0);
+/* Branch inspection preserves the existing startup document set, including the editable welcome document. The former implementation is retained for owner review. */
+#if 0
     CHECK(umi_document_coordinator_count(umi_studio_ui_documents(ui)) == 0U);
+#endif
+    CHECK(umi_document_coordinator_count(umi_studio_ui_documents(ui)) == initial_documents);
 cleanup:
     if (observer_id != 0U) g_signal_handler_disconnect(notebook, observer_id);
     if (workbench != NULL) umi_studio_gtk_workbench_destroy(workbench);

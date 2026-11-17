@@ -628,6 +628,9 @@ static int ExerciseProjectWizard(UmiStudioGtkWorkbench **slot, UmiStudioServices
     GtkWindow *window = g_object_ref(umi_studio_gtk_workbench_window(*slot));
     GtkWindow *form = NULL;
     gulong closeHandler = 0U;
+    /* gtk_window_close dispatches a native close request only for a visible
+     * window. Present this fixture before starting the asynchronous write. */
+    if (strcmp(name, "wizard-close-during-write") == 0) gtk_window_present(window);
     char *project = g_build_filename(root, "My first project", NULL);
     char *source = g_build_filename(project, "src", "main.c", NULL);
     char *disk = NULL;

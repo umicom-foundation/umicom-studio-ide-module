@@ -95,6 +95,9 @@ int main(int argc, char **argv)
     CHECK(umi_studio_bootstrap_create_with_options(&service_options, &bootstrap) == UMI_STATUS_OK);
     UmiStudioUi *ui = umi_studio_bootstrap_ui(bootstrap);
     UmiDocumentCoordinator *documents = umi_studio_ui_documents(ui);
+    /* The application intentionally supplies an editable welcome document.
+     * This fixture explicitly closes it to exercise an empty editor first. */
+    CHECK(umi_document_coordinator_close_active(documents, 0) == UMI_STATUS_OK);
     views = umi_ui_workbench_documents(umi_studio_ui_workbench(ui));
     application = gtk_application_new("org.umicom.studio.navigation-test", G_APPLICATION_NON_UNIQUE);
     CHECK(g_application_register(G_APPLICATION(application), NULL, NULL));

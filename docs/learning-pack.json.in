@@ -5,7 +5,7 @@
   "title": "Learning with Umicom Studio IDE",
   "product": "studio",
   "locale": "en",
-  "revision": 9,
+  "revision": 10,
   "compatibility": {
     "minimum": [
       0,
@@ -82,6 +82,14 @@
       "kind": "guide",
       "path": "bits2banking-courses.html",
       "sha256": "@_studio_guide_bits2banking-courses_sha256@"
+    },
+    {
+      "id": "native-language-interoperability",
+      "title": "Native languages and the C boundary",
+      "topic": "native-languages",
+      "kind": "guide",
+      "path": "native-language-interoperability.html",
+      "sha256": "@_studio_guide_native-language-interoperability_sha256@"
     }
   ]
 }

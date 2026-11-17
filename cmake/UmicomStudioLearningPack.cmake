@@ -26,7 +26,7 @@ file(SHA256 "${_studio_learning_pack_dir}/learning-in-studio.html" _studio_learn
 # Deliberate public guide allowlist: private plans and unrelated documentation
 # are never swept into this pack by a directory glob. Existing guides remain
 # their own source files; the generated pack owns exact copied bytes and hashes.
-foreach(_guide EDITING_FILES READING_BUILD_ERRORS RUNNING_TESTS recent-projects studio-user-guide studio-menu-acceptance bits2banking-courses)
+foreach(_guide EDITING_FILES READING_BUILD_ERRORS RUNNING_TESTS recent-projects studio-user-guide studio-menu-acceptance bits2banking-courses native-language-interoperability)
     configure_file("${_studio_learning_source}/docs/${_guide}.html"
         "${_studio_learning_pack_dir}/${_guide}.html" COPYONLY)
     file(SHA256 "${_studio_learning_pack_dir}/${_guide}.html" "_studio_guide_${_guide}_sha256")
@@ -79,6 +79,7 @@ install(FILES
     "${_studio_learning_pack_dir}/studio-user-guide.html"
     "${_studio_learning_pack_dir}/studio-menu-acceptance.html"
     "${_studio_learning_pack_dir}/bits2banking-courses.html"
+    "${_studio_learning_pack_dir}/native-language-interoperability.html"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/umicom-studio/learning-pack")
 
 # Optional course modules use the same native catalogue as the user guides.
