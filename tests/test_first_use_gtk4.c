@@ -32,6 +32,7 @@
 #include "umicom/test_platform/coverage.h"
 #include "umicom/test_platform/service.h"
 #include <glib/gstdio.h>
+#include "umicom/studio/diagnostics.h"
 #include <stdio.h>
 #include <string.h>
 #define CHECK(c) do { if (!(c)) { fprintf(stderr, "line %d: %s\n", __LINE__, #c); failed = 1; goto cleanup; } } while (0)
@@ -2072,6 +2073,36 @@ notice = g_object_ref(G_OBJECT(label));
             CHECK(before.history_count == after.history_count && before.next_operation_id == after.next_operation_id);
             CHECK(before.graph.revision == after.graph.revision && before.graph.node_count == after.graph.node_count);
             CHECK(umi_build_profile_equal(&profile, umi_studio_build_service_profile(build)));
+            if (!closed && !mismatch && !closeOnFeedback) {
+                GtkWindow *review = FindSettingsWindow(GTK_WINDOW(window));
+                CHECK(review != NULL && gtk_widget_get_visible(GTK_WIDGET(review)));
+                GtkWidget *trust = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(review), "developer.build.trusted");
+                GtkWidget *explanation = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(review), "developer.dialog.status");
+                GtkWidget *profileDraft = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(review), "developer.build.field.0");
+                CHECK(GTK_IS_CHECK_BUTTON(trust) && !gtk_check_button_get_active(GTK_CHECK_BUTTON(trust)));
+                CHECK(GTK_IS_LABEL(explanation) && strstr(gtk_label_get_text(GTK_LABEL(explanation)), "No build or program was started") != NULL);
+                CHECK(GTK_IS_EDITABLE(profileDraft));
+                if (index == 0U && route == 0U)
+                    gtk_editable_set_text(GTK_EDITABLE(profileDraft), "Keep my settings draft");
+                CHECK(strcmp(gtk_editable_get_text(GTK_EDITABLE(profileDraft)), "Keep my settings draft") == 0);
+                /* Cancel must not grant authority; the next command reuses the
+                 * same draft instead of silently replacing the form. */
+                GtkWidget *cancel = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(review), "developer.dialog.cancel");
+                CHECK(GTK_IS_BUTTON(cancel));
+                g_signal_emit_by_name(cancel, "clicked");
+                CHECK(!gtk_widget_get_visible(GTK_WIDGET(review)));
+                UmiStudioWorkspaceSnapshot stillUntrusted;
+                CHECK(umi_studio_workspace_snapshot(services, &stillUntrusted) == UMI_STATUS_OK && !stillUntrusted.graph.trusted);
+                g_object_unref(review);
+            }
+            if (!closeOnFeedback) {
+                UmiDiagnosticRecord retainedRecord;
+                size_t count = umi_studio_diagnostics_count(services);
+                CHECK(count > 0U && umi_studio_diagnostics_record_at(services, count - 1U, &retainedRecord) == UMI_STATUS_OK);
+                CHECK(strcmp(retainedRecord.source, "studio.tools") == 0);
+                CHECK(strstr(retainedRecord.message, reason) != NULL);
+                CHECK(gtk_widget_get_tooltip_text(notice) != NULL && strstr(gtk_widget_get_tooltip_text(notice), reason) != NULL);
+            }
             if (closeOnFeedback) { CHECK(*slot == NULL); goto cleanup; }
         }
     }
@@ -2678,6 +2709,7 @@ cleanup:
 }
 
 #include "first_use_tabs.inc"
+#include "first_use_explorer_activation.inc"
 #include "first_use_project_controls.inc"
 
 #include "test_first_use_menu.inc"
@@ -2878,6 +2910,10 @@ int main(int argc, char **argv)
     }
     if (strncmp(name, "replace-", 8U) == 0) {
         failed = ExerciseReplaceKeyboard(&workbench, ui, directory, name);
+        goto cleanup;
+    }
+    if (strcmp(name, "explorer-native-activate") == 0 || strcmp(name, "explorer-native-focus-cycle") == 0) {
+        failed = ExerciseExplorerActivation(workbench, ui, directory, name);
         goto cleanup;
     }
     if (strncmp(name, "explorer-", 9U) == 0) {

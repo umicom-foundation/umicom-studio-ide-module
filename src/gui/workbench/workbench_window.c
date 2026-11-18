@@ -903,11 +903,26 @@ UmiStatus umi_studio_gtk_workbench_execute_command(UmiStudioGtkWorkbench *workbe
          * the weak owner token and never revisit the raw host after feedback. */
         UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
         if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+        /* Disabled commands never reach the dispatch wrapper. Keep their reason
+         * in the same diagnostic store, with copied input across observers.
+         * Retain the former notification-only return for engineering review. */
+#if 0
         runtime_show_notification(runtime, reason);
         GObject *window = NULL;
         if (runtime_file_dialog_owner(request, &window) == NULL) denied = UMI_STATUS_CANCELLED;
         g_clear_object(&window);
         runtime_file_dialog_request_free(request);
+#endif
+        char *ownedCommand = g_strdup(command_id);
+        runtime_show_notification(runtime, reason);
+        GObject *window = NULL;
+        runtime = runtime_file_dialog_owner(request, &window);
+        if (runtime != NULL) RuntimeRetainToolRefusal(runtime, ownedCommand, denied, reason);
+        g_clear_object(&window);
+        if (runtime_file_dialog_owner(request, &window) == NULL) denied = UMI_STATUS_CANCELLED;
+        g_clear_object(&window);
+        runtime_file_dialog_request_free(request);
+        g_free(ownedCommand);
         return denied;
     }
     return runtime_execute_command(runtime, command_id, argument);

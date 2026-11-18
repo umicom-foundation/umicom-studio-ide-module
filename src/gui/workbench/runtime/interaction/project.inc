@@ -770,3 +770,40 @@ static UmiStatus RuntimeBackgroundBuild(UmiStudioGtkRuntimeChrome *runtime,
         return UMI_STATUS_INVALID_ARGUMENT;
     return runtime_execute_registered_command(runtime, command, "background");
 }
+
+/* Studio owns workspace authority; Framework owns the review controls. Reuse
+ * an existing form only for its captured workspace/storage identity, preserving
+ * any draft settings. A stale form is left for explicit review, never silently
+ * destroyed in response to a rejected Run request. */
+static UmiStatus RuntimeReviewBuildAuthority(UmiStudioGtkRuntimeChrome *runtime)
+{
+    if (runtime == NULL || runtime->owner == NULL || runtime->owner->ui == NULL)
+        return UMI_STATUS_INVALID_ARGUMENT;
+    UmiStudioServices *services = umi_studio_ui_services(runtime->owner->ui);
+    UmiStudioWorkspaceSnapshot workspace;
+    UmiStatus status = umi_studio_workspace_snapshot(services, &workspace);
+    if (status != UMI_STATUS_OK) return status;
+    if (!workspace.graph.open || workspace.graph.trusted) return UMI_STATUS_INVALID_STATE;
+    UmiStudioFileDialogRequest *request = runtime_file_dialog_request_new(runtime, 0U);
+    if (request == NULL) return UMI_STATUS_OUT_OF_MEMORY;
+    GObject *window = NULL;
+    if (runtime->build_settings_dialog != NULL) {
+        UmiStudioBuildConfigurationContext current;
+        status = UmiStudioBuildConfigurationContextRead(services, &current);
+        if (status != UMI_STATUS_OK) goto finished;
+        if (current.workspace_revision != runtime->build_configuration_context.workspace_revision ||
+            current.storage_generation != runtime->build_configuration_context.storage_generation ||
+            !umi_path_equal(current.root, runtime->build_configuration_context.root)) {
+            status = UMI_STATUS_INVALID_STATE; goto finished;
+        }
+        status = UmiGtk4DeveloperDialogPresent(runtime->build_settings_dialog);
+    } else status = RuntimeBuildSettings(runtime);
+    runtime = runtime_file_dialog_owner(request, &window);
+    if (runtime == NULL) { status = UMI_STATUS_CANCELLED; goto finished; }
+    if (status == UMI_STATUS_OK && runtime->build_settings_dialog != NULL)
+        status = UmiGtk4BuildSettingsReviewExecution(runtime->build_settings_dialog);
+finished:
+    g_clear_object(&window);
+    runtime_file_dialog_request_free(request);
+    return status;
+}

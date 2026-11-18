@@ -13,6 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
+#include "document_baseline.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
@@ -69,6 +70,7 @@ int main(int argc, char **argv)
     if (!known) return 2;
     if (!gtk_init_check()) return 77;
     int failed = 0, moved = 0;
+    StudioTestDocumentBaseline documentBaseline = {0};
     char *original = g_get_current_dir(), *base = NULL;
     char *old_data = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
     char *output = NULL, *preview_text = NULL, *first = NULL, *second = NULL, *uri = NULL;
@@ -105,6 +107,7 @@ int main(int argc, char **argv)
     CHECK(umi_ui_document_view_model_find(views, document_id, &view) == UMI_STATUS_OK);
     view.cursor_offset = 4U; view.selection_length = 6U; view.dirty = 1;
     CHECK(UmiUiDocumentViewModelUpsertText(views, &view, text, strlen(text)) == UMI_STATUS_OK);
+    CHECK(StudioTestDocumentsCapture(documents, views, &documentBaseline) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_EDITOR, NULL) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
 
@@ -159,7 +162,20 @@ int main(int argc, char **argv)
         if (workbench == NULL) goto inspect;
         CHECK(SelectedPhrase(preview, "beta"));
         if (!strcmp(mode, "search-empty") || !strcmp(mode, "search-missing")) {
+/* A whole-value replacement emits an intermediate empty-query signal. Exercise missing-text preservation without implicitly exercising the separate clear-selection operation. The former implementation is retained for owner review. */
+#if 0
             gtk_editable_set_text(GTK_EDITABLE(search), !strcmp(mode, "search-empty") ? "" : "not in this lesson");
+#endif
+            if (!strcmp(mode, "search-empty"))
+                gtk_editable_set_text(GTK_EDITABLE(search), "");
+            else {
+                /* Extend the query without first deleting it. GtkSearchEntry
+                 * emits search-changed for the transient empty value inside
+                 * set_text, which deliberately clears the old selection. This
+                 * case isolates a nonempty miss rather than clear-then-search. */
+                int position = -1;
+                gtk_editable_insert_text(GTK_EDITABLE(search), " not in this lesson", -1, &position);
+            }
             g_signal_emit_by_name(search, "search-changed");
             if (!strcmp(mode, "search-empty")) {
                 GtkTextIter a, b; CHECK(!gtk_text_buffer_get_selection_bounds(gtk_text_view_get_buffer(GTK_TEXT_VIEW(preview)), &a, &b));
@@ -224,8 +240,13 @@ inspect:
     CHECK(output_bytes == strlen(text) && !memcmp(output, text, output_bytes));
     CHECK(umi_ui_document_view_model_find(views, document_id, &view) == UMI_STATUS_OK);
     CHECK(view.dirty && view.cursor_offset == 4U && view.selection_length == 6U);
+/* Welcome is an adopted editable document; verify all original document identities and full text rather than assuming an initially empty coordinator. The former implementation is retained for owner review. */
+#if 0
     CHECK(umi_document_coordinator_count(documents) == 1U);
+#endif
+    CHECK(StudioTestDocumentsUnchanged(documents, views, &documentBaseline));
 cleanup:
+    StudioTestDocumentsRelease(&documentBaseline);
     if (handler != 0U) g_signal_handler_disconnect(observed, handler);
     g_clear_object(&observed);
     UmiUiDocumentViewModelFreeText(output); g_free(preview_text);

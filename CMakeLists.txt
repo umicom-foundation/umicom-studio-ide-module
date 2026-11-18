@@ -327,6 +327,21 @@ umicom_apply_application_branding(
     RESOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/resources"
     NO_RUNTIME_DEPLOYMENT)
 
+
+# Source-only checking is opt-in: it requires the newer Umicom C compiler SDK.
+# The normal Studio toolchain remains available when that SDK is not selected.
+option(UMICOM_STUDIO_CVM_CHECKS "Build the explicit Umicom C subset checker" OFF)
+if(UMICOM_STUDIO_CVM_CHECKS)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/../../framework/cmake/UmicomCPreview.cmake")
+    umicom_add_cvm_document_check(umicom_studio_cvm_adapter Umicom::platform)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/UmicomStudioSourceCheck.cmake")
+    umicom_studio_add_source_check(umicom_studio_cvm_adapter)
+    umicom_apply_application_branding(TARGET umicom-studio-source-check
+        PRODUCT_NAME "Umicom Studio Source Check" INTERNAL_NAME "umicom-studio-source-check"
+        RESOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/resources" NO_RUNTIME_DEPLOYMENT)
+    install(TARGETS umicom-studio-source-check RUNTIME DESTINATION bin COMPONENT Applications)
+endif()
+
 # Native project-health command.  This is intentionally implemented in C23 so
 # normal repository validation does not depend on Python.
 add_executable(umicom-studio-doctor
@@ -650,11 +665,23 @@ target_link_libraries(umicom-studio-quality PRIVATE Umicom::StudioCore)
 umicom_apply_warnings(umicom-studio-quality)
 umicom_apply_sanitizers(umicom-studio-quality)
 
+# GLib owns temporary-directory and environment utilities used by headless
+# tests too. Discover its imported target in Studio scope rather than relying
+# on a sibling Framework directory or enabling the graphical product.
+if(BUILD_TESTING OR UMICOM_STUDIO_BUILD_GTK)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GLIB REQUIRED IMPORTED_TARGET glib-2.0)
+endif()
+
 # Create this optional product surface only when its build option is enabled.
 if(UMICOM_STUDIO_BUILD_GTK)
     find_package(PkgConfig REQUIRED)
 
-    pkg_check_modules(GLIB REQUIRED IMPORTED_TARGET glib-2.0)
+    # The former GTK-only discovery is retained for review. The shared
+    # declaration above also supplies the same dependency to headless tests.
+    if(FALSE)
+        pkg_check_modules(GLIB REQUIRED IMPORTED_TARGET glib-2.0)
+    endif()
     pkg_check_modules(GOBJECT REQUIRED IMPORTED_TARGET gobject-2.0)
     pkg_check_modules(GIO REQUIRED IMPORTED_TARGET gio-2.0)
     pkg_check_modules(JSON_GLIB REQUIRED IMPORTED_TARGET json-glib-1.0)

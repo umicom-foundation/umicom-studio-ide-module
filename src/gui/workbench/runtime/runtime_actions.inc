@@ -18,6 +18,8 @@ static UmiStatus runtime_refresh_services(UmiStudioGtkRuntimeChrome *runtime);
  * Provide the runtime show notification operation used by this module and its client
  * applications.
  */
+#include "umicom/studio/diagnostics.h"
+
 static void runtime_show_notification(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *message);
@@ -169,6 +171,23 @@ static UmiStatus runtime_execute_command(
     return status;
 }
 #endif
+/* Tool admission can reject both a disabled public command and a dispatched
+ * command. Both clients retain the same bounded Framework diagnostic without
+ * inventing a compiler job. The sink may retire the host; callers must resolve
+ * their weak owner again before further work. */
+static void RuntimeRetainToolRefusal(UmiStudioGtkRuntimeChrome *runtime,
+    const char *command, UmiStatus status, const char *detail)
+{
+    if (runtime == NULL || status == UMI_STATUS_OK || status == UMI_STATUS_CANCELLED ||
+        !(RuntimeBuildReadsSavedDocuments(command) || strcmp(command, "debug.start") == 0 ||
+          strcmp(command, UMI_STUDIO_COMMAND_DEBUG_START) == 0)) return;
+    char message[UMI_DIAGNOSTIC_MESSAGE_CAPACITY];
+    (void)snprintf(message, sizeof message, "%s: %s", command,
+        detail != NULL && detail[0] != '\0' ? detail : umi_status_text(status));
+    (void)umi_studio_diagnostics_emit(umi_studio_ui_services(runtime->owner->ui),
+        UMI_DIAGNOSTIC_WARNING, "studio.tools", message, 0U);
+}
+
 static UmiStatus runtime_execute_command(
     UmiStudioGtkRuntimeChrome *runtime,
     const char *command_id,
@@ -246,6 +265,35 @@ static UmiStatus runtime_execute_command(
         char message[384];
         (void)snprintf(message, sizeof(message), "%s: %s", command, umi_status_text(status));
         runtime_show_notification(runtime, message);
+    }
+    /* A refused tool request has no job transcript. Retain its explanation in
+     * Framework's bounded diagnostic store so Problems can display it after
+     * the compact notification expires. This is a command warning, not a
+     * compiler result. The sink may retire the host; use no runtime afterwards. */
+    g_clear_object(&window);
+    runtime = runtime_file_dialog_owner(request, &window);
+    /* Preserve the dispatched-only retention path for review. The helper above
+     * also serves disabled command admission and rechecks diagnostic observers. */
+#if 0
+    if (runtime != NULL && status != UMI_STATUS_OK && status != UMI_STATUS_CANCELLED &&
+        (RuntimeBuildReadsSavedDocuments(command) || strcmp(command, "debug.start") == 0 ||
+         strcmp(command, UMI_STUDIO_COMMAND_DEBUG_START) == 0)) {
+        const char *detail = runtime->notification_label != NULL &&
+            runtime->notification_revision != feedbackRevision
+            ? gtk_label_get_text(GTK_LABEL(runtime->notification_label)) : umi_status_text(status);
+        char retainedMessage[UMI_DIAGNOSTIC_MESSAGE_CAPACITY];
+        (void)snprintf(retainedMessage, sizeof retainedMessage, "%s: %s", command, detail);
+        (void)umi_studio_diagnostics_emit(umi_studio_ui_services(runtime->owner->ui),
+            UMI_DIAGNOSTIC_WARNING, "studio.tools", retainedMessage, 0U);
+    }
+#endif
+    if (runtime != NULL) {
+        const char *detail = runtime->notification_label != NULL &&
+            runtime->notification_revision != feedbackRevision
+            ? gtk_label_get_text(GTK_LABEL(runtime->notification_label)) : umi_status_text(status);
+        RuntimeRetainToolRefusal(runtime, command, status, detail);
+        g_clear_object(&window);
+        if (runtime_file_dialog_owner(request, &window) == NULL) status = UMI_STATUS_CANCELLED;
     }
     g_clear_object(&window);
     runtime_file_dialog_request_free(request);

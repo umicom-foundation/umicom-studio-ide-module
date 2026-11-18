@@ -13,6 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
+#include "document_baseline.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
 #include "umicom/studio_runtime/workspace_canvas.h"
@@ -49,6 +50,7 @@ int main(int argc, char **argv)
     if (!known) return 2;
     if (!gtk_init_check()) return 77;
     int failed = 0, moved = 0;
+    StudioTestDocumentBaseline documentBaseline = {0};
     char *original = g_get_current_dir(), *base = NULL;
     char *old_data = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
     char *output = NULL, document_id[128] = {0}; size_t output_bytes = 0U;
@@ -84,6 +86,7 @@ int main(int argc, char **argv)
     CHECK(umi_ui_document_view_model_find(views, document_id, &view) == UMI_STATUS_OK);
     view.cursor_offset = 4U; view.selection_length = 6U; view.dirty = 1;
     CHECK(UmiUiDocumentViewModelUpsertText(views, &view, text, strlen(text)) == UMI_STATUS_OK);
+    CHECK(StudioTestDocumentsCapture(documents, views, &documentBaseline) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench, UMI_STUDIO_SURFACE_EDITOR, NULL) == UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
     if (strcmp(mode, "custom") == 0) {
@@ -139,8 +142,13 @@ inspect:
     CHECK(output_bytes == strlen(text) && memcmp(output, text, output_bytes) == 0);
     CHECK(umi_ui_document_view_model_find(views, document_id, &view) == UMI_STATUS_OK);
     CHECK(view.dirty && view.cursor_offset == 4U && view.selection_length == 6U);
+/* The coordinator adopts Welcome and all contributed views; compare the complete captured set instead of assuming only the new draft exists. The former implementation is retained for owner review. */
+#if 0
     CHECK(umi_document_coordinator_count(documents) == 1U);
+#endif
+    CHECK(StudioTestDocumentsUnchanged(documents, views, &documentBaseline));
 cleanup:
+    StudioTestDocumentsRelease(&documentBaseline);
     UmiUiDocumentViewModelFreeText(output);
     if (workbench != NULL) umi_studio_gtk_workbench_destroy(workbench);
     g_clear_object(&retained);

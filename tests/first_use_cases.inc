@@ -219,3 +219,6 @@ UMI_STUDIO_FIRST_USE_CASE("run-restart-log-collision", 0)
 UMI_STUDIO_FIRST_USE_CASE("wizard-close-during-write", 0)
 UMI_STUDIO_FIRST_USE_CASE("wizard-replace-during-write", 0)
 UMI_STUDIO_FIRST_USE_CASE("wizard-application-during-write", 0)
+
+UMI_STUDIO_FIRST_USE_CASE("explorer-native-activate", 0)
+UMI_STUDIO_FIRST_USE_CASE("explorer-native-focus-cycle", 0)

@@ -130,7 +130,13 @@ int main(int argc, char **argv) {
       REQUIRE(umi_studio_workspace_open(project_services, project,
                                         strcmp(argv[1], "project-untrusted") != 0,
                                         0) == UMI_STATUS_OK);
-    REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+    /* Native synchronization includes project identity and retained command
+         * sensitivity. The legacy model/adapter refresh alone does not advance
+         * the timer-owned Studio chrome. Retain that earlier call for review. */
+#if 0
+        REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+        REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
     UmiStatus status;
     int native_close = !strcmp(argv[1], "project-native-close") ||
         !strcmp(argv[1], "project-native-close-with-editor");
@@ -349,13 +355,25 @@ int main(int argc, char **argv) {
         gtk_window_close(reopened);
         REQUIRE(FindBoard(application) == NULL);
         REQUIRE(umi_studio_workspace_close(project_services) == UMI_STATUS_OK);
+        /* Native synchronization includes project identity and retained command
+         * sensitivity. The legacy model/adapter refresh alone does not advance
+         * the timer-owned Studio chrome. Retain that earlier call for review. */
+#if 0
         REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+        REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
         REQUIRE(!gtk_widget_get_sensitive(project_control));
         /* Forced stale activation must still obey command admission. */
         g_signal_emit_by_name(project_control, "clicked");
         REQUIRE(FindBoard(application) == NULL);
         REQUIRE(umi_studio_workspace_open(project_services, other, 1, 0) == UMI_STATUS_OK);
+        /* Native synchronization includes project identity and retained command
+         * sensitivity. The legacy model/adapter refresh alone does not advance
+         * the timer-owned Studio chrome. Retain that earlier call for review. */
+#if 0
         REQUIRE(umi_studio_gtk_workbench_refresh(workbench) == UMI_STATUS_OK);
+#endif
+        REQUIRE(umi_studio_gtk_workbench_workspace_synchronise(workbench) == UMI_STATUS_OK);
         REQUIRE(gtk_widget_get_sensitive(project_control));
         g_signal_emit_by_name(project_control, "clicked");
         GtkWindow *other_board = FindBoard(application);

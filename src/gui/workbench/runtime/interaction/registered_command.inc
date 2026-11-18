@@ -19,6 +19,7 @@
 #include "umicom/terminal_ui/execution.h"
 
 #include "umicom/studio/test_execution.h"
+static UmiStatus RuntimeReviewBuildAuthority(UmiStudioGtkRuntimeChrome *runtime);
 static bool RuntimeProgramConsoleBusy(UmiStudioGtkRuntimeChrome *runtime);
 static int RuntimeTestRunContext(UmiStudioGtkRuntimeChrome *runtime,
     UmiStudioTestRunContext *context);
@@ -659,6 +660,14 @@ static UmiStatus runtime_execute_registered_command_capture(
                 (void)snprintf(message, capacity, "%s", saveMessage);
             runtime_show_notification(runtime, saveMessage[0] != '\0'
                 ? saveMessage : umi_status_text(status));
+            /* Keep the service refusal authoritative. Opening its review form
+             * never grants trust or resumes the refused command. Feedback may
+             * already have retired the host, so resolve it before continuing. */
+            if (status == UMI_STATUS_PERMISSION_DENIED) {
+                g_clear_object(&ownerWindow);
+                runtime = runtime_file_dialog_owner(ownerRequest, &ownerWindow);
+                if (runtime != NULL) (void)RuntimeReviewBuildAuthority(runtime);
+            }
             goto command_finished;
         }
         if (buildSources) argument = "background";

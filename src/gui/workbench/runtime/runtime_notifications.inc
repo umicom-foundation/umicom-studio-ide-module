@@ -94,6 +94,8 @@ static void runtime_show_notification(UmiStudioGtkRuntimeChrome *runtime, const 
     /* Set all host-owned state before GTK signals can close the workbench.
      * Teardown removes its timer; only the retained label is used afterwards. */
     (void)umi_gtk4_automation_tag_widget(label, "studio.notification");
+    /* The compact bar may ellipsize; retain the full explanation for hover and accessibility. */
+    gtk_widget_set_tooltip_text(label, text);
     gtk_label_set_text(GTK_LABEL(label), text);
     gtk_widget_set_visible(label, TRUE);
     g_free(text);
