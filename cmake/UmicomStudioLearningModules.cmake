@@ -57,7 +57,21 @@ foreach(_page index first-program gtk-window framework-tour build-workflow exten
     endif()
     string(APPEND _wiki_resources "{\"id\":\"${_page}\",\"title\":\"${_wiki_title_${_page}}\",\"topic\":\"framework-wiki\",\"kind\":\"guide\",\"path\":\"${_page}.html\",\"sha256\":\"${_hash}\"}")
 endforeach()
+# Framework watches this manifest for genuine content updates. Rewriting the
+# same bytes on every configure caused Ninja to regenerate indefinitely. Keep
+# the old writer for review; shared Framework ownership now preserves its mtime.
+if(FALSE)
 file(WRITE "${_wiki_pack}/learning-pack.json"
     "{\"schema\":\"umicom.learning.pack\",\"version\":1,\"id\":\"framework.studio-wiki\",\"title\":\"Umicom Framework learning wiki\",\"product\":\"framework\",\"locale\":\"en\",\"revision\":1,\"compatibility\":{\"minimum\":[0,9,0],\"maximum\":[0,9,0]},\"resources\":[${_wiki_resources}]}\n")
+endif()
+set(_wiki_manifest
+    "{\"schema\":\"umicom.learning.pack\",\"version\":1,\"id\":\"framework.studio-wiki\",\"title\":\"Umicom Framework learning wiki\",\"product\":\"framework\",\"locale\":\"en\",\"revision\":1,\"compatibility\":{\"minimum\":[0,9,0],\"maximum\":[0,9,0]},\"resources\":[${_wiki_resources}]}\n")
+umicom_write_learning_generated_file("${_wiki_pack}/learning-pack.json" "${_wiki_manifest}")
 umicom_bundle_learning_module(TARGET umicom-studio-ide NAME framework-wiki
     SOURCE_DIR "${_wiki_pack}" PACK_ID framework.studio-wiki PRODUCT framework)
+
+if(BUILD_TESTING)
+    set(UMICOM_REGEN_FRAMEWORK_ROOT "${_module_framework}")
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../tests/cmake/learning_regeneration"
+        "${CMAKE_CURRENT_BINARY_DIR}/learning-regeneration-tests")
+endif()
