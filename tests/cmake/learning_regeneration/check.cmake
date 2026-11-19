@@ -72,3 +72,36 @@ if(NOT _staged STREQUAL _changed_hash)
     message(FATAL_ERROR "Staging did not retain the updated manifest")
 endif()
 message(STATUS "Unchanged manifests keep timestamps; real lesson changes regenerate and stage correctly")
+
+# A generator can leave a stale plan even while other outputs are refreshed.
+# Rehearse the documented recovery in the isolated fixture only: retain the
+# complete old plan, configure with the same cache, and verify payload survival.
+# This tests recovery mechanics; it does not diagnose a vendor or file lock.
+if(GENERATOR STREQUAL "Ninja")
+    set(_plan "${WORK}/build.ninja")
+    file(SHA256 "${_plan}" _saved_plan_hash)
+    file(SHA256 "${WORK}/CMakeCache.txt" _saved_cache_hash)
+    string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef _recovery_id)
+    set(_saved_plan "${WORK}/build.ninja.before-recovery-${_recovery_id}")
+    file(RENAME "${_plan}" "${_saved_plan}" NO_REPLACE RESULT _rename_result)
+    if(NOT _rename_result STREQUAL "0")
+        message(FATAL_ERROR "Cannot preserve the fixture build plan: ${_rename_result}")
+    endif()
+    Run(recovery-configure ${_configure})
+    if(NOT EXISTS "${_plan}")
+        message(FATAL_ERROR "Configure reported success without creating a new build plan")
+    endif()
+    file(SHA256 "${_saved_plan}" _retained_plan_hash)
+    file(SHA256 "${WORK}/CMakeCache.txt" _retained_cache_hash)
+    file(SHA256 "${WORK}/bin/learning-modules/framework-wiki/learning-pack.json" _retained_payload_hash)
+    if(NOT _saved_plan_hash STREQUAL _retained_plan_hash OR
+       NOT _saved_cache_hash STREQUAL _retained_cache_hash OR
+       NOT _staged STREQUAL _retained_payload_hash)
+        message(FATAL_ERROR "Build-plan recovery changed a preserved file or staged payload")
+    endif()
+    Run(recovery-settled "${CMAKE_COMMAND}" --build "${WORK}" --target check-noop)
+    if(RUN_TEXT MATCHES "Re-running CMake")
+        message(FATAL_ERROR "Recovered build plan did not settle")
+    endif()
+    message(STATUS "Preserved-plan recovery recreated the plan and retained cache and staged payload")
+endif()
