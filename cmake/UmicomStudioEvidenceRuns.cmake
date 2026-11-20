@@ -17,7 +17,8 @@ umicom_apply_sanitizers(umicom-studio-evidence-runs-test)
 if(COMMAND umicom_register_validation_target)
     umicom_register_validation_target(umicom-studio-evidence-runs-test)
 endif()
-foreach(case all exact output-only unspecified missing-run back-all test-change unchanged retained-row retained-picker model-close summary-close model-reselect refresh-reenter invalid-bytes csv source stale-picker source-reselect)
+# Exercise a deferred refresh when the owner closes or a later choice wins.
+foreach(case all exact output-only unspecified missing-run back-all test-change unchanged retained-row retained-picker model-close summary-close model-reselect refresh-reenter invalid-bytes csv source stale-picker source-reselect stale-picker-close stale-picker-reselect)
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qualification/evidence-runs-${case}")
     add_test(NAME studio.evidence_runs.gtk4.${case}
         COMMAND umicom-studio-evidence-runs-test "${case}"

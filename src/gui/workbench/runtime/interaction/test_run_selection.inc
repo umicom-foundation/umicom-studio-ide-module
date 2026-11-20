@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: src/gui/workbench/runtime/interaction/test_run_selection.inc
- * PURPOSE: Present Framework run identities without merging evidence from different executions.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Present Framework run identities without merging evidence from different executions.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "umicom/test_platform/evidence_runs.h"
 
@@ -11,6 +18,7 @@ typedef struct RuntimeTestRunState {
     char item_id[128], session_id[128];
     uint64_t generation;
     int publishing;
+    guint refresh_source;
     UmiTestEvidenceRuns *catalogue;
 } RuntimeTestRunState;
 static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtime);
@@ -18,6 +26,8 @@ static void RuntimeSelectedTestEvidenceRefresh(UmiStudioGtkRuntimeChrome *runtim
 static void RuntimeTestRunStateFree(gpointer data)
 {
     RuntimeTestRunState *state = data;
+    /* The picker owns its pending refresh even when the entire pane closes. */
+    if (state->refresh_source != 0U) g_source_remove(state->refresh_source);
     UmiTestEvidenceRunsDestroy(state->catalogue);
     g_free(state);
 }
@@ -149,6 +159,68 @@ cleanup:
 
 static void RuntimeTestRunBindingFree(gpointer data, GClosure *closure)
 { (void)closure; runtime_file_dialog_request_free(data); }
+
+typedef struct RuntimeTestRunRefreshRequest {
+    UmiStudioFileDialogRequest *owner;
+    GWeakRef picker;
+    uint64_t generation;
+} RuntimeTestRunRefreshRequest;
+
+/* The idle source owns these weak references. Closing the UI can release
+ * them without retaining the picker, window or application controller. */
+static void RuntimeTestRunRefreshRequestFree(gpointer data)
+{
+    RuntimeTestRunRefreshRequest *request = data;
+    g_weak_ref_clear(&request->picker);
+    runtime_file_dialog_request_free(request->owner);
+    g_free(request);
+}
+
+static gboolean RuntimeTestRunRefreshIdle(gpointer data)
+{
+    RuntimeTestRunRefreshRequest *request = data;
+    GObject *control = g_weak_ref_get(&request->picker);
+    if (control == NULL) return G_SOURCE_REMOVE;
+    GtkWidget *picker = GTK_WIDGET(control);
+    GObject *window = NULL;
+    RuntimeTestRunState *state = g_object_get_data(control, "umicom-test-runs");
+    if (state == NULL) goto cleanup;
+    state->refresh_source = 0U;
+    if (state->generation != request->generation || state->publishing) goto cleanup;
+
+    /* Another refresh or a test selection can supersede the deferred GTK
+     * update. Preserve the last confirmed session on the same live picker. */
+    char item[sizeof state->item_id];
+    strcpy(item, state->item_id);
+    UmiStudioGtkRuntimeChrome *runtime = RuntimeTestRunOwner(request->owner, &window, picker, item);
+    if (runtime == NULL || gtk_widget_get_root(picker) != GTK_ROOT(window)) goto cleanup;
+    RuntimeSelectedTestEvidenceRefresh(runtime);
+    runtime = RuntimeTestRunOwner(request->owner, &window, picker, item);
+    if (runtime != NULL)
+        runtime_show_notification(runtime, "Run evidence changed. Choose a run from the refreshed list.");
+cleanup:
+    g_clear_object(&window);
+    g_object_unref(control);
+    return G_SOURCE_REMOVE;
+}
+
+/* GtkDropDown is still delivering a selection change. Replacing its model
+ * inside that notification can invalidate the native selection being used by
+ * GTK. Discard the stale index now and repair the model on the next turn. */
+static void RuntimeTestRunRefreshAfterSelection(UmiStudioGtkRuntimeChrome *runtime,
+    GtkWidget *picker, RuntimeTestRunState *state)
+{
+    UmiStudioFileDialogRequest *owner = runtime_file_dialog_request_new(runtime, 0U);
+    if (owner == NULL) return;
+    RuntimeTestRunRefreshRequest *request = g_new0(RuntimeTestRunRefreshRequest, 1);
+    request->owner = owner;
+    request->generation = state->generation;
+    g_weak_ref_init(&request->picker, G_OBJECT(picker));
+    if (state->refresh_source != 0U) g_source_remove(state->refresh_source);
+    state->refresh_source = g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, RuntimeTestRunRefreshIdle,
+        request, RuntimeTestRunRefreshRequestFree);
+}
+
 static void RuntimeTestRunChanged(GObject *object, GParamSpec *property, gpointer data)
 {
     (void)property;
@@ -164,11 +236,17 @@ static void RuntimeTestRunChanged(GObject *object, GParamSpec *property, gpointe
     UmiTestPlatformService *platform = runtime_test_platform(runtime);
     if (platform == NULL || UmiTestEvidenceRunsValidate(state->catalogue,
             umi_test_platform_service_result(platform), umi_test_platform_service_output(platform)) != UMI_STATUS_OK) {
+        /* Retain the previous immediate refresh for review. The idle path
+         * protects GTK's current selection while preserving the earlier
+         * requirement to choose again from the updated catalogue. */
+#if 0
         /* A native index refers to the displayed catalogue, not a newly
          * arrived run. Refresh first and require a deliberate current choice. */
         RuntimeSelectedTestEvidenceRefresh(runtime);
         runtime = RuntimeTestRunOwner(data, &window, GTK_WIDGET(object), NULL);
         if (runtime != NULL) runtime_show_notification(runtime, "Run evidence changed. Choose a run from the refreshed list.");
+#endif
+        RuntimeTestRunRefreshAfterSelection(runtime, GTK_WIDGET(object), state);
         goto cleanup;
     }
     guint index = gtk_drop_down_get_selected(GTK_DROP_DOWN(object));

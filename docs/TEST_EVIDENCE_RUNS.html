@@ -15,4 +15,9 @@
 <h2>Missing or changed runs</h2>
 <p>If records for the selected run are removed, the picker keeps an <strong>Unavailable run</strong> entry. Select another run or explicitly choose all runs. A missing run never becomes a successful test. If evidence changes while a source row is being prepared, refresh and choose its current location again; an old retained button cannot open a different run's source.</p>
 <p>This filter reads retained evidence and launches no test. It does not recover files from an earlier checkout. Relative source references use the current test working directory shown in the source-location pane. A directory, file or line that no longer exists requires review of the original evidence.</p>
+<h2>Choose again after a run arrives</h2>
+<p>A result can arrive while the run picker still displays a previous list. Studio discards a selection made against that outdated list, refreshes after the selection event finishes, and keeps your last confirmed run. When Studio asks you to choose from the refreshed list, reopen the picker and select the intended run by its label. Closing the workbench before the refresh completes also retires its pending update.</p>
+<p>From a configured Studio build with testing enabled, check the three stale-picker scenarios after building <code>umicom-studio-evidence-runs-test</code>. Replace <code>build</code> with your build folder.</p>
+<pre><code>ctest --test-dir build -C Debug -R '^studio\.evidence_runs\.gtk4\.stale-picker' --output-on-failure --no-tests=error</code></pre>
+<p>Expect the stale selection to leave the confirmed run unchanged, a closed view to stay closed, and a newer choice to stay selected. A skipped case indicates GTK could not open the fixture on that host.</p>
 </body></html>

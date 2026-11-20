@@ -1,9 +1,16 @@
 /*-----------------------------------------------------------------------------
  * Umicom Studio IDE
  * File: tests/test_evidence_runs_gtk4.c
- * PURPOSE: Exercise the real run picker, evidence panes and stale source controls.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ *
+ * PURPOSE:
+ *   Exercise the real run picker, evidence panes and stale source controls.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
 #include "umicom/studio/bootstrap.h"
@@ -37,6 +44,19 @@ static char *RunViewText(GtkWidget *view)
     GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
     GtkTextIter a, b; gtk_text_buffer_get_bounds(buffer, &a, &b);
     return gtk_text_buffer_get_text(buffer, &a, &b, TRUE);
+}
+
+/* Wait for the deferred refresh using the normal GLib dispatch. An explicit
+ * deadline keeps an idle source that never runs visible as a test failure. */
+static int WaitForRunRefresh(GtkWidget *picker)
+{
+    const gint64 deadline = g_get_monotonic_time() + 2 * G_TIME_SPAN_SECOND;
+    while (g_get_monotonic_time() < deadline) {
+        RuntimeTestRunState *state = g_object_get_data(G_OBJECT(picker), "umicom-test-runs");
+        if (state == NULL || state->refresh_source == 0U) return 1;
+        if (!g_main_context_iteration(NULL, FALSE)) g_usleep(1000U);
+    }
+    return 0;
 }
 static UmiStatus RunResult(UmiTestPlatformResultRegistry *results, const char *id,
     const char *item, const char *run, const char *source, int outcome)
@@ -98,7 +118,7 @@ static guint RunIndex(UmiStudioGtkRuntimeChrome *chrome, const char *id)
 int main(int argc, char **argv)
 {
     if (argc != 3) return 2;
-    const char *cases[] = {"all", "exact", "output-only", "unspecified", "missing-run", "back-all", "test-change", "unchanged", "retained-row", "retained-picker", "model-close", "summary-close", "model-reselect", "refresh-reenter", "invalid-bytes", "csv", "source", "stale-picker", "source-reselect"};
+    const char *cases[] = {"all", "exact", "output-only", "unspecified", "missing-run", "back-all", "test-change", "unchanged", "retained-row", "retained-picker", "model-close", "summary-close", "model-reselect", "refresh-reenter", "invalid-bytes", "csv", "source", "stale-picker", "source-reselect", "stale-picker-close", "stale-picker-reselect"};
     int known = 0;
     for (size_t i = 0U; i < sizeof cases / sizeof cases[0]; ++i) if (strcmp(argv[1], cases[i]) == 0) known = 1;
     if (!known) return 2;
@@ -172,7 +192,8 @@ int main(int argc, char **argv)
         gtk_drop_down_set_selected(GTK_DROP_DOWN(picker), RunIndex(chrome, "run.c"));
         text = RunViewText(view);
         CHECK(strstr(text, "only-output-marker") && strstr(text, "older-result") == NULL && strstr(text, "newer-result") == NULL);
-    } else if (strstr(mode, "-close") || strcmp(mode, "model-reselect") == 0 || strcmp(mode, "refresh-reenter") == 0) {
+    } else if ((strstr(mode, "-close") && strcmp(mode, "stale-picker-close") != 0) ||
+               strcmp(mode, "model-reselect") == 0 || strcmp(mode, "refresh-reenter") == 0) {
         observation = g_object_ref(strcmp(mode, "summary-close") == 0 ? G_OBJECT(chrome->test_run_summary) : G_OBJECT(picker));
         handler = g_signal_connect(observation, strcmp(mode, "summary-close") == 0 ? "notify::label" : "notify::model", G_CALLBACK(RunMutation), NULL);
         CHECK(RunResult(results, "additional", "test.a", "run.d", NULL, UMI_TEST_PLATFORM_OUTCOME_CANCELLED) == UMI_STATUS_OK);
@@ -186,12 +207,32 @@ int main(int argc, char **argv)
             if (strcmp(mode, "model-reselect") == 0) CHECK(strstr(text, "other-test-result") && !strstr(text, "older-result"));
             else CHECK(strstr(text, "additional") != NULL);
         }
-    } else if (strcmp(mode, "stale-picker") == 0) {
+    } else if (strcmp(mode, "stale-picker") == 0 || strcmp(mode, "stale-picker-close") == 0 ||
+               strcmp(mode, "stale-picker-reselect") == 0) {
         CHECK(RunResult(results, "arriving", "test.a", "run.d", NULL, UMI_TEST_PLATFORM_OUTCOME_TIMED_OUT) == UMI_STATUS_OK);
         gtk_drop_down_set_selected(GTK_DROP_DOWN(picker), 2U);
-        CHECK(gtk_drop_down_get_selected(GTK_DROP_DOWN(picker)) == 0U);
-        CHECK(g_list_model_get_n_items(gtk_drop_down_get_model(GTK_DROP_DOWN(picker))) == 5U);
-        text = RunViewText(view); CHECK(strstr(text, "arriving") && strstr(text, "older-result"));
+        CHECK(RuntimeTestRuns(chrome)->refresh_source != 0U);
+        CHECK(RuntimeTestRuns(chrome)->session_id[0] == '\0');
+        if (strcmp(mode, "stale-picker-close") == 0) {
+            /* A scheduled repair must remain harmless if the host disappears. */
+            UmiStudioGtkWorkbench *old = workbench;
+            workbench = NULL;
+            umi_studio_gtk_workbench_destroy(old);
+            CHECK(WaitForRunRefresh(picker));
+        } else if (strcmp(mode, "stale-picker-reselect") == 0) {
+            /* A newer refresh and explicit choice supersede the queued work. */
+            RuntimeSelectedTestEvidenceRefresh(chrome);
+            gtk_drop_down_set_selected(GTK_DROP_DOWN(picker), RunIndex(chrome, "run.d"));
+            CHECK(WaitForRunRefresh(picker));
+            CHECK(strcmp(RuntimeTestRuns(chrome)->session_id, "run.d") == 0);
+            text = RunViewText(view);
+            CHECK(strstr(text, "arriving") && !strstr(text, "older-result"));
+        } else {
+            CHECK(WaitForRunRefresh(picker));
+            CHECK(gtk_drop_down_get_selected(GTK_DROP_DOWN(picker)) == 0U);
+            CHECK(g_list_model_get_n_items(gtk_drop_down_get_model(GTK_DROP_DOWN(picker))) == 5U);
+            text = RunViewText(view); CHECK(strstr(text, "arriving") && strstr(text, "older-result"));
+        }
     } else if (strcmp(mode, "source-reselect") == 0) {
         observation = g_object_ref(G_OBJECT(chrome->test_failure_summary));
         handler = g_signal_connect(observation, "notify::label", G_CALLBACK(RunMutation), NULL);
