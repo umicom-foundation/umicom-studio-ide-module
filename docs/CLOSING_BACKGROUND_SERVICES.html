@@ -73,6 +73,14 @@ external process or disk write was saved. Each persistence owner still has its
 own save and error-handling contract.</p>
 <h2>Retain Framework cleanup after failed startup</h2>
 <p>A failed Framework startup may still have rollback work to finish. Studio checks <code>UmiMasterControllerNeedsStop</code> even when its own started flag was never set. Checked master release also reports failure before the service graph can be freed. Module stop errors and service shutdown errors remain separate results.</p>
+<h2>Retry a pending recent-workspace write</h2>
+<p>Opening a workspace can succeed even when its entry cannot yet be written to the recent-workspace list. Studio keeps the pending entry in memory. Checked service release first stops background work, then tries to save the list to the history location established at startup. If the write fails, the call returns the storage error and keeps the service owner and pending list alive.</p>
+<ol>
+<li>Keep the same owner after a failed release and stop issuing normal workspace commands.</li>
+<li>Inspect the startup directory's <code>.umicom/studio-recent-items</code> path and restore its ability to accept a regular file. Preserve any unrelated or damaged file for diagnosis.</li>
+<li>Call <code>UmiStudioServicesRelease(&amp;services)</code> again. A successful retry saves the pending list and clears the caller's pointer.</li>
+</ol>
+<p>Build <code>umicom-studio-recent-workspace-service-test</code> and run <code>ctest --test-dir PATH_TO_BUILD -R &quot;^studio[.]services[.]recent[.]close-retry$&quot; --no-tests=error --output-on-failure</code>. The fixture temporarily puts a directory at the file path, then checks that the same service saves its entry after the obstruction is moved. This test uses an isolated directory and also reads the original project file after release.</p>
 <h2>Read the regression examples</h2>
 <p><code>tests/test_service_lifecycle.c</code> creates a service graph with
 repository discovery disabled. Each CTest case has its own working directory,

@@ -13,6 +13,7 @@
  * MIT
  *---------------------------------------------------------------------------*/
 #include "workbench_window.h"
+#include "splash.h"
 #include "umicom/application_shell/persona.h"
 #include "umicom/studio/bootstrap.h"
 #include "umicom/studio/settings.h"
@@ -334,6 +335,8 @@ static UmiStatus FirstUseBuildCommand(UmiStudioGtkWorkbench *workbench, const ch
     return UMI_STATUS_OK; /* Result and output are checked after the worker completes. */
 }
 
+#define FIRST_USE_WORKFLOW_OUTPUT "Studio native workflow complete"
+
 static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     UmiStudioServices *services, UmiDocumentCoordinator *documents,
     const char *fixture, int repairFailure)
@@ -344,6 +347,7 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     GtkWindow *settingsWindow = NULL;
     char *root = g_build_filename(fixture, "Source project", NULL);
     char *source = g_build_filename(root, "src", "main.c", NULL);
+    char *expectedOutput = g_build_filename(root, "tests", "expected-output.txt", NULL);
     UmiDeveloperProjectGenerationRequest request;
     UmiDeveloperProjectGeneratorReport report;
     UmiDeveloperProjectModel model;
@@ -360,6 +364,10 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     g_strlcpy(request.target_name, "studio_workflow", sizeof request.target_name);
     CHECK(g_strlcpy(request.project_root, root, sizeof request.project_root) < sizeof request.project_root);
     CHECK(UmiDeveloperProjectCreateNew(projects, &request, &report, &model, &profile) == UMI_STATUS_OK);
+    /* This practice project will print a new message after the editor saves.
+     * Set the independently checked expectation before exercising the editor. */
+    CHECK(g_file_test(expectedOutput, G_FILE_TEST_IS_REGULAR));
+    CHECK(g_file_set_contents(expectedOutput, FIRST_USE_WORKFLOW_OUTPUT "\n", -1, NULL));
     CHECK(umi_studio_gtk_workbench_execute_command(workbench, "workspace.open-folder", root) == UMI_STATUS_OK);
     CHECK(UmiStudioBuildProfileSave(services, &profile) == UMI_STATUS_OK);
 /* Direct trust setup is retained for comparison; the acceptance path now exercises Project Settings. */
@@ -389,7 +397,8 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     CHECK(umi_document_coordinator_active_snapshot(documents, &active) == UMI_STATUS_OK);
     GtkWidget *editor = FindEditor(window, active.view_id);
     CHECK(GTK_IS_TEXT_VIEW(editor));
-    const char *validSource = "#include <stdio.h>\nint main(void) { puts(\"Studio native workflow complete\"); return 0; }\n";
+    const char *validSource = "#include <stdio.h>\nint main(void) { puts(\""
+        FIRST_USE_WORKFLOW_OUTPUT "\"); return 0; }\n";
     GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor));
     /* Keep the former irreversible edit fixture for review. */
 #if 0
@@ -480,7 +489,7 @@ static int ExerciseNativeBuild(UmiStudioGtkWorkbench *workbench,
     CHECK(FirstUseBuildCommand(workbench, "run.start") == UMI_STATUS_OK);
     CHECK(WaitForWorkbenchBuild(workbench, build, result));
     CHECK(result->phase == UMI_BUILD_PHASE_RUN && result->status == UMI_STATUS_OK && result->exit_code == 0);
-    CHECK(strstr(result->output, "Studio native workflow complete") != NULL);
+    CHECK(strstr(result->output, FIRST_USE_WORKFLOW_OUTPUT) != NULL);
     if (visible) {
         CHECK(umi_studio_gtk_workbench_workspace_open_surface(workbench,UMI_STUDIO_SURFACE_OUTPUT,NULL)==UMI_STATUS_OK);
         CHECK(TabJourneyCapture(window,fixture,"program-complete.png"));
@@ -490,6 +499,7 @@ cleanup:
     g_clear_object(&settingsWindow);
     umi_build_result_destroy(result);
     if (projects != NULL) umi_developer_project_service_destroy(projects);
+    g_free(expectedOutput);
     g_free(source);
     g_free(root);
     return failed;
@@ -2716,6 +2726,48 @@ cleanup:
 #include "first_use_run_menu.inc"
 #include "first_use_run_restart.inc"
 
+/* Inspect the production splash as Studio first presents it, independently of
+ * a mapped workbench. The startup icon's stable tag identifies the capture. */
+static int ExerciseStartupBranding(const char *directory)
+{
+    int failed = 0;
+    UmiSplash *splash = umi_splash_new("Umicom Studio IDE", "Loading the workbench…", 0U);
+    GtkWindow *window = NULL;
+    CHECK(splash != NULL);
+    umi_splash_show(splash, NULL);
+    TabJourneyPump();
+    GListModel *windows = gtk_window_get_toplevels();
+    for (guint index = 0U; index < g_list_model_get_n_items(windows); ++index) {
+        GtkWindow *candidate = g_list_model_get_item(windows, index);
+        if (candidate != NULL && umi_gtk4_automation_find_tagged_widget(
+                GTK_WIDGET(candidate), "studio.splash.icon") != NULL) {
+            window = candidate;
+            break;
+        }
+        g_clear_object(&candidate);
+    }
+    CHECK(window != NULL && gtk_widget_get_mapped(GTK_WIDGET(window)));
+    GtkWidget *icon = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window), "studio.splash.icon");
+    GtkWidget *logo = umi_gtk4_automation_find_tagged_widget(GTK_WIDGET(window), "studio.splash.wordmark");
+    CHECK(GTK_IS_PICTURE(icon) && GTK_IS_PICTURE(logo));
+    GdkPaintable *mark = gtk_picture_get_paintable(GTK_PICTURE(icon));
+    GdkPaintable *wordmark = gtk_picture_get_paintable(GTK_PICTURE(logo));
+    CHECK(GDK_IS_TEXTURE(mark) && GDK_IS_TEXTURE(wordmark));
+    CHECK(gdk_paintable_get_intrinsic_width(mark) == 72 &&
+          gdk_paintable_get_intrinsic_height(mark) == 72);
+    CHECK(gdk_paintable_get_intrinsic_width(wordmark) > 100 &&
+          gdk_paintable_get_intrinsic_height(wordmark) == 28);
+    /* A missing override leaves the original vector-derived picture owned by
+     * the splash. The capture records the same widgets seen at first startup. */
+    umi_splash_set_brand_image(splash, "missing-startup-asset.svg");
+    CHECK(gtk_picture_get_paintable(GTK_PICTURE(icon)) == mark);
+    CHECK(TabJourneyCapture(GTK_WIDGET(window), directory, "studio-startup-brand.png"));
+cleanup:
+    umi_splash_free(splash);
+    g_clear_object(&window);
+    return failed;
+}
+
 int main(int argc, char **argv)
 {
     /* Report argument admission failures before GTK is initialized. */
@@ -2761,7 +2813,8 @@ int main(int argc, char **argv)
 #endif
     const int retainImages = !strcmp(name,"tab-visible-workflow") || !strcmp(name,"tab-overflow") ||
         !strcmp(name,"visible-build-run") || !strcmp(name,"visible-build-repair") ||
-        FirstUseProjectControlsScenario(name) || !strcmp(name,"menu-build-run") || !strcmp(name,"menu-build-repair");
+        FirstUseProjectControlsScenario(name) || !strcmp(name,"menu-build-run") || !strcmp(name,"menu-build-repair") ||
+        !strcmp(name, "startup-branding");
     char *original = g_get_current_dir(), *directory = NULL, *source = NULL, *disk = NULL;
     char *oldData = g_strdup(g_getenv("UMICOM_STUDIO_DATA_PATH"));
     UmiSettings *settings = NULL;
@@ -2824,6 +2877,17 @@ int main(int argc, char **argv)
         umi_studio_bootstrap_desktop_shell(bootstrap), &options, &workbench) == UMI_STATUS_OK);
     GtkWidget *window = GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     CHECK(umi_document_coordinator_count(documents) == 0U);
+    /* Every first-use case opens the real workbench, so a missing titlebar
+     * asset must fail before collecting workflow captures. */
+    GtkWidget *titlebar = gtk_window_get_titlebar(GTK_WINDOW(window));
+    CHECK(GTK_IS_HEADER_BAR(titlebar));
+    GtkWidget *brand = umi_gtk4_automation_find_tagged_widget(titlebar, "workstation.identity.icon");
+    CHECK(GTK_IS_PICTURE(brand) && gtk_widget_get_visible(brand));
+    CHECK(gtk_picture_get_paintable(GTK_PICTURE(brand)) != NULL);
+    if (!strcmp(name, "startup-branding")) {
+        failed = ExerciseStartupBranding(directory);
+        goto cleanup;
+    }
     if (FirstUseRunRestartScenario(name)) {
         gtk_window_present(GTK_WINDOW(window));
         TabJourneyPump();

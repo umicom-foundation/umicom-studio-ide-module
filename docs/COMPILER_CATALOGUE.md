@@ -32,7 +32,36 @@ These commands do not execute the named drivers. Availability labels report conf
 
 Existing creation/registration/snapshot failures retain exit codes 1, 2 and 3. Catalogue refusal returns 4, summary refusal 5, allocation failure 6, stdout failure 7 and unexpected extra arguments 8. A failed output stream may already contain a prefix; check exit status before accepting it as a complete report.
 
-## Qualification
+## Review the priority languages
+
+The Studio qualification list for 19 November 2026 starts with compiled workflows. Its order reflects the Studio roadmap.
+
+| Priority | Languages in order |
+| --- | --- |
+| 1–4 | C23, C++, Umicom C, Assembly |
+| 5–10 | Rust, Go, Zig, D, FreeBASIC, Pascal |
+| 11–17 | Fortran, Ada, Swift, Java, C#, Kotlin, TypeScript |
+| 18–20 | Python (CPython), JavaScript, PHP |
+
+1. Use the Studio console or Umicom Command from a build that includes the language cohort report.
+
+   ~~~powershell
+   .\umicom-studio-console.exe --language-cohort
+   .\umicom.exe project language-cohort
+   ~~~
+
+2. To inspect one tool installation, pass its absolute tool directory. For example, replace `C:/tools/jdk/bin` with the `bin` directory of your installed JDK.
+
+   ~~~powershell
+   .\umicom-studio-console.exe --language-cohort --tools 'C:/tools/jdk/bin' | ConvertFrom-Json
+   ~~~
+
+3. Check the process exit code before saving or using the report. A relative or missing directory is refused. If your Framework SDK lacks the report, rebuild Studio with an SDK that includes it.
+4. Read `declared` for the features described by the language pack. Read `tools` for the tool names found in the selected scope. Without `--tools`, the scope is the console's inherited `PATH`. `located` means a regular file matched the registered name. The report performs no launches and contains no resolved paths. To qualify a toolchain, build a known project, run its tests, check a compiler diagnostic and stop the debugger at a known source location.
+
+Focused Windows checks have exercised generated C and C++ build, test, run and GDB workflows, CPython build, test, run and `pdb` workflows, and Java JAR build, test, run and `jdb` workflows. The bounded Umicom C artifact workflow and the integer-only Java/C translation command have separate selected checks. D, FreeBASIC and Pascal have starter recipes. Verify each language and target platform with its own native tools before relying on those workflows.
+
+## Compiler centre qualification
 
 The authored checks are **studio.compiler_catalogue**, **studio.compiler_centre_output** and **framework.compiler.snapshot_format**. They cover malformed later records, bounded lookup, unchanged output on refusal, selected-provider identity and command failures before output. Native compilation, execution, SDK deployment and GUI rendering remain unverified.
 

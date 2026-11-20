@@ -39,6 +39,24 @@ static int TabJourneyCapture(GtkWidget *window, const char *directory, const cha
     g_clear_object(&texture);g_free(file);
     return valid;
 }
+
+/* An observer can request the same workbench close while Framework releases
+ * focus. Fire once and keep the original close responsible for freeing it. */
+typedef struct TabRetirementProbe {
+    UmiStudioGtkWorkbench *workbench;
+    unsigned closeRequests;
+} TabRetirementProbe;
+
+static void TabJourneyFocusReleased(GtkWindow *window, GParamSpec *property, gpointer data)
+{
+    (void)property;
+    TabRetirementProbe *probe = data;
+    if (probe->closeRequests == 0U && gtk_window_get_focus(window) == NULL) {
+        ++probe->closeRequests;
+        umi_studio_gtk_workbench_destroy(probe->workbench);
+    }
+}
+
 static int ExerciseStableTabs(UmiStudioGtkWorkbench **slot, UmiStudioUi *ui,
     const char *directory, const char *mode)
 {
@@ -49,10 +67,23 @@ static int ExerciseStableTabs(UmiStudioGtkWorkbench **slot, UmiStudioUi *ui,
     GtkTextBuffer *buffers[16]={0};
     char ids[16][UMI_UI_ID_CAPACITY]={{0}},drafts[16][128]={{0}};
     char *paths[16]={0},*text=NULL;
+    GtkWidget *openLabel=NULL,*dirtyLabel=NULL;
+    char expectedCount[32];
     UmiStudioGtkWorkbench *workbench=*slot;
     GtkWidget *window=GTK_WIDGET(umi_studio_gtk_workbench_window(workbench));
     UmiDocumentCoordinator *documents=umi_studio_ui_documents(ui);
     UmiUiDocumentViewModel *views=umi_ui_workbench_documents(umi_studio_ui_workbench(ui));
+    /* Retain the original widgets so rebuilding Explorer cannot pass the count check. */
+    if (visible) {
+        GtkWidget *open=umi_gtk4_automation_find_tagged_widget(window,"studio.explorer.open-documents");
+        GtkWidget *dirty=umi_gtk4_automation_find_tagged_widget(window,"studio.explorer.dirty-documents");
+        CHECK(GTK_IS_LABEL(open) && GTK_IS_LABEL(dirty));
+        openLabel=g_object_ref(open);
+        dirtyLabel=g_object_ref(dirty);
+        CHECK(!strcmp(gtk_label_get_text(GTK_LABEL(openLabel)),"0"));
+        CHECK(!strcmp(gtk_label_get_text(GTK_LABEL(dirtyLabel)),"0"));
+        g_snprintf(expectedCount,sizeof expectedCount,"%zu",count);
+    }
     for(size_t index=0U;index<count;++index) {
         char filename[64];g_snprintf(filename,sizeof filename,"lesson-source-%02zu.c",index);
         paths[index]=g_build_filename(directory,filename,NULL);
@@ -80,6 +111,9 @@ static int ExerciseStableTabs(UmiStudioGtkWorkbench **slot, UmiStudioUi *ui,
         gtk_window_set_default_size(GTK_WINDOW(window),900,640);
         gtk_window_present(GTK_WINDOW(window));TabJourneyPump();
         CHECK(gtk_widget_get_mapped(window));
+        CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench)==UMI_STATUS_OK);
+        CHECK(!strcmp(gtk_label_get_text(GTK_LABEL(openLabel)),expectedCount));
+        CHECK(!strcmp(gtk_label_get_text(GTK_LABEL(dirtyLabel)),expectedCount));
         CHECK(TabJourneyCapture(window,directory,"tabs-open.png"));
     }
     /* Keep focus on an existing tab while real status synchronization runs.
@@ -108,7 +142,15 @@ static int ExerciseStableTabs(UmiStudioGtkWorkbench **slot, UmiStudioUi *ui,
     if(!strcmp(mode,"tab-retired-owner")) {
         UmiDocumentWorkingCopySnapshot before,after;
         CHECK(umi_document_coordinator_active_snapshot(documents,&before)==UMI_STATUS_OK);
+        /* Retain the native window until the focus observer is disconnected. */
+        GtkWindow *retiringWindow = g_object_ref(GTK_WINDOW(window));
+        TabRetirementProbe probe = {workbench, 0U};
+        gulong focusHandler = g_signal_connect(retiringWindow, "notify::focus-widget",
+            G_CALLBACK(TabJourneyFocusReleased), &probe);
         umi_studio_gtk_workbench_destroy(workbench);*slot=NULL;
+        g_signal_handler_disconnect(retiringWindow, focusHandler);
+        g_object_unref(retiringWindow);
+        CHECK(probe.closeRequests==1U);
         g_signal_emit_by_name(buttons[0],"clicked");
         CHECK(umi_document_coordinator_active_snapshot(documents,&after)==UMI_STATUS_OK);
         CHECK(!strcmp(before.view_id,after.view_id));
@@ -129,9 +171,25 @@ static int ExerciseStableTabs(UmiStudioGtkWorkbench **slot, UmiStudioUi *ui,
             CHECK(g_file_get_contents(paths[index],&text,NULL,NULL));
             CHECK(!strcmp(text,drafts[index]));g_clear_pointer(&text,g_free);
         }
+        /* A focused Explorer filter must survive the same status synchronization
+         * that clears the saved documents' dirty count. */
+        GtkWidget *filter=umi_gtk4_automation_find_tagged_widget(window,"umicom-explorer-filter");
+        CHECK(GTK_IS_SEARCH_ENTRY(filter));
+        gtk_editable_set_text(GTK_EDITABLE(filter),"lesson");
+        CHECK(gtk_widget_grab_focus(filter));
+        CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench)==UMI_STATUS_OK);
+        GtkWidget *focus=gtk_window_get_focus(GTK_WINDOW(window));
+        CHECK(focus!=NULL && (focus==filter || gtk_widget_is_ancestor(focus,filter)));
+        CHECK(!strcmp(gtk_editable_get_text(GTK_EDITABLE(filter)),"lesson"));
+        CHECK(umi_gtk4_automation_find_tagged_widget(window,"studio.explorer.open-documents")==openLabel);
+        CHECK(umi_gtk4_automation_find_tagged_widget(window,"studio.explorer.dirty-documents")==dirtyLabel);
+        CHECK(!strcmp(gtk_label_get_text(GTK_LABEL(openLabel)),expectedCount));
+        CHECK(!strcmp(gtk_label_get_text(GTK_LABEL(dirtyLabel)),"0"));
         CHECK(TabJourneyCapture(window,directory,"tabs-saved.png"));
     }
 cleanup:
+    g_clear_object(&openLabel);
+    g_clear_object(&dirtyLabel);
     if(text!=NULL)g_free(text);
     for(size_t index=0U;index<16U;++index) {
         g_clear_object(&buttons[index]);g_clear_object(&editors[index]);

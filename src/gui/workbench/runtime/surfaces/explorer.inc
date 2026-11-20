@@ -71,13 +71,13 @@ static GtkWidget *runtime_build_surface_explorer(
         sizeof(value),
         "%zu",
         runtime->view_model_snapshot.open_documents);
-    runtime_panel_add_stat(panel, "Open documents", value);
+    GtkWidget *openDocuments = runtime_panel_add_stat(panel, "Open documents", value);
     (void)snprintf(
         value,
         sizeof(value),
         "%zu",
         runtime->view_model_snapshot.dirty_documents);
-    runtime_panel_add_stat(panel, "Dirty documents", value);
+    GtkWidget *dirtyDocuments = runtime_panel_add_stat(panel, "Dirty documents", value);
     runtime->explorer_list = gtk_list_box_new();
     RuntimeExplorerListOwner *listOwner = g_new0(RuntimeExplorerListOwner, 1);
     listOwner->owner = runtime_file_dialog_request_new(runtime, 0U);
@@ -93,6 +93,14 @@ static GtkWidget *runtime_build_surface_explorer(
         gtk_box_append(GTK_BOX(panel), runtime_label("Explorer controls could not be allocated. Close this panel and reopen it.", 0.0F));
         return panel;
     }
+    /* Keep the initial presentation and let the active list own both weak
+     * references so subsequent status refreshes update those same labels. */
+    g_weak_ref_init(&listOwner->open_documents, openDocuments);
+    g_weak_ref_init(&listOwner->dirty_documents, dirtyDocuments);
+    if (openDocuments != NULL)
+        g_object_set_data(G_OBJECT(openDocuments), "umicom-automation-id", "studio.explorer.open-documents");
+    if (dirtyDocuments != NULL)
+        g_object_set_data(G_OBJECT(dirtyDocuments), "umicom-automation-id", "studio.explorer.dirty-documents");
     g_object_set_data_full(G_OBJECT(runtime->explorer_list), "umicom-explorer-list-owner",
         listOwner, RuntimeExplorerListReleased);
     g_object_set_data(G_OBJECT(runtime->explorer_list), "umicom-automation-id", "umicom-explorer-list");

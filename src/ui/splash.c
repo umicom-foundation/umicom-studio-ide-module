@@ -18,6 +18,8 @@
 #include "splash.h"
 
 #include "icon.h"
+#include "umicom/ui/gtk4/automation.h"
+#include "umicom/ui/gtk4/workstation/shell_header.h"
 
 struct UmiSplash {
     GtkWidget *window;
@@ -82,18 +84,29 @@ static GtkWidget *make_brand_area(UmiSplash *splash, const char *title)
         title != NULL && title[0] != '\0' ? title : "Umicom Studio IDE");
     GtkWidget *edition = gtk_label_new(
         "Umicom Framework • C23 • GTK4 • Community Edition");
+    GtkWidget *wordmark = gtk_picture_new();
 
     splash->brand_picture = gtk_picture_new();
-    /* The splash uses the symbol beside real text. Text remains sharp,
-     * accessible and easy to localise at every display scale. */
+    /* Seed the existing picture from the approved dark-surface SVG before
+     * resolving a packaged file. The startup mark is available from the first
+     * frame, including launches outside the executable directory. */
+    (void)UmiGtk4BrandPictureUseEmbedded(GTK_PICTURE(splash->brand_picture), false, true, 72);
+    (void)umi_gtk4_automation_tag_widget(splash->brand_picture, "studio.splash.icon");
     gtk_widget_set_size_request(splash->brand_picture, 72, 72);
     gtk_picture_set_content_fit(
         GTK_PICTURE(splash->brand_picture), GTK_CONTENT_FIT_CONTAIN);
+    /* The existing identity area has room for the complete wordmark. Keep the
+     * accessible, localisable product title next to the original icon. */
+    (void)UmiGtk4BrandPictureUseEmbedded(GTK_PICTURE(wordmark), true, true, 28);
+    (void)umi_gtk4_automation_tag_widget(wordmark, "studio.splash.wordmark");
+    gtk_widget_set_halign(wordmark, GTK_ALIGN_START);
+    gtk_picture_set_content_fit(GTK_PICTURE(wordmark), GTK_CONTENT_FIT_CONTAIN);
     gtk_widget_add_css_class(heading, "umicom-studio-splash-title");
     gtk_widget_add_css_class(edition, "umicom-studio-splash-edition");
     gtk_label_set_xalign(GTK_LABEL(heading), 0.0F);
     gtk_label_set_xalign(GTK_LABEL(edition), 0.0F);
     gtk_widget_set_valign(text, GTK_ALIGN_CENTER);
+    gtk_box_append(GTK_BOX(text), wordmark);
     gtk_box_append(GTK_BOX(text), heading);
     gtk_box_append(GTK_BOX(text), edition);
     gtk_box_append(GTK_BOX(brand_row), splash->brand_picture);
@@ -166,6 +179,8 @@ UmiSplash *umi_splash_new(
 
     g_object_ref_sink(splash->window);
     gtk_window_set_title(GTK_WINDOW(splash->window), "Umicom Studio IDE");
+    /* The titlebar mark and platform icon serve independent native surfaces. */
+    (void)umi_gtk4_ws_apply_window_identity(GTK_WINDOW(splash->window));
     gtk_window_set_decorated(GTK_WINDOW(splash->window), FALSE);
     gtk_window_set_resizable(GTK_WINDOW(splash->window), FALSE);
     gtk_window_set_default_size(GTK_WINDOW(splash->window), 620, 300);
@@ -231,6 +246,9 @@ void umi_splash_set_brand_image(UmiSplash *splash, const char *image_path)
         image_path == NULL || image_path[0] == '\0') {
         return;
     }
+    /* Keep the former filename assignment for review. Validate a replacement
+     * before use so a missing or unreadable file leaves the approved mark. */
+#if 0
     /* GtkPicture asks the installed image loader to render the file. This is
      * the SVG-aware path used by Studio, while still accepting a raster file
      * from an older extension that calls the same API. */
@@ -238,6 +256,15 @@ void umi_splash_set_brand_image(UmiSplash *splash, const char *image_path)
         gtk_picture_set_filename(
             GTK_PICTURE(splash->brand_picture), image_path);
     }
+#else
+    if (g_file_test(image_path, G_FILE_TEST_IS_REGULAR)) {
+        GdkTexture *texture = gdk_texture_new_from_filename(image_path, NULL);
+        if (texture != NULL) {
+            gtk_picture_set_paintable(GTK_PICTURE(splash->brand_picture), GDK_PAINTABLE(texture));
+            g_object_unref(texture);
+        }
+    }
+#endif
 }
 
 /* Provide the splash show operation used by this module and its client applications. */

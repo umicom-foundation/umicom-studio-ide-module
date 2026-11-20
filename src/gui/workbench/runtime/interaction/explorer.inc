@@ -1119,6 +1119,9 @@ static void RuntimeExplorerSearchInvoked(gpointer widget, UmiStudioGtkRuntimeChr
 typedef struct RuntimeExplorerListOwner {
     UmiStudioFileDialogRequest *owner;
     GtkWidget *list;
+    /* The panel owns these siblings. A retained list cannot prolong their life. */
+    GWeakRef open_documents;
+    GWeakRef dirty_documents;
 } RuntimeExplorerListOwner;
 
 static void RuntimeExplorerListReleased(gpointer data)
@@ -1138,6 +1141,43 @@ static void RuntimeExplorerListReleased(gpointer data)
         runtime->explorer_rendered = 0;
     }
     g_clear_object(&window);
+    g_weak_ref_clear(&binding->open_documents);
+    g_weak_ref_clear(&binding->dirty_documents);
     runtime_file_dialog_request_free(binding->owner);
     g_free(binding);
+}
+
+/* Read the same view-model snapshot that drives the rest of the workbench.
+ * The file filter can pause list redraws without pausing document counts. */
+static void RuntimeExplorerRefreshDocumentCounts(UmiStudioGtkRuntimeChrome *runtime,
+    UmiStudioFileDialogRequest *request)
+{
+    GtkWidget *list = g_object_ref(runtime->explorer_list);
+    GtkRoot *root = gtk_widget_get_root(list);
+    RuntimeExplorerListOwner *binding = g_object_get_data(
+        G_OBJECT(list), "umicom-explorer-list-owner");
+    if (binding != NULL && root != NULL) {
+        GObject *open = g_weak_ref_get(&binding->open_documents);
+        GObject *dirty = g_weak_ref_get(&binding->dirty_documents);
+        GObject *window = NULL;
+        char value[64];
+        if (open != NULL) {
+            (void)snprintf(value, sizeof(value), "%zu", runtime->view_model_snapshot.open_documents);
+            if (strcmp(gtk_label_get_text(GTK_LABEL(open)), value) != 0)
+                gtk_label_set_text(GTK_LABEL(open), value);
+        }
+        /* Label observers can close the workbench or replace the Explorer.
+         * Reacquire the live owner and verify this list before the second write. */
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime != NULL && runtime->explorer_list == list && dirty != NULL &&
+            gtk_widget_get_root(list) == root) {
+            (void)snprintf(value, sizeof(value), "%zu", runtime->view_model_snapshot.dirty_documents);
+            if (strcmp(gtk_label_get_text(GTK_LABEL(dirty)), value) != 0)
+                gtk_label_set_text(GTK_LABEL(dirty), value);
+        }
+        g_clear_object(&dirty);
+        g_clear_object(&open);
+        g_clear_object(&window);
+    }
+    g_object_unref(list);
 }

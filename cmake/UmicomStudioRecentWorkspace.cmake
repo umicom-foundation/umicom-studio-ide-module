@@ -53,7 +53,7 @@ if(BUILD_TESTING)
     endif()
     foreach(_case IN ITEMS remove cwd damaged wrong-kind missing null open-workspace
             pin-set pin-unset pin-cwd pin-damaged pin-wrong-kind pin-missing pin-null
-            pin-open-workspace pin-stale)
+            pin-open-workspace pin-stale close-retry)
         add_test(NAME studio.services.recent.${_case}
             COMMAND umicom-studio-recent-workspace-service-test "${_case}")
         set_tests_properties(studio.services.recent.${_case} PROPERTIES

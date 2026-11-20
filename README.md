@@ -22,6 +22,37 @@ to Studio without duplicating the implementation.  The GTK4 environment page
 and future repository wizard must use the same Framework services as the native
 `umicom` command.
 
+### Translate a small C or Java function
+
+The optional native `umicom-studio-translate` command converts one checked
+integer function. Start with a C file containing
+`int answer(void) { return (20 + 1) * 2; }`. The Java version must use a
+`public final class UmicomAnswer` with a `public static int answer()`
+method containing the same single return expression.
+
+1. Configure Applications with `-DUMICOM_STUDIO_CVM_TRANSLATION=ON` and
+   select an Umicom C SDK that exports `UmicomC::Translation`. When building
+   from a compatible compiler checkout, pass its absolute path as
+   `-DUMICOM_C_PREVIEW_SOURCE=<absolute path>` during configuration.
+2. Build `umicom-studio-translate` from the configured Applications build
+   directory. Run the executable with two absolute paths in directories you
+   control. This example uses an existing `C:\work` folder.
+
+   ```powershell
+   umicom-studio-translate c-to-java C:\work\answer.c C:\work\UmicomAnswer.java
+   umicom-studio-translate java-to-c C:\work\UmicomAnswer.java C:\work\translated.c
+   ```
+
+3. Open the generated file in Studio and review the function before adding
+   it to a project. A source refusal prints its line, byte column and
+   reason. Fix the source or use a fresh destination when the named file
+   already exists. An interrupted write can leave a partial output for review.
+
+This command supports decimal integers, parentheses and checked arithmetic
+that stays in the signed 32-bit range. It covers a single function with
+the declarations shown above. Editor actions, other declarations, and
+translating an entire application are outside this command's scope.
+
 ## Application composition
 
 Studio remains independently runnable while sharing the same Framework contracts

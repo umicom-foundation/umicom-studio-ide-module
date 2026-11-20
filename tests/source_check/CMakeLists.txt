@@ -24,6 +24,11 @@ include("${_framework}/cmake/UmicomApplicationBranding.cmake")
 umicom_apply_application_branding(TARGET umicom-studio-source-check
     PRODUCT_NAME "Umicom Studio Source Check" INTERNAL_NAME "umicom-studio-source-check"
     RESOURCE_ROOT "${_framework}/resources" NO_RUNTIME_DEPLOYMENT)
+option(UMICOM_STUDIO_CVM_TRANSLATION "Build and test the explicit Java and C subset translator" OFF)
+if(UMICOM_STUDIO_CVM_TRANSLATION)
+    include("${_studio}/cmake/UmicomStudioTranslation.cmake")
+    umicom_studio_add_translation(document-check-platform)
+endif()
 add_executable(umicom-studio-source-check-test "../test_source_check.c")
 target_link_libraries(umicom-studio-source-check-test PRIVATE umicom_studio_source_check)
 add_test(NAME studio.source-check.controller COMMAND umicom-studio-source-check-test)

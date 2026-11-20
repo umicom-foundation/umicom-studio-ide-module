@@ -37,9 +37,17 @@ static int ExerciseNativeProjectControls(UmiStudioGtkWorkbench *workbench,
     CHECK(ExerciseNativeBuild(workbench,services,documents,fixture,0)==0);
     CHECK(umi_build_result_create(&result)==UMI_STATUS_OK);
     const int runCurrent=!strcmp(mode,"visible-run-current");
+    /* Preserve the old fixture path for review. The starter runs the actual
+     * console and checks its saved output contract through CTest. */
+#if 0
     source=runCurrent
         ? g_build_filename(fixture,"Source project","src","main.c",NULL)
         : g_build_filename(fixture,"Source project","tests","test_main.c",NULL);
+#else
+    source=runCurrent
+        ? g_build_filename(fixture,"Source project","src","main.c",NULL)
+        : g_build_filename(fixture,"Source project","tests","expected-output.txt",NULL);
+#endif
     CHECK(g_file_get_contents(source,&saved,&savedLength,NULL));
     CHECK(umi_studio_gtk_workbench_execute_command(workbench,"file.open",source)==UMI_STATUS_OK);
     CHECK(umi_studio_gtk_workbench_workspace_synchronise(workbench)==UMI_STATUS_OK);
@@ -47,6 +55,9 @@ static int ExerciseNativeProjectControls(UmiStudioGtkWorkbench *workbench,
     GtkWidget *editor=FindEditor(window,active.view_id);
     CHECK(Reachable(editor,window));
     buffer=g_object_ref(gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor)));
+    /* Retain the former standalone test program. Changing the saved output
+     * expectation now produces a real CTest failure without a compiler error. */
+#if 0
     const char *rejectedSource=
         "/*-----------------------------------------------------------------------------\n"
         " * Umicom Studio IDE\n"
@@ -65,6 +76,9 @@ static int ExerciseNativeProjectControls(UmiStudioGtkWorkbench *workbench,
         "\n"
         "#include <stdio.h>\n"
         "int main(void) { fputs(\"Studio acceptance test rejected\\n\", stderr); return 1; }\n";
+#else
+    const char *rejectedSource="Studio acceptance test rejected\n";
+#endif
     const char *unsavedSource=
         "/*-----------------------------------------------------------------------------\n"
         " * Umicom Studio IDE\n"
@@ -102,7 +116,7 @@ static int ExerciseNativeProjectControls(UmiStudioGtkWorkbench *workbench,
     if (runCurrent) {
         CHECK(result->phase==UMI_BUILD_PHASE_RUN && result->status==UMI_STATUS_OK && result->exit_code==0);
         CHECK(after.completed_phase_count==1U);
-        CHECK(strstr(result->output,"Studio native workflow complete")!=NULL);
+        CHECK(strstr(result->output,FIRST_USE_WORKFLOW_OUTPUT)!=NULL);
         CHECK(active.dirty && diskLength==savedLength && memcmp(disk,saved,savedLength)==0);
         GtkTextIter first,last;
         gtk_text_buffer_get_bounds(buffer,&first,&last);

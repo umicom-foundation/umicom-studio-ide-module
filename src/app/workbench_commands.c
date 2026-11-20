@@ -28,6 +28,9 @@
 #include "umicom/studio/ui.h"
 #include "umicom/studio/workbench.h"
 #include "umicom/studio/workspace.h"
+#ifdef UMICOM_STUDIO_CVM_TRANSLATION_ENABLED
+#include "umicom_c/translate.h"
+#endif
 
 /* Open the selected directory through Studio's shared workspace services, then
  * refresh every view model before the presentation adapter redraws. This keeps
@@ -466,6 +469,71 @@ static UmiStatus active_document(UmiStudioUi *ui,
     if (status == UMI_STATUS_OK) *out_workbench = workbench;
     return status;
 }
+
+#ifdef UMICOM_STUDIO_CVM_TRANSLATION_ENABLED
+/* Translate the full working copy, including unsaved edits, before creating
+ * any tab. The shared coordinator owns the new draft and normal Save As. */
+static UmiStatus editor_translate(void *user_data, UmcTranslationDirection direction,
+    const char *name, char *out_message, size_t capacity)
+{
+    UmiStudioUi *ui = user_data;
+    UmiUiWorkbench *workbench = NULL;
+    UmiUiDocumentViewSnapshot document;
+    UmiStatus status = active_document(ui, &workbench, &document);
+    if (status != UMI_STATUS_OK) return status;
+    UmiUiDocumentViewModel *model = umi_ui_workbench_documents(workbench);
+    UmiUiDocumentTextInfo info;
+    status = UmiUiDocumentViewModelTextInfo(model, document.view_id, &info);
+    if (status != UMI_STATUS_OK) return status;
+    if (info.byte_count > UMC_SOURCE_LIMIT) return UMI_STATUS_CAPACITY_EXCEEDED;
+
+    char *source = NULL;
+    size_t source_size = 0U;
+    status = UmiUiDocumentViewModelCopyText(model, document.view_id, &source, &source_size);
+    if (status != UMI_STATUS_OK) return status;
+    size_t translated_size = 0U;
+    UmcDiagnostic diagnostic = {0};
+    /* Use the installed compiler's declared translation profile. Both paths
+     * publish the finished draft through the same document owner. */
+#ifdef UMC_TRANSLATION_FUNCTION_OUTPUT_CAPACITY
+    char translated[UMC_TRANSLATION_FUNCTION_OUTPUT_CAPACITY];
+    const UmcStatus translation = umc_translate_integer_function(direction, source, source_size,
+        translated, sizeof translated, &translated_size, &diagnostic);
+#else
+    char translated[UMC_TRANSLATION_OUTPUT_CAPACITY];
+    const UmcStatus translation = umc_translate_integer_answer(direction, source, source_size,
+        translated, sizeof translated, &translated_size, &diagnostic);
+#endif
+    UmiUiDocumentViewModelFreeText(source);
+    if (translation != UMC_OK) {
+        if (out_message != NULL && capacity != 0U && diagnostic.message != NULL)
+            (void)snprintf(out_message, capacity, "Translation refused at line %zu, column %zu. %s",
+                diagnostic.line, diagnostic.column, diagnostic.message);
+        return UMI_STATUS_PARSE_ERROR;
+    }
+    status = UmiDocumentCoordinatorNewWithText(umi_studio_ui_documents(ui), name,
+        translated, translated_size, NULL, 0U);
+    if (status == UMI_STATUS_OK && out_message != NULL && capacity != 0U)
+        (void)snprintf(out_message, capacity, "Opened an unsaved translation draft");
+    return status;
+}
+
+static UmiStatus editor_translate_c_to_java(void *user_data, const char *argument,
+    char *out_message, size_t capacity)
+{
+    (void)argument;
+    return editor_translate(user_data, UMC_TRANSLATE_C_TO_JAVA, "UmicomAnswer.java",
+        out_message, capacity);
+}
+
+static UmiStatus editor_translate_java_to_c(void *user_data, const char *argument,
+    char *out_message, size_t capacity)
+{
+    (void)argument;
+    return editor_translate(user_data, UMC_TRANSLATE_JAVA_TO_C, "answer.c",
+        out_message, capacity);
+}
+#endif
 
 /* Provide the editor close operation used by this module and its client applications. */
 static UmiStatus editor_close(void *user_data,
@@ -1098,7 +1166,15 @@ UmiStatus umi_studio_workbench_commands_register(UmiCommandRegistry *registry,
           editor_balance_groups, UMI_COMMAND_MUTATES_STATE },
         { UMI_STUDIO_COMMAND_EDITOR_RESET_GROUPS,
           "Reset Editor Groups", "Merge all editors into one primary group",
-          editor_reset_groups, UMI_COMMAND_MUTATES_STATE }
+          editor_reset_groups, UMI_COMMAND_MUTATES_STATE },
+#ifdef UMICOM_STUDIO_CVM_TRANSLATION_ENABLED
+        { UMI_STUDIO_COMMAND_EDITOR_TRANSLATE_C_TO_JAVA,
+          "Translate C to Java", "Open a new draft from the supported C answer function",
+          editor_translate_c_to_java, UMI_COMMAND_MUTATES_STATE },
+        { UMI_STUDIO_COMMAND_EDITOR_TRANSLATE_JAVA_TO_C,
+          "Translate Java to C", "Open a new draft from the supported Java answer method",
+          editor_translate_java_to_c, UMI_COMMAND_MUTATES_STATE },
+#endif
     };
     size_t index;
     UmiStatus status;

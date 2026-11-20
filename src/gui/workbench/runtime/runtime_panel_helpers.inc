@@ -36,9 +36,9 @@ static GtkWidget *runtime_panel_new(const char *title)
 
 /*
  * Provide the runtime panel add stat operation used by this module and its client
- * applications.
+ * applications. Return the value label so live panels can refresh it in place.
  */
-static void runtime_panel_add_stat(
+static GtkWidget *runtime_panel_add_stat(
     GtkWidget *panel,
     const char *label,
     const char *value)
@@ -51,7 +51,7 @@ static void runtime_panel_add_stat(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (panel == NULL) return;
+    if (panel == NULL) return NULL;
 
     row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     left = runtime_label(label, 0.0F);
@@ -61,7 +61,7 @@ static void runtime_panel_add_stat(
      * Protect caller-owned memory by checking that required state is available before it is
      * used.
      */
-    if (row == NULL || left == NULL || right == NULL) return;
+    if (row == NULL || left == NULL || right == NULL) return NULL;
 
     gtk_widget_add_css_class(left, "umicom-runtime-muted");
     gtk_widget_set_hexpand(left, TRUE);
@@ -69,6 +69,7 @@ static void runtime_panel_add_stat(
     gtk_box_append(GTK_BOX(row), left);
     gtk_box_append(GTK_BOX(row), right);
     gtk_box_append(GTK_BOX(panel), row);
+    return right;
 }
 
 /*

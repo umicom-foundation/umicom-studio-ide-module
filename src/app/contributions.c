@@ -147,6 +147,10 @@ static const UmiUiActionSnapshot STUDIO_ACTIONS[] = {
     { "studio.action.edit.undo", UMI_DOCUMENT_COMMAND_UNDO, "Undo", "Undo the latest editor transaction", "edit-undo-symbolic", "Ctrl+Z", 1, 1, 0, 0, 140, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.edit.redo", UMI_DOCUMENT_COMMAND_REDO, "Redo", "Redo the latest editor transaction", "edit-redo-symbolic", "Ctrl+Shift+Z", 1, 1, 0, 0, 150, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.edit.find", UMI_DOCUMENT_COMMAND_FIND, "Find", "Find text in the active editor", "edit-find-symbolic", "Ctrl+F", 1, 1, 0, 0, 160, "", UMI_UI_ACTION_ARGUMENT_TEXT },
+#ifdef UMICOM_STUDIO_CVM_TRANSLATION_ENABLED
+    { "studio.action.editor.translate-c-to-java", UMI_STUDIO_COMMAND_EDITOR_TRANSLATE_C_TO_JAVA, "Translate C to Java", "Open a Java draft from the active C answer function", "text-x-generic-symbolic", "", 1, 1, 0, 0, 162, "", UMI_UI_ACTION_ARGUMENT_NONE },
+    { "studio.action.editor.translate-java-to-c", UMI_STUDIO_COMMAND_EDITOR_TRANSLATE_JAVA_TO_C, "Translate Java to C", "Open a C draft from the active Java answer method", "text-x-generic-symbolic", "", 1, 1, 0, 0, 163, "", UMI_UI_ACTION_ARGUMENT_NONE },
+#endif
     { "studio.action.edit.replace", UMI_DOCUMENT_COMMAND_REPLACE, "Replace", "Replace text in the active editor", "edit-find-replace-symbolic", "Ctrl+H", 1, 1, 0, 0, 170, "", UMI_UI_ACTION_ARGUMENT_FIND_REPLACE },
     { "studio.action.view.command-palette", UMI_STUDIO_COMMAND_QUICK_ACCESS_SHOW, "Command Palette…", "Search and execute registered Studio actions and Framework commands", "system-search-symbolic", "Ctrl+Shift+P", 1, 1, 0, 0, 180, "", UMI_UI_ACTION_ARGUMENT_NONE },
     { "studio.action.editor.word-wrap", UMI_STUDIO_COMMAND_EDITOR_WORD_WRAP_TOGGLE, "Toggle Word Wrap", "Wrap long lines within the editor viewport", "format-justify-left-symbolic", "Alt+Z", 1, 1, 1, 0, 181, "", UMI_UI_ACTION_ARGUMENT_NONE },

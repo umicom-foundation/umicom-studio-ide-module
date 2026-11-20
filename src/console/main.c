@@ -25,15 +25,26 @@
 #include "umicom/application/runtime/readiness.h"
 #include "umicom/application/experience_catalogue.h"
 #include "umicom/application/runtime/command_surface.h"
+#if defined(UMICOM_HAS_LANGUAGE_COHORT)
+#include "umicom/developer_project/language_cohort.h"
+#endif
 
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 
 /*
  * Start this command or application, report setup failures, and return a process exit code
  * to the operating system.
  */
+/* The entry point now admits a read-only Framework report before lifecycle
+ * initialisation. Retain the original declaration for integration review;
+ * the complete previous lifecycle body is the default path below. */
+#if 0
 int main(void)
+#else
+static int RunDefault(void)
+#endif
 {
     UmiStudioBootstrap *bootstrap = NULL;
     UmiDiagnosticStoreSummary summary;
@@ -161,4 +172,26 @@ int main(void)
 
     umi_studio_bootstrap_destroy(bootstrap);
     return 0;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc < 2 || strcmp(argv[1], "--language-cohort") != 0) return RunDefault();
+    if (argc != 2 && (argc != 4 || strcmp(argv[2], "--tools") != 0 || argv[3][0] == '\0')) {
+        fputs("Usage: umicom-studio-console --language-cohort [--tools ABSOLUTE_DIRECTORY]\n", stderr);
+        return 2;
+    }
+#if defined(UMICOM_HAS_LANGUAGE_COHORT)
+    char json[UMI_PROJECT_LANGUAGE_COHORT_JSON_CAPACITY];
+    UmiStatus status = UmiProjectLanguageCohortFormatJson(argc == 4 ? argv[3] : NULL,
+                                                         json, sizeof json);
+    if (status != UMI_STATUS_OK) {
+        fprintf(stderr, "Language cohort unavailable: %s\n", umi_status_text(status));
+        return 1;
+    }
+    return puts(json) == EOF || fflush(stdout) != 0;
+#else
+    fputs("Language cohort unavailable in this Framework SDK.\n", stderr);
+    return 1;
+#endif
 }

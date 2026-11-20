@@ -169,6 +169,8 @@ UMI_STUDIO_FIRST_USE_CASE("tab-refresh-stable", 0)
 UMI_STUDIO_FIRST_USE_CASE("tab-visible-workflow", 0)
 UMI_STUDIO_FIRST_USE_CASE("tab-retired-owner", 0)
 UMI_STUDIO_FIRST_USE_CASE("tab-overflow", 0)
+/* Require both approved assets on the production startup surface. */
+UMI_STUDIO_FIRST_USE_CASE("startup-branding", 0)
 UMI_STUDIO_FIRST_USE_CASE("visible-build-run", 1)
 UMI_STUDIO_FIRST_USE_CASE("visible-build-repair", 1)
 

@@ -17,5 +17,15 @@
 <p>Use <a href="LINE_EDITING.html">line editing</a> for duplicate, move, indent, comment, join, trim and delete commands with shared Undo.</p>
 <p><a href="UNDO_REDO.html">Undo and Redo</a> explains source and selection restoration across native typing and shared commands.</p>
 <p><a href="DRAFT_RECOVERY.html">Local draft recovery</a> explains explicit snapshots, full preview and restoration into a new unsaved tab.</p>
+<h2>Translate a small C or Java answer function</h2>
+<p>Build Studio with <code>UMICOM_STUDIO_CVM_TRANSLATION=ON</code> and an Umicom C SDK that exports its translation component. The command palette then offers <strong>Translate C to Java</strong> and <strong>Translate Java to C</strong>.</p>
+<ol>
+<li>Open a C draft with <code>int answer(void)</code> returning a supported integer expression, or a Java class with <code>public static int answer()</code>.</li>
+<li>Press <kbd>Ctrl+Shift+P</kbd> and choose the matching translation direction. The command reads the complete active draft, including any unsaved edits.</li>
+<li>Review the new unsaved tab. Use Save As when you want to keep it. For the generated Java class, use the suggested name <code>UmicomAnswer.java</code>.</li>
+</ol>
+<p>If the compiler reports a line and column, use them to inspect the source expression. An unsupported source leaves the source tab active and creates no draft. The translator currently accepts one bounded integer answer function. Imports, general statements and complete project conversion require other support.</p>
+<p>The Umicom C function profile also accepts initialized <code>int</code> locals and simple assignments ahead of the final return. Try <code>int net = 21; net = net * 2; return net;</code> inside the function. The generated draft should contain the same three steps. An older compiler SDK still handles the expression-only form.</p>
+<p>With an Umicom C SDK that supports body comments, place a plain ASCII <code>/* note */</code> or <code>// note</code> inside the function and translate it again. The new draft keeps the comments and line endings. A comment with a Java Unicode escape or a C line splice is refused at its original source location. Keep the complete translation body within the SDK's existing function-size limit.</p>
 <p><a href="EDITING_MULTIPLE_FILES.html">Edit and build a project</a> explains document tabs, saving, build results and capturing an editing problem.</p>
 </body></html>

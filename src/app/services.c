@@ -379,6 +379,15 @@ static UmiStatus destroy_partial_checked(UmiStudioServices *services)
     if (status != UMI_STATUS_OK) return status;
     status = UmiStudioServicesStopBackground(services);
     if (status != UMI_STATUS_OK) return status;
+    /* Retry pending history only after background writers have stopped. Keep
+     * the model and every child object alive until the owned write succeeds.
+     * History rejected at startup remains read-only for this service owner. */
+    if (services->recent_items != NULL && services->recent_items_persistence_enabled &&
+        services->recent_items_dirty) {
+        status = StudioRecentItemsSave(services);
+        if (status != UMI_STATUS_OK) return status;
+        services->recent_items_dirty = 0;
+    }
     /* StopBackground joined the shared queue. A failed release keeps the
      * service owner intact for retry, just like the other checked children. */
     status = UmiCodeGuardReviewDestroy(&services->codeguard_review);
@@ -451,6 +460,10 @@ static UmiStatus destroy_partial_checked(UmiStudioServices *services)
      * data is deliberately not allowed to overwrite the file that needs
      * diagnosis or recovery. */
     if (services->recent_items != NULL) {
+        /* The previous late save ignored an I/O failure and freed the only
+         * pending history. The checked checkpoint above now retains the owner
+         * for retry. Keep the earlier best-effort save here for review. */
+#if 0
         if (services->recent_items_persistence_enabled != 0 &&
             services->recent_items_dirty != 0) {
             /* Keep the old relative save visible; shutdown uses the bound path. */
@@ -460,6 +473,7 @@ static UmiStatus destroy_partial_checked(UmiStudioServices *services)
 #endif
             (void)StudioRecentItemsSave(services);
         }
+#endif
         umi_platform_recent_items_registry_destroy(services->recent_items);
         services->recent_items = NULL;
     }

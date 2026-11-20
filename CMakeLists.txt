@@ -306,6 +306,10 @@ add_executable(umicom-studio-console
 target_link_libraries(umicom-studio-console PRIVATE
     Umicom::StudioCore
 )
+# The optional Framework capability macro covers both source and installed SDK targets.
+if(TARGET Umicom::developer)
+    target_link_libraries(umicom-studio-console PRIVATE Umicom::developer)
+endif()
 umicom_apply_warnings(umicom-studio-console)
 umicom_apply_sanitizers(umicom-studio-console)
 
@@ -340,6 +344,17 @@ if(UMICOM_STUDIO_CVM_CHECKS)
         PRODUCT_NAME "Umicom Studio Source Check" INTERNAL_NAME "umicom-studio-source-check"
         RESOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/resources" NO_RUNTIME_DEPLOYMENT)
     install(TARGETS umicom-studio-source-check RUNTIME DESTINATION bin COMPONENT Applications)
+endif()
+
+# Translation is available through the same optional compiler SDK family,
+# but can be selected independently from editor document checking.
+option(UMICOM_STUDIO_CVM_TRANSLATION "Build the explicit Java and C subset translator" OFF)
+if(UMICOM_STUDIO_CVM_TRANSLATION)
+    include(cmake/UmicomStudioTranslation.cmake)
+    umicom_studio_add_translation(Umicom::platform)
+    target_compile_definitions(umicom_studio_core PUBLIC UMICOM_STUDIO_CVM_TRANSLATION_ENABLED=1)
+    target_link_libraries(umicom_studio_core PRIVATE UmicomC::Translation)
+    install(TARGETS umicom-studio-translate RUNTIME DESTINATION bin COMPONENT Applications)
 endif()
 
 # Native project-health command.  This is intentionally implemented in C23 so
@@ -1508,9 +1523,31 @@ if(BUILD_TESTING)
 
     add_executable(umicom-studio-command-inventory-partition-test tests/test_command_inventory_partition.c)
     target_link_libraries(umicom-studio-command-inventory-partition-test PRIVATE Umicom::StudioCore)
+    # The shared temporary-state fixture uses GLib even when the case opens no GUI.
+    target_link_libraries(umicom-studio-command-inventory-partition-test PRIVATE PkgConfig::GLIB)
     umicom_apply_warnings(umicom-studio-command-inventory-partition-test)
     umicom_apply_sanitizers(umicom-studio-command-inventory-partition-test)
     add_test(NAME studio.command_inventory_partition COMMAND umicom-studio-command-inventory-partition-test)
+
+    if(UMICOM_STUDIO_CVM_TRANSLATION)
+        add_executable(umicom-studio-active-translation-test tests/test_active_translation.c)
+        target_link_libraries(umicom-studio-active-translation-test PRIVATE Umicom::StudioCore UmicomC::Translation)
+        target_link_libraries(umicom-studio-active-translation-test PRIVATE PkgConfig::GLIB)
+        umicom_apply_warnings(umicom-studio-active-translation-test)
+        umicom_apply_sanitizers(umicom-studio-active-translation-test)
+        foreach(case c-to-java java-to-c invalid oversize view-id-rollback comment-c-to-java comment-java-to-c)
+            set(name "studio.active_translation.${case}")
+            add_test(NAME "${name}" COMMAND umicom-studio-active-translation-test "${case}")
+            set_tests_properties("${name}" PROPERTIES TIMEOUT 45 LABELS "studio;translation;documents;headless")
+            # SDKs predating the comment capability keep their original cases.
+            if(case MATCHES "^comment-")
+                set_tests_properties("${name}" PROPERTIES SKIP_RETURN_CODE 77)
+            endif()
+            if(COMMAND umicom_test_impact_owners)
+                umicom_test_impact_owners("${name}" TARGETS umicom-studio-active-translation-test)
+            endif()
+        endforeach()
+    endif()
 
     add_executable(umicom-studio-service-inventory-test tests/test_service_inventory.c)
     target_link_libraries(umicom-studio-service-inventory-test PRIVATE Umicom::StudioCore)

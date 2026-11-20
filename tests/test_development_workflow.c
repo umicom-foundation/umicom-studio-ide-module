@@ -64,9 +64,9 @@ static UmiStatus PrepareQualificationDriver(const UmiBuildProfile *profile)
         "endif()\n";
     return status == UMI_STATUS_OK ? umi_fs_write_text(file, driver) : status;
 }
-/* The generated console project gives its smoke check a separate executable.
- * Change that test input so a test rejection cannot be confused with a program
- * exit code that CTest never ran. The old application mutations remain below. */
+/* Retain the earlier separate test executable mutation for review. The console
+ * starter now reads expected output when CTest runs the built program. */
+#if 0
 static UmiStatus RejectSmokeTest(const char *root)
 {
     char test_source[UMI_PATH_CAPACITY];
@@ -81,6 +81,21 @@ static UmiStatus RejectSmokeTest(const char *root)
         "int main(void) { fputs(\"Intentional smoke-test failure\\n\", stderr); return 1; }\n";
     return status == UMI_STATUS_OK ? umi_fs_write_text(test_source, text) : status;
 }
+#else
+static UmiStatus SetSmokeExpectation(const char *root, const char *expected)
+{
+    char path[UMI_PATH_CAPACITY];
+    UmiStatus status = umi_fs_join(path, sizeof path, root, "tests/expected-output.txt");
+    if (status != UMI_STATUS_OK) return status;
+    if (!umi_fs_is_file(path)) return UMI_STATUS_NOT_FOUND;
+    return umi_fs_write_text(path, expected);
+}
+
+static UmiStatus RejectSmokeTest(const char *root)
+{
+    return SetSmokeExpectation(root, "Intentional smoke-test failure\n");
+}
+#endif
 int main(int argc,char **argv)
 {
     if(argc!=3) return 2;
@@ -100,6 +115,7 @@ int main(int argc,char **argv)
     OK(UmiDeveloperProjectCreateNew(projects,&request,&report,&model,&profile));created=1;
     OK(umi_fs_join(source,sizeof(source),root,"src/main.c"));
     OK(umi_fs_write_text(source,"#include <stdio.h>\nint main(void){unsigned savedNotes=2;printf(\"Umicom Notes: %u\\n\",savedNotes);return 0;}\n"));
+    OK(SetSmokeExpectation(root, "Umicom Notes: 2\n"));
     /* Build-only profiles still debug without inventing a test requirement. */
     if(strcmp(mode,"testing-disabled")==0)profile.build_testing=false;
     OK(umi_studio_bootstrap_create_with_options(&options,&bootstrap));OK(umi_studio_bootstrap_start(bootstrap));
@@ -248,8 +264,8 @@ int main(int argc,char **argv)
 #endif
     if(strcmp(mode,"compile-failure")==0 || strcmp(mode,"test-failure")==0){
         /* The older executable remains on disk. A failed new build must not launch it. */
-        /* Preserve the former mutation for review. CTest owns tests/test_main.c,
-         * while compile-failure continues exercising the real application source. */
+        /* Keep the former mutations for review. Test failure changes only the
+         * expected output, and compile failure still changes application source. */
 #if 0
         if(strcmp(mode,"test-failure")==0)
             OK(umi_fs_write_text(source,"int main(void) { return 1; }\n"));

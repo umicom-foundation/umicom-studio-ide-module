@@ -92,6 +92,9 @@ UmiStatus UmiStudioServicesStopBackground(UmiStudioServices *services);
 
 /** Release an exclusively owned service graph and clear its pointer on success.
  * Stop/join/handle-release failures retain the pointer for investigation and retry.
+ * A pending recent-workspace history write also retains the pointer on failure.
+ * In that case the background owners have stopped and the live history can be
+ * flushed on another release attempt after the destination is repaired.
  * Exclude UI models, registry aliases and all concurrent callers before release.
  * Active AI patch callbacks and nested release return BUSY with the handle
  * retained. This serialized preflight is not a lifetime lock; arbitrary model

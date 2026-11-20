@@ -14,6 +14,7 @@
  *---------------------------------------------------------------------------*/
 #include "umicom/studio/services.h"
 #include "umicom/studio/workspace.h"
+#include "umicom/platform/path.h"
 #include "studio_test_state.h"
 #include <string.h>
 
@@ -28,7 +29,7 @@ int main(int argc,char **argv)
     UmiStudioServices *services=NULL;
     UmiSettings *settings=NULL;
     UmiRecentItemRegistry *disk=NULL;
-    char *metadata=NULL,*other=NULL,*project=NULL,*source=NULL,*text=NULL;
+    char *metadata=NULL,*other=NULL,*project=NULL,*source=NULL,*text=NULL,*obstruction=NULL;
     gsize size=0U;
     CHECK(StudioTestStateBegin(&state));started=1;
     metadata=g_build_filename(state.directory,".umicom","studio-recent-items",NULL);
@@ -48,6 +49,37 @@ int main(int argc,char **argv)
     CHECK(umi_studio_services_create_with_options(NULL,NULL,&options,&services)==UMI_STATUS_OK);
     UmiRecentItemRegistry *registry=umi_studio_services_recent_items(services);
     UmiRecentItemSnapshot item={0},found;
+    if (strcmp(mode,"close-retry")==0) {
+        /* Use a directory at the owned history path to refuse atomic writes
+         * deterministically, including under users with elevated permissions. */
+        obstruction=g_build_filename(state.directory,"retained-history-directory",NULL);
+        CHECK(g_mkdir(metadata,0700)==0);
+        CHECK(umi_studio_services_open_workspace(services,project,0)==UMI_STATUS_OK);
+        char normalized[UMI_PATH_CAPACITY];
+        CHECK(umi_path_normalise(project,normalized,sizeof(normalized))==UMI_STATUS_OK);
+        CHECK(umi_platform_recent_item_id_from_uri("studio-workspace",normalized,item.id,
+            sizeof(item.id))==UMI_STATUS_OK);
+        CHECK(umi_platform_recent_items_registry_find(registry,item.id,&found)==UMI_STATUS_OK);
+        UmiStatus refused=UmiRecentItemsSaveLocal(registry,metadata);
+        CHECK(refused!=UMI_STATUS_OK);
+
+        /* Keep the original service and record available until the same owner
+         * can persist the pending history. Preserve the obstruction as evidence. */
+        UmiStudioServices *original=services;
+        CHECK(UmiStudioServicesRelease(&services)==refused);
+        CHECK(services==original && umi_studio_services_recent_items(services)==registry);
+        CHECK(umi_studio_services_documents(services)!=NULL);
+        CHECK(umi_platform_recent_items_registry_find(registry,item.id,&found)==UMI_STATUS_OK);
+        CHECK(g_file_test(metadata,G_FILE_TEST_IS_DIR));
+        CHECK(g_rename(metadata,obstruction)==0);
+        CHECK(UmiStudioServicesRelease(&services)==UMI_STATUS_OK && services==NULL);
+        CHECK(UmiRecentItemsLoadLocal(metadata,&disk,&loaded)==UMI_STATUS_OK && loaded);
+        CHECK(umi_platform_recent_items_registry_find(disk,item.id,&found)==UMI_STATUS_OK);
+        CHECK(strcmp(found.uri,normalized)==0 && found.open_count==1U);
+        CHECK(g_file_get_contents(source,&text,&size,NULL));
+        CHECK(strcmp(text,"Project content is independent of history.\n")==0);
+        goto cleanup;
+    }
     (void)snprintf(item.id,sizeof(item.id),"%s","workspace");
     (void)snprintf(item.kind,sizeof(item.kind),"%s",strcmp(mode,"wrong-kind")==0?"lesson":"workspace");
     (void)snprintf(item.uri,sizeof(item.uri),"%s",project);
@@ -115,6 +147,6 @@ cleanup:
     umi_settings_destroy(settings);
     umi_platform_recent_items_registry_destroy(disk);
     if(started && !StudioTestStateEnd(&state))failed=1;
-    g_free(metadata);g_free(other);g_free(project);g_free(source);g_free(text);
+    g_free(metadata);g_free(other);g_free(project);g_free(source);g_free(text);g_free(obstruction);
     return failed;
 }

@@ -72,6 +72,8 @@ struct UmiStudioGtkWorkbench {
     UmiGtk4AutomationDriver *automation;
     UmiStatus last_refresh_failure;
     unsigned last_refresh_stage;
+    /* Close observers must never dispose a workbench already in teardown. */
+    int destroying;
 };
 
 /*
@@ -476,6 +478,10 @@ void umi_studio_gtk_workbench_destroy(
      * used.
      */
     if (workbench == NULL) return;
+    /* A Framework focus release can invoke a product close observer. Keep
+     * ownership with the outer call until the native tree is gone. */
+    if (workbench->destroying) return;
+    workbench->destroying = 1;
 
     /* The retained editor body also owns linked-context controls. Their
      * borrowed host differs from the runtime pointer and needs its own guard. */

@@ -1,9 +1,17 @@
 /*-----------------------------------------------------------------------------
- * Umicom Framework / Studio qualification
- * File: applications/studio/tests/test_project_workflow.c
- * PURPOSE: Exercise real generate/edit/save/build/run/test/install through Studio and Framework.
- * AUTHOR AND ORGANISATION: Sammy Hegab, Umicom Foundation
- * LICENCE: MIT
+ * Umicom Studio IDE
+ * File: tests/test_project_workflow.c
+ *
+ * PURPOSE:
+ *   Exercise native project generation, editing, saving, building, running,
+ *   testing and installation through Studio and Framework.
+ *
+ * AUTHOR AND ORGANISATION:
+ * Sammy Hegab
+ * Umicom Foundation
+ *
+ * LICENCE:
+ * MIT
  *---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,6 +122,7 @@ int main(int argc, char **argv)
     UmiUiWorkbench *workbench; UmiDocumentCoordinator *documents; UmiCommandRegistry *commands;
     char cwd[UMI_PATH_CAPACITY], root[UMI_PATH_CAPACITY], source[UMI_PATH_CAPACITY];
     char viewId[UMI_UI_ID_CAPACITY], message[512], installed[UMI_PATH_CAPACITY];
+    char expectedOutput[UMI_PATH_CAPACITY];
     CHECK(umi_fs_current_directory(cwd, sizeof(cwd)) == UMI_STATUS_OK);
     CHECK(umi_fs_join(root, sizeof(root), cwd, "Umicom Notes") == UMI_STATUS_OK);
     CHECK(!umi_fs_exists(root)); /* Never delete a pre-existing developer folder. */
@@ -126,6 +135,11 @@ int main(int argc, char **argv)
     CHECK(UmiDeveloperProjectCreateNew(projects, &request, &report, &model, &profile) == UMI_STATUS_OK);
     CHECK(report.files_created >= 6U && report.files_skipped == 0U);
     CHECK(UmiDeveloperProjectCreateNew(projects, &request, &report, &model, &profile) == UMI_STATUS_ALREADY_EXISTS);
+    /* The fixture deliberately changes what the starter prints. Keep its
+     * smoke contract explicit before running the saved application. */
+    CHECK(umi_fs_join(expectedOutput, sizeof expectedOutput, root, "tests/expected-output.txt") == UMI_STATUS_OK);
+    CHECK(umi_fs_is_file(expectedOutput));
+    CHECK(umi_fs_write_text(expectedOutput, "Umicom Notes: saved and built\n") == UMI_STATUS_OK);
     if (presetLaunch) {
         /* Inherit the generated platform toolchain but give every stage a
          * distinct name. Keep the original preset file and ordinary profile
@@ -464,6 +478,7 @@ int main(int argc, char **argv)
         CHECK(strcmp(draft,"Important unsaved notes\n")==0); UmiUiDocumentViewModelFreeText(draft);
         CHECK(Edit(workbench,viewId,"#include <stdio.h>\nint main(void){puts(\"Umicom Notes: corrected\");return 0;}\n")==EXIT_SUCCESS);
         CHECK(umi_document_coordinator_save_active(documents)==UMI_STATUS_OK);
+        CHECK(umi_fs_write_text(expectedOutput, "Umicom Notes: corrected\n") == UMI_STATUS_OK);
         /* Submit directly because Save All must correctly reject the separate
          * unnamed draft. Navigation is not permission to discard that draft. */
         CHECK(UmiStudioBuildSubmit(build,UMI_BUILD_PHASE_RUN,1)==UMI_STATUS_OK);

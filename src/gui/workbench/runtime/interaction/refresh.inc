@@ -94,6 +94,13 @@ static void runtime_refresh_interactive_panels(
     if (request == NULL) return;
     GObject *window = NULL;
 
+    /* Counts are cheap and independent of the file filter's focus and results. */
+    if (runtime->explorer_list != NULL) {
+        RuntimeExplorerRefreshDocumentCounts(runtime, request);
+        runtime = RuntimeResolveOwner(request, &window);
+        if (runtime == NULL) goto cleanup;
+    }
+
     /*
      * Protect caller-owned memory by checking that required state is available before it is
      * used.

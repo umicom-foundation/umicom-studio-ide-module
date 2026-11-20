@@ -61,8 +61,14 @@ typedef struct UmiStudioUi UmiStudioUi;
     "studio.editor.balance-groups"
 #define UMI_STUDIO_COMMAND_EDITOR_RESET_GROUPS \
     "studio.editor.reset-groups"
+#define UMI_STUDIO_COMMAND_EDITOR_TRANSLATE_C_TO_JAVA "studio.editor.translate-c-to-java"
+#define UMI_STUDIO_COMMAND_EDITOR_TRANSLATE_JAVA_TO_C "studio.editor.translate-java-to-c"
 
+#ifdef UMICOM_STUDIO_CVM_TRANSLATION_ENABLED
+#define UMI_STUDIO_WORKBENCH_COMMAND_COUNT 28U
+#else
 #define UMI_STUDIO_WORKBENCH_COMMAND_COUNT 26U
+#endif
 
 /**
  * Add studio workbench commands only after its inputs and available capacity have been

@@ -15,12 +15,24 @@
 include_guard(GLOBAL)
 # Use the actual workbench so model-only success cannot hide unreachable editors.
 if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
+    # Use the production splash and its legacy asset adapter so the native
+    # fixture verifies the same startup surface shown by Studio.
     add_executable(umicom-studio-first-use-test
-        tests/test_first_use_gtk4.c src/gui/workbench/workbench_window.c)
+        tests/test_first_use_gtk4.c src/gui/workbench/workbench_window.c
+        src/ui/splash.c src/ui/icon.c)
     target_include_directories(umicom-studio-first-use-test PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/workbench/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/include")
     target_link_libraries(umicom-studio-first-use-test PRIVATE
         Umicom::StudioCore Umicom::ui_gtk4 PkgConfig::GTK4 PkgConfig::GLIB PkgConfig::GIO)
+    # Stage the same approved vectors and Windows ICO for test captures.
+    # Tests run in an isolated host and use the CTest runtime environment.
+    umicom_apply_application_branding(
+        TARGET umicom-studio-first-use-test
+        PRODUCT_NAME "Umicom Studio IDE"
+        INTERNAL_NAME "umicom-studio-first-use-test"
+        RESOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../framework/resources"
+        NO_RUNTIME_DEPLOYMENT)
     umicom_apply_warnings(umicom-studio-first-use-test)
     umicom_apply_sanitizers(umicom-studio-first-use-test)
     if(COMMAND umicom_register_validation_target)
@@ -141,6 +153,12 @@ if(BUILD_TESTING AND TARGET umicom-studio-workspace-canvas-test)
             "${_studio_first_use_root}/${case}")
         set_tests_properties(studio.first_use.gtk4.${case} PROPERTIES
             TIMEOUT 600 SKIP_RETURN_CODE 77 LABELS "studio;gtk4;first-use;acceptance;toolchain")
+        # Exercise focused-window teardown as part of the paths that previously
+        # completed their build and run while emitting a native GTK critical.
+        if(WIN32 AND (case STREQUAL "visible-build-run" OR case STREQUAL "menu-build-run"))
+            set_tests_properties(studio.first_use.gtk4.${case} PROPERTIES
+                ENVIRONMENT "G_DEBUG=fatal-criticals")
+        endif()
     endforeach()
 endif()
 
